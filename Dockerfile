@@ -5,7 +5,7 @@ ARG PYTHON_IMAGE=python:3.13.16-slim-trixie@sha256:70729b46c69b4f1e97c4822c1af3d
 FROM ${PYTHON_IMAGE}
 
 LABEL org.opencontainers.image.title="Catalytix" \
-      org.opencontainers.image.version="2.16.0" \
+      org.opencontainers.image.version="2.16.1" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later" \
       org.opencontainers.image.source="https://github.com/soleil0815/catalytix" \
       org.opencontainers.image.description="Library management for training institutes (German/English)"

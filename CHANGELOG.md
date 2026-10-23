@@ -2,6 +2,12 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 2.16.1 – 23.10.2026
+- **GitHub-Workflow repariert:** Der Testlauf auf GitHub brach ab, weil ein Test PyYAML benutzte, das nicht zu den
+  Paketen von Catalytix gehört. Der Test prüft die Workflow-Datei jetzt ohne PyYAML.
+- Workflow nutzt die aktuellen Versionen der GitHub-Actions (`checkout@v7`, `setup-python@v7`, Docker-Actions v4/v7),
+  die mit Node.js 24 laufen – die Warnung „Node.js 20 actions are deprecated“ entfällt.
+
 ## 2.16.0 – 23.10.2026
 - **GitHub baut den Container:** Workflow `.github/workflows/build.yml` für das Repository `soleil0815/catalytix`.
   Bei jedem Push auf `main` laufen die Tests mit den festgelegten Paketversionen, danach entsteht das Image

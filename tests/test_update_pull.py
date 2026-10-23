@@ -188,10 +188,10 @@ class RepoFilesTests(unittest.TestCase):
         self.assertIn(f"CATALYTIX_TAG:-{v}}}", (ROOT / "docker-compose.yml").read_text())
 
     def test_workflow_builds_and_pushes_image(self):
-        import yaml
-        wf = yaml.safe_load((ROOT / ".github" / "workflows" / "build.yml").read_text())
-        self.assertEqual(set(wf["jobs"]), {"test", "image", "release"})
+        # ohne PyYAML: das ist keine Abhängigkeit von Catalytix und fehlt deshalb auf GitHub
         text = (ROOT / ".github" / "workflows" / "build.yml").read_text()
+        for job in ("  test:", "  image:", "  release:"):
+            self.assertIn(f"\n{job}\n", text)
         self.assertIn("ghcr.io/${GITHUB_REPOSITORY,,}", text)
         self.assertIn("linux/amd64,linux/arm64", text)
 

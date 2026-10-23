@@ -78,7 +78,7 @@ done
 
 [ "$PULL" = 0 ] || [ -z "$ZIP" ] || die "Either a zip package or --pull, not both."
 [ -z "$PULL_TAG" ] || [[ "$PULL_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$|^latest$ ]] \
-    || die "--pull=… expects a version like 2.16.0 (or latest)."
+    || die "--pull=… expects a version like 2.16.1 (or latest)."
 
 # Resolve the package path BEFORE changing into the program folder (also relative paths like ../x.zip)
 if [ -n "$ZIP" ]; then

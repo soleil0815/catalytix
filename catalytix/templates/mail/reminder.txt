@@ -1,0 +1,20 @@
+{% if overdue %}{% if overdue|length == 1 and not due_soon %}{{ _("Überfällig: {title}", title=overdue[0].book.title|safe) }}{% else %}{{ _("Bitte zurückgeben: {n} Bücher", n=overdue|length + due_soon|length) }}{% endif %}{% else %}{% if due_soon|length == 1 %}{{ _("Bald fällig: {title}", title=due_soon[0].book.title|safe) }}{% else %}{{ _("Bald fällig: {n} Bücher", n=due_soon|length) }}{% endif %}{% endif %}
+{{ _("Hallo {name},", name=user.name|safe) }}
+{% if overdue %}
+{{ _("die Leihfrist für folgende Bücher ist abgelaufen – bitte gib sie bald zurück:") }}
+{% for l in overdue %}
+  * {{ l.book.title }} – {{ _n("fällig war {date} ({n} Tag überfällig)", "fällig war {date} ({n} Tage überfällig)", -l.days_left, date=l.due_at|de_day) }}
+{%- endfor %}
+{% endif %}{% if due_soon %}
+{% if overdue %}{{ _("Außerdem bald fällig:") }}{% else %}{{ _("diese Bücher sind bald fällig:") }}{% endif %}
+{% for l in due_soon %}
+  * {{ l.book.title }} – {{ _("fällig am {date}", date=l.due_at|de_day) }}
+{%- endfor %}
+{% endif %}
+{% if self_extend and base_url %}{{ _("Du kannst deine Ausleihen online verlängern:") }} {{ base_url }}/ausleihen
+{% elif base_url %}{{ _("Deine Ausleihen:") }} {{ base_url }}/ausleihen
+{% endif %}
+{{ _("Danke!") }}
+{% if footer %}
+--
+{{ footer }}{% endif %}

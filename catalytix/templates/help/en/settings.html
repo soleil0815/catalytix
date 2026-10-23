@@ -1,0 +1,12 @@
+<p><span class="ui">Administration → Settings</span> controls how the library works. Don't forget <span class="ui">Save</span> at the bottom.</p>
+<ul>
+  <li><b>General:</b> <span class="ui">Library name</span> (shown everywhere instead of a product name), <span class="ui">Default language</span> (currently {{ f.languages.get(f.default_language, f.default_language) }}) – used for visitors whose browser prefers neither German nor English, and for emails to users who have not chosen a language.</li>
+  <li><span class="ui">Catalogue visibility</span>: {% if f.catalog_all %}currently everyone sees the whole catalogue{% else %}currently readers only see their groups' books and general books{% endif %}. Borrowing is always limited to the reader's own groups.</li>
+  <li><b>Legal:</b> addresses of the <span class="ui">Legal notice</span> and <span class="ui">Privacy policy</span>. The links appear on the sign-in page, in the sidebar and in every email.</li>
+  <li><b>Loans:</b> loan period (currently {{ f.loan_days }} {{ "day" if f.loan_days == 1 else "days" }}), renewal by {{ f.extension_days }} {{ "day" if f.extension_days == 1 else "days" }}, at most {{ f.max_extensions }} {{ "time" if f.max_extensions == 1 else "times" }}, simultaneous loans {% if f.max_loans %}at most {{ f.max_loans }}{% else %}unlimited (0){% endif %}.</li>
+  <li><b>Self-service:</b> <span class="ui">Self-checkout</span> ({{ "on" if f.self_checkout else "off" }}), <span class="ui">Self-renewal</span> ({{ "on" if f.self_extend else "off" }}), <span class="ui">Self-return</span> ({{ "on" if f.self_return else "off" }}). Whatever is off is done by librarians.</li>
+  <li><span class="ui">Self-registration</span> – see its own topic.</li>
+  <li><span class="ui">Retention</span> – deletion period for completed loans, currently {% if f.retention_months %}{{ f.retention_months }} {{ "month" if f.retention_months == 1 else "months" }}{% else %}<b>never</b>{% endif %}.</li>
+  <li><span class="ui">Two-factor authentication</span> – requirement and internal network, see its own topic.</li>
+  <li><span class="ui">ISBN data sources</span> – German National Library, Open Library, Google Books: tick or untick. They are queried in this order and missing fields are filled from the next source. The server needs internet access for this; only the ISBN is sent.</li>
+</ul>

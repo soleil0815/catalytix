@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ _("Schnellerfassung") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Schnellerfassung") }}</div><h1>{{ _("Bücher am Fließband erfassen") }}</h1>
+    <p>{{ _("Scanne eine ISBN nach der anderen. Neue Titel werden mit einem Klick übernommen, vorhandene um ein Exemplar erhöht.") }}</p></div>
+</div>
+
+<div class="split">
+  <div class="stack">
+    <section class="card scan-hero">
+      <div class="big-icon">{{ icon("scan") }}</div>
+      <h2>{{ _("ISBN scannen") }}</h2>
+      <p class="muted">{{ _('Barcodescanner einfach auslösen – oder Nummer eintippen und <span class="kbd">Enter</span> drücken.') }}</p>
+      <form data-quick-form autocomplete="off">
+        <input class="isbn-input" type="text" id="quick-isbn" inputmode="numeric" placeholder="ISBN" autofocus data-quick-input>
+      </form>
+      <div class="actions" style="justify-content: center; margin-top: 14px">
+        <button type="button" class="btn" data-scanner-open data-scanner-target="#quick-isbn" data-scanner-submit>{{ icon("camera") }} {{ _("Mit Kamera scannen") }}</button>
+      </div>
+      <label class="check" style="justify-content: center; margin-top: 16px">
+        <input type="checkbox" data-quick-auto> {{ _("Neue Titel automatisch übernehmen (ohne Rückfrage)") }}</label>
+    </section>
+    <section class="card" data-quick-result hidden></section>
+  </div>
+
+  <div class="stack">
+    <section class="card card-pad">
+      <h3 style="margin-bottom: 14px">{{ _("Vorgaben für neue Titel") }}</h3>
+      <div class="field"><label>{{ _("Gruppe") }}</label>
+        <select data-quick-group>
+          <option value="">{{ _("Allgemein") }}</option>
+          {% for g in groups %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
+        </select></div>
+      <div class="field"><label>{{ _("Standort") }}</label>
+        {% if location_names %}
+        <select data-quick-location>
+          <option value="">{{ _("– kein Standort –") }}</option>
+          {% for n in location_names %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
+        </select>
+        {% else %}
+        <input type="text" data-quick-location placeholder="{{ _("z. B. Regal B3") }}">
+        <div class="hint">{{ _('<a href="{url}">Standorte festlegen</a>, um hier auszuwählen statt zu tippen.', url=url_for('locations.index')) }}</div>
+        {% endif %}</div>
+    </section>
+    <section class="card scan-log">
+      <div class="card-head"><h3>{{ _("Protokoll") }}</h3><span class="muted" data-quick-count>{{ _n("{n} Vorgang", "{n} Vorgänge", 0) }}</span></div>
+      <div data-quick-log><div class="empty" style="padding: 24px">{{ _("Noch nichts gescannt.") }}</div></div>
+    </section>
+  </div>
+</div>
+{% endblock %}

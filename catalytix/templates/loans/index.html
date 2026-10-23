@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, cover, due_badge, pagination %}
+{% block title %}{{ _("Ausleihen") }}{% endblock %}
+{% block content %}
+{% set nur = 'meine' if scope == 'meine' and current_user.is_librarian else None %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Ausleihen") }}</div>
+    <h1>{{ _("Meine Ausleihen") if scope == "meine" else _("Alle Ausleihen") }}</h1></div>
+  {% if current_user.is_librarian %}
+  <div class="actions"><a class="btn primary" href="{{ url_for('loans.desk') }}">{{ icon("desk") }} {{ _("Ausleihtheke") }}</a></div>
+  {% endif %}
+</div>
+
+<nav class="tabs">
+  <a href="{{ url_for('loans.index', ansicht='aktiv', nur=nur) }}" class="{{ 'on' if view == 'aktiv' }}">{{ icon("book") }} {{ _("Aktiv") }}</a>
+  <a href="{{ url_for('loans.index', ansicht='ueberfaellig', nur=nur) }}" class="{{ 'on' if view == 'ueberfaellig' }}">{{ icon("alert") }} {{ _("Überfällig") }}</a>
+  <a href="{{ url_for('loans.index', ansicht='verlauf', nur=nur) }}" class="{{ 'on' if view == 'verlauf' }}">{{ icon("clock") }} {{ _("Verlauf") }}</a>
+</nav>
+
+<form class="toolbar" method="get">
+  <input type="hidden" name="ansicht" value="{{ view }}">
+  {% if nur %}<input type="hidden" name="nur" value="meine">{% endif %}
+  <input class="grow" type="search" name="q" value="{{ q }}" placeholder="{{ _('Titel, ISBN, Benutzer …') if scope == 'alle' else _('Titel, ISBN …') }}">
+  <button class="btn">{{ icon("search") }} {{ _("Suchen") }}</button>
+</form>
+
+<div class="card table-wrap">
+  <table>
+    <thead><tr><th>{{ _("Buch") }}</th>{% if scope == 'alle' %}<th>{{ _("Benutzer") }}</th>{% endif %}<th>{{ _("Ausgeliehen") }}</th><th>{{ _("Status") }}</th><th></th></tr></thead>
+    <tbody>
+    {% for loan in loans %}
+      <tr>
+        <td><a class="cell-book" href="{{ url_for('books.detail', book_id=loan.book.id) }}" style="color: inherit">
+          <span class="mini-cover">{{ cover(loan.book) }}</span>
+          <span><b>{{ loan.book.title }}</b><small>{{ loan.book.authors }}</small></span></a></td>
+        {% if scope == 'alle' %}
+        <td><div class="cell-user"><span class="avatar" style="width:30px;height:30px;font-size:11px">{{ loan.user.initials }}</span>
+          <div><b>{{ loan.user.name }}</b><br><small>{{ loan.user.username }}</small></div></div></td>
+        {% endif %}
+        <td class="nowrap">{{ loan.loaned_at|de_day }}{% if loan.extensions %}<br><small>{{ _("{n}× verlängert", n=loan.extensions) }}</small>{% endif %}</td>
+        <td>{{ due_badge(loan) }}</td>
+        <td class="actions-cell">
+          {% if loan.is_active %}
+            {% set manager = current_user.can_manage(loan.book) %}
+            {% if manager or (self_extend and loan.user_id == current_user.id and loan.extensions < max_ext) %}
+            <form method="post" action="{{ url_for('loans.extend', loan_id=loan.id) }}" style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="{{ request.full_path }}">
+              <button class="btn sm" title="{{ _("Verlängern") }}">{{ icon("extend") }} {{ _("Verlängern") }}</button></form>
+            {% endif %}
+            {% if manager and mail_on and loan.user_id != current_user.id %}
+            <form method="post" action="{{ url_for('loans.remind', loan_id=loan.id) }}" style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="{{ request.full_path }}">
+              <button class="btn sm" title="{{ _('E-Mail-Erinnerung an {email}', email=loan.user.email) if loan.user.email else _('Keine E-Mail-Adresse hinterlegt') }}"
+                      {{ "disabled" if not loan.user.email }}>{{ icon("mail") }}</button></form>
+            {% endif %}
+            {% if manager or (self_return and loan.user_id == current_user.id) %}
+            <form method="post" action="{{ url_for('loans.give_back', loan_id=loan.id) }}" style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="{{ request.full_path }}">
+              <button class="btn sm primary" title="{{ _("Rückgabe") }}">{{ icon("return") }} {{ _("Rückgabe") }}</button></form>
+            {% endif %}
+          {% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="empty">{{ icon("book") }}<div>{{ _("Keine Einträge.") }}</div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{{ pagination(page, pages, "loans.index", {"ansicht": view, "nur": nur, "q": q}) }}
+{% endblock %}

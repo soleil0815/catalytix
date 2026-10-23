@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ _("Erscheinungsbild") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("Erscheinungsbild") }}</h1>
+    <p>{{ _("Logo, Hintergrundbild der Anmeldeseite, Farben und Begrüßungstext – für euer eigenes Corporate Design.") }}</p></div>
+  <div class="actions"><a class="btn" href="{{ url_for('admin.branding_preview') }}" target="_blank" rel="noopener">{{ icon("image") }} {{ _("Anmeldeseite ansehen") }}</a></div>
+</div>
+
+<form method="post" enctype="multipart/form-data" data-branding-form>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" name="action" value="save" style="position:absolute;left:-9999px" tabindex="-1" aria-hidden="true"></button>
+
+  <div class="grid grid-2">
+    <div class="stack">
+      <section class="card card-pad">
+        <h2 style="margin-bottom: 6px">{{ icon("image") }} {{ _("Logo") }}</h2>
+        <p class="muted" style="font-size: 13.5px">{{ _("Erscheint in der Seitenleiste, auf der Anmeldeseite, in E-Mails und als Browser-Symbol. Am besten PNG mit transparentem Hintergrund oder SVG, quer- oder quadratisch.") }}</p>
+        <div class="logo-previews">
+          <div class="logo-swatch side" data-preview-side>
+            <img data-preview-logo src="{{ brand.logo_url }}" alt="" {{ 'hidden' if not brand.logo_url }}>
+            <span class="muted" data-preview-nologo {{ 'hidden' if brand.logo_url }}>{{ _("kein Logo") }}</span>
+          </div>
+          <div class="logo-swatch light">
+            <img data-preview-logo src="{{ brand.logo_url }}" alt="" {{ 'hidden' if not brand.logo_url }}>
+            <span class="muted" data-preview-nologo {{ 'hidden' if brand.logo_url }}>{{ _("kein Logo") }}</span>
+          </div>
+        </div>
+        <div class="field" style="margin-top: 14px"><label>{{ _("Logo hochladen") }}</label>
+          <input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*" data-file-preview="logo"></div>
+        <label class="check"><input type="checkbox" name="brand_logo_text" value="1" {{ 'checked' if s('brand_logo_text') != '0' }}>
+          <span>{{ _("Namen der Bibliothek neben dem Logo anzeigen") }}<small class="muted">{{ _("Ausschalten, wenn euer Logo den Namen schon enthält. Den Namen legst du unter <i>Einstellungen</i> fest.") }}</small></span></label>
+        <label class="check"><input type="checkbox" name="brand_logo_plate" value="1" {{ 'checked' if s('brand_logo_plate') == '1' }} data-plate-toggle>
+          <span>{{ _("Logo auf hellem Feld anzeigen") }}<small class="muted">{{ _("Für dunkle Logos, die auf der dunklen Seitenleiste sonst schlecht zu sehen sind.") }}</small></span></label>
+        {% if brand.logo_url %}<label class="check"><input type="checkbox" name="remove_logo" value="1"> <span>{{ _("Logo entfernen") }}</span></label>{% endif %}
+      </section>
+
+      <section class="card card-pad">
+        <h2 style="margin-bottom: 6px">{{ icon("palette") }} {{ _("Farben") }}</h2>
+        <p class="muted" style="font-size: 13.5px">{{ _("Die Vorschau ändert sich sofort auf dieser Seite. Schriftfarben werden automatisch so gewählt, dass alles lesbar bleibt – auch im Dunkelmodus.") }}</p>
+        {% for key, label, hint in [("accent", _("Hauptfarbe"), _("Knöpfe, Links, Markierungen")),
+                                     ("brass", _("Akzentfarbe"), _("Hervorhebungen, Logo-Feld, Überschriften-Zusätze")),
+                                     ("side", _("Seitenleiste"), _("Navigation links und Anmeldeseite ohne Bild"))] %}
+        <div class="color-row">
+          <input type="color" value="{{ colors[key] or defaults[key] }}" data-color-picker="{{ key }}" aria-label="{{ label }}">
+          <div class="grow"><b>{{ label }}</b><small class="muted">{{ hint }}</small></div>
+          <input type="hidden" name="brand_{{ key }}" value="{{ colors[key] }}" data-color-value="{{ key }}">
+          <code data-color-label="{{ key }}">{{ colors[key] or _("Standard") }}</code>
+          <button type="button" class="btn sm ghost" data-color-reset="{{ key }}" data-default="{{ defaults[key] }}">{{ _("Standard") }}</button>
+        </div>
+        {% endfor %}
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card card-pad">
+        <h2 style="margin-bottom: 12px">{{ icon("lock") }} {{ _("Anmeldeseite") }}</h2>
+        <div class="login-preview{{ ' has-bg' if brand.bg_url }}" data-login-preview
+             style="--auth-bg: url('{{ brand.bg_url }}'); --auth-dim: {{ brand.bg_dim / 100 }}">
+          <div>
+            <div class="auth-logo{{ ' plate' if brand.logo_plate }}" data-preview-loginlogo {{ 'hidden' if not brand.logo_url }}>
+              <img data-preview-logo src="{{ brand.logo_url }}" alt=""></div>
+            <div class="eyebrow auth-eyebrow" data-preview-eyebrow>{{ brand.eyebrow }}</div>
+            <div class="lp-title" data-preview-title {{ 'hidden' if brand.logo_url and not brand.show_text }}>{{ library_name }}</div>
+            <div class="lp-text" data-preview-text>{{ brand.text }}</div>
+          </div>
+          <div class="lp-shelf" data-preview-shelf {{ 'hidden' if not brand.show_shelf }}>
+            {% for h, c in [(60,'#8d3b2c'),(72,'#2f6f62'),(52,'#c2a15a'),(66,'#3d4f73'),(76,'#6b3d58'),(58,'#2f5a3f'),(70,'#a65d2e'),(62,'#475a55')] %}
+            <i style="height: {{ h }}px; background: {{ c }}"></i>{% endfor %}
+          </div>
+          <div class="lp-form"><span></span><span></span><b></b></div>
+        </div>
+
+        <div class="field" style="margin-top: 16px"><label>{{ _("Hintergrundbild") }}</label>
+          <input type="file" name="bg" accept=".png,.jpg,.jpeg,.webp,image/*" data-file-preview="bg">
+          <div class="hint">{{ _("Querformat, mindestens 1600 px breit. Wird automatisch verkleinert; Metadaten (z. B. GPS) werden entfernt.") }}</div></div>
+        {% if brand.bg_url %}<label class="check"><input type="checkbox" name="remove_bg" value="1"> <span>{{ _("Hintergrundbild entfernen") }}</span></label>{% endif %}
+        <div class="field"><label>{{ _("Abdunkeln für bessere Lesbarkeit:") }} <span data-dim-label>{{ brand.bg_dim }}</span> %</label>
+          <input type="range" name="brand_bg_dim" min="0" max="85" step="5" value="{{ brand.bg_dim }}" data-dim style="width: 100%"></div>
+        <label class="check"><input type="checkbox" name="login_show_shelf" value="1" {{ 'checked' if brand.show_shelf }} data-shelf-toggle>
+          <span>{{ _("Bücherregal-Grafik anzeigen") }}</span></label>
+        <div class="form-grid">
+          <div class="field span-6"><label>{{ _("Name der Bibliothek") }}</label>
+            <input type="text" name="library_name" value="{{ s('library_name') }}" maxlength="120"></div>
+          <div class="field span-6"><label>{{ _("Kleine Überschrift") }}</label>
+            <input type="text" name="login_eyebrow" value="{{ brand.eyebrow }}" maxlength="60" placeholder="{{ _('leer = ausblenden') }}" data-bind="eyebrow"></div>
+          <div class="field span-6"><label>{{ _("Begrüßungstext") }}</label>
+            <textarea name="login_text" maxlength="300" style="min-height: 70px" placeholder="{{ _('leer = ausblenden') }}" data-bind="text">{{ brand.text }}</textarea></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="actions" style="margin-top: 20px; justify-content: space-between">
+    <button class="btn danger" name="action" value="reset" formnovalidate
+            data-confirm-click="{{ _('Logo, Hintergrundbild, Farben und Texte auf Standard zurücksetzen?') }}">{{ icon("extend") }} {{ _("Alles zurücksetzen") }}</button>
+    <button class="btn primary lg" name="action" value="save">{{ icon("check") }} {{ _("Speichern") }}</button>
+  </div>
+</form>
+{% endblock %}

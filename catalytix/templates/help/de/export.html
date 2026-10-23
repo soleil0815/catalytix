@@ -1,0 +1,8 @@
+<p>Im <span class="ui">Katalog</span> lädt der Knopf <span class="ui">CSV</span> oben rechts den Bestand als Tabelle herunter (<code>catalytix-bestand.csv</code>). Exportiert werden {% if current_user.is_global_manager %}alle Bücher{% else %}die Bücher deiner Gruppen und die allgemeinen Bücher{% endif %}, sortiert nach Titel – Such- und Filtereinstellungen spielen keine Rolle.</p>
+<p><b>Spalten:</b> ID, ISBN, Titel, Untertitel, Autoren, Verlag, Erschienen, Auflage, Seiten, Sprache, Kategorie, Schlagwörter, Standort, Signatur, Gruppe (oder „Allgemein“), Exemplare, Verfügbar.</p>
+<ul>
+  <li>Die Datei ist <b>Excel-kompatibel</b>: Semikolon als Trennzeichen und UTF-8 mit Kennung, damit Umlaute stimmen. Doppelklick genügt.</li>
+  <li><b>Schutz vor Formeln:</b> Zellen, die mit <code>=</code>, <code>+</code>, <code>-</code> oder <code>@</code> beginnen, bekommen ein vorangestelltes Hochkomma. So führt Excel nichts als Formel aus; das Hochkomma siehst du ggf. in der Zelle.</li>
+  <li>Die Datei enthält <b>keine personenbezogenen Daten</b> – keine Ausleihen und keine Benutzer, nur die Zahl verfügbarer Exemplare.</li>
+</ul>
+<p>Die ID ist die interne Buch-Nummer, die du auch an der <span class="ui">Ausleihtheke</span> eingeben kannst.</p>

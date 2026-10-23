@@ -1,0 +1,10 @@
+<p>Unter <span class="ui">Verwaltung → Standorte</span> legst du Regale, Räume oder Schränke einmal fest. Sobald es mindestens einen gibt, wird der Standort beim Erfassen, in der Schnellerfassung und beim Bearbeiten <b>aus einer Liste gewählt</b> statt getippt – keine Tippfehler mehr.</p>
+<ul>
+  <li><b>Anlegen:</b> Namen ins Feld schreiben, einen pro Zeile, dann <span class="ui">Anlegen</span>. Doppelte Namen (auch in anderer Groß-/Kleinschreibung) werden übersprungen.</li>
+  <li><b>Umbenennen:</b> Namen im Feld ändern und mit ✓ speichern – alle Bücher an diesem Standort werden mitgeändert. Eine optionale Notiz hilft beim Finden.</li>
+  <li><b>Löschen</b> geht erst, wenn dort kein Buch mehr steht.</li>
+  <li>Die Zahl neben jedem Standort führt zu den Büchern dort; im <span class="ui">Katalog</span> lässt sich nach Standort filtern.</li>
+</ul>
+<p><b>Im Bestand, aber nicht festgelegt</b> listet früher frei getippte Standorte. Wähle <span class="ui">als neuen Standort übernehmen</span> oder <span class="ui">ersetzen durch …</span> und klicke <span class="ui">Ausführen</span> – die Bücher werden mit umgestellt. Bei anderer Schreibweise („regal a2“) oder ähnlichem Namen („Regl A1“) ist der passende Standort schon vorausgewählt.</p>
+<p><b>Zusammenlegen:</b> Zwei festgelegte Standorte lassen sich nicht durch Umbenennen vereinen. Stell die Bücher des einen um und lösche ihn dann.</p>
+{% if not current_user.is_global_manager %}<p>Als Verwalter einer Gruppe kannst du Standorte anlegen. Umbenennen oder Ersetzen, das auch Bücher anderer Gruppen betrifft, bleibt Administratoren und Verwaltern ohne Gruppe vorbehalten.</p>{% endif %}

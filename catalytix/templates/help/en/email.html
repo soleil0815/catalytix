@@ -1,0 +1,16 @@
+<p>Under <span class="ui">Administration → Email</span> you set up delivery via your SMTP server. Email delivery is currently <b>{{ "active" if f.mail_on else "not active" }}</b>.</p>
+<ol>
+  <li>Tick <span class="ui">Enable sending emails</span>, then enter <span class="ui">Server</span>, <span class="ui">Port</span>, <span class="ui">Encryption</span> (STARTTLS/587, SSL/TLS/465 or none/25 for internal relays only), credentials and <span class="ui">Sender address</span>. Example for Microsoft 365: <code>smtp.office365.com:587</code> with STARTTLS.</li>
+  <li><span class="ui">Send test email</span> – uses the values in the form, even unsaved.</li>
+  <li>Enter the <span class="ui">Library address</span> (<span class="ui">Use current</span>) so that links in emails work.</li>
+  <li><span class="ui">Save</span>.</li>
+</ol>
+<p><b>Notifications:</b></p>
+<ul>
+  <li>Confirmation on loan (immediately) and on return (off by default).</li>
+  <li><span class="ui">Reminder before due date</span> – {{ "on" if f.reminder_on else "off" }}, {{ f.reminder_days }} {{ "day" if f.reminder_days == 1 else "days" }} before, once per loan.</li>
+  <li><span class="ui">Overdue notice</span> – {{ "on" if f.overdue_on else "off" }}, {% if f.overdue_repeat_days == 1 %}every day{% else %}every {{ f.overdue_repeat_days }} days{% endif %}, {% if f.overdue_max %}at most {{ f.overdue_max }} {{ "time" if f.overdue_max == 1 else "times" }}{% else %}unlimited{% endif %}.</li>
+  <li><span class="ui">Daily overview for librarians</span> – {{ "on" if f.mail_digest else "off" }}; only when there is something overdue in their groups.</li>
+</ul>
+<p>Reminders and overdue notices run once a day from {{ "%02d"|format(f.mail_hour) }}:00, several books per person in one email, never twice. <span class="ui">Send now</span> starts the run immediately. Administrators are also emailed when a backup fails.</p>
+<p>The <span class="ui">Delivery log</span> at the bottom shows every email with its status and any error; it is cleared after the retention period. Addresses come from the <code>mail</code> attribute for directory accounts and from user management for local ones; everyone can turn emails off in their profile. The SMTP password is stored encrypted.</p>

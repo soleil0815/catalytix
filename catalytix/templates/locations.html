@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ _("Standorte") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Verwaltung") }}</div><h1>{{ _("Standorte") }}</h1>
+    <p>{{ _("Feste Liste der Regale, Räume oder Schränke. Beim Erfassen wird dann ausgewählt statt getippt – keine Tippfehler mehr.") }}</p></div>
+</div>
+
+<div class="grid grid-2">
+  <section class="card card-pad">
+    <h2 style="margin-bottom: 12px">{{ icon("plus") }} {{ _("Standorte anlegen") }}</h2>
+    <form method="post" action="{{ url_for('locations.create') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label>{{ _("Namen – einer pro Zeile") }}</label>
+        <textarea name="names" rows="5" placeholder="{{ _("Regal A1&#10;Regal A2&#10;Lehrerzimmer&#10;Werkstatt, Schrank 3") }}" required></textarea>
+        <div class="hint">{{ _("Mehrere auf einmal möglich. Groß-/Kleinschreibung wird beim Erfassen angeglichen.") }}</div></div>
+      <button class="btn primary">{{ icon("check") }} {{ _("Anlegen") }}</button>
+    </form>
+  </section>
+
+  <section class="card card-pad">
+    <h2 style="margin-bottom: 8px">{{ _("So funktioniert es") }}</h2>
+    <ul class="muted" style="font-size: 13.5px; padding-left: 18px; margin: 0; line-height: 1.6">
+      <li>{{ _("Sobald ein Standort festgelegt ist, gibt es beim Erfassen, in der Schnellerfassung und beim Bearbeiten eine Auswahlliste.") }}</li>
+      <li>{{ _("Umbenennen ändert den Standort bei allen Büchern mit.") }}</li>
+      <li>{{ _("Löschen geht erst, wenn kein Buch mehr dort steht.") }}</li>
+      <li>{{ _("Im Katalog lässt sich nach Standort filtern.") }}</li>
+    </ul>
+  </section>
+</div>
+
+<section class="card" style="margin-top: 22px">
+  <div class="card-head"><h2>{{ _("Festgelegte Standorte") }}</h2><span class="muted">{{ locations|length }}</span></div>
+  {% for loc in locations %}
+  <div class="list-row" style="flex-wrap: wrap; gap: 10px">
+    <span class="avatar" style="width:30px;height:30px">{{ icon("pin") }}</span>
+    <form method="post" action="{{ url_for('locations.rename', loc_id=loc.id) }}" class="grow" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; min-width: 260px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="text" name="name" value="{{ loc.name }}" maxlength="200" style="flex: 1 1 180px" aria-label="{{ _("Name") }}">
+      <input type="text" name="note" value="{{ loc.note or '' }}" maxlength="300" placeholder="{{ _("Notiz (optional)") }}" style="flex: 1 1 160px" aria-label="{{ _("Notiz") }}">
+      <button class="btn sm" title="{{ _("Speichern") }}">{{ icon("check") }}</button>
+    </form>
+    {% set n = usage.get(loc.name, 0) %}
+    <a class="badge" href="{{ url_for('books.index', standort=loc.name) }}" title="{{ _("Bücher an diesem Standort") }}">{{ _n("{n} Buch", "{n} Bücher", n) }}</a>
+    <form method="post" action="{{ url_for('locations.delete', loc_id=loc.id) }}" data-confirm="{{ _("Standort „{name}“ löschen?", name=loc.name) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn sm ghost" title="{{ _("Löschen") }}" {{ 'disabled' if usage.get(loc.name) }}>{{ icon("trash") }}</button>
+    </form>
+  </div>
+  {% else %}
+  <div class="empty">{{ _("Noch keine Standorte festgelegt – bis dahin wird der Standort beim Erfassen frei eingetippt.") }}</div>
+  {% endfor %}
+</section>
+
+{% if unlisted %}
+<section class="card" style="margin-top: 22px">
+  <div class="card-head"><h2>{{ _("Im Bestand, aber nicht festgelegt") }}</h2><span class="muted">{{ unlisted|length }}</span></div>
+  <p class="muted" style="font-size: 13.5px; padding: 0 22px; margin: 4px 0 8px">{{ _("Diese Standorte wurden früher frei eingetippt. Übernimm sie in die Liste oder ersetze Tippfehler durch einen festgelegten Standort – die Bücher werden dabei mit umgestellt.") }}</p>
+  {% for u in unlisted %}
+  <div class="list-row" style="flex-wrap: wrap; gap: 10px">
+    <div class="grow" style="min-width: 160px"><b style="white-space: pre">{{ u.value }}</b>
+      <a class="muted" href="{{ url_for('books.index', standort=u.value) }}"><small>{{ _n("{n} Buch", "{n} Bücher", u.count) }}</small></a>
+      {% if u.suggest %}{% set sname = (locations|selectattr('id', 'equalto', u.suggest)|first).name %}<br><small class="muted">{{ _("Andere Schreibweise von „{name}“", name=sname) if u.variant else _("Tippfehler? Ähnlich wie „{name}“", name=sname) }}</small>{% endif %}</div>
+    <form method="post" action="{{ url_for('locations.adopt') }}" style="display: flex; gap: 8px; align-items: center">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="value" value="{{ u.value }}">
+      <select name="target" aria-label="{{ _("Aktion") }}" style="width: auto; max-width: 280px">
+        <option value="__neu__" {{ 'selected' if not u.suggest }}>{{ _("als neuen Standort übernehmen") }}</option>
+        {% for loc in locations %}<option value="{{ loc.id }}" {{ 'selected' if u.suggest == loc.id }}>{{ _("ersetzen durch „{name}“", name=loc.name) }}</option>{% endfor %}
+      </select>
+      <button class="btn sm primary">{{ icon("check") }} {{ _("Ausführen") }}</button>
+    </form>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

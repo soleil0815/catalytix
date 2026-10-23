@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ _("Gruppen") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("Gruppen") }}</h1>
+    <p>{{ _("Jede Gruppe hat ihren eigenen Buchbestand. Mitglieder können nur Bücher ihrer Gruppen (und allgemeine Bücher) ausleihen.") }}</p></div>
+  <div class="actions"><a class="btn primary" href="{{ url_for('admin.group_new') }}">{{ icon("plus") }} {{ _("Gruppe") }}</a></div>
+</div>
+<div class="grid grid-3">
+  <div class="card card-pad">
+    <div class="actions"><span class="dot" style="background: var(--muted)"></span><h3>{{ _("Allgemein") }}</h3></div>
+    <p class="muted" style="margin-top: 8px">{{ _("Bücher ohne Gruppe – für alle angemeldeten Benutzer ausleihbar.") }}</p>
+    <div class="actions"><span class="badge">{{ _n("{n} Titel", "{n} Titel", general_books) }}</span></div>
+  </div>
+  {% for g in groups %}
+  <a class="card card-pad" href="{{ url_for('admin.group_edit', group_id=g.id) }}" style="color: inherit; text-decoration: none">
+    <div class="actions"><span class="dot" style="background: {{ g.color }}; width: 12px; height: 12px"></span><h3>{{ g.name }}</h3>
+      {% if g.ldap_dn %}<span class="badge accent" style="margin-left:auto">{{ icon("server") }} AD</span>{% endif %}</div>
+    <p class="muted" style="margin-top: 8px; min-height: 1.5em">{{ g.description or "–" }}</p>
+    <div class="actions"><span class="badge">{{ _n("{n} Mitglied", "{n} Mitglieder", g.users|length) }}</span><span class="badge">{{ _n("{n} Titel", "{n} Titel", book_counts.get(g.id, 0)) }}</span></div>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ _("Hilfe") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">{{ current_user.role_label }}</div>
+    <h1>{{ _("Hilfe") }}</h1>
+    <p class="muted">{{ _("Hier steht nur, was du mit deiner Rolle tun kannst – passend zu den Einstellungen dieser Bibliothek.") }}</p>
+  </div>
+  {% if has_manual %}
+  <div class="actions"><a class="btn" href="{{ url_for('help.manual', name=manual) }}" target="_blank" rel="noopener">{{ icon("download") }} {{ _("Handbuch (PDF)") }}</a></div>
+  {% endif %}
+</div>
+<div class="help-layout">
+  <nav class="help-toc card" aria-label="{{ _('Inhalt') }}"><div class="card-body">
+    <input class="help-search" type="search" placeholder="{{ _('Hilfe durchsuchen …') }}" aria-label="{{ _('Hilfe durchsuchen') }}" data-help-search>
+    {% for name, items in groups %}
+    <div class="nav-group"><b>{{ name }}</b>
+      {% for t in items %}<a href="#{{ t.id }}" data-help-link="{{ t.id }}" class="{{ 'on' if focus == t.id }}">{{ t.title() }}</a>{% endfor %}
+    </div>
+    {% endfor %}
+  </div></nav>
+  <div class="stack" data-help-topics {% if focus %}data-help-focus="{{ focus }}"{% endif %}>
+    {% for name, items in groups %}{% for t in items %}
+    <section class="card help-topic" id="{{ t.id }}" data-help-topic>
+      <div class="card-body">
+        <h2>{{ t.title() }}{% if t.role != "reader" %} <span class="role-tag">{{ name }}</span>{% endif %}</h2>
+        {% include ["help/" ~ lang ~ "/" ~ t.id ~ ".html", "help/de/" ~ t.id ~ ".html"] ignore missing %}
+      </div>
+    </section>
+    {% endfor %}{% endfor %}
+    <p class="muted help-empty" data-help-empty>{{ _("Nichts gefunden. Versuche ein anderes Wort.") }}</p>
+  </div>
+</div>
+{% endblock %}

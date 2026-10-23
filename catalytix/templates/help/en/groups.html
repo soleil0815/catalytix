@@ -1,0 +1,13 @@
+<p>Groups link books and people, e.g. a class or a training programme. Every book belongs to one group or is <b>general</b>.</p>
+<ul>
+  <li><b>Borrowing:</b> readers can only borrow books of their own groups and general books.</li>
+  <li><b>Visibility</b> in the catalogue: {% if f.catalog_all %}currently everyone sees the whole stock{% else %}currently readers only see their groups' books and general books{% endif %} – change this under <span class="ui">Settings → Catalogue visibility</span>.</li>
+  <li><b>Librarians with a group</b> only manage books and loans of their groups (plus general books). A librarian <b>without</b> a group is responsible for the whole stock.</li>
+</ul>
+<ol>
+  <li><span class="ui">Administration → Groups</span> → <span class="ui">Group</span>: enter name, colour and description.</li>
+  <li>Tick users under <span class="ui">Members</span> on the right – or choose groups in the user's account.</li>
+  <li><span class="ui">Save</span>.</li>
+</ol>
+<p><b>Automatically from Active Directory:</b> enter the name (e.g. <code>Class7a</code>) or DN of a directory group under <span class="ui">AD group (optional)</span>. Its members are added to this group at every sign-in and removed when they leave. This requires <span class="ui">Assign library groups automatically</span> to be switched on under <span class="ui">Active Directory</span>. Groups assigned manually without a directory link are left untouched.</p>
+<p><b>Deleting</b> a group turns its books into general books – nothing is lost.</p>

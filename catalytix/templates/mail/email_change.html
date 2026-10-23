@@ -1,0 +1,8 @@
+{% extends "mail/_layout.html" %}
+{% block content %}
+<p style="margin:0 0 12px;">{{ _("Hallo {name},", name=user.name) }}</p>
+<p style="margin:0 0 12px;">{{ _("für dein Konto bei „{library}“ soll künftig diese E-Mail-Adresse gelten. Bitte bestätige sie innerhalb von 48 Stunden über diesen Link:", library=library_name) }}</p>
+<p style="margin:20px 0;"><a href="{{ link }}" style="background:{{ mail_accent }};color:{{ mail_accent_ink }};padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:600;display:inline-block;">{{ _("E-Mail-Adresse bestätigen") }}</a></p>
+<p style="margin:0 0 12px;font-size:12px;color:#7b817c;">{{ _("Falls der Knopf nicht funktioniert: {link}", link=link) }}</p>
+<p style="margin:0 0 12px;font-size:13px;color:#7b817c;">{{ _("Falls du das nicht warst, ignoriere diese Nachricht – dann bleibt alles, wie es ist.") }}</p>
+{% endblock %}

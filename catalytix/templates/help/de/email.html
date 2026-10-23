@@ -1,0 +1,16 @@
+<p>Unter <span class="ui">Administration → E-Mail</span> richtest du den Versand über euren SMTP-Server ein. Derzeit ist der E-Mail-Versand <b>{{ "aktiv" if f.mail_on else "nicht aktiv" }}</b>.</p>
+<ol>
+  <li><span class="ui">E-Mail-Versand aktivieren</span>, dann <span class="ui">Server</span>, <span class="ui">Port</span>, <span class="ui">Verschlüsselung</span> (STARTTLS/587, SSL/TLS/465 oder keine/25 nur intern), Zugangsdaten und <span class="ui">Absenderadresse</span> eintragen. Beispiel Microsoft 365: <code>smtp.office365.com:587</code> mit STARTTLS.</li>
+  <li><span class="ui">Testmail senden</span> – nutzt die Werte im Formular, auch ungespeichert.</li>
+  <li><span class="ui">Adresse der Bibliothek</span> eintragen (<span class="ui">Aktuelle übernehmen</span>), damit Links in den Mails funktionieren.</li>
+  <li><span class="ui">Speichern</span>.</li>
+</ol>
+<p><b>Benachrichtigungen:</b></p>
+<ul>
+  <li>Bestätigung bei Ausleihe (sofort) und bei Rückgabe (standardmäßig aus).</li>
+  <li><span class="ui">Erinnerung vor Fälligkeit</span> – {{ "an" if f.reminder_on else "aus" }}, {{ f.reminder_days }} {{ "Tag" if f.reminder_days == 1 else "Tage" }} vorher, einmal je Ausleihe.</li>
+  <li><span class="ui">Mahnung bei Überfälligkeit</span> – {{ "an" if f.overdue_on else "aus" }}, {% if f.overdue_repeat_days == 1 %}jeden Tag{% else %}alle {{ f.overdue_repeat_days }} Tage{% endif %}, höchstens {% if f.overdue_max %}{{ f.overdue_max }}-mal{% else %}unbegrenzt{% endif %}.</li>
+  <li><span class="ui">Tägliche Übersicht an Verwalter</span> – {{ "an" if f.mail_digest else "aus" }}; nur wenn es in ihren Gruppen Überfälliges gibt.</li>
+</ul>
+<p>Erinnerungen und Mahnungen laufen einmal täglich ab {{ "%02d"|format(f.mail_hour) }}:00 Uhr, mehrere Bücher einer Person in einer Mail, nie doppelt. <span class="ui">Jetzt versenden</span> startet den Lauf sofort. Fällt eine Datensicherung aus, bekommen Administratoren ebenfalls eine Mail.</p>
+<p>Das <span class="ui">Versandprotokoll</span> unten zeigt jede Mail mit Status und Fehlermeldung; es wird nach der Aufbewahrungsfrist geleert. Adressen kommen bei AD-Konten aus dem Feld <code>mail</code>, bei lokalen aus der Benutzerverwaltung; jeder kann Mails im Profil abschalten. Das SMTP-Passwort wird verschlüsselt gespeichert.</p>

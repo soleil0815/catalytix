@@ -1,0 +1,14 @@
+<p><span class="ui">Administration → Users</span> lists all local accounts and every Active Directory account that has signed in at least once. The drop-down filters by <span class="ui">Awaiting approval</span>, <span class="ui">Self-registered</span>, <span class="ui">Disabled</span> and <span class="ui">Sign-in lock (failed attempts)</span>.</p>
+<p><b>Roles:</b> <b>readers</b> borrow books, <b>librarians</b> manage the stock and loans (only for their groups; without a group, the whole stock), <b>administrators</b> can do everything.</p>
+<ol>
+  <li><b>Create:</b> <span class="ui">Local user</span> – username, role, password (at least 10 characters), groups. Useful for guests or as an emergency admin account.</li>
+  <li><b>Approve:</b> confirm pending self-registrations in the list with <span class="ui">Approve</span>, or reject them with <span class="ui">✕</span> (the account is deleted).{% if f.pending_approvals %} <b>{{ f.pending_approvals }}</b> currently waiting.{% endif %}</li>
+  <li><b>Disable rather than delete:</b> untick <span class="ui">Account active</span> – the account can no longer sign in or borrow, but its history is kept. <span class="ui">Delete</span> removes the account and its loan history for good and only works when nothing is on loan. You cannot delete or disable yourself or the last administrator.</li>
+</ol>
+<p><b>Fixing sign-in problems – no command line needed:</b> open the account and scroll down to <span class="ui">Sign-in and security</span>:</p>
+<ul>
+  <li><span class="ui">Reset</span> next to two-factor authentication removes the app and security keys; if 2FA is mandatory, the user has to set it up again. Any sign-in lock is lifted at the same time.</li>
+  <li><span class="ui">Lift lock</span> releases an account immediately after 8 failed attempts (otherwise it unlocks itself after 5 minutes).</li>
+</ul>
+<p>Setting a <b>new password</b> or resetting 2FA signs the account out of all other sessions – including “Stay signed in”.</p>
+<p><b>Active Directory accounts:</b> name, email and role are taken from the directory at every sign-in. Here you can only assign groups and disable the account; passwords are changed by IT in the directory.</p>

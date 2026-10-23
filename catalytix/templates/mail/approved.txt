@@ -1,0 +1,8 @@
+{{ _("Dein Konto ist freigeschaltet") }}
+{{ _("Hallo {name},", name=user.name|safe) }}
+
+{{ _("dein Konto bei „{library}“ wurde freigegeben. Du kannst dich jetzt anmelden:", library=library_name|safe) }}
+
+{% if link %}{{ link }}{% endif %}
+
+{{ _("Benutzername: {username}", username=user.username|safe) }}

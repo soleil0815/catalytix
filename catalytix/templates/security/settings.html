@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ _("Sicherheit") }}{% endblock %}
+{% block content %}
+{% set codes = new_codes or pending_codes %}
+<a href="{{ url_for('main.profile') }}" class="btn ghost sm" style="margin-bottom: 14px">{{ icon("arrow-left") }} {{ _("Profil") }}</a>
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Profil") }}</div><h1>{{ _("Anmeldung absichern") }}</h1>
+    <p>{{ _("Zwei-Faktor-Anmeldung: Nach dem Passwort bestätigst du mit Authenticator-App oder Sicherheitsschlüssel (z. B. YubiKey).") }}</p></div>
+  <div class="actions">
+    {% if current_user.has_2fa %}<span class="badge ok">{{ icon("shield") }} {{ _("aktiv") }}</span>
+    {% else %}<span class="badge {{ 'danger' if required else '' }}">{{ _("erforderlich") if required else _("nicht aktiv") }}</span>{% endif %}
+  </div>
+</div>
+
+{% if required and not current_user.has_2fa %}
+<div class="notice warn" style="margin-bottom: 18px">{{ icon("alert") }}<div>{{ _("<b>Für dein Konto ist ein zweiter Faktor vorgeschrieben.</b> Richte unten eine Authenticator-App oder einen Sicherheitsschlüssel ein – danach geht es normal weiter.") }}</div></div>
+{% endif %}
+
+{% if stepup_needed %}
+<div class="notice warn" style="margin-bottom: 18px">{{ icon("lock") }}<div>{{ _("Du hast dich in dieser Sitzung ohne zweiten Faktor angemeldet. Um Faktoren oder Wiederherstellungscodes zu ändern, bestätige ihn bitte zuerst.") }}
+  <form method="post" action="{{ url_for('security.stepup') }}" style="margin-top: 10px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn primary sm">{{ icon("shield") }} {{ _("Zweiten Faktor bestätigen") }}</button>
+  </form></div></div>
+{% endif %}
+
+{% if codes %}
+<section class="card card-pad" style="margin-bottom: 18px; border-color: var(--brass)">
+  <h2 style="margin-bottom: 6px">{{ icon("lock") }} {{ _("Deine Wiederherstellungscodes") }}</h2>
+  <p class="muted">{{ _("Falls Handy oder Schlüssel verloren gehen, kommst du mit einem dieser Codes noch einmal herein. Jeder Code gilt <b>einmal</b>.") }}
+    {{ _("Bewahre sie sicher auf (ausdrucken oder im Passwort-Manager) – sie werden <b>nur jetzt</b> angezeigt.") }}</p>
+  <div class="mono" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin: 16px 0; font-size: 17px" data-codes>
+    {% for c in codes %}<div style="padding: 8px 12px; border: 1px dashed var(--line-2); border-radius: 8px; text-align: center">{{ c }}</div>{% endfor %}
+  </div>
+  <div class="actions">
+    <button type="button" class="btn" data-copy-codes>{{ icon("download") }} {{ _("Kopieren") }}</button>
+    <button type="button" class="btn" data-print>{{ _("Drucken") }}</button>
+  </div>
+</section>
+{% endif %}
+
+<div class="grid grid-2">
+  <section class="card card-pad">
+    <div class="actions" style="justify-content: space-between; margin-bottom: 8px">
+      <h2>{{ icon("clock") }} {{ _("Authenticator-App") }}</h2>
+      {% if current_user.totp_enabled %}<span class="badge ok">{{ _("eingerichtet") }}</span>{% endif %}
+    </div>
+    <p class="muted" style="font-size: 13.5px">{{ _("Z. B. Microsoft/Google Authenticator, Aegis, 2FAS, Bitwarden oder Yubico Authenticator.") }}
+      {{ _("Funktioniert überall, auch im LAN per IP-Adresse.") }}</p>
+
+    {% if setup_qr %}
+    <ol style="padding-left: 18px; margin: 14px 0; line-height: 1.7">
+      <li>{{ _("App öffnen und den QR-Code scannen.") }}</li>
+      <li>{{ _("Den angezeigten 6-stelligen Code unten eingeben.") }}</li>
+    </ol>
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center">
+      <div style="background: #fff; padding: 8px; border-radius: 12px; border: 1px solid var(--line); line-height: 0">{{ setup_qr|safe }}</div>
+      <div style="min-width: 0">
+        <div class="muted" style="font-size: 12.5px">{{ _("Oder Schlüssel von Hand eingeben:") }}</div>
+        <div class="mono" style="font-size: 15px; margin: 4px 0 10px; overflow-wrap: anywhere">{{ setup_secret }}</div>
+        <a class="btn sm" href="{{ setup_uri }}">{{ _("Auf diesem Handy öffnen") }}</a>
+      </div>
+    </div>
+    <form method="post" action="{{ url_for('security.totp_confirm') }}" style="margin-top: 16px" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>{{ _("Code aus der App") }}</label>
+      <div class="input-group">
+        <input class="isbn-input" type="text" name="code" inputmode="numeric" maxlength="7" autocomplete="one-time-code" placeholder="123456" autofocus required>
+        <button class="btn primary">{{ icon("check") }} {{ _("Bestätigen") }}</button>
+      </div>
+    </form>
+    {% elif current_user.totp_enabled and totp_broken %}
+    <div class="notice warn" style="margin-top: 14px">{{ _("Die Verbindung zur Authenticator-App ist nicht mehr gültig. Bitte richte sie neu ein und lösche in der App den alten Eintrag.") }}</div>
+    <form method="post" action="{{ url_for('security.totp_start') }}" style="margin-top: 12px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn primary">{{ icon("plus") }} {{ _("App neu einrichten") }}</button>
+    </form>
+    {% elif current_user.totp_enabled %}
+    <form method="post" action="{{ url_for('security.totp_disable') }}" style="margin-top: 14px" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>{{ _("Entfernen – zur Bestätigung aktuellen Code eingeben") }}</label>
+      <div class="input-group">
+        <input class="isbn-input" type="text" name="code" inputmode="numeric" maxlength="7" autocomplete="one-time-code" placeholder="123456" required>
+        <button class="btn danger">{{ icon("trash") }} {{ _("Entfernen") }}</button>
+      </div>
+    </form>
+    {% else %}
+    <form method="post" action="{{ url_for('security.totp_start') }}" style="margin-top: 14px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn primary">{{ icon("plus") }} {{ _("App einrichten") }}</button>
+    </form>
+    {% endif %}
+  </section>
+
+  <section class="card card-pad">
+    <div class="actions" style="justify-content: space-between; margin-bottom: 8px">
+      <h2>{{ icon("shield") }} {{ _("Sicherheitsschlüssel") }}</h2>
+      {% if keys %}<span class="badge ok">{{ _("{n} registriert", n=keys|length) }}</span>{% endif %}
+    </div>
+    <p class="muted" style="font-size: 13.5px">{{ _("YubiKey oder anderer FIDO2-Schlüssel – auch Fingerabdruck/Face-ID des Geräts (Passkey).") }}
+      {{ _("Funktioniert nur über HTTPS und ist an die Adresse <code>{rp_id}</code> gebunden.", rp_id=rp_id) }}</p>
+
+    {% for k in keys %}
+    {% set key_name = _("Sicherheitsschlüssel") if not k.name or k.name == "Sicherheitsschlüssel" else k.name %}
+    <div class="list-row" style="padding: 10px 0">
+      <span class="badge {{ 'accent' if k.rp_id == rp_id else '' }}">{{ icon("shield") }}</span>
+      <div class="grow"><b>{{ key_name }}</b>
+        <small>{{ k.rp_id }} · {{ _("hinzugefügt {date}", date=k.created_at|de_day) }}{% if k.last_used_at %} · {{ _("zuletzt {date}", date=k.last_used_at|de_date) }}{% endif %}</small></div>
+      <form method="post" action="{{ url_for('security.key_delete', cred_id=k.id) }}" data-confirm="{{ _('„{name}“ entfernen?', name=key_name) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn sm danger" title="{{ _('Entfernen') }}">{{ icon("trash") }}</button>
+      </form>
+    </div>
+    {% endfor %}
+
+    <div data-webauthn-register-box style="margin-top: 14px">
+      <label>{{ _("Name des Schlüssels") }}</label>
+      <div class="input-group">
+        <input type="text" maxlength="100" data-webauthn-name placeholder="{{ _('z. B. YubiKey blau') }}" value="{{ 'YubiKey' if not keys else '' }}">
+        <button type="button" class="btn primary" data-webauthn-register>{{ icon("plus") }} {{ _("Hinzufügen") }}</button>
+      </div>
+      <p class="muted" style="font-size: 13px; margin-top: 8px" data-webauthn-status>{{ _("Nach dem Klick den Schlüssel einstecken und berühren.") }}</p>
+    </div>
+  </section>
+</div>
+
+{% if current_user.has_2fa %}
+<section class="card card-pad" style="margin-top: 18px">
+  <div class="actions" style="justify-content: space-between">
+    <div><h2>{{ _("Wiederherstellungscodes") }}</h2>
+      <p class="muted" style="margin-top: 4px">{{ _("Noch <b>{n}</b> unbenutzte Code(s).", n=codes_left) }}</p></div>
+    <form method="post" action="{{ url_for('security.recovery_regenerate') }}" data-confirm="{{ _('Neue Codes erzeugen? Die bisherigen werden ungültig.') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn">{{ icon("extend") }} {{ _("Neue Codes erzeugen") }}</button>
+    </form>
+  </div>
+</section>
+{% endif %}
+
+<section class="card card-pad" style="margin-top: 18px">
+  <div class="actions" style="justify-content: space-between">
+    <div><h2>{{ _("Angemeldete Geräte") }}</h2>
+      <p class="muted" style="margin-top: 4px">{{ _("Handy verloren oder an einem fremden Rechner angemeldet geblieben? Hier meldest du alle anderen Geräte ab – auch solche mit „Angemeldet bleiben“. Dieses Gerät bleibt angemeldet.") }}</p></div>
+    <form method="post" action="{{ url_for('main.logout_everywhere') }}" data-confirm="{{ _('Alle anderen Geräte abmelden?') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn">{{ icon("logout") }} {{ _("Auf allen anderen Geräten abmelden") }}</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

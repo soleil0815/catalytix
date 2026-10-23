@@ -1,0 +1,15 @@
+<p><span class="ui">My profile</span> (also via your initials at the top right) shows your <b>loan history</b> and account details: username, role, sign-in type, email address and groups. Groups are assigned by the library{% if f.is_ldap %} or come from your institution's directory{% endif %}.</p>
+{% if f.retention_months %}<p>Completed loans are deleted automatically {{ f.retention_months }} month{{ "s" if f.retention_months != 1 }} after the return.</p>{% endif %}
+<p><b>Language:</b> switch with <span class="ui">DE</span> / <span class="ui">EN</span>. It applies to the interface and to emails sent to you.</p>
+{% if f.mail_on %}
+<p><b>Email notifications:</b> tick or untick <span class="ui">Receive confirmations, reminders and overdue notices by email</span>, then <span class="ui">Save</span>.
+{% if f.is_ldap %}Your email address comes from your institution's directory and cannot be changed here.{% else %}Enter your email address in the same section.{% endif %}</p>
+{% else %}
+<p><b>Emails:</b> this library does not send emails at the moment, so there are no email settings in your profile.</p>
+{% endif %}
+{% if f.is_ldap %}
+<p><b>Password:</b> you sign in with your institution's network account (Active Directory). Your password is managed there – change it the way you do for your PC sign-in or through IT, not here.</p>
+{% else %}
+<p><b>Change password:</b> in <span class="ui">Change password</span>, enter your current password and your new one twice (at least 10 characters), then click <span class="ui">Change</span>. All your other devices are signed out.</p>
+{% endif %}
+<p>Two-factor authentication and signed-in devices are managed under <span class="ui">Security</span>.</p>

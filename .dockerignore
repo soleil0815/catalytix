@@ -1,0 +1,11 @@
+instance
+data
+.venv
+__pycache__
+tests
+*.zip
+.env
+.catalytix-update.*
+.git
+.github
+*.sha256

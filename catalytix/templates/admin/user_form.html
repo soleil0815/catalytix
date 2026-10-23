@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ _("Neuer Benutzer") if is_new else user.name }}{% endblock %}
+{% block content %}
+{% set ldap_user = user.auth_source == "ldap" and not is_new %}
+<a href="{{ url_for('admin.users') }}" class="btn ghost sm" style="margin-bottom: 14px">{{ icon("arrow-left") }} {{ _p("plural", "Benutzer") }}</a>
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Neuer lokaler Benutzer") if is_new else (_("AD-Benutzer") if ldap_user else _("Lokaler Benutzer")) }}</div>
+    <h1>{{ _("Benutzer anlegen") if is_new else user.name }}</h1></div>
+</div>
+
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="split">
+    <section class="card card-pad">
+      {% if ldap_user %}
+      <div class="notice accent" style="margin-bottom: 18px">{{ icon("server") }}
+        <div>{{ _('Dieses Konto kommt aus dem Active Directory. Name, E-Mail und <b>Rolle</b> werden bei jeder Anmeldung aus dem AD übernommen (Regeln unter <a href="{url}">Active Directory</a>). Hier kannst du Gruppen zuordnen und das Konto sperren.', url=url_for('admin.ldap')) }}
+          <br><small class="mono">{{ user.ldap_dn }}</small></div></div>
+      {% endif %}
+      <div class="form-grid">
+        <div class="field span-3"><label>{{ _("Benutzername") }}</label>
+          <input type="text" name="username" value="{{ user.username or '' }}" required {{ "readonly" if ldap_user }}></div>
+        <div class="field span-3"><label>{{ _("Anzeigename") }}</label><input type="text" name="display_name" value="{{ user.display_name or '' }}"></div>
+        <div class="field span-6"><label>{{ _("E-Mail") }}</label><input type="email" name="email" value="{{ user.email or '' }}"></div>
+        <div class="field span-3"><label>{{ _("Rolle") }}</label>
+          <select name="role" {{ "disabled" if ldap_user }}>
+            {% for k, v in ROLES.items() %}<option value="{{ k }}" {{ 'selected' if user.role == k }}>{{ v }}</option>{% endfor %}
+          </select>
+          <div class="hint">{{ _("Leser: ausleihen · Verwalter: Bestand &amp; Ausleihe ihrer Gruppen · Administrator: alles") }}</div></div>
+        {% if not ldap_user %}
+        <div class="field span-3"><label>{{ _("Passwort") if is_new else _("Neues Passwort") }}</label>
+          <input type="password" name="password" minlength="10" autocomplete="new-password" {{ "required" if is_new }}
+                 placeholder="{{ '' if is_new else _('leer lassen = unverändert') }}"></div>
+        {% endif %}
+      </div>
+      <label class="check"><input type="checkbox" name="email_notifications" value="1" {{ "checked" if user.email_notifications is none or user.email_notifications }}>
+        <span>{{ _("E-Mail-Benachrichtigungen") }}<small class="muted">{{ _("Bestätigungen, Erinnerungen und Mahnungen an die hinterlegte Adresse.") }}</small></span></label>
+      {% if user.ldap_gone_at %}<div class="notice" style="margin-bottom: 10px">{{ _("Vom AD-Abgleich am {date} gesperrt: im AD deaktiviert, gelöscht oder nicht mehr berechtigt. Taucht die Person wieder auf, wird das Konto automatisch freigegeben. Ausleihen bleiben erhalten. Speichern mit ausgeschaltetem „Konto aktiv“ macht die Sperre dauerhaft.", date=user.ldap_gone_at|datetime) }}</div>{% endif %}
+      <label class="check"><input type="checkbox" name="active" value="1" {{ "checked" if user.active }}>
+        <span>{{ _("Konto aktiv") }}<small class="muted">{{ _("Gesperrte Konten können sich nicht anmelden und nichts ausleihen.") }}</small></span></label>
+    </section>
+
+    <section class="card card-pad">
+      <h3 style="margin-bottom: 6px">{{ _("Gruppen") }}</h3>
+      <p class="muted" style="font-size: 13.5px">{{ _("Bestimmt, welche Bücher ausgeliehen (Leser) bzw. verwaltet (Verwalter) werden dürfen. Verwalter ohne Gruppe verwalten den gesamten Bestand.") }}</p>
+      <div class="chips">
+        {% for g in groups %}
+        <label class="chip"><input type="checkbox" name="groups" value="{{ g.id }}" {{ "checked" if g in user.groups }}>
+          <span class="dot" style="background: {{ g.color }}"></span>{{ g.name }}{% if g.ldap_dn %} <small class="muted">AD</small>{% endif %}</label>
+        {% else %}
+        <p class="muted">{{ _("Noch keine Gruppen.") }} <a href="{{ url_for('admin.group_new') }}">{{ _("Gruppe anlegen →") }}</a></p>
+        {% endfor %}
+      </div>
+      {% if ldap_user %}<p class="muted" style="font-size: 12.5px; margin-top: 12px">{{ _("Gruppen mit AD-Zuordnung werden beim nächsten Login automatisch abgeglichen.") }}</p>{% endif %}
+    </section>
+  </div>
+  <div class="actions" style="margin-top: 20px; justify-content: space-between">
+    <div>
+      {% if not is_new and user.id != current_user.id %}
+      <button class="btn danger" form="delete-form">{{ icon("trash") }} {{ _("Löschen") }}</button>
+      {% endif %}
+    </div>
+    <div class="actions">
+      <a class="btn ghost" href="{{ url_for('admin.users') }}">{{ _("Abbrechen") }}</a>
+      <button class="btn primary lg">{{ icon("check") }} {{ _("Speichern") }}</button>
+    </div>
+  </div>
+</form>
+{% if not is_new %}
+<section class="card card-pad" style="margin-top: 18px" id="anmeldung">
+  <h2 style="margin-bottom: 4px">{{ icon("shield") }} {{ _("Anmeldung und Sicherheit") }}</h2>
+  <p class="muted" style="font-size: 13.5px; margin-bottom: 6px">{{ _("Hilfe, wenn sich {name} nicht mehr anmelden kann – ohne Kommandozeile.", name=user.name) }}</p>
+
+  <div class="list-row" style="padding: 14px 0">
+    <div class="grow"><b>{{ _("Zwei-Faktor-Anmeldung") }}</b>
+      <small>{% if user.has_2fa %}{{ _("Aktiv:") }} {% if user.totp_enabled %}{{ _("Authenticator-App") }}{% endif %}{% if user.totp_enabled and user.webauthn_credentials %} + {% endif %}{% if user.webauthn_credentials %}{{ _n("{n} Sicherheitsschlüssel", "{n} Sicherheitsschlüssel", user.webauthn_credentials|length) }}{% endif %}
+        {%- if totp_broken %} · <span style="color: var(--danger)">{{ _("App muss neu eingerichtet werden") }}</span>{% endif %}
+        {% else %}{% if required %}{{ _("Nicht eingerichtet – laut Richtlinie Pflicht, wird bei der nächsten Anmeldung von außen verlangt.") }}{% else %}{{ _("Nicht eingerichtet.") }}{% endif %}{% endif %}</small></div>
+    {% if user.has_2fa %}
+    <form method="post" action="{{ url_for('admin.user_reset_2fa', user_id=user.id) }}"
+          data-confirm="{{ _('Zweiten Faktor von {name} zurücksetzen? App und Sicherheitsschlüssel werden entfernt, die Anmeldung geht dann wieder nur mit Passwort.', name=user.username) }}{% if required %} {{ _('Die Neueinrichtung wird danach verlangt.') }}{% endif %}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn danger">{{ icon("extend") }} {{ _("Zurücksetzen") }}</button>
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="list-row" style="padding: 14px 0">
+    <div class="grow"><b>{{ _("Anmeldesperre") }}</b>
+      <small>{% if locked %}{{ _('<span style="color: var(--danger)">Gesperrt</span> nach zu vielen Fehlversuchen (Passwort oder Code). Hebt sich nach 5 Minuten von selbst auf.') }}
+        {% else %}{{ _("Keine – nach 8 Fehlversuchen wird die Anmeldung für 5 Minuten gesperrt.") }}{% endif %}</small></div>
+    {% if locked %}
+    <form method="post" action="{{ url_for('admin.user_unlock', user_id=user.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn primary">{{ icon("lock") }} {{ _("Sperre aufheben") }}</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if not user.active and not user.pending_approval %}
+  <div class="notice warn" style="margin-top: 8px">{{ _("Das Konto ist deaktiviert. Zum Entsperren oben „Konto aktiv“ anhaken und speichern.") }}</div>
+  {% endif %}
+</section>
+<form id="delete-form" method="post" action="{{ url_for('admin.user_delete', user_id=user.id) }}" data-confirm="{{ _('Benutzer {name} endgültig löschen? Der Ausleihverlauf wird entfernt.', name=user.username) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,19 @@
+<p>The <span class="ui">Catalogue</span> lists every book you are allowed to see. The search box at the top searches title, subtitle, author, publisher, tags, category, shelf mark, location and ISBN – you can also type an ISBN or scan it in with a barcode scanner.</p>
+<p>Matching books appear as you type (from two characters), with author, shelf mark and free copies. A click – or the arrow keys and Enter – opens the book straight away; <span class="ui">Enter</span> without a selection shows all matches in the catalogue as before.</p>
+<ul>
+  <li><b>Filter</b> by group, location and status (<span class="ui">Available</span> / <span class="ui">Borrowed</span>).</li>
+  <li><b>Sort</b> by title, author, recently added or year of publication.</li>
+  <li><b>View:</b> on the right, switch between <span class="ui">Tiles</span> with covers and a compact <span class="ui">List</span>. Your browser remembers the choice.</li>
+  <li>Click a cover or title to open the <b>book page</b> with its location, shelf mark and number of available copies.</li>
+  <li>Tags on the book page are clickable and show related books.</li>
+</ul>
+{% if current_user.is_global_manager %}
+<p><b>What you see:</b> you manage the whole collection, so you see every book.</p>
+{% elif f.catalog_all %}
+<p><b>What you see:</b> the library's entire collection. However, you can only borrow general books and books of your groups – for all others the book page shows a notice with a padlock.</p>
+{% else %}
+<p><b>What you see:</b> general books and the books of your groups{% if current_user.groups %} ({{ current_user.groups|map(attribute="name")|join(", ") }}){% endif %}. Books of other groups do not appear in the catalogue.</p>
+{% endif %}
+{% if current_user.is_librarian %}
+<p><b>For librarians:</b> at the top of the catalogue you find <span class="ui">CSV</span>, <span class="ui">Quick capture</span> and <span class="ui">Add book</span>.</p>
+{% endif %}

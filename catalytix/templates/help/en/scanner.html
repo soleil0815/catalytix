@@ -1,0 +1,10 @@
+<p><b>USB or Bluetooth barcode scanners</b> work without any setup: they act like a keyboard. Click into the input field and scan – the scanner “types” the ISBN and presses Enter. This works in the catalogue search, in <span class="ui">Add book</span>, in <span class="ui">Quick capture</span> and at the <span class="ui">Circulation desk</span>. At the desk a scanner is the fastest and most reliable option.</p>
+<ul>
+  <li>Nothing arrives? The cursor isn't in the field – click into it once.</li>
+  <li>No Enter afterwards? Set the scanner to “Enter/CR suffix” as described in its manual.</li>
+  <li>Wrong characters? The scanner's keyboard layout doesn't match the computer (e.g. US instead of German).</li>
+</ul>
+<p><b>Camera</b> (phone, tablet, laptop): click the camera icon or <span class="ui">Scan with camera</span>, allow camera access and hold the ISBN barcode inside the frame. Only a valid ISBN barcode (EAN-13 starting with 978/979) is accepted. Chrome, Edge and Android use their built-in detection, Firefox and Safari a bundled one – nothing is loaded from third-party servers.</p>
+<p>Browsers allow the camera <b>only over HTTPS</b> (or localhost).
+{% if f.https %}You are connected over HTTPS right now – the camera can be used.{% else %}<b>You are not connected over HTTPS right now</b>, so the camera won't start here. Open the library via its https address or use a USB scanner.{% endif %}
+If you denied access once, allow it again in the browser's site settings.</p>

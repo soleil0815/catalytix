@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ _("Datensicherung") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("Datensicherung") }}</h1>
+    <p>{{ _("Die Datenbank wird automatisch jeden Tag gesichert. Aufbewahrt werden die neuesten Sicherungen, ältere werden gelöscht.") }}</p></div>
+  {% if supported %}
+  <div class="actions">
+    <form method="post" action="{{ url_for('admin.backup_now') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn primary">{{ icon("database") }} {{ _("Jetzt sichern") }}</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+{% if not supported %}
+<div class="notice warn">{{ _("Die automatische Datensicherung gibt es nur für die eingebaute SQLite-Datenbank. Bei MySQL/MariaDB oder PostgreSQL sichert ihr am besten mit den Werkzeugen des Datenbankservers (z. B. <code>mysqldump</code> oder <code>pg_dump</code>).") }}</div>
+{% else %}
+{% if warning %}<div class="notice danger" style="margin-bottom: 18px">{{ icon("alert") }} {{ warning }} {{ last_result }}</div>{% endif %}
+
+<div class="grid grid-2">
+  <section class="card card-pad">
+    <h2 style="margin-bottom: 14px">{{ _("Einstellungen") }}</h2>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="check"><input type="checkbox" name="backup_enabled" value="1" {{ 'checked' if s('backup_enabled') == '1' }}>
+        <span><b>{{ _("Täglich automatisch sichern") }}</b></span></label>
+      <div class="form-grid">
+        <div class="field span-3"><label>{{ _("Anzahl aufbewahrter Sicherungen") }}</label>
+          <input type="number" name="backup_keep" value="{{ keep }}" min="1" max="100">
+          <div class="hint">{{ _("Standard 10 · bei täglicher Sicherung also 10 Tage") }}</div></div>
+        <div class="field span-3"><label>{{ _("Uhrzeit") }}</label>
+          <select name="backup_hour">
+            {% for h in range(24) %}<option value="{{ h }}" {{ 'selected' if s('backup_hour') == h|string }}>{{ _("ab {time} Uhr", time='%02d:00' % h) }}</option>{% endfor %}
+          </select>
+          <div class="hint">{{ _("am besten nachts") }}</div></div>
+      </div>
+      <button class="btn">{{ icon("check") }} {{ _("Speichern") }}</button>
+    </form>
+  </section>
+
+  <section class="card card-pad">
+    <h2 style="margin-bottom: 14px">{{ _("Status") }}</h2>
+    <dl class="kv">
+      <dt>{{ _("Letzter Lauf") }}</dt><dd>{{ last_result or _('noch keiner') }}</dd>
+      <dt>{{ _("Ablage") }}</dt><dd><code>{{ folder }}</code>{% if not custom_dir %}<br><small class="muted">{{ _("im Datenordner (<code>./data/backups</code> auf dem Server)") }}</small>{% endif %}</dd>
+      <dt>{{ _("Belegt") }}</dt><dd>{{ _n("{n} Sicherung, zusammen {size}", "{n} Sicherungen, zusammen {size}", items|length, size=total|filesize) }}</dd>
+    </dl>
+    <p class="muted" style="font-size: 13px; margin: 14px 0 0">{{ _("Die Sicherungen liegen auf demselben Server wie die Bibliothek. Gegen Festplattenausfall hilft nur eine Kopie an einem anderen Ort – z. B. den Ordner regelmäßig auf ein NAS kopieren oder ihn per <code>CATALYTIX_BACKUP_DIR</code> direkt dorthin legen.") }}</p>
+  </section>
+</div>
+
+<section class="card" style="margin-top: 22px">
+  <div class="card-head"><h2>{{ _("Vorhandene Sicherungen") }}</h2><span class="muted">{{ _("neueste zuerst · {n} von höchstens {keep}", n=items|length, keep=keep) }}</span></div>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>{{ _("Zeitpunkt") }}</th><th>{{ _("Art") }}</th><th>{{ _("Größe") }}</th><th>{{ _("Datei") }}</th><th></th></tr></thead>
+    <tbody>
+    {% for b in items %}
+    <tr>
+      <td class="nowrap">{{ b.created|de_date }}</td>
+      <td><span class="badge{{ ' accent' if b.kind != 'automatisch' }}">{{ _(b.kind) }}</span></td>
+      <td class="nowrap">{{ b.size|filesize }}</td>
+      <td class="mono" style="font-size: 12.5px">{{ b.name }}</td>
+      <td class="nowrap" style="text-align: right">
+        <a class="btn sm" href="{{ url_for('admin.backup_download', name=b.name) }}" title="{{ _('Herunterladen') }}">{{ icon("download") }}</a>
+        <form method="post" action="{{ url_for('admin.backup_delete', name=b.name) }}" style="display: inline"
+              data-confirm="{{ _('Sicherung {name} endgültig löschen?', name=b.name) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn sm ghost" title="{{ _('Löschen') }}">{{ icon("trash") }}</button></form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="empty">{{ _("Noch keine Sicherung vorhanden. Die erste entsteht heute Nacht – oder jetzt mit „Jetzt sichern“.") }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="card card-pad" style="margin-top: 22px">
+  <h2 style="margin-bottom: 8px">{{ _("Wiederherstellen") }}</h2>
+  <p class="muted" style="font-size: 13.5px; margin-bottom: 10px">{{ _("Zum Zurückspielen muss die Bibliothek kurz angehalten werden. Der aktuelle Stand wird vorher automatisch gesichert („vor Wiederherstellung“), ein Fehlgriff lässt sich also rückgängig machen. Auf dem Server:") }}</p>
+  <pre class="mono" style="font-size: 12.5px; white-space: pre-wrap; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 0">docker compose stop catalytix
+docker compose run --rm catalytix flask --app wsgi restore-backup {{ items[0].name if items else _('catalytix-JJJJ-MM-TT_HHMMSS.db') }}
+docker compose start catalytix</pre>
+</section>
+{% endif %}
+{% endblock %}

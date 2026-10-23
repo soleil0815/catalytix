@@ -1,0 +1,15 @@
+<p><span class="ui">Management → All loans</span> shows all current loans {% if current_user.is_global_manager %}in the library{% else %}of your groups and of general books{% endif %}. The <span class="ui">Active</span>, <span class="ui">Overdue</span> and <span class="ui">History</span> tabs filter the list; the search box finds titles, ISBNs and users. The red number in the sidebar counts overdue loans.</p>
+<p><b>Actions on each row:</b></p>
+<ul>
+  <li><span class="ui">Renew</span> – by {{ f.extension_days }} {{ "day" if f.extension_days == 1 else "days" }}. As a librarian you may renew beyond the limit of {{ f.max_extensions }} renewal{{ "s" if f.max_extensions != 1 }}.</li>
+  {% if f.mail_on %}<li><b>Envelope</b> – sends a reminder by email right away. Greyed out if the person has no email address.</li>{% endif %}
+  <li><span class="ui">Return</span> – records the book as returned.</li>
+</ul>
+{% if f.mail_on %}
+<p><b>Automatic emails</b> go out once a day:
+{% if f.reminder_on %}a reminder up to {{ f.reminder_days }} day{{ "s" if f.reminder_days != 1 }} before the due date{% endif %}{% if f.reminder_on and f.overdue_on %} and {% endif %}{% if f.overdue_on %}overdue notices from the first overdue day{% endif %}{% if not f.reminder_on and not f.overdue_on %}currently neither reminders nor overdue notices{% endif %}.
+Several books of one person go into one email.{% if f.mail_digest %} Librarians also get a daily digest when their groups have overdue loans.{% endif %}</p>
+{% else %}
+<p><b>Email is not set up</b> – no reminders or overdue notices are sent, and the envelope is missing. An administrator can set up sending under <span class="ui">Administration → Email</span>.</p>
+{% endif %}
+<p>Your own loans are under <span class="ui">My loans</span>.</p>

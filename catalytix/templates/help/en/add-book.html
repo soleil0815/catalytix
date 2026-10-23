@@ -1,0 +1,15 @@
+<ol>
+  <li>Click <span class="ui">Add book</span> (or <span class="ui">+ Book</span> at the top).</li>
+  <li>Enter the <b>ISBN</b> – by keyboard, with a barcode scanner (click into the field and scan) or via <span class="ui">Camera</span>.</li>
+  <li><span class="ui">Fetch data</span> (or Enter in the ISBN field) gets title, author, publisher, year, pages and cover from the German National Library, Open Library and Google Books. Give it a quick check.</li>
+  <li>Under <span class="ui">Holdings</span> choose the <b>group</b> (<span class="ui">General</span> = anyone can borrow it), the number of <b>copies</b>, the <b>shelf mark</b> and the <b>location</b>.</li>
+  <li><span class="ui">Save</span> – or <span class="ui">Save &amp; next</span> to add the next book straight away.</li>
+</ol>
+<ul>
+  <li>If the ISBN already exists, the app tells you – better to increase the copies there.</li>
+  <li>Only the <b>title</b> is required. Without an ISBN, fill everything in by hand.</li>
+  <li><b>Cover:</b> enter an image URL or upload your own photo (JPG, PNG, WEBP, GIF). It is re-saved and metadata is removed.</li>
+  <li><b>Location:</b> if locations are defined under <span class="ui">Locations</span>, you pick from a list; otherwise you type freely.</li>
+</ul>
+<p><b>Editing and deleting:</b> the book page has <span class="ui">Edit</span> and <span class="ui">Delete</span>. A book on loan cannot be deleted, and the number of copies cannot go below the number currently lent. Deleting also removes the book's loan history.</p>
+{% if not current_user.is_global_manager %}<p>You can only add and edit books of your groups and general books.</p>{% endif %}

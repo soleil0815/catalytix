@@ -1,0 +1,14 @@
+{% extends "mail/_layout.html" %}{% from "mail/_book.html" import book_row with context %}
+{% block content %}
+<p style="margin:0 0 12px;">{{ _("Hallo {name},", name=user.name) }}</p>
+{% if overdue %}
+<p style="margin:0 0 6px;">{{ _n("die Leihfrist für dieses Buch ist abgelaufen – bitte gib es bald zurück:", "die Leihfrist für diese Bücher ist abgelaufen – bitte gib sie bald zurück:", overdue|length) }}</p>
+{% for l in overdue %}{{ book_row(l) }}{% endfor %}
+{% endif %}
+{% if due_soon %}
+<p style="margin:{{ '16px' if overdue else '0' }} 0 6px;">{% if overdue %}{{ _("Außerdem bald fällig:") }}{% else %}{{ _n("dieses Buch ist bald fällig:", "diese Bücher sind bald fällig:", due_soon|length) }}{% endif %}</p>
+{% for l in due_soon %}{{ book_row(l) }}{% endfor %}
+{% endif %}
+{% if base_url %}<p style="margin:20px 0 10px;"><a href="{{ base_url }}/ausleihen" style="background:{{ mail_accent }};color:{{ mail_accent_ink }};padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:600;display:inline-block;">{{ _("Ausleihen verlängern") if self_extend else _("Meine Ausleihen") }}</a></p>{% endif %}
+<p style="margin:14px 0;">{{ _("Danke!") }}</p>
+{% endblock %}

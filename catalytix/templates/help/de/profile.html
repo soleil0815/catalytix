@@ -1,0 +1,15 @@
+<p>Unter <span class="ui">Mein Profil</span> (oder über deine Initialen oben rechts) findest du deinen <b>Ausleihverlauf</b> und deine Kontodaten: Benutzername, Rolle, Anmeldeart, E-Mail-Adresse und Gruppen. Die Gruppen legt die Bibliothek fest{% if f.is_ldap %} bzw. ergeben sich aus dem Verzeichnis des Instituts{% endif %}.</p>
+{% if f.retention_months %}<p>Abgeschlossene Ausleihen werden {{ f.retention_months }} {{ "Monat" if f.retention_months == 1 else "Monate" }} nach der Rückgabe automatisch gelöscht.</p>{% endif %}
+<p><b>Sprache:</b> Mit <span class="ui">DE</span> / <span class="ui">EN</span> stellst du die Sprache um. Sie gilt für die Oberfläche und für E-Mails an dich.</p>
+{% if f.mail_on %}
+<p><b>E-Mail-Benachrichtigungen:</b> Mit dem Haken <span class="ui">Bestätigungen, Erinnerungen und Mahnungen per E-Mail erhalten</span> schaltest du die Mails ein oder aus, dann <span class="ui">Speichern</span>.
+{% if f.is_ldap %}Deine E-Mail-Adresse kommt aus dem Verzeichnis des Instituts und lässt sich hier nicht ändern.{% else %}Trag dafür deine E-Mail-Adresse im selben Abschnitt ein.{% endif %}</p>
+{% else %}
+<p><b>E-Mails:</b> Diese Bibliothek verschickt derzeit keine E-Mails, deshalb gibt es im Profil keine Einstellungen dazu.</p>
+{% endif %}
+{% if f.is_ldap %}
+<p><b>Passwort:</b> Du meldest dich mit deinem Konto im Netzwerk des Instituts (Active Directory) an. Dein Passwort wird dort verwaltet – du änderst es wie bei der PC-Anmeldung bzw. über die IT, nicht hier.</p>
+{% else %}
+<p><b>Passwort ändern:</b> Gib im Abschnitt <span class="ui">Passwort ändern</span> dein aktuelles und zweimal dein neues Passwort ein (mindestens 10 Zeichen) und klicke auf <span class="ui">Ändern</span>. Alle anderen Geräte werden dabei abgemeldet.</p>
+{% endif %}
+<p>Zwei-Faktor-Anmeldung und angemeldete Geräte verwaltest du unter <span class="ui">Sicherheit</span>.</p>

@@ -1,0 +1,14 @@
+{{ _("Ausgeliehen: {title}", title=book.title|safe) }}
+{{ _("Hallo {name},", name=user.name|safe) }}
+
+{{ _("du hast in der Bibliothek „{library}“ ausgeliehen:", library=library_name|safe) }}
+
+  {{ book.title }}{% if book.authors %} – {{ book.authors }}{% endif %}
+  {{ _("Rückgabe bis: {date}", date=loan.due_at|de_day) }}
+
+{{ _("Viel Freude beim Lesen!") }}
+{% if base_url %}
+{{ _("Deine Ausleihen:") }} {{ base_url }}/ausleihen
+{% endif %}{% if footer %}
+--
+{{ footer }}{% endif %}

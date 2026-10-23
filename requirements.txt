@@ -1,0 +1,59 @@
+# ------------------------------------------------------------------
+# Catalytix – exactly pinned package versions (lock file)
+#
+# Every version is fixed, including those of sub-dependencies, so every
+# build gives the same result. The whole test suite runs with exactly these
+# versions on Python 3.13.16.
+#
+# Installation:   pip install --no-deps -r requirements.txt
+# Maintenance:    direct dependencies are listed in requirements.in.
+#                 After a change, update all versions here and run the tests.
+# ------------------------------------------------------------------
+
+# Web framework
+Flask==3.1.3
+Werkzeug==3.1.8
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+itsdangerous==2.2.0
+click==8.5.0
+blinker==1.9.0
+colorama==0.4.6 ; platform_system == "Windows"     # needed by click on Windows
+
+# Sign-in, forms, database
+Flask-Login==0.6.3
+Flask-WTF==1.3.0
+WTForms==3.2.2
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.1.4
+typing_extensions==4.16.0
+PyMySQL==1.2.3          # driver for MySQL/MariaDB (DATABASE_URL=mysql+pymysql://…)
+
+# Active Directory / LDAP
+ldap3==2.9.1
+pyasn1==0.6.4
+
+# Encryption, two-factor authentication, QR codes
+cryptography==50.0.1
+cffi==2.1.1
+pycparser==3.0
+fido2==2.2.1
+segno==1.6.6
+
+# Images (covers, logo)
+pillow==12.3.0
+
+# ISBN lookups and cover download
+requests==2.34.2
+urllib3==2.8.0
+idna==3.20
+charset-normalizer==3.5.1
+certifi==2026.7.22
+
+# Application server
+gunicorn==26.2.0 ; sys_platform != "win32"
+waitress==3.0.2 ; sys_platform == "win32"
+
+# Optional, not in the Docker image: PostgreSQL driver.
+# Add with a fixed version if needed, e.g.  psycopg[binary]==<version>
+# (DATABASE_URL=postgresql+psycopg://…)

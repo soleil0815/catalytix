@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ _("Über dieses Programm") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Programm") }}</div><h1>{{ _("Über dieses Programm") }}</h1></div>
+</div>
+<section class="card card-pad" style="max-width: 720px">
+  <dl class="kv">
+    <dt>{{ _("Programm") }}</dt><dd>{{ _("{app} – freie Bibliotheksverwaltung", app=app_name) }}</dd>
+    <dt>{{ _("Entwickelt von") }}</dt><dd><a href="{{ author_url }}" rel="noopener" target="_blank">helfi.space</a></dd>
+    <dt>{{ _("Version") }}</dt><dd>{{ version }}</dd>
+    <dt>{{ _("Lizenz") }}</dt><dd>{{ _(license_name) }}{% if has_license %} · <a href="{{ url_for('main.license_text') }}">{{ _("Lizenztext") }}</a>{% endif %}</dd>
+    <dt>{{ _("Quellcode") }}</dt><dd>{% if source_url %}<a href="{{ source_url }}" rel="noopener" target="_blank">{{ source_url }}</a>{% else %}<span class="muted">{{ _("Beim Betreiber dieser Installation erhältlich.") }}</span>{% endif %}</dd>
+  </dl>
+  <p class="muted" style="font-size: 13.5px; margin-top: 16px">
+    {{ _("{app} ist freie Software: Du darfst sie unter den Bedingungen der GNU Affero General Public License, Version 3 oder (nach deiner Wahl) jeder späteren Version, nutzen, weitergeben und verändern.", app=app_name) }}
+    {{ _("Sie wird ohne jede Gewährleistung bereitgestellt. Wer eine veränderte Fassung im Netz anbietet, muss den Nutzern den Quellcode dieser Fassung zugänglich machen.") }}
+  </p>
+</section>
+{% endblock %}

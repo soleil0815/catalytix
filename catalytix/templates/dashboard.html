@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, cover, avail_badge, due_badge %}
+{% block title %}{{ _("Übersicht") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">{{ today|de_day }}</div>
+    <h1>{{ _("Hallo, {name}.", name=current_user.name.split(" ")[0]) }}</h1>
+    <p>{% if my_loans %}{{ _n("Du hast {n} Buch ausgeliehen.", "Du hast {n} Bücher ausgeliehen.", my_loans|length) }}{% else %}{{ _("Du hast gerade nichts ausgeliehen.") }}{% endif %}</p>
+  </div>
+  {% if current_user.is_librarian %}
+  <div class="actions">
+    <a class="btn" href="{{ url_for('loans.desk') }}">{{ icon("desk") }} {{ _("Ausleihtheke") }}</a>
+    <a class="btn brass" href="{{ url_for('books.scan') }}">{{ icon("scan") }} {{ _("ISBN scannen") }}</a>
+  </div>
+  {% endif %}
+</div>
+
+{% if pending_registrations %}
+<a class="notice warn" href="{{ url_for('admin.users', status='neu') }}" style="margin-bottom: 18px; color: inherit; text-decoration: none">
+  {{ icon("user") }}<div>{{ _n("<b>{n} neue Registrierung</b> wartet auf Freigabe. Jetzt prüfen →", "<b>{n} neue Registrierungen</b> warten auf Freigabe. Jetzt prüfen →", pending_registrations) }}</div></a>
+{% endif %}
+{% if stats %}
+<div class="stats">
+  <div class="card stat"><div class="label">{{ icon("books") }} {{ _p("plural", "Titel") }}</div><div class="value">{{ stats.titles }}</div></div>
+  <div class="card stat"><div class="label">{{ icon("book") }} {{ _("Exemplare") }}</div><div class="value">{{ stats.copies }}</div></div>
+  <div class="card stat"><div class="label">{{ icon("loan") }} {{ _("Verliehen") }}</div><div class="value">{{ stats.active }}</div></div>
+  <div class="card stat {{ 'alert' if stats.overdue }}"><div class="label">{{ icon("alert") }} {{ _("Überfällig") }}</div><div class="value">{{ stats.overdue }}</div></div>
+  <div class="card stat"><div class="label">{{ icon("users") }} {{ _("Aktive Benutzer") }}</div><div class="value">{{ stats.users }}</div></div>
+</div>
+{% endif %}
+
+<div class="{{ 'split' if current_user.is_librarian }}">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h2>{{ _("Meine Ausleihen") }}</h2>
+        <a href="{{ url_for('loans.index', nur='meine') }}" class="btn ghost sm">{{ _("Alle ansehen") }}</a></div>
+      {% for loan in my_loans %}
+      <div class="list-row">
+        <div class="mini-cover">{{ cover(loan.book) }}</div>
+        <div class="grow"><a href="{{ url_for('books.detail', book_id=loan.book.id) }}"><b>{{ loan.book.title }}</b></a>
+          <small>{{ loan.book.authors }}</small></div>
+        {{ due_badge(loan) }}
+      </div>
+      {% else %}
+      <div class="empty">{{ icon("book") }}<div>{{ _("Keine aktiven Ausleihen.") }}</div>
+        <a href="{{ url_for('books.index', status='verfuegbar') }}">{{ _("Verfügbare Bücher entdecken →") }}</a></div>
+      {% endfor %}
+    </section>
+
+    <section>
+      <div class="section-title"><h2>{{ _("Neu im Bestand") }}</h2>
+        <a href="{{ url_for('books.index', sort='new') }}" class="btn ghost sm" style="margin-left:auto">{{ _("Katalog öffnen") }}</a></div>
+      {% if newest %}
+      <div class="books-grid compact">
+        {% for book in newest %}
+        <a class="book-card" href="{{ url_for('books.detail', book_id=book.id) }}">
+          {{ cover(book) }}
+          <div><div class="t">{{ book.title }}</div><div class="a">{{ book.authors or "–" }}</div></div>
+          <div class="meta">{{ avail_badge(book) }}</div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card empty">{{ icon("books") }}<div>{{ _("Noch keine Bücher erfasst.") }}</div>
+        {% if current_user.is_librarian %}<a href="{{ url_for('books.scan') }}">{{ _("Jetzt per ISBN-Scan erfassen →") }}</a>{% endif %}</div>
+      {% endif %}
+    </section>
+  </div>
+
+  {% if current_user.is_librarian %}
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h2>{{ _("Überfällig") }}</h2>
+        <a href="{{ url_for('loans.index', ansicht='ueberfaellig') }}" class="btn ghost sm">{{ _("Alle") }}</a></div>
+      {% for loan in overdue %}
+      <div class="list-row">
+        <div class="grow"><b>{{ loan.book.title }}</b><small>{{ loan.user.name }}</small></div>
+        {{ due_badge(loan) }}
+      </div>
+      {% else %}
+      <div class="empty" style="padding: 26px">{{ icon("check") }}<div>{{ _("Nichts überfällig.") }}</div></div>
+      {% endfor %}
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>{{ _("Letzte Bewegungen") }}</h2></div>
+      {% for loan in recent_loans %}
+      <div class="list-row">
+        <span class="avatar" style="width:30px;height:30px;font-size:11px">{{ loan.user.initials }}</span>
+        <div class="grow"><b>{{ loan.book.title }}</b>
+          <small>{{ loan.user.name }} · {{ loan.loaned_at|de_date }}</small></div>
+        {% if loan.returned_at %}<span class="badge">{{ _("zurück") }}</span>{% else %}<span class="badge accent">{{ _("verliehen") }}</span>{% endif %}
+      </div>
+      {% else %}
+      <div class="empty" style="padding: 26px">{{ _("Noch keine Ausleihen.") }}</div>
+      {% endfor %}
+    </section>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

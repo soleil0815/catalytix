@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, role_badge, group_badge %}
+{% block title %}{{ _p("plural", "Benutzer") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _p("plural", "Benutzer") }}</h1>
+    <p>{{ _("Lokale Konten und Konten, die sich bereits über das Active Directory angemeldet haben.") }}</p></div>
+  <div class="actions"><a class="btn primary" href="{{ url_for('admin.user_new') }}">{{ icon("plus") }} {{ _("Lokaler Benutzer") }}</a></div>
+</div>
+<form class="toolbar" method="get">
+  <input class="grow" type="search" name="q" value="{{ q }}" placeholder="{{ _('Name, Benutzername, E-Mail …') }}">
+  <select name="status" data-autosubmit>
+    <option value="">{{ _("Alle Konten") }}</option>
+    <option value="neu" {{ 'selected' if status == 'neu' }}>{{ _("Warten auf Freigabe") }}</option>
+    <option value="registriert" {{ 'selected' if status == 'registriert' }}>{{ _("Selbst registriert") }}</option>
+    <option value="gesperrt" {{ 'selected' if status == 'gesperrt' }}>{{ _("Gesperrt") }}</option>
+    <option value="anmeldesperre" {{ 'selected' if status == 'anmeldesperre' }}>{{ _("Anmeldesperre (Fehlversuche)") }}</option>
+  </select>
+  <select name="rolle" data-autosubmit>
+    <option value="">{{ _("Alle Rollen") }}</option>
+    {% for k, v in ROLES.items() %}<option value="{{ k }}" {{ 'selected' if role == k }}>{{ v }}</option>{% endfor %}
+  </select>
+</form>
+<div class="card table-wrap">
+  <table>
+    <thead><tr><th>{{ _("Benutzer") }}</th><th>{{ _("Rolle") }}</th><th>{{ _("Quelle") }}</th><th>{{ _("Gruppen") }}</th><th>{{ _("Ausleihen") }}</th><th>{{ _("Letzte Anmeldung") }}</th><th></th></tr></thead>
+    <tbody>
+    {% for u in users %}
+    <tr {% if not u.active and not u.pending_approval %}style="opacity:.55"{% endif %}>
+      <td><div class="cell-user"><span class="avatar">{{ u.initials }}</span>
+        <div><b>{{ u.name }}</b>{% if u.pending_approval %} <span class="badge warn">{{ _("wartet auf Freigabe") }}</span>{% endif %}
+          {% if not u.email_verified %} <span class="badge">{{ _("E-Mail unbestätigt") }}</span>{% endif %}
+          {% if not u.active and not u.pending_approval and u.email_verified %} <span class="badge danger">{% if u.ldap_gone_at %}{{ _("nicht mehr im AD") }}{% else %}{{ _("gesperrt") }}{% endif %}</span>{% endif %}
+          {% if u.username|lower in locked %} <a class="badge danger" href="{{ url_for('admin.user_edit', user_id=u.id) }}#anmeldung" title="{{ _('Zu viele Fehlversuche – hier aufheben') }}">{{ _("Anmeldesperre") }}</a>{% endif %}
+          {% if u.self_registered %} <span class="badge" title="{{ _('Hat sich selbst registriert') }}">{{ _("registriert") }}</span>{% endif %}<br><small>{{ u.username }}{% if u.email %} · {{ u.email }}{% endif %}</small></div></div></td>
+      <td>{{ role_badge(u) }}{% if u.has_2fa %} <span class="badge ok" title="{{ _('Zwei-Faktor-Anmeldung aktiv') }}">{{ icon("shield") }} 2FA</span>{% endif %}</td>
+      <td>{% if u.auth_source == "ldap" %}<span class="badge accent">{{ icon("server") }} AD</span>{% else %}<span class="badge">{{ _("lokal") }}</span>{% endif %}</td>
+      <td><div class="chips">{% for g in u.groups %}{{ group_badge(g) }}{% else %}<small>–</small>{% endfor %}</div></td>
+      <td>{{ active_counts.get(u.id, 0) }}</td>
+      <td class="nowrap"><small>{{ u.last_login|de_date }}</small></td>
+      <td class="actions-cell">
+        {% if u.pending_approval %}
+        <form method="post" action="{{ url_for('admin.user_approve', user_id=u.id) }}" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="next" value="{{ request.full_path }}">
+          <button class="btn sm primary">{{ icon("check") }} {{ _("Freigeben") }}</button></form>
+        <form method="post" action="{{ url_for('admin.user_reject', user_id=u.id) }}" style="display:inline"
+              data-confirm="{{ _('Registrierung von {name} ablehnen und löschen?', name=u.name) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn sm danger" title="{{ _('Ablehnen') }}">{{ icon("x") }}</button></form>
+        {% endif %}
+        <a class="btn sm" href="{{ url_for('admin.user_edit', user_id=u.id) }}">{{ icon("edit") }} {{ _("Bearbeiten") }}</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="empty">{{ _("Keine Benutzer gefunden.") }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

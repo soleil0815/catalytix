@@ -1,0 +1,119 @@
+# Catalytix – tests, container image (GitHub Container Registry) and release zip
+#
+# push to main            → tests, then image ghcr.io/<owner>/catalytix:<version>, :latest, :sha-<commit>
+# push a tag v<version>   → the same, plus a GitHub release with catalytix-<version>.zip and .sha256
+#                           (the tag must match __version__ in catalytix/__init__.py)
+# pull request            → tests and a test build of the image (nothing is pushed)
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install the pinned dependencies
+        run: |
+          python -m pip install pip==26.2.2
+          pip install --no-deps --only-binary=:all: -r requirements.txt
+          pip check
+
+      - name: Check that all version numbers match
+        run: |
+          v=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' catalytix/__init__.py)
+          grep -q "org.opencontainers.image.version=\"$v\"" Dockerfile || { echo "::error::Dockerfile label is not $v"; exit 1; }
+          grep -q "CATALYTIX_TAG:-$v}" docker-compose.yml || { echo "::error::docker-compose.yml default tag is not $v"; exit 1; }
+          if [[ "$GITHUB_REF" == refs/tags/v* && "${GITHUB_REF#refs/tags/v}" != "$v" ]]; then
+            echo "::error::Tag ${GITHUB_REF#refs/tags/} does not match version $v"; exit 1
+          fi
+
+      - name: Run the tests
+        working-directory: tests
+        run: python -m unittest discover -q
+
+  image:
+    name: Container image
+    needs: test
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Image name and version
+        id: meta
+        run: |
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "version=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' catalytix/__init__.py)" >> "$GITHUB_OUTPUT"
+          echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (and push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
+            ${{ steps.meta.outputs.image }}:latest
+            ${{ steps.meta.outputs.image }}:sha-${{ steps.meta.outputs.short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release:
+    name: Release zip
+    needs: image
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build catalytix-<version>.zip and its checksum
+        id: zip
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          git archive --format=zip --prefix=catalytix/ -o "catalytix-$v.zip" HEAD
+          sha256sum "catalytix-$v.zip" > "catalytix-$v.zip.sha256"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="${{ steps.zip.outputs.version }}"
+          gh release create "$GITHUB_REF_NAME" "catalytix-$v.zip" "catalytix-$v.zip.sha256" \
+            --title "Catalytix $v" \
+            --notes "Update with the image built by GitHub: \`./update.sh --pull\` – or classically with this package: \`./update.sh catalytix-$v.zip\` (put the .sha256 file next to it). Changes: see CHANGELOG.md."

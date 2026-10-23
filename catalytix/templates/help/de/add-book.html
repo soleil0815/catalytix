@@ -1,0 +1,15 @@
+<ol>
+  <li>Klicke auf <span class="ui">Buch erfassen</span> (oder oben auf <span class="ui">+ Buch</span>).</li>
+  <li>Gib die <b>ISBN</b> ein – per Tastatur, mit dem Barcodescanner (ins Feld klicken, scannen) oder über <span class="ui">Kamera</span>.</li>
+  <li><span class="ui">Daten abrufen</span> (oder Enter im ISBN-Feld) holt Titel, Autor, Verlag, Jahr, Seitenzahl und Cover aus der Deutschen Nationalbibliothek, Open Library und Google Books. Kurz prüfen.</li>
+  <li>Unter <span class="ui">Bestand</span> wählst du die <b>Gruppe</b> (<span class="ui">Allgemein</span> = für alle ausleihbar), die Zahl der <b>Exemplare</b>, die <b>Signatur</b> und den <b>Standort</b>.</li>
+  <li><span class="ui">Speichern</span> – oder <span class="ui">Speichern &amp; nächstes</span>, um gleich das nächste Buch zu erfassen.</li>
+</ol>
+<ul>
+  <li>Gibt es die ISBN schon, weist das Programm darauf hin – dann lieber dort die Exemplare erhöhen.</li>
+  <li>Nur der <b>Titel</b> ist Pflicht. Ohne ISBN füllst du alles von Hand aus.</li>
+  <li><b>Cover:</b> Bild-URL eintragen oder ein eigenes Foto hochladen (JPG, PNG, WEBP, GIF). Es wird neu gespeichert, Metadaten fallen weg.</li>
+  <li><b>Standort:</b> Sind unter <span class="ui">Standorte</span> welche festgelegt, wählst du aus einer Liste, sonst tippst du frei.</li>
+</ul>
+<p><b>Bearbeiten und löschen:</b> Auf der Buchseite gibt es <span class="ui">Bearbeiten</span> und <span class="ui">Löschen</span>. Ein ausgeliehenes Buch lässt sich nicht löschen, und die Exemplare können nicht unter die Zahl der verliehenen sinken. Beim Löschen verschwindet auch der Ausleihverlauf des Buchs.</p>
+{% if not current_user.is_global_manager %}<p>Du kannst nur Bücher deiner Gruppen und allgemeine Bücher anlegen und bearbeiten.</p>{% endif %}

@@ -1,0 +1,12 @@
+{{ _("Überfällige Ausleihen: {n}", n=loans|length) }}
+{{ _("Hallo {name},", name=user.name|safe) }}
+
+{{ _n("aktuell ist {n} Ausleihe überfällig:", "aktuell sind {n} Ausleihen überfällig:", loans|length) }}
+{% for l in loans %}
+  * {{ l.book.title }} – {{ l.user.name }} ({{ l.user.username }}) – {{ _n("{n} Tag überfällig", "{n} Tage überfällig", -l.days_left) }}
+{%- endfor %}
+{% if base_url %}
+{{ _("Übersicht:") }} {{ base_url }}/ausleihen?ansicht=ueberfaellig
+{% endif %}{% if footer %}
+--
+{{ footer }}{% endif %}

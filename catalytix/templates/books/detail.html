@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, cover, avail_badge, group_badge, due_badge %}
+{% block title %}{{ book.title }}{% endblock %}
+{% block content %}
+<a href="{{ url_for('books.index') }}" class="btn ghost sm" style="margin-bottom: 14px">{{ icon("arrow-left") }} {{ _("Katalog") }}</a>
+
+<div class="book-hero">
+  <div class="cover-col">{{ cover(book) }}</div>
+  <div>
+    <div class="actions" style="justify-content: space-between">
+      <div class="actions">{{ group_badge(book.group) }} {{ avail_badge(book) }}</div>
+      {% if current_user.can_manage(book) %}
+      <div class="actions">
+        <a class="btn sm" href="{{ url_for('books.edit', book_id=book.id) }}">{{ icon("edit") }} {{ _("Bearbeiten") }}</a>
+        <form method="post" action="{{ url_for('books.delete', book_id=book.id) }}" data-confirm="{{ _("„{title}“ wirklich löschen? Der Ausleihverlauf wird ebenfalls entfernt.", title=book.title) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn sm danger">{{ icon("trash") }} {{ _("Löschen") }}</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+    <h1 style="margin-top: 16px">{{ book.title }}</h1>
+    {% if book.subtitle %}<div class="sub">{{ book.subtitle }}</div>{% endif %}
+    {% if book.authors %}<div class="by">{{ _("von <b>{authors}</b>", authors=book.authors) }}</div>{% endif %}
+
+    <dl class="facts">
+      <div><dt>ISBN</dt><dd class="mono">{{ book.isbn or "–" }}</dd></div>
+      <div><dt>{{ _("Verlag") }}</dt><dd>{{ book.publisher or "–" }}</dd></div>
+      <div><dt>{{ _("Erschienen") }}</dt><dd>{{ book.published or "–" }}{% if book.edition %} · {{ book.edition }}{% endif %}</dd></div>
+      <div><dt>{{ _("Seiten") }}</dt><dd>{{ book.pages or "–" }}</dd></div>
+      <div><dt>{{ _("Sprache") }}</dt><dd>{{ book.language or "–" }}</dd></div>
+      <div><dt>{{ _("Standort") }}</dt><dd>{{ book.location or "–" }}</dd></div>
+      <div><dt>{{ _("Signatur") }}</dt><dd>{{ book.signature or "–" }}</dd></div>
+      <div><dt>{{ _("Kategorie") }}</dt><dd>{{ book.category or "–" }}</dd></div>
+    </dl>
+    {% if book.tags %}<div class="chips" style="margin-bottom: 16px">{% for t in book.tags.split(",") if t.strip() %}<a class="badge accent" href="{{ url_for('books.index', q=t.strip()) }}">{{ t.strip() }}</a>{% endfor %}</div>{% endif %}
+    {% if book.description %}<div class="desc">{{ book.description }}</div>{% endif %}
+  </div>
+</div>
+
+<div class="grid grid-2" style="margin-top: 30px">
+  <section class="card card-pad">
+    <h2 style="margin-bottom: 14px">{{ _("Ausleihe") }}</h2>
+    <div class="avail">
+      <div class="num">{{ book.available }}</div>
+      <div><b>{{ _n("von {n} Exemplar verfügbar", "von {n} Exemplaren verfügbar", book.copies) }}</b><br>
+        <small>{{ _("Leihfrist {days} Tage", days=loan_days) }}</small></div>
+    </div>
+
+    {% if own_loan %}
+      <div class="notice accent" style="margin-bottom: 12px">{{ icon("book") }}
+        <div>{{ _("Du hast dieses Buch ausgeliehen.") }} {{ due_badge(own_loan) }}</div></div>
+      <div class="actions">
+        {% if can_extend %}
+        <form method="post" action="{{ url_for('loans.extend', loan_id=own_loan.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <button class="btn">{{ icon("extend") }} {{ _("Verlängern") }}</button></form>
+        {% endif %}
+        {% if self_return or current_user.can_manage(book) %}
+        <form method="post" action="{{ url_for('loans.give_back', loan_id=own_loan.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <button class="btn">{{ icon("return") }} {{ _("Zurückgeben") }}</button></form>
+        {% endif %}
+      </div>
+    {% elif not current_user.can_borrow(book) %}
+      <div class="notice warn">{{ icon("lock") }}<div>{{ _("Dieses Buch gehört zur Gruppe <b>{group}</b>. Nur Mitglieder dieser Gruppe können es ausleihen.", group=book.group.name) }}</div></div>
+    {% elif book.available > 0 and (self_checkout or current_user.can_manage(book)) %}
+      <form method="post" action="{{ url_for('loans.borrow', book_id=book.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn primary lg">{{ icon("loan") }} {{ _("Für mich ausleihen") }}</button>
+      </form>
+    {% elif book.available > 0 %}
+      <div class="notice">{{ icon("desk") }}<div>{{ _("Bitte leihe dieses Buch an der Ausleihtheke aus.") }}</div></div>
+    {% else %}
+      <div class="notice">{{ icon("clock") }}<div>{{ _("Derzeit sind alle Exemplare verliehen.") }}</div></div>
+    {% endif %}
+
+    {% if current_user.can_manage(book) and book.available > 0 %}
+    <hr>
+    <h3 style="margin-bottom: 10px">{{ _("An Benutzer verleihen") }}</h3>
+    <form method="post" action="{{ url_for('loans.borrow', book_id=book.id) }}" class="form-grid">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field span-4"><label>{{ _("Benutzer") }}</label>
+        <div class="user-search"><input type="text" name="benutzer" required data-user-search autocomplete="off"
+               placeholder="{{ _("Name, Benutzername oder E-Mail") }}" role="combobox" aria-autocomplete="list" aria-expanded="false"></div>
+        <div class="hint">{% if directory_search %}{{ _("Findet auch Personen aus dem Active Directory, die sich noch nie angemeldet haben.") }} {% endif %}{{ _("Ob die Person dieses Buch ausleihen darf, wird beim Verleihen geprüft.") }}</div></div>
+      <div class="field span-2"><label>{{ _("Fällig am") }}</label><input type="date" name="due_at"></div>
+      <div class="field span-6"><label>{{ _("Notiz <small>(optional)</small>") }}</label><input type="text" name="note" maxlength="500"></div>
+      <div class="span-6"><button class="btn primary">{{ icon("check") }} {{ _("Verleihen") }}</button></div>
+    </form>
+    {% endif %}
+  </section>
+
+  {% if current_user.can_manage(book) %}
+  <section class="card">
+    <div class="card-head"><h2>{{ _("Verlauf") }}</h2><span class="muted">{{ _n("{n} Vorgang", "{n} Vorgänge", book.loans|length + (book.archived_loans or 0)) }}{% if book.archived_loans %} · {{ _("{n} ältere ohne Einzeldaten", n=book.archived_loans) }}{% endif %}</span></div>
+    {% for loan in book.loans[:30] %}
+    <div class="list-row">
+      <span class="avatar" style="width:30px;height:30px;font-size:11px">{{ loan.user.initials }}</span>
+      <div class="grow"><b>{{ loan.user.name }}</b><small>{{ loan.loaned_at|de_date }}{% if loan.note %} · {{ loan.note }}{% endif %}</small></div>
+      {{ due_badge(loan) }}
+      {% if loan.is_active %}
+      <form method="post" action="{{ url_for('loans.give_back', loan_id=loan.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button class="btn sm" title="{{ _("Rückgabe") }}">{{ icon("return") }}</button></form>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="empty">{{ _("Noch nie ausgeliehen.") }}</div>
+    {% endfor %}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

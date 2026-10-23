@@ -1,0 +1,17 @@
+{% if f.self_checkout %}
+<p><b>So leihst du ein Buch aus:</b></p>
+<ol>
+  <li>Öffne das Buch im <span class="ui">Katalog</span> mit einem Klick auf Cover oder Titel.</li>
+  <li>Klicke auf <span class="ui">Für mich ausleihen</span>. Die Leihfrist beträgt {{ f.loan_days }} {{ "Tag" if f.loan_days == 1 else "Tage" }}.</li>
+  <li>Nimm das Buch am angegebenen <b>Standort</b> aus dem Regal.{% if f.mail_on and f.loan_mail %} Du bekommst eine Bestätigung per E-Mail.{% endif %}</li>
+</ol>
+<p><b>Der Knopf fehlt?</b> Dann sind alle Exemplare verliehen, das Buch gehört zu einer Gruppe, in der du nicht bist, oder du hast es schon ausgeliehen.{% if f.max_loans %} Außerdem kannst du höchstens {{ f.max_loans }} {{ "Buch" if f.max_loans == 1 else "Bücher" }} gleichzeitig ausleihen.{% endif %} Die Buchseite nennt den Grund.</p>
+{% else %}
+<p>In dieser Bibliothek leihst du Bücher <b>an der Ausleihtheke</b> aus: Such das Buch im <span class="ui">Katalog</span>, nimm es aus dem Regal und bring es zum Personal. Die Buchseite zeigt dann „Bitte leihe dieses Buch an der Ausleihtheke aus“. Die Leihfrist beträgt {{ f.loan_days }} {{ "Tag" if f.loan_days == 1 else "Tage" }}{% if f.max_loans %}, höchstens {{ f.max_loans }} {{ "Buch" if f.max_loans == 1 else "Bücher" }} gleichzeitig{% endif %}.</p>
+{% endif %}
+<p><b>Zurückgeben:</b>
+{% if f.self_return %}Klicke unter <span class="ui">Meine Ausleihen</span> (oder auf der Buchseite) auf <span class="ui">Rückgabe</span> bzw. <span class="ui">Zurückgeben</span> und stell das Buch an seinen Standort zurück.
+{% else %}Bring das Buch zur Ausleihtheke – dort wird die Rückgabe gebucht. Erst dann verschwindet es aus deinen Ausleihen.{% endif %}</p>
+{% if current_user.is_librarian %}
+<p><b>Für Verwalter:</b> Bücher, die du verwaltest, kannst du dir immer selbst ausleihen. Auf der Buchseite verleihst du unter <span class="ui">An Benutzer verleihen</span> an andere – Name, Benutzername oder E-Mail eintippen und aus der Liste wählen; ob die Person das Buch ausleihen darf, wird beim Verleihen geprüft; <span class="ui">Fällig am</span> und eine Notiz sind optional. Viele Bücher nacheinander gehen schneller an der <span class="ui">Ausleihtheke</span>.</p>
+{% endif %}

@@ -1,0 +1,43 @@
+{% extends "_auth.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ _("Bestätigung") }}{% endblock %}
+{% block auth %}
+<h2>{{ _("Noch ein Schritt") }}</h2>
+<p class="muted">{{ _("Bestätige die Anmeldung mit deinem zweiten Faktor.") }}</p>
+
+{% if mode == "wiederherstellung" %}
+<form method="post" style="margin-top: 22px" autocomplete="off">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="modus" value="wiederherstellung">
+  <div class="field"><label for="code">{{ _("Wiederherstellungscode") }}</label>
+    <input class="isbn-input" type="text" id="code" name="code" placeholder="xxxx-xxxx" autofocus required></div>
+  <button class="btn primary lg block">{{ icon("check") }} {{ _("Bestätigen") }}</button>
+</form>
+<p style="margin-top: 16px"><a href="{{ url_for('security.challenge') }}">{{ _("← Zurück") }}</a></p>
+{% else %}
+  {% if has_keys %}
+  <div style="margin-top: 22px">
+    <button type="button" class="btn primary lg block" data-webauthn-login>{{ icon("shield") }} {{ _("Mit Sicherheitsschlüssel bestätigen") }}</button>
+    <p class="muted" style="font-size: 13px; margin-top: 8px" data-webauthn-status>{{ _("Schlüssel einstecken und berühren, wenn er blinkt.") }}</p>
+  </div>
+  {% endif %}
+  {% if user.totp_enabled and totp_broken %}
+  <div class="notice warn" style="margin-top: 20px">{{ _("Die Authenticator-App für dieses Konto muss neu eingerichtet werden.") }}
+    {% if has_keys %}{{ _("Melde dich mit einem Wiederherstellungscode oder deinem Sicherheitsschlüssel an und richte sie unter <i>Sicherheit</i> neu ein – oder bitte die Administration, die Zwei-Faktor-Anmeldung zurückzusetzen.") }}{% else %}{{ _("Melde dich mit einem Wiederherstellungscode an und richte sie unter <i>Sicherheit</i> neu ein – oder bitte die Administration, die Zwei-Faktor-Anmeldung zurückzusetzen.") }}{% endif %}</div>
+  {% elif user.totp_enabled %}
+  {% if has_keys %}<div class="muted" style="text-align: center; margin: 18px 0; font-size: 13px">{{ _("oder") }}</div>{% endif %}
+  <form method="post" style="margin-top: {{ '0' if has_keys else '22px' }}" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field"><label for="code">{{ _("Code aus der Authenticator-App") }}</label>
+      <input class="isbn-input" type="text" id="code" name="code" inputmode="numeric" pattern="[0-9 ]*" maxlength="7"
+             autocomplete="one-time-code" placeholder="123456" {{ "autofocus" if not has_keys }} required style="text-align: center; font-size: 22px !important; letter-spacing: .3em"></div>
+    <button class="btn {{ 'primary' if not has_keys }} lg block">{{ icon("check") }} {{ _("Bestätigen") }}</button>
+  </form>
+  {% endif %}
+  {% if not has_keys and not user.totp_enabled %}
+  <div class="notice warn" style="margin-top: 20px">{{ _("Für diese Adresse ist kein Sicherheitsschlüssel registriert. Nutze die Adresse, unter der du ihn eingerichtet hast, oder einen Wiederherstellungscode.") }}</div>
+  {% endif %}
+  <p style="margin-top: 22px; font-size: 13px"><a href="{{ url_for('security.challenge', modus='wiederherstellung') }}">{{ _("Kein Zugriff auf den zweiten Faktor? Wiederherstellungscode verwenden") }}</a></p>
+{% endif %}
+<p style="font-size: 13px"><a href="{{ url_for('main.login') }}">{{ _("Abbrechen") }}</a></p>
+{% endblock %}

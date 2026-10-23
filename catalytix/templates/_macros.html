@@ -1,0 +1,106 @@
+{% macro icon(name, cls="") -%}
+<svg class="i {{ cls }}" viewBox="0 0 24 24" aria-hidden="true">
+{%- if name == "home" -%}<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>
+{%- elif name == "books" -%}<path d="M4 4h4v16H4z"/><path d="M8 4h4v16H8z"/><path d="m13.5 5.2 3.9-1 4.1 15.5-3.9 1z"/>
+{%- elif name == "book" -%}<path d="M4 19.5V5a2 2 0 0 1 2-2h14v15H6a2 2 0 0 0-2 2Zm0 0A2 2 0 0 0 6 22h14"/>
+{%- elif name == "plus" -%}<path d="M12 5v14M5 12h14"/>
+{%- elif name == "scan" -%}<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M16 8v8"/>
+{%- elif name == "camera" -%}<path d="M14.5 4h-5L7.5 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3.5z"/><circle cx="12" cy="13" r="3.5"/>
+{%- elif name == "loan" -%}<path d="M7 7h11l-3-3M17 17H6l3 3"/>
+{%- elif name == "desk" -%}<path d="M3 10h18v3H3z"/><path d="M5 13v7M19 13v7"/><path d="M8 10V6h8v4"/>
+{%- elif name == "users" -%}<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.5A6.5 6.5 0 0 1 21.5 20"/>
+{%- elif name == "user" -%}<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>
+{%- elif name == "group" -%}<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+{%- elif name == "settings" -%}<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>
+{%- elif name == "server" -%}<rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M7 6.5h.01M7 17.5h.01"/>
+{%- elif name == "search" -%}<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+{%- elif name == "logout" -%}<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+{%- elif name == "moon" -%}<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>
+{%- elif name == "menu" -%}<path d="M4 6h16M4 12h16M4 18h16"/>
+{%- elif name == "edit" -%}<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z"/>
+{%- elif name == "trash" -%}<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+{%- elif name == "check" -%}<path d="m5 12 5 5L20 7"/>
+{%- elif name == "x" -%}<path d="M18 6 6 18M6 6l12 12"/>
+{%- elif name == "clock" -%}<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+{%- elif name == "alert" -%}<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>
+{%- elif name == "return" -%}<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>
+{%- elif name == "extend" -%}<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>
+{%- elif name == "download" -%}<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+{%- elif name == "palette" -%}<path d="M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2.2a1.8 1.8 0 0 0-1.3 3.1A1.6 1.6 0 0 1 12 22Z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="16.5" cy="10.5" r="1.2"/>
+{%- elif name == "image" -%}<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/>
+{%- elif name == "mail" -%}<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>
+{%- elif name == "send" -%}<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/>
+{%- elif name == "lock" -%}<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+{%- elif name == "shield" -%}<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
+{%- elif name == "pin" -%}<path d="M12 22s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5"/>
+{%- elif name == "arrow-left" -%}<path d="M19 12H5M12 19l-7-7 7-7"/>
+{%- elif name == "sparkle" -%}<path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/>
+{%- elif name == "grid" -%}<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="9" rx="1"/><rect x="3" y="15" width="7" height="6" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/>
+{%- elif name == "list" -%}<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+{%- elif name == "database" -%}<ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v13c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-13"/><path d="M4.5 12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8"/>
+{%- elif name == "help" -%}<circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.7M12 17h.01"/>
+{%- elif name == "globe" -%}<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>
+{%- else -%}<circle cx="12" cy="12" r="9"/>
+{%- endif -%}
+</svg>
+{%- endmacro %}
+
+{% macro cover(book, cls="") -%}
+<div class="cover ph {{ cls }}" style="--h: {{ book.spine_hue }}">
+  <div><div class="pt">{{ book.title or "" }}</div><div class="rule"></div></div>
+  <div class="pa">{{ (book.authors or "").split(",")[0] }}</div>
+  {%- if book.cover %}<img src="{{ book.cover }}" alt="" loading="lazy" data-hide-broken>{% endif -%}
+</div>
+{%- endmacro %}
+
+{% macro avail_badge(book) -%}
+{%- if book.copies == 0 -%}<span class="badge">{{ _("nicht im Bestand") }}</span>
+{%- elif book.available > 0 -%}<span class="badge ok">{{ _("{available} von {copies} frei", available=book.available, copies=book.copies) }}</span>
+{%- else -%}<span class="badge warn">{{ _("ausgeliehen") }}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro group_badge(group) -%}
+{%- if group -%}<span class="badge"><span class="dot" style="background: {{ group.color }}"></span>{{ group.name }}</span>
+{%- else -%}<span class="badge">{{ _("Allgemein") }}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro due_badge(loan) -%}
+{%- if loan.returned_at -%}<span class="badge">{{ _("zurück {date}", date=loan.returned_at|de_day) }}</span>
+{%- elif loan.is_overdue -%}<span class="badge danger">{{ _("{n} Tg. überfällig", n=-loan.days_left) }}</span>
+{%- elif loan.days_left <= 3 -%}<span class="badge warn">{{ _("fällig {date}", date=loan.due_at|de_day) }}</span>
+{%- else -%}<span class="badge ok">{{ _("bis {date}", date=loan.due_at|de_day) }}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro role_badge(user) -%}
+{%- if user.role == "admin" -%}<span class="badge brass">{{ user.role_label }}</span>
+{%- elif user.role == "librarian" -%}<span class="badge accent">{{ user.role_label }}</span>
+{%- else -%}<span class="badge">{{ user.role_label }}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro pagination(page, pages, endpoint, args) -%}
+{%- if pages > 1 -%}
+<nav class="pagination">
+  {%- for p in range(1, pages + 1) -%}
+    {%- if p == page -%}<span class="cur">{{ p }}</span>
+    {%- elif p == 1 or p == pages or (p - page)|abs <= 2 -%}<a href="{{ url_for(endpoint, seite=p, **args) }}">{{ p }}</a>
+    {%- elif (p - page)|abs == 3 -%}<span>…</span>
+    {%- endif -%}
+  {%- endfor -%}
+</nav>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro lang_switch(cls="") -%}
+<form class="lang-switch {{ cls }}" method="post" aria-label="{{ _('Sprache') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="next" value="{{ request.full_path if request.method == 'GET' else '' }}">
+  {%- for code, label in LANGUAGES.items() %}
+  <button type="submit" formaction="{{ url_for('main.set_language', code=code) }}" lang="{{ code }}" title="{{ label }}"
+          class="{{ 'on' if get_locale() == code }}" {{ 'aria-current=true' if get_locale() == code }}>{{ code|upper }}</button>
+  {%- endfor %}
+</form>
+{%- endmacro %}

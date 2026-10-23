@@ -1,0 +1,8 @@
+{{ _("Datensicherung fehlgeschlagen") }}
+{{ _("Hallo {name},", name=user.name|safe) }}
+
+{{ _("die automatische Datensicherung von „{library}“ ist fehlgeschlagen:", library=library_name|safe) }}
+
+{{ message }}
+
+{{ _("Bitte unter Administration → Datensicherung nachsehen") }}{% if base_url %}: {{ base_url }}/admin/datensicherung{% endif %}

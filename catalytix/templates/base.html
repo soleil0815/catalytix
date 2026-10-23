@@ -1,0 +1,137 @@
+{% from "_macros.html" import icon, lang_switch %}<!doctype html>
+<html lang="{{ get_locale() }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}{% endblock %}{% if self.title() %} · {% endif %}{{ library_name }}</title>
+  {% if brand.favicon_url %}<link rel="icon" href="{{ brand.favicon_url }}">
+  {% else %}<link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">{% endif %}
+  <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v={{ asset_rev }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ asset_rev }}">
+  {% if brand.theme_css %}<style>{{ brand.theme_css|safe }}</style>{% endif %}
+  <script src="{{ url_for('static', filename='js/theme.js') }}?v={{ asset_rev }}"></script>
+</head>
+<body>
+{% block body %}
+{% set ep = request.endpoint or "" %}
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="{{ url_for('main.dashboard') }}">
+      {% if brand.logo_url %}
+      <span class="brand-logo{{ ' plate' if brand.logo_plate }}{{ ' solo' if not brand.show_text }}"><img src="{{ brand.logo_url }}" alt="{{ library_name }}"></span>
+      {% if brand.show_text %}<span class="brand-name">{{ library_name }}</span>{% endif %}
+      {% else %}
+      <span class="brand-mark">{{ icon("book") }}</span>
+      <span class="brand-name">{{ library_name }}</span>
+      {% endif %}
+    </a>
+    <nav class="nav">
+      <a href="{{ url_for('main.dashboard') }}" class="{{ 'active' if ep == 'main.dashboard' }}">{{ icon("home") }} {{ _("Übersicht") }}</a>
+      <a href="{{ url_for('books.index') }}" class="{{ 'active' if ep in ('books.index', 'books.detail') }}">{{ icon("books") }} {{ _("Katalog") }}</a>
+      <a href="{{ url_for('loans.index', nur='meine') if current_user.is_librarian else url_for('loans.index') }}"
+         class="{{ 'active' if ep == 'loans.index' and (request.args.get('nur') == 'meine' or not current_user.is_librarian) }}">{{ icon("loan") }} {{ _("Meine Ausleihen") }}</a>
+      <a href="{{ url_for('main.profile') }}" class="{{ 'active' if ep == 'main.profile' }}">{{ icon("user") }} {{ _("Mein Profil") }}</a>
+      <a href="{{ url_for('help.index') }}" class="{{ 'active' if ep.startswith('help.') }}">{{ icon("help") }} {{ _("Hilfe") }}</a>
+      <a href="{{ url_for('security.settings') }}" class="{{ 'active' if ep.startswith('security.') }}">{{ icon("shield") }} {{ _("Sicherheit") }}
+        {% if not current_user.has_2fa %}<span class="count" style="background: var(--side-2); color: var(--side-muted); font-weight: 600">{{ _("2FA aus") }}</span>{% endif %}</a>
+      {% if current_user.is_librarian %}
+      <div class="nav-label">{{ _("Verwaltung") }}</div>
+      <a href="{{ url_for('loans.desk') }}" class="{{ 'active' if ep == 'loans.desk' }}">{{ icon("desk") }} {{ _("Ausleihtheke") }}</a>
+      <a href="{{ url_for('loans.index') }}" class="{{ 'active' if ep == 'loans.index' and request.args.get('nur') != 'meine' }}">{{ icon("clock") }} {{ _("Alle Ausleihen") }}
+        {% if overdue_count %}<span class="count" title="{{ _('überfällig') }}">{{ overdue_count }}</span>{% endif %}</a>
+      <a href="{{ url_for('books.create') }}" class="{{ 'active' if ep in ('books.create', 'books.edit') }}">{{ icon("plus") }} {{ _("Buch erfassen") }}</a>
+      <a href="{{ url_for('books.scan') }}" class="{{ 'active' if ep == 'books.scan' }}">{{ icon("scan") }} {{ _("Schnellerfassung") }}</a>
+      <a href="{{ url_for('locations.index') }}" class="{{ 'active' if ep.startswith('locations.') }}">{{ icon("pin") }} {{ _("Standorte") }}</a>
+      {% endif %}
+      {% if current_user.is_admin %}
+      <div class="nav-label">{{ _("Administration") }}</div>
+      <a href="{{ url_for('admin.users') }}" class="{{ 'active' if ep.startswith('admin.user') }}">{{ icon("users") }} {{ _p("plural", "Benutzer") }}
+        {% if pending_registrations %}<span class="count" title="{{ _('warten auf Freigabe') }}">{{ pending_registrations }}</span>{% endif %}</a>
+      <a href="{{ url_for('admin.groups') }}" class="{{ 'active' if ep.startswith('admin.group') }}">{{ icon("group") }} {{ _("Gruppen") }}</a>
+      <a href="{{ url_for('admin.ldap') }}" class="{{ 'active' if ep == 'admin.ldap' }}">{{ icon("server") }} Active Directory</a>
+      <a href="{{ url_for('admin.email') }}" class="{{ 'active' if ep == 'admin.email' }}">{{ icon("mail") }} {{ _("E-Mail") }}</a>
+      <a href="{{ url_for('admin.branding') }}" class="{{ 'active' if ep.startswith('admin.branding') }}">{{ icon("palette") }} {{ _("Erscheinungsbild") }}</a>
+      <a href="{{ url_for('admin.backups') }}" class="{{ 'active' if ep.startswith('admin.backup') }}">{{ icon("database") }} {{ _("Datensicherung") }}
+        {% if backup_warning %}<span class="count warn" title="{{ backup_warning }}">!</span>{% endif %}</a>
+      <a href="{{ url_for('admin.settings') }}" class="{{ 'active' if ep == 'admin.settings' }}">{{ icon("settings") }} {{ _("Einstellungen") }}</a>
+      {% endif %}
+    </nav>
+    {% if imprint_url or privacy_url %}<nav class="legal-links side-legal" aria-label="{{ _('Rechtliches') }}">
+      {%- if imprint_url %}<a href="{{ imprint_url }}" rel="noopener" target="_blank">{{ _("Impressum") }}</a>{% endif %}
+      {%- if privacy_url %}<a href="{{ privacy_url }}" rel="noopener" target="_blank">{{ _("Datenschutz") }}</a>{% endif %}</nav>{% endif %}
+    <a class="side-version" href="{{ url_for('main.about') }}" title="{{ _('Version, Lizenz und Quellcode') }}">{{ _("Version {version}", version=version) }}</a>
+    <div class="side-foot">
+      <a href="{{ url_for('main.profile') }}" class="avatar" title="{{ _('Profil') }}">{{ current_user.initials }}</a>
+      <a class="who" href="{{ url_for('main.profile') }}" title="{{ _('Mein Profil') }}" style="text-decoration: none"><b>{{ current_user.name }}</b><span>{{ current_user.role_label }}{% if current_user.auth_source == 'ldap' %} · AD{% endif %}</span></a>
+      <button class="icon-btn" type="button" data-theme-toggle title="{{ _('Hell/Dunkel') }}">{{ icon("moon") }}</button>
+      <form method="post" action="{{ url_for('main.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="icon-btn" title="{{ _('Abmelden') }}">{{ icon("logout") }}</button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" type="button" data-nav-toggle aria-label="{{ _('Menü') }}">{{ icon("menu") }}</button>
+      <form class="search" action="{{ url_for('books.index') }}" role="search">
+        {{ icon("search") }}
+        <input type="search" name="q" data-catalog-search autocomplete="off" placeholder="{{ _('Titel, Autor, ISBN, Schlagwort …') }}" value="{{ request.args.get('q', '') if ep == 'books.index' else '' }}" aria-label="{{ _('Katalog durchsuchen') }}">
+      </form>
+      <a class="icon-btn help-btn" href="{{ help_url_for() }}" title="{{ _('Hilfe zu dieser Seite') }}" aria-label="{{ _('Hilfe') }}">{{ icon("help") }}</a>
+      {{ lang_switch() }}
+      {% if current_user.is_librarian %}
+      <a class="btn primary sm" href="{{ url_for('books.create') }}">{{ icon("plus") }} <span>{{ _("Buch") }}</span></a>
+      {% endif %}
+      <details class="user-menu">
+        <summary aria-label="{{ _('Benutzermenü') }}"><span class="avatar">{{ current_user.initials }}</span></summary>
+        <div class="menu">
+          <div class="who"><b>{{ current_user.name }}</b><span class="muted">{{ current_user.role_label }}</span></div>
+          <a href="{{ url_for('main.profile') }}">{{ icon("user") }} {{ _("Profil") }}</a>
+          <a href="{{ url_for('security.settings') }}">{{ icon("shield") }} {{ _("Sicherheit") }}</a>
+          <a href="{{ help_url_for() }}">{{ icon("help") }} {{ _("Hilfe") }}</a>
+          <button type="button" data-theme-toggle>{{ icon("moon") }} {{ _("Hell / Dunkel") }}</button>
+          {{ lang_switch() }}
+          <form method="post" action="{{ url_for('main.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="logout">{{ icon("logout") }} {{ _("Abmelden") }}</button>
+          </form>
+        </div>
+      </details>
+    </header>
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+<div class="flashes" aria-live="polite">
+  {% for cat, msg in get_flashed_messages(with_categories=true) %}
+  <div class="flash {{ cat }}">
+    {{ icon("check" if cat == "success" else ("alert" if cat in ("error", "warning") else "sparkle")) }}
+    <span>{{ msg }}</span>
+    <button class="icon-btn" type="button" data-dismiss aria-label="{{ _('Schließen') }}">{{ icon("x") }}</button>
+  </div>
+  {% endfor %}
+</div>
+
+{% if current_user.is_authenticated %}
+<dialog id="scanner-dialog">
+  <div class="dialog-head"><h3>{{ _("Barcode scannen") }}</h3>
+    <button class="icon-btn" type="button" data-scanner-close aria-label="{{ _('Schließen') }}">{{ icon("x") }}</button></div>
+  <div class="dialog-body">
+    <div class="scan-box"><video playsinline muted></video><div class="frame"></div><div class="laser"></div></div>
+    <p class="muted" style="margin-top: 12px" data-scanner-status>{{ _("Halte den EAN-/ISBN-Barcode in den Rahmen.") }}</p>
+  </div>
+</dialog>
+{% endif %}
+
+{% set jsx = js_strings() %}{% if jsx %}<script type="application/json" id="i18n-strings">{{ jsx|tojson }}</script>{% endif %}
+<script src="{{ url_for('static', filename='js/ean13.js') }}?v={{ asset_rev }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v={{ asset_rev }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

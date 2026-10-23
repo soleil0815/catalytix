@@ -1,0 +1,18 @@
+{% extends "base.html" if current_user.is_authenticated else "_auth.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="card card-pad empty" style="max-width: 560px; margin: 60px auto">
+  {{ icon("alert") }}
+  <div class="eyebrow">{{ _("Fehler {code}", code=code) }}</div>
+  <h1>{{ title }}</h1>
+  <p style="margin-top: 10px">{{ text }}</p>
+  <a class="btn" href="{{ url_for('main.dashboard') }}" style="margin-top: 14px">{{ icon("arrow-left") }} {{ _("Zur Übersicht") }}</a>
+</div>
+{% endblock %}
+{% block auth %}
+<div class="eyebrow">{{ _("Fehler {code}", code=code) }}</div>
+<h2>{{ title }}</h2>
+<p class="muted">{{ text }}</p>
+<a class="btn" href="{{ url_for('main.login') }}">{{ _("Zur Anmeldung") }}</a>
+{% endblock %}

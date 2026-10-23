@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ _("Active Directory") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("Active Directory / LDAP") }}</h1>
+    <p>{{ _("Anmeldung mit Domänenkonten aus Windows Server AD oder Samba AD. Lokale Konten (z. B. der Admin) funktionieren immer zusätzlich.") }}</p></div>
+</div>
+
+{% if test_error %}
+<div class="notice danger" style="margin-bottom: 18px">{{ icon("alert") }}<div><b>{{ _("Test fehlgeschlagen:") }}</b> {{ test_error }}</div></div>
+{% endif %}
+{% if test_result and test_result.message %}
+<div class="notice ok" style="margin-bottom: 18px">{{ icon("check") }}<div>{{ test_result.message }}</div></div>
+{% endif %}
+{% if test_result and test_result.user %}
+{% set u = test_result.user %}
+<section class="card card-pad" style="margin-bottom: 18px">
+  <div class="actions" style="justify-content: space-between; margin-bottom: 14px">
+    <h2>{{ _("Testergebnis: {name}", name=u.display_name) }}</h2>
+    {% if u.role %}<span class="badge ok">{{ icon("check") }} {{ _("Anmeldung erlaubt als {role}", role=ROLES[u.role]) }}</span>
+    {% else %}<span class="badge danger">{{ icon("x") }} {{ _("Anmeldung würde abgelehnt") }}</span>{% endif %}
+  </div>
+  <dl class="kv">
+    <dt>DN</dt><dd class="mono">{{ u.dn }}</dd>
+    <dt>{{ _("Benutzername") }}</dt><dd>{{ u.username }}</dd>
+    <dt>{{ _("E-Mail") }}</dt><dd>{{ u.email or "–" }}</dd>
+    <dt>{{ _("Greifende Regel") }}</dt><dd class="mono">{{ u.matched_rule or _("keine") }}</dd>
+    <dt>{{ _("Gruppen ({n})", n=u.groups|length) }}</dt><dd>
+      {% for dn, src in u.group_info.items() %}
+      <div style="display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px">
+        <span class="badge {{ 'accent' if src == 'direkt' else ('brass' if src == 'primär' else '') }}" style="min-width: 92px; justify-content: center">{{ _(src) }}</span>
+        <span><b>{{ group_cn(dn) }}</b> <small class="mono" style="font-size: 11px; overflow-wrap: anywhere">{{ dn }}</small></span>
+      </div>
+      {% else %}–{% endfor %}
+      <small class="muted">{{ _("direkt = selbst Mitglied · primär = primäre Gruppe (z. B. Domänen-Benutzer) · verschachtelt = über eine andere Gruppe") }}</small>
+    </dd>
+  </dl>
+</section>
+{% endif %}
+
+<form method="post" autocomplete="off">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {# Standardaktion bei Enter = Speichern #}
+  <button type="submit" name="action" value="save" style="position:absolute;left:-9999px" tabindex="-1" aria-hidden="true"></button>
+  <div class="grid grid-2">
+    <div class="stack">
+    <section class="card card-pad">
+      <div class="actions" style="justify-content: space-between; margin-bottom: 16px">
+        <h2>{{ _("Verbindung") }}</h2>
+        <div class="seg" role="group" aria-label="{{ _('Vorlage') }}">
+          <button type="button" data-ldap-preset="ad">Windows AD</button>
+          <button type="button" data-ldap-preset="samba">Samba AD</button>
+          <button type="button" data-ldap-preset="openldap">OpenLDAP</button>
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" name="ldap_enabled" value="1" {{ 'checked' if v.ldap_enabled == '1' }}>
+        <span><b>{{ _("Anmeldung über Verzeichnisdienst aktivieren") }}</b></span></label>
+      <div class="form-grid">
+        <div class="field span-4"><label>{{ _("Server") }}</label>
+          <input class="mono" type="text" name="ldap_server" value="{{ v.ldap_server }}" placeholder="ldap://dc1.firma.local, ldap://dc2.firma.local">
+          <div class="hint">{{ _("Mehrere Domänencontroller mit Komma trennen (Failover).") }}</div></div>
+        <div class="field span-2"><label>{{ _("Sicherheit") }}</label>
+          <select name="ldap_security">
+            <option value="none" {{ 'selected' if v.ldap_security == 'none' }}>{{ _("keine (389)") }}</option>
+            <option value="starttls" {{ 'selected' if v.ldap_security == 'starttls' }}>StartTLS (389)</option>
+            <option value="ldaps" {{ 'selected' if v.ldap_security == 'ldaps' }}>LDAPS (636)</option>
+          </select>
+          {% if v.ldap_security == 'none' and v.ldap_enabled == '1' %}<div class="hint" style="color: var(--warn)">{{ _("Unverschlüsselt: Passwörter gehen im Klartext über das Netz. LDAPS oder StartTLS verwenden.") }}</div>{% endif %}</div>
+        <div class="field span-6"><label>{{ _("Basis-DN") }}</label>
+          <input class="mono" type="text" name="ldap_base_dn" value="{{ v.ldap_base_dn }}" placeholder="DC=firma,DC=local"></div>
+        <div class="field span-6"><label>{{ _("Dienstkonto (Bind-DN)") }}</label>
+          <input class="mono" type="text" name="ldap_bind_dn" value="{{ v.ldap_bind_dn }}" placeholder="{{ _('CN=svc-catalytix,OU=Dienstkonten,DC=firma,DC=local  oder  svc-catalytix@firma.local') }}"></div>
+        <div class="field span-6"><label>{{ _("Passwort des Dienstkontos") }}</label>
+          <input type="password" name="ldap_bind_password" value="" autocomplete="new-password"
+                 placeholder="{{ _('•••••••• gespeichert – leer lassen = unverändert') if has_pw else '' }}">
+          {% if has_pw %}<label class="check" style="margin-top: 8px"><input type="checkbox" name="clear_bind_password" value="1"> {{ _("Gespeichertes Passwort löschen") }}</label>
+          <div class="hint">{{ _("Bei anderem Server oder Dienstkonto bitte neu eingeben.") }}</div>{% endif %}</div>
+        <div class="field span-6"><label>{{ _("UPN-Suffix") }} <small>{{ _("(nur ohne Dienstkonto)") }}</small></label>
+          <input class="mono" type="text" name="ldap_upn_suffix" value="{{ v.ldap_upn_suffix }}" placeholder="firma.local">
+          <div class="hint">{{ _("Ohne Dienstkonto meldet sich jeder Benutzer direkt als <code>benutzer@firma.local</code> an und sucht sich selbst.") }}</div></div>
+        <div class="field span-3"><label>{{ _("Login-Attribut") }}</label>
+          <input class="mono" type="text" name="ldap_user_attr" value="{{ v.ldap_user_attr }}"></div>
+        <div class="field span-3"><label>{{ _("Timeout (s)") }}</label>
+          <input type="number" name="ldap_timeout" value="{{ v.ldap_timeout }}" min="1" max="60"></div>
+        <div class="field span-6"><label>{{ _("Benutzerfilter") }}</label>
+          <input class="mono" type="text" name="ldap_user_filter" value="{{ v.ldap_user_filter }}">
+          <div class="hint">{{ _("z. B. <code>(&amp;(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))</code> schließt deaktivierte AD-Konten aus.") }}</div></div>
+      </div>
+      <label class="check"><input type="checkbox" name="ldap_nested_groups" value="1" {{ 'checked' if v.ldap_nested_groups == '1' }}>
+        <span>{{ _("Verschachtelte Gruppen auflösen") }}<small class="muted">{{ _("AD/Samba-AD: Mitgliedschaft über Untergruppen zählt mit.") }}</small></span></label>
+      <label class="check"><input type="checkbox" name="ldap_group_sync" value="1" {{ 'checked' if v.ldap_group_sync == '1' }}>
+        <span>{{ _("Bibliotheksgruppen automatisch zuordnen") }}<small class="muted">{{ _n("Über die bei der Gruppe hinterlegte AD-Gruppe ({n} Gruppe verknüpft).", "Über die bei der Gruppe hinterlegte AD-Gruppe ({n} Gruppen verknüpft).", ldap_groups|length) }}</small></span></label>
+    </section>
+
+    <section class="card card-pad" id="tls">
+      <div class="actions" style="justify-content: space-between; margin-bottom: 6px">
+        <h2>{{ _("TLS-Zertifikat") }}</h2>
+        {% if stored_certs %}<span class="badge ok">{{ icon("lock") }} {{ _("{n} hinterlegt", n=stored_certs|length) }}</span>
+        {% else %}<span class="badge">{{ _("keins hinterlegt") }}</span>{% endif %}
+      </div>
+      <p class="muted" style="font-size: 13.5px">{{ _("Das Zertifikat wird direkt vom Domänencontroller geholt (LDAPS oder StartTLS), dabei wird die Stamm-CA automatisch ergänzt – über die AIA-Adresse im Zertifikat oder aus dem AD selbst. Du prüfst den Fingerabdruck und bestätigst.") }}</p>
+
+      {% if fetched %}
+      <div class="notice accent" style="margin: 14px 0; display: block">
+        <b>{{ _("Vom Server erhalten – bitte prüfen:") }}</b>
+        {% for c, trusted in fetched.certs %}
+        <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line)">
+          <div class="actions">
+            <span class="badge {{ 'brass' if c.kind == 'Stamm-CA' else ('accent' if c.kind == 'Zwischen-CA' else '') }}">{{ _(c.kind) }}</span>
+            {% if trusted %}<span class="badge ok">{{ icon("check") }} {{ _("wird vertraut") }}</span>{% endif %}
+            {% if c.expired %}<span class="badge danger">{{ _("abgelaufen") }}</span>{% endif %}
+          </div>
+          <dl class="kv" style="margin-top: 8px; font-size: 13px">
+            <dt>{{ _("Inhaber") }}</dt><dd class="mono">{{ c.subject }}</dd>
+            <dt>{{ _("Aussteller") }}</dt><dd class="mono">{{ c.issuer }}</dd>
+            {% if c.names %}<dt>{{ _("Namen") }}</dt><dd class="mono">{{ c.names|join(", ") }}</dd>{% endif %}
+            <dt>{{ _("Gültig bis") }}</dt><dd>{{ c.not_after }}</dd>
+            <dt>SHA-256</dt><dd class="mono" style="font-size: 11.5px">{{ c.sha256 }}</dd>
+          </dl>
+        </div>
+        {% endfor %}
+        {% for n in fetched.notes %}<p style="margin-top: 10px"><small>ℹ {{ n }}</small></p>{% endfor %}
+        {% for host, ok in fetched.hosts.items() if not ok %}
+        <p style="margin-top: 10px; color: var(--warn)"><small>⚠ {{ _("„{host}“ steht nicht im Server-Zertifikat. Trage besser den DNS-Namen des DCs ein (siehe „Namen“) oder schalte die Hostname-Prüfung ab.", host=host) }}</small></p>
+        {% endfor %}
+        <textarea name="pending_pem" hidden>{{ fetched.pem }}</textarea>
+        <span hidden data-scroll-to="tls" data-scroll-block="start"></span>
+        <div class="actions" style="margin-top: 14px">
+          <button class="btn primary" name="action" value="trust_cert" formnovalidate>{{ icon("check") }} {{ _("Vertrauen &amp; speichern") }}</button>
+          <a class="btn ghost" href="{{ url_for('admin.ldap') }}">{{ _("Verwerfen") }}</a>
+        </div>
+      </div>
+      {% endif %}
+
+      {% for c in stored_certs %}
+      <div class="list-row" style="padding: 10px 0">
+        <span class="badge {{ 'brass' if c.kind == 'Stamm-CA' else ('accent' if c.kind == 'Zwischen-CA' else '') }}">{{ _(c.kind) }}</span>
+        <div class="grow"><b class="mono" style="font-size: 12.5px">{{ c.subject }}</b>
+          <small>{{ _("gültig bis {date}", date=c.not_after) }}{% if c.expired %} – <span style="color: var(--danger)">{{ _("abgelaufen") }}</span>{% endif %} · SHA-256 {{ c.sha256[:23] }}…</small></div>
+      </div>
+      {% endfor %}
+
+      <div class="actions" style="margin-top: 12px">
+        <button class="btn" name="action" value="fetch_cert" formnovalidate>{{ icon("download") }} {{ _("Zertifikat vom DC abrufen") }}</button>
+        {% if stored_certs %}<button class="btn danger" name="action" value="clear_cert" formnovalidate
+          data-confirm-click="{{ _('Gespeicherte Zertifikate entfernen?') }}">{{ icon("trash") }} {{ _("Entfernen") }}</button>{% endif %}
+      </div>
+      <hr>
+      <label class="check"><input type="checkbox" name="ldap_verify_cert" value="1" {{ 'checked' if v.ldap_verify_cert == '1' }}>
+        <span>{{ _("Zertifikat prüfen") }}<small class="muted">{{ _("Nur zu Testzwecken abschalten.") }}</small></span></label>
+      <label class="check"><input type="checkbox" name="ldap_check_hostname" value="1" {{ 'checked' if v.ldap_check_hostname == '1' }}>
+        <span>{{ _("Hostname prüfen") }}<small class="muted">{{ _("Der Servername muss im Zertifikat stehen. Abschalten, wenn du den DC per IP-Adresse ansprichst.") }}</small></span></label>
+      <details style="margin-top: 6px">
+        <summary class="muted" style="cursor: pointer; font-size: 13.5px">{{ _("Erweitert: eigene CA-Datei") }}</summary>
+        <div class="field" style="margin-top: 10px"><label>{{ _("CA-Zertifikat (Pfad auf dem Server)") }}</label>
+          <input class="mono" type="text" name="ldap_ca_file" value="{{ v.ldap_ca_file }}" placeholder="/certs/firma-root-ca.pem">
+          <div class="hint">{{ _("Wird zusätzlich zu den abgerufenen Zertifikaten verwendet.") }}</div></div>
+      </details>
+    </section>
+
+    <section class="card card-pad" id="cache">
+      <h2 style="margin-bottom: 6px">{{ _("AD-Abgleich und Personen-Cache") }}</h2>
+      <p class="muted" style="font-size: 13.5px">{{ _("Die AD-Personen, die die Bibliothek nutzen dürfen, werden im Hintergrund abgeglichen; gespeichert werden Name, Benutzername, E-Mail und Gruppen. Die Personensuche an der Ausleihtheke findet sie dann sofort, ohne das AD zu fragen. Im AD deaktivierte, gelöschte oder nicht mehr berechtigte Personen fliegen beim nächsten Abgleich heraus. Verliehen wird trotzdem nur nach einer frischen Prüfung im AD.") }}</p>
+      <label class="check"><input type="checkbox" name="ldap_cache_enabled" value="1" {{ 'checked' if v.ldap_cache_enabled == '1' }}>
+        <span>{{ _("Personen-Cache verwenden") }}<small class="muted">{{ _("Nur mit Dienstkonto. Ausschalten löscht die zwischengespeicherten Personen sofort; die bestehenden Konten werden dann nur noch einmal täglich abgeglichen.") }}</small></span></label>
+      <div class="form-grid">
+        <div class="field span-3"><label>{{ _("Abgleich") }}</label>
+          <select name="ldap_cache_hours">
+            {% for h in cache.hours %}<option value="{{ h }}" {{ 'selected' if v.ldap_cache_hours == h|string }}>{{ _n("jede Stunde", "alle {n} Stunden", h) }}</option>{% endfor %}
+          </select></div>
+      </div>
+      <p style="font-size: 13.5px; margin: 10px 0">
+        <b>{{ _("Stand:") }}</b> {{ cache.text }}
+        {% if cache.running %}<span class="badge">{{ _("Abgleich läuft …") }}</span>{% endif %}
+      </p>
+      <div class="actions">
+        <button class="btn" name="action" value="cache_sync" formnovalidate>{{ icon("database") }} {{ _("Jetzt abgleichen") }}</button>
+        {% if cache.rows %}<button class="btn" name="action" value="cache_clear" formnovalidate>{{ icon("trash") }} {{ _("Cache leeren") }}</button>{% endif %}
+      </div>
+      <p class="muted" style="font-size: 13px; margin: 10px 0 0">{{ _("Neu im AD seit dem letzten Abgleich? Findet der Cache niemanden, fragt die Suche zusätzlich direkt das AD.") }}</p>
+      <p class="muted" style="font-size: 13.5px; margin-top: 12px">{{ _("Bestehende AD-Konten zieht der Abgleich ebenfalls nach – auch bei Personen, die sich nie anmelden: Name, E-Mail, Rolle, Bibliotheksgruppen und im AD umbenannte Anmeldenamen (erkannt an der festen AD-Kennung, Ausleihen ziehen mit). Im AD deaktivierte, gelöschte oder nicht mehr berechtigte Konten werden gesperrt – nicht gelöscht, ihre Ausleihen bleiben sichtbar – und wieder freigegeben, sobald sie zurück sind. Würde ein Abgleich mehr als 30 % der Konten auf einmal sperren, sperrt er keines (Schutz vor einem falschen Filter).") }}</p>
+    </section>
+    </div>
+
+    <div class="stack">
+      <section class="card card-pad">
+        <h2 style="margin-bottom: 6px">{{ _("Wer darf was?") }}</h2>
+        <p class="muted" style="font-size: 13.5px">{{ _("Trage pro Rolle die <b>AD-Gruppen</b> ein – eine pro Zeile, einfach mit ihrem Namen (z. B. <code>Bibliothek-Admins</code>). Mitglieder verschachtelter Gruppen zählen mit. Die höchste passende Rolle gewinnt; wer in keiner Gruppe ist, kann sich nicht anmelden.") }}</p>
+        <div class="field"><label>{{ icon("shield") }} {{ _("Administratoren") }}</label>
+          <textarea class="rule-box" name="ldap_admin_rules" data-rule-box="admin" placeholder="{{ _('Bibliothek-Admins') }}">{{ v.ldap_admin_rules }}</textarea>
+          <div class="hint">{{ _("Sicherer mit vollständigem DN (z. B. <code>CN=Bibliothek-Admins,OU=Gruppen,DC=firma,DC=local</code>): Ein bloßer Name passt auf jede gleichnamige Gruppe im AD – wer irgendwo Gruppen anlegen darf, könnte sich sonst selbst zum Administrator machen. „Gruppen laden“ übernimmt den DN per Klick.") }}</div></div>
+        <div class="field"><label>{{ icon("books") }} {{ _("Verwalter (Bibliothekspersonal)") }}</label>
+          <textarea class="rule-box" name="ldap_librarian_rules" data-rule-box="librarian" placeholder="{{ _('Bibliothek-Verwalter') }}">{{ v.ldap_librarian_rules }}</textarea></div>
+        <div class="field"><label>{{ icon("user") }} {{ _("Leser (Anmeldung erlaubt)") }}</label>
+          <textarea class="rule-box" name="ldap_login_rules" data-rule-box="reader" placeholder="{{ _('Bibliothek-Leser') }}&#10;{{ _('Domänen-Benutzer') }}">{{ v.ldap_login_rules }}</textarea></div>
+        <details class="muted" style="font-size: 13px; margin-bottom: 14px">
+          <summary style="cursor: pointer">{{ _("Weitere Möglichkeiten") }}</summary>
+          <p style="margin-top: 8px">{{ _("Statt eines Gruppennamens geht auch der vollständige DN einer Gruppe (<code>CN=Bibliothek-Admins,OU=Gruppen,DC=schule,DC=local</code>) – sinnvoll, wenn es denselben Namen mehrfach gibt – oder eine OU (<code>OU=Schueler,DC=schule,DC=local</code>): dann zählen alle Benutzer darunter.") }}</p>
+        </details>
+
+        <hr>
+        <h3 style="margin-bottom: 8px">{{ _("Gruppen aus dem AD auswählen") }}</h3>
+        <div class="input-group">
+          <input type="search" name="group_query" value="{{ group_query }}" placeholder="{{ _('Name enthält … (leer = alle)') }}"
+                 data-enter-clicks-next>
+          <button class="btn" name="action" value="list_groups" formnovalidate>{{ icon("search") }} {{ _("Gruppen laden") }}</button>
+        </div>
+        {% if ad_groups is not none %}
+        <div id="ad-groups" style="margin-top: 12px">
+          {% if ad_groups %}
+          <input type="search" placeholder="{{ _('In {n} Gruppen filtern …', n=ad_groups|length) }}" data-filter-list="#ad-group-list" style="margin-bottom: 8px">
+          <div id="ad-group-list" style="max-height: 360px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px">
+            {% for g in ad_groups %}
+            <div class="list-row" data-filter-item style="padding: 9px 12px">
+              <div class="grow"><b>{{ g.name }}</b><small class="mono" style="font-size: 11px">{{ g.dn }}</small>
+                {% if g.description %}<small>{{ g.description }}</small>{% endif %}</div>
+              <div class="seg">
+                <button type="button" data-add-rule="admin" data-name="{{ g.dn }}" title="{{ _('Als Administratoren') }}">{{ _("Admin") }}</button>
+                <button type="button" data-add-rule="librarian" data-name="{{ g.dn }}" title="{{ _('Als Verwalter') }}">{{ _("Verwalter") }}</button>
+                <button type="button" data-add-rule="reader" data-name="{{ g.name }}" title="{{ _('Als Leser') }}">{{ _("Leser") }}</button>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <p class="muted" style="font-size: 12.5px; margin-top: 8px">{{ _("Klick fügt die Gruppe oben ein – danach <b>Speichern</b>.") }}</p>
+          {% else %}
+          <div class="notice">{{ _("Keine Gruppen gefunden.") }}</div>
+          {% endif %}
+        </div>
+        <span hidden data-scroll-to="ad-groups" data-scroll-block="center"></span>
+        {% endif %}
+      </section>
+
+      <section class="card card-pad">
+        <h2 style="margin-bottom: 6px">{{ _("Testen") }}</h2>
+        <p class="muted" style="font-size: 13.5px">{{ _("Getestet wird mit den Werten im Formular – auch ungespeichert.") }}</p>
+        <button class="btn" name="action" value="test_bind" formnovalidate>{{ icon("server") }} {{ _("Verbindung testen") }}</button>
+        <hr>
+        <div class="form-grid">
+          <div class="field span-3"><label>{{ _("Benutzername") }}</label><input type="text" name="test_user" autocomplete="off"></div>
+          <div class="field span-3"><label>{{ _("Passwort") }}</label><input type="password" name="test_password" autocomplete="new-password"></div>
+        </div>
+        <button class="btn" name="action" value="test_user" formnovalidate>{{ icon("user") }} {{ _("Login testen") }}</button>
+      </section>
+    </div>
+  </div>
+  <div class="actions" style="margin-top: 20px; justify-content: flex-end">
+    <button class="btn primary lg" name="action" value="save">{{ icon("check") }} {{ _("Speichern") }}</button>
+  </div>
+</form>
+{% endblock %}

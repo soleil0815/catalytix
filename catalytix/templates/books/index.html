@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, cover, avail_badge, group_badge, pagination %}
+{% block title %}{{ _("Katalog") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Katalog") }}</div>
+    <h1>{% if q %}{{ _("Suche nach „{q}“", q=q) }}{% else %}{{ _("Alle Bücher") }}{% endif %}</h1>
+    <p>{{ _("1 Titel gefunden") if total == 1 else _("{n} Titel gefunden", n=total) }}</p></div>
+  {% if current_user.is_librarian %}
+  <div class="actions">
+    <a class="btn" href="{{ url_for('books.export_csv') }}">{{ icon("download") }} CSV</a>
+    <a class="btn" href="{{ url_for('books.scan') }}">{{ icon("scan") }} {{ _("Schnellerfassung") }}</a>
+    <a class="btn primary" href="{{ url_for('books.create') }}">{{ icon("plus") }} {{ _("Buch erfassen") }}</a>
+  </div>
+  {% endif %}
+</div>
+
+<form class="toolbar" method="get">
+  <input class="grow" type="search" name="q" value="{{ q }}" placeholder="{{ _("Suchen …") }}">
+  <select name="gruppe" data-autosubmit>
+    <option value="">{{ _("Alle Gruppen") }}</option>
+    <option value="allgemein" {{ 'selected' if group == 'allgemein' }}>{{ _("Allgemein") }}</option>
+    {% for g in groups %}<option value="{{ g.id }}" {{ 'selected' if group == g.id|string }}>{{ g.name }}</option>{% endfor %}
+  </select>
+  {% if location_names %}
+  <select name="standort" data-autosubmit>
+    <option value="">{{ _("Alle Standorte") }}</option>
+    {% for n in location_names %}<option value="{{ n }}" {{ 'selected' if location == n }}>{{ n }}</option>{% endfor %}
+  </select>
+  {% endif %}
+  <select name="status" data-autosubmit>
+    <option value="">{{ _("Jeder Status") }}</option>
+    <option value="verfuegbar" {{ 'selected' if status == 'verfuegbar' }}>{{ _("Verfügbar") }}</option>
+    <option value="ausgeliehen" {{ 'selected' if status == 'ausgeliehen' }}>{{ _("Ausgeliehen") }}</option>
+  </select>
+  <select name="sort" data-autosubmit>
+    <option value="title" {{ 'selected' if sort == 'title' }}>{{ _("Titel A–Z") }}</option>
+    <option value="author" {{ 'selected' if sort == 'author' }}>{{ _("Autor A–Z") }}</option>
+    <option value="new" {{ 'selected' if sort == 'new' }}>{{ _("Zuletzt erfasst") }}</option>
+    <option value="year" {{ 'selected' if sort == 'year' }}>{{ _("Erscheinungsjahr") }}</option>
+  </select>
+  <div class="seg" role="group" aria-label="{{ _("Ansicht") }}">
+    <button type="button" data-view="grid" title="{{ _("Kacheln") }}">{{ icon("grid") }}</button>
+    <button type="button" data-view="list" title="{{ _("Liste") }}">{{ icon("list") }}</button>
+  </div>
+</form>
+
+{% if books %}
+<div data-view-target>
+  <div class="books-grid view-grid">
+    {% for book in books %}
+    <a class="book-card" href="{{ url_for('books.detail', book_id=book.id) }}">
+      {{ cover(book) }}
+      <div><div class="t">{{ book.title }}</div><div class="a">{{ book.authors or "–" }}</div></div>
+      <div class="meta">{{ avail_badge(book) }}</div>
+    </a>
+    {% endfor %}
+  </div>
+  <div class="card table-wrap view-list hide">
+    <table>
+      <thead><tr><th>{{ _("Titel") }}</th><th>ISBN</th><th>{{ _("Gruppe") }}</th><th>{{ _("Standort") }}</th><th>{{ _("Status") }}</th></tr></thead>
+      <tbody>
+      {% for book in books %}
+        <tr>
+          <td><a class="cell-book" href="{{ url_for('books.detail', book_id=book.id) }}" style="color: inherit">
+            <span class="mini-cover">{{ cover(book) }}</span>
+            <span><b>{{ book.title }}</b><small>{{ book.authors }}</small></span></a></td>
+          <td class="mono nowrap">{{ book.isbn or "–" }}</td>
+          <td>{{ group_badge(book.group) }}</td>
+          <td>{{ book.location or "–" }}{% if book.signature %} <small>· {{ book.signature }}</small>{% endif %}</td>
+          <td>{{ avail_badge(book) }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ pagination(page, pages, "books.index", {"q": q, "gruppe": group, "standort": location, "status": status, "sort": sort}) }}
+{% else %}
+<div class="card empty">{{ icon("search") }}
+  <div>{{ _("Keine Bücher gefunden.") }}</div>
+  {% if current_user.is_librarian %}<a href="{{ url_for('books.create') }}">{{ _("Neues Buch erfassen →") }}</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

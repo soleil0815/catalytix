@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ _("E-Mail") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("E-Mail-Benachrichtigungen") }}</h1>
+    <p>{{ _("Versand über euren SMTP-Server: Ausleihbestätigungen, Erinnerungen vor Fälligkeit und Mahnungen.") }}</p></div>
+  <div class="actions">
+    {% if v.mail_enabled == '1' and v.smtp_host %}<span class="badge ok">{{ icon("check") }} {{ _("aktiv") }}</span>
+    {% else %}<span class="badge">{{ _("nicht aktiv") }}</span>{% endif %}
+  </div>
+</div>
+
+<form method="post" autocomplete="off">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" name="action" value="save" style="position:absolute;left:-9999px" tabindex="-1" aria-hidden="true"></button>
+  <div class="grid grid-2">
+    <div class="stack">
+      <section class="card card-pad">
+        <h2 style="margin-bottom: 14px">{{ _("SMTP-Server") }}</h2>
+        <label class="check"><input type="checkbox" name="mail_enabled" value="1" {{ 'checked' if v.mail_enabled == '1' }}>
+          <span><b>{{ _("E-Mail-Versand aktivieren") }}</b></span></label>
+        <div class="form-grid">
+          <div class="field span-4"><label>{{ _("Server") }}</label>
+            <input class="mono" type="text" name="smtp_host" value="{{ v.smtp_host }}" placeholder="mail.schule.local"></div>
+          <div class="field span-2"><label>{{ _("Port") }}</label>
+            <input type="number" name="smtp_port" value="{{ v.smtp_port }}" min="1" max="65535" data-smtp-port></div>
+          <div class="field span-6"><label>{{ _("Verschlüsselung") }}</label>
+            <select name="smtp_security" data-smtp-security>
+              <option value="starttls" {{ 'selected' if v.smtp_security == 'starttls' }}>{{ _("STARTTLS (meist Port 587)") }}</option>
+              <option value="ssl" {{ 'selected' if v.smtp_security == 'ssl' }}>{{ _("SSL/TLS (meist Port 465)") }}</option>
+              <option value="none" {{ 'selected' if v.smtp_security == 'none' }}>{{ _("keine (Port 25, nur internes Relay)") }}</option>
+            </select></div>
+          <div class="field span-3"><label>{{ _("Benutzername") }} <small>{{ _("(leer = ohne Anmeldung)") }}</small></label>
+            <input type="text" name="smtp_user" value="{{ v.smtp_user }}" autocomplete="off"></div>
+          <div class="field span-3"><label>{{ _("Passwort") }}</label>
+            <input type="password" name="smtp_password" value="" autocomplete="new-password"
+                   placeholder="{{ _('•••••• gespeichert') if has_pw else '' }}">
+            {% if has_pw %}<label class="check" style="margin-top: 6px"><input type="checkbox" name="clear_smtp_password" value="1"> {{ _("löschen") }}</label>
+            <div class="hint">{{ _("Bei anderem Server oder Benutzer bitte neu eingeben.") }}</div>{% endif %}</div>
+          <div class="field span-3"><label>{{ _("Absenderadresse") }}</label>
+            <input type="email" name="smtp_from" value="{{ v.smtp_from }}" placeholder="bibliothek@schule.de"></div>
+          <div class="field span-3"><label>{{ _("Absendername") }}</label>
+            <input type="text" name="smtp_from_name" value="{{ v.smtp_from_name }}" placeholder="{{ _('Schulbibliothek') }}"></div>
+          <div class="field span-6"><label>{{ _("Antwortadresse") }} <small>{{ _("(optional)") }}</small></label>
+            <input type="email" name="smtp_reply_to" value="{{ v.smtp_reply_to }}" placeholder="{{ _('z. B. Postfach der Bibliotheksleitung') }}"></div>
+        </div>
+        <label class="check"><input type="checkbox" name="smtp_verify_cert" value="1" {{ 'checked' if v.smtp_verify_cert == '1' }}>
+          <span>{{ _("Zertifikat des Mailservers prüfen") }}<small class="muted">{{ _("Nur bei internem Server mit selbst signiertem Zertifikat abschalten.") }}</small></span></label>
+      </section>
+
+      <section class="card card-pad">
+        <h2 style="margin-bottom: 6px">{{ _("Testmail") }}</h2>
+        <p class="muted" style="font-size: 13.5px">{{ _("Verwendet die Werte im Formular – auch ungespeichert.") }}</p>
+        <div class="input-group">
+          <input type="email" name="test_to" value="{{ request.form.get('test_to', current_user.email or '') }}" placeholder="empfaenger@schule.de"
+                 data-enter-clicks-next>
+          <button class="btn" name="action" value="test" formnovalidate>{{ icon("send") }} {{ _("Testmail senden") }}</button>
+        </div>
+      </section>
+
+      <section class="card card-pad">
+        <h2 style="margin-bottom: 6px">{{ _("Adresse der Bibliothek") }}</h2>
+        <p class="muted" style="font-size: 13.5px">{{ _("Für Links in den Mails („Meine Ausleihen“, „Verlängern“).") }}</p>
+        <div class="input-group">
+          <input class="mono" type="url" name="app_base_url" value="{{ v.app_base_url }}" placeholder="{{ suggested_url }}">
+          <button type="button" class="btn" data-fill-previous="{{ suggested_url }}">{{ _("Aktuelle übernehmen") }}</button>
+        </div>
+        <div class="field" style="margin-top: 14px"><label>{{ _("Fußzeile / Signatur") }} <small>{{ _("(optional)") }}</small></label>
+          <textarea name="mail_footer" style="min-height: 80px" placeholder="{{ _('Schulbibliothek am Lindenhof · Raum 104 · Mo–Fr 8–14 Uhr') }}">{{ v.mail_footer }}</textarea></div>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card card-pad">
+        <h2 style="margin-bottom: 14px">{{ _("Benachrichtigungen") }}</h2>
+        <label class="check"><input type="checkbox" name="mail_on_loan" value="1" {{ 'checked' if v.mail_on_loan == '1' }}>
+          <span>{{ _("Bestätigung bei Ausleihe") }}<small class="muted">{{ _("Mit Titel und Rückgabedatum.") }}</small></span></label>
+        <label class="check"><input type="checkbox" name="mail_on_return" value="1" {{ 'checked' if v.mail_on_return == '1' }}>
+          <span>{{ _("Bestätigung bei Rückgabe") }}</span></label>
+        <hr>
+        <label class="check"><input type="checkbox" name="mail_reminder" value="1" {{ 'checked' if v.mail_reminder == '1' }}>
+          <span>{{ _("Erinnerung vor Fälligkeit") }}</span></label>
+        <div class="form-grid" style="margin-left: 28px">
+          <div class="field span-3"><label>{{ _("Tage vorher") }}</label><input type="number" name="mail_reminder_days" min="0" max="30" value="{{ v.mail_reminder_days }}"></div>
+        </div>
+        <label class="check"><input type="checkbox" name="mail_overdue" value="1" {{ 'checked' if v.mail_overdue == '1' }}>
+          <span>{{ _("Mahnung bei Überfälligkeit") }}</span></label>
+        <div class="form-grid" style="margin-left: 28px">
+          <div class="field span-3"><label>{{ _("wiederholen alle … Tage") }}</label><input type="number" name="mail_overdue_repeat_days" min="1" value="{{ v.mail_overdue_repeat_days }}"></div>
+          <div class="field span-3"><label>{{ _("höchstens … Mahnungen") }}</label><input type="number" name="mail_overdue_max" min="0" value="{{ v.mail_overdue_max }}">
+            <div class="hint">{{ _("0 = unbegrenzt") }}</div></div>
+        </div>
+        <label class="check"><input type="checkbox" name="mail_digest" value="1" {{ 'checked' if v.mail_digest == '1' }}>
+          <span>{{ _("Tägliche Übersicht an Verwalter") }}<small class="muted">{{ _("Liste aller überfälligen Ausleihen ihrer Gruppen – nur wenn es welche gibt.") }}</small></span></label>
+        <hr>
+        <div class="form-grid">
+          <div class="field span-3"><label>{{ _("Erinnerungen versenden ab") }}</label>
+            <select name="mail_hour">{% for h in range(0, 24) %}<option value="{{ h }}" {{ 'selected' if v.mail_hour|string == h|string }}>{{ _("{time} Uhr", time="%02d:00"|format(h)) }}</option>{% endfor %}</select></div>
+        </div>
+        <p class="muted" style="font-size: 13px">{{ _("Einmal täglich, mehrere Bücher eines Lesers in einer Mail. Erinnerungen werden nie doppelt verschickt.") }}
+          {% if v.mail_last_result %}<br><b>{{ _("Letzter Lauf:") }}</b> {{ v.mail_last_result }}{% endif %}</p>
+        <button class="btn" name="action" value="run_now" formnovalidate
+                data-confirm-click="{{ _('Einstellungen speichern und fällige Erinnerungen jetzt versenden?') }}">{{ icon("send") }} {{ _("Jetzt versenden") }}</button>
+        {% if pending %}<span class="muted" style="font-size: 13px; margin-left: 8px">{{ _n("{n} Leser wartet auf eine Erinnerung.", "{n} Leser warten auf eine Erinnerung.", pending|length) }}</span>{% endif %}
+      </section>
+
+      {% if without_mail %}
+      <div class="notice warn">{{ icon("alert") }}<div>{{ _n('<b>{n} aktiver Benutzer ohne E-Mail-Adresse</b> bekommt keine Mails.', '<b>{n} aktive Benutzer ohne E-Mail-Adresse</b> bekommen keine Mails.', without_mail) }}
+        {{ _('AD-Benutzer erhalten die Adresse aus dem Feld <code>mail</code> bei der nächsten Anmeldung; lokale Benutzer unter <a href="{url}">Benutzer</a>.', url=url_for('admin.users')) }}</div></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="actions" style="margin-top: 20px; justify-content: flex-end">
+    <button class="btn primary lg" name="action" value="save">{{ icon("check") }} {{ _("Speichern") }}</button>
+  </div>
+</form>
+
+<section class="card" style="margin-top: 26px">
+  <div class="card-head"><h2>{{ _("Versandprotokoll") }}</h2><span class="muted">{{ _("letzte {n}", n=logs|length) }}</span></div>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>{{ _("Zeit") }}</th><th>{{ _("Art") }}</th><th>{{ _("Empfänger") }}</th><th>{{ _("Betreff") }}</th><th>{{ _("Status") }}</th></tr></thead>
+    <tbody>
+    {% set kinds = {"loan": _("Ausleihe"), "return": _("Rückgabe"), "reminder": _("Erinnerung"), "overdue": _("Mahnung"),
+                    "digest": _("Übersicht"), "manual": _("Manuell"), "test": _("Test"), "account": _("Konto"), "backup": _("Datensicherung")} %}
+    {% for m in logs %}
+    <tr>
+      <td class="nowrap"><small>{{ m.created_at|de_date }}</small></td>
+      <td><span class="badge">{{ kinds.get(m.kind, m.kind) }}</span></td>
+      <td class="mono" style="font-size: 13px">{{ m.to_addr }}</td>
+      <td>{{ m.subject }}</td>
+      <td>{% if m.status == 'sent' %}<span class="badge ok">{{ _("gesendet") }}</span>
+          {% else %}<span class="badge danger" title="{{ m.error }}">{{ _("Fehler") }}</span><br><small class="muted">{{ m.error[:120] }}</small>{% endif %}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="empty">{{ _("Noch keine Mails versendet.") }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,16 @@
+<p><span class="ui">My loans</span> shows everything you currently have, with loan date and due date. The <span class="ui">Overdue</span> and <span class="ui">History</span> tabs show only overdue loans or books you have already returned. The colour tells you the status: green = plenty of time, yellow = due soon, red = overdue.</p>
+{% if f.self_extend %}
+<p><b>Renewing:</b> <span class="ui">Renew</span> extends the due date by {{ f.extension_days }} {{ "day" if f.extension_days == 1 else "days" }} – at most {{ f.max_extensions }} time{{ "s" if f.max_extensions != 1 }} per loan. It counts from the later of today and the current due date. Once the limit is reached the button disappears; after that only the library can renew.</p>
+{% else %}
+<p><b>Renewals</b> can only be made by library staff here. Ask at the circulation desk in good time before the due date.</p>
+{% endif %}
+<p><b>Returning:</b> {% if f.self_return %}<span class="ui">Return</span> records the return yourself – then put the book back at its location.{% else %}Bring the book to the circulation desk; there is no return button for you.{% endif %}</p>
+{% if f.mail_on and (f.reminder_on or f.overdue_on) %}
+<p><b>Emails:</b>
+{% if f.reminder_on %}Shortly before the due date (up to {{ f.reminder_days }} day{{ "s" if f.reminder_days != 1 }} before) you get a reminder.{% endif %}
+{% if f.overdue_on %}If a book is overdue, an overdue notice follows.{% endif %}
+Several books go into one email. You can switch this off under <span class="ui">My profile</span>.</p>
+{% endif %}
+{% if current_user.is_librarian %}
+<p><b>For librarians:</b> <span class="ui">My loans</span> shows only your own. Everyone's loans are under <span class="ui">Management → All loans</span>.</p>
+{% endif %}

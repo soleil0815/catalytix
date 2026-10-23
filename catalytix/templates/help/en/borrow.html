@@ -1,0 +1,17 @@
+{% if f.self_checkout %}
+<p><b>How to borrow a book:</b></p>
+<ol>
+  <li>Open the book in the <span class="ui">Catalogue</span> by clicking its cover or title.</li>
+  <li>Click <span class="ui">Borrow for myself</span>. The loan period is {{ f.loan_days }} {{ "day" if f.loan_days == 1 else "days" }}.</li>
+  <li>Take the book from the shelf at the <b>location</b> shown.{% if f.mail_on and f.loan_mail %} You will get a confirmation by email.{% endif %}</li>
+</ol>
+<p><b>No button?</b> Then all copies are on loan, the book belongs to a group you are not in, or you have already borrowed it.{% if f.max_loans %} Also, you can borrow at most {{ f.max_loans }} {{ "book" if f.max_loans == 1 else "books" }} at a time.{% endif %} The book page tells you why.</p>
+{% else %}
+<p>In this library you borrow books <b>at the circulation desk</b>: find the book in the <span class="ui">Catalogue</span>, take it from the shelf and bring it to the staff. The book page says “Please borrow this book at the circulation desk”. The loan period is {{ f.loan_days }} {{ "day" if f.loan_days == 1 else "days" }}{% if f.max_loans %}, with at most {{ f.max_loans }} {{ "book" if f.max_loans == 1 else "books" }} at a time{% endif %}.</p>
+{% endif %}
+<p><b>Returning:</b>
+{% if f.self_return %}Under <span class="ui">My loans</span> (or on the book page) click <span class="ui">Return</span> and put the book back at its location.
+{% else %}Bring the book to the circulation desk, where the return is recorded. Only then does it disappear from your loans.{% endif %}</p>
+{% if current_user.is_librarian %}
+<p><b>For librarians:</b> you can always borrow books you manage yourself. On the book page, <span class="ui">Lend to a user</span> lends a book to someone else – type a name, username or email and pick from the list; whether the person may borrow the book is checked when lending; <span class="ui">Due date</span> and a note are optional. For many books in a row, the <span class="ui">Circulation desk</span> is quicker.</p>
+{% endif %}

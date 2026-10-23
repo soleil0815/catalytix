@@ -1,0 +1,13 @@
+{% macro book_row(loan, highlight=None) -%}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:10px 0;border:1px solid #e0d8c6;border-radius:10px;">
+<tr><td style="padding:12px 14px;">
+  <div style="font-weight:600;font-size:15px;">{% if base_url %}<a href="{{ base_url }}/buecher/{{ loan.book.id }}" style="color:#1d2421;text-decoration:none;">{{ loan.book.title }}</a>{% else %}{{ loan.book.title }}{% endif %}</div>
+  {% if loan.book.authors %}<div style="font-size:13px;color:#7b817c;">{{ loan.book.authors }}</div>{% endif %}
+  <div style="margin-top:6px;font-size:13px;">
+    {% if loan.is_overdue %}<span style="background:#f8e1db;color:#b4432f;padding:2px 8px;border-radius:99px;font-weight:600;">{{ _n("seit {date} überfällig ({n} Tag)", "seit {date} überfällig ({n} Tage)", -loan.days_left, date=loan.due_at|de_day) }}</span>
+    {% elif loan.days_left == 0 %}<span style="background:#fbedcc;color:#a8710e;padding:2px 8px;border-radius:99px;font-weight:600;">{{ _("heute fällig") }}</span>
+    {% else %}<span style="background:#dcefe2;color:#2e7a4b;padding:2px 8px;border-radius:99px;font-weight:600;">{{ _("fällig am {date}", date=loan.due_at|de_day) }}</span>{% endif %}
+    {% if loan.book.location %}<span style="color:#7b817c;"> · {{ _("Standort {location}", location=loan.book.location) }}</span>{% endif %}
+  </div>
+</td></tr></table>
+{%- endmacro %}

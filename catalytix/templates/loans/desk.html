@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, cover, avail_badge, group_badge, due_badge %}
+{% block title %}{{ _("Ausleihtheke") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Ausleihtheke") }}</div><h1>{{ _("Ausleihe") if mode == "ausleihe" else _("Rückgabe") }}</h1>
+    <p>{{ _("Optimiert für Barcodescanner: Feld fokussiert lassen, scannen, fertig.") }}</p></div>
+</div>
+
+<nav class="tabs">
+  <a href="{{ url_for('loans.desk', modus='ausleihe') }}" class="{{ 'on' if mode == 'ausleihe' }}">{{ icon("loan") }} {{ _("Ausleihe") }}</a>
+  <a href="{{ url_for('loans.desk', modus='rueckgabe') }}" class="{{ 'on' if mode == 'rueckgabe' }}">{{ icon("return") }} {{ _("Rückgabe") }}</a>
+</nav>
+
+{% if mode == "ausleihe" %}
+<div class="split">
+  <div class="stack">
+    <section class="card card-pad">
+      <form method="get">
+        <input type="hidden" name="modus" value="ausleihe">
+        <label>{{ _("1. Benutzer") }}</label>
+        <div class="input-group user-search">
+          <input type="text" name="benutzer" value="{{ borrower.username if borrower else user_q }}" data-user-search data-user-search-submit
+                 placeholder="{{ _("Name, Benutzername oder E-Mail") }}" {{ "autofocus" if not borrower }} autocomplete="off"
+                 role="combobox" aria-autocomplete="list" aria-expanded="false">
+          <button class="btn">{{ icon("user") }} {{ _("Wählen") }}</button>
+        </div>
+      </form>
+      {% if borrower %}
+      <div class="notice accent" style="margin-top: 14px">
+        <span class="avatar">{{ borrower.initials }}</span>
+        <div><b>{{ borrower.name }}</b> <small>({{ borrower.username }})</small>
+          {% if is_candidate %}<span class="badge">{{ _("neu aus dem AD") }}</span>{% endif %}<br>
+          {% if is_candidate %}<small>{{ _("Noch nie angemeldet – wird bei der ersten Ausleihe als Konto übernommen.") }}{% if borrower_groups %} · {{ _("Gruppen: {groups}", groups=borrower_groups|join(", ")) }}{% endif %}</small>
+          {% else %}<small>{{ _("Gruppen: {groups}", groups=borrower_groups|join(", ") or _("keine")) }} · {{ _n("{n} aktive Ausleihe", "{n} aktive Ausleihen", borrower_loans|length) }}</small>{% endif %}</div>
+        <a class="btn sm ghost" style="margin-left:auto" href="{{ url_for('loans.desk', modus='ausleihe') }}">{{ _("Wechseln") }}</a>
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="card card-pad">
+      <form method="post" autocomplete="off">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="modus" value="ausleihe">
+        <input type="hidden" name="benutzer" value="{{ borrower.username if borrower else '' }}">
+        <label>{{ _("2. Buch (ISBN, Signatur, Titel, Autor oder #Buch-Nummer)") }}</label>
+        <div class="input-group user-search">
+          <input class="isbn-input" id="desk-code" type="text" name="code" data-book-search="ausleihe"
+                 placeholder="{{ _("ISBN scannen oder im Bestand suchen") }}" {{ "autofocus" if borrower }}>
+          <button type="button" class="btn" data-scanner-open data-scanner-target="#desk-code" data-scanner-submit>{{ icon("camera") }}</button>
+          {% if borrower %}<button class="btn primary">{{ icon("check") }} {{ _("Verleihen") }}</button>
+          {% else %}<button class="btn">{{ icon("search") }} {{ _("Suchen") }}</button>{% endif %}
+        </div>
+        {% if not borrower %}<div class="hint">{{ _("Ohne gewählten Benutzer zeigt die Suche nur den Bestand – zum Verleihen zuerst oben die Person wählen.") }}</div>{% endif %}
+        <label class="check" style="margin-top: 12px"><input type="checkbox" name="auto" value="1" {{ "checked" if auto == "1" }}> {{ _("Bei eindeutigem Treffer sofort verleihen") }}</label>
+      </form>
+    </section>
+
+    {% if books %}
+    <section class="card">
+      <div class="card-head"><h3>{{ _("Treffer") }}</h3></div>
+      {% for book in books %}
+      <div class="list-row">
+        <div class="mini-cover">{{ cover(book) }}</div>
+        <div class="grow"><b>{{ book.title }}</b><small>{{ book.authors }}{% if book.isbn %} · {{ book.isbn }}{% endif %}{% if book.signature %} · {{ _("Signatur {s}", s=book.signature) }}{% endif %}{% if book.location %} · {{ book.location }}{% endif %}</small></div>
+        {{ group_badge(book.group) }} {{ avail_badge(book) }}
+        {% if borrower %}
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="modus" value="ausleihe">
+          <input type="hidden" name="benutzer" value="{{ borrower.username }}">
+          <input type="hidden" name="book_id" value="{{ book.id }}">
+          <button class="btn sm primary" {{ "disabled" if book.available == 0 or not borrower.can_borrow(book) }}
+                  title="{{ _('Keine Berechtigung für diese Gruppe') if not borrower.can_borrow(book) }}">{{ _("Verleihen") }}</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </section>
+    {% endif %}
+  </div>
+
+  <section class="card">
+    <div class="card-head"><h3>{{ _("Ausleihen von {name}", name=borrower.name) if borrower else _("Aktive Ausleihen") }}</h3></div>
+    {% for loan in borrower_loans %}
+    <div class="list-row">
+      <div class="mini-cover">{{ cover(loan.book) }}</div>
+      <div class="grow"><b>{{ loan.book.title }}</b><small>{{ loan.loaned_at|de_day }}</small></div>
+      {{ due_badge(loan) }}
+    </div>
+    {% else %}
+    <div class="empty" style="padding: 26px">{{ _("Keine aktiven Ausleihen.") if borrower else _("Zuerst einen Benutzer wählen.") }}</div>
+    {% endfor %}
+  </section>
+</div>
+
+{% else %}
+<div class="split">
+  <div class="stack">
+    <section class="card card-pad">
+      <form method="post" autocomplete="off">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="modus" value="rueckgabe">
+        <label>{{ _("Buch scannen (ISBN, Signatur, Titel, Autor oder #Buch-Nummer)") }}</label>
+        <div class="input-group user-search">
+          <input class="isbn-input" id="return-code" type="text" name="code" data-book-search="rueckgabe"
+                 placeholder="{{ _("ISBN scannen oder im Bestand suchen") }}" autofocus value="">
+          <button type="button" class="btn" data-scanner-open data-scanner-target="#return-code" data-scanner-submit>{{ icon("camera") }}</button>
+          <button class="btn primary">{{ icon("return") }} {{ _("Suchen") }}</button>
+        </div>
+        <label class="check" style="margin-top: 12px"><input type="checkbox" name="auto" value="1" {{ "checked" if auto == "1" }}> {{ _("Bei eindeutigem Treffer sofort zurücknehmen") }}</label>
+      </form>
+    </section>
+    {% if code %}
+    <section class="card">
+      <div class="card-head"><h3>{{ _("Offene Ausleihen zu „{code}“", code=code) }}</h3></div>
+      {% for loan in loans %}
+      <div class="list-row">
+        <div class="mini-cover">{{ cover(loan.book) }}</div>
+        <div class="grow"><b>{{ loan.book.title }}</b><small>{{ loan.user.name }} · {{ _("seit {date}", date=loan.loaned_at|de_day) }}</small></div>
+        {{ due_badge(loan) }}
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="modus" value="rueckgabe">
+          <input type="hidden" name="loan_id" value="{{ loan.id }}">
+          <button class="btn sm primary">{{ icon("return") }} {{ _("Zurücknehmen") }}</button>
+        </form>
+      </div>
+      {% else %}
+      <div class="empty" style="padding: 26px">{{ _("Keine offenen Ausleihen für diesen Titel.") }}</div>
+      {% endfor %}
+    </section>
+    {% endif %}
+  </div>
+  <section class="card card-pad">
+    <h3>{{ _("So funktioniert's") }}</h3>
+    <p class="muted" style="margin-top: 8px">{{ _("Scanne das zurückgegebene Buch. Gibt es genau eine offene Ausleihe, wird sie sofort abgeschlossen. Bei mehreren Exemplaren wählst du die passende Ausleihe aus.") }}</p>
+  </section>
+</div>
+{% endif %}
+{% endblock %}

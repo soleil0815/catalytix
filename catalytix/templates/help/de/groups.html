@@ -1,0 +1,13 @@
+<p>Gruppen ordnen Bücher und Menschen einander zu, z. B. eine Klasse oder ein Ausbildungsgang. Jedes Buch gehört einer Gruppe oder ist <b>allgemein</b>.</p>
+<ul>
+  <li><b>Ausleihen</b> dürfen Leser nur Bücher ihrer Gruppen und allgemeine Bücher.</li>
+  <li><b>Sehen</b> im Katalog: {% if f.catalog_all %}derzeit alle den gesamten Bestand{% else %}derzeit nur die Bücher der eigenen Gruppen und allgemeine Bücher{% endif %} – umstellbar unter <span class="ui">Einstellungen → Katalog-Sichtbarkeit</span>.</li>
+  <li><b>Verwalter mit Gruppe</b> pflegen nur die Bücher und Ausleihen ihrer Gruppen (plus allgemeine). Ein Verwalter <b>ohne</b> Gruppe ist für den ganzen Bestand zuständig.</li>
+</ul>
+<ol>
+  <li><span class="ui">Administration → Gruppen</span> → <span class="ui">Gruppe</span>: Name, Farbe und Beschreibung eintragen.</li>
+  <li>Rechts unter <span class="ui">Mitglieder</span> Benutzer anhaken – oder im Benutzerkonto die Gruppen wählen.</li>
+  <li><span class="ui">Speichern</span>.</li>
+</ol>
+<p><b>Automatisch aus dem AD:</b> Trage bei <span class="ui">AD-Gruppe (optional)</span> den Namen (z. B. <code>Klasse7a</code>) oder DN einer AD-Gruppe ein. Ihre Mitglieder werden bei jeder Anmeldung dieser Gruppe zugeordnet und beim Austritt wieder entfernt. Dafür muss unter <span class="ui">Active Directory</span> <span class="ui">Bibliotheksgruppen automatisch zuordnen</span> eingeschaltet sein. Manuell zugeordnete Gruppen ohne AD-Verknüpfung bleiben unberührt.</p>
+<p><b>Löschen</b> einer Gruppe macht ihre Bücher zu allgemeinen Büchern – sie gehen nicht verloren.</p>

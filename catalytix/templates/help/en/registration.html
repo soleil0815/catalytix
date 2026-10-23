@@ -1,0 +1,16 @@
+<p>Whether readers may create their own accounts is set under <span class="ui">Settings → Self-registration</span>.
+Currently: <b>{% if f.registration_mode == "approval" %}allowed – administrator approval required{% elif f.registration_mode == "open" %}allowed – account active immediately{% else %}off{% endif %}</b>.</p>
+<ul>
+  <li><span class="ui">off</span> – no link on the sign-in page; the registration page does not exist.</li>
+  <li><span class="ui">allowed – approval by an administrator required</span> – the account is created disabled. Approve or reject it under <span class="ui">Users</span> (filter <span class="ui">Awaiting approval</span>). A counter in the sidebar shows pending registrations.</li>
+  <li><span class="ui">allowed – account active immediately</span> – the account can be used straight away.</li>
+</ul>
+<p><b>Options:</b></p>
+<ul>
+  <li><span class="ui">Require email confirmation</span> – link by email, valid for 48 hours.{% if f.registration_verify and not f.mail_on %} <b>Note:</b> email delivery is not active, so confirmation is currently not enforced.{% endif %}</li>
+  <li><span class="ui">Notify administrators of new registrations by email</span> about every new registration.</li>
+  <li><span class="ui">Only allow these email domains</span>, e.g. <code>school.org</code> (subdomains included).</li>
+  <li><span class="ui">Group for new readers</span> – otherwise they only see general books.</li>
+  <li>If a privacy policy is set under <span class="ui">Legal</span>, it must be accepted when registering.{% if not f.privacy_set %} None is set at the moment.{% endif %}</li>
+</ul>
+<p>New accounts are always <b>readers</b>. Built-in protection: bot trap, minimum form-filling time, at most 5 registrations per hour and IP address, reserved names, Active Directory usernames blocked, password at least 10 characters. Unconfirmed accounts are deleted automatically after 7 days.</p>

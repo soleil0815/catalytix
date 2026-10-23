@@ -1,0 +1,17 @@
+<p>A second factor protects your account even if someone knows your password. Everything is under <span class="ui">Security</span> in the sidebar.</p>
+{% if f.has_2fa %}
+<p><b>Status:</b> two-factor authentication is already <b>set up</b> for you.{% if f.mfa_required %} It is mandatory for your account, so you can only remove your last factor after setting up another one.{% endif %}</p>
+{% elif f.mfa_required %}
+<p><b>Status:</b> a second factor is <b>mandatory</b> for your account{% if f.mfa_internal != "same" %} (for access from outside){% endif %}. After signing in you are brought here until it is set up.</p>
+{% else %}
+<p><b>Status:</b> not set up yet. It is optional for you, but recommended.</p>
+{% endif %}
+<p><b>Authenticator app</b> (e.g. Microsoft/Google Authenticator, Aegis, 2FAS):</p>
+<ol>
+  <li>Click <span class="ui">Set up app</span> and scan the QR code (or type in the key).</li>
+  <li>Enter the 6-digit code from the app and click <span class="ui">Confirm</span>.</li>
+  <li>Write down or print the <b>10 recovery codes</b> – they are shown only now, and each works once.</li>
+</ol>
+<p><b>Security key</b> (YubiKey, passkey): enter a name, click <span class="ui">Add</span> and touch the key. This only works over HTTPS and only at the address where the key was registered. Registering a spare key straight away is a good idea.{% if not f.https %} <i>You are not connected over HTTPS right now – only the app works here.</i>{% endif %}</p>
+<p>Running out of codes? <span class="ui">Generate new codes</span> creates fresh ones – the old ones stop working.</p>
+<p><b>Lost your phone?</b> Under <span class="ui">Signed-in devices</span>, <span class="ui">Sign out on all other devices</span> signs you out everywhere else, including “Stay signed in”. You can then sign in with a recovery code – or ask an administrator to reset your two-factor authentication.</p>

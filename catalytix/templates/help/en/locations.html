@@ -1,0 +1,10 @@
+<p>Under <span class="ui">Management → Locations</span> you define your shelves, rooms or cupboards once. As soon as at least one exists, the location is <b>picked from a list</b> when adding, quick-capturing and editing books instead of being typed – no more typos.</p>
+<ul>
+  <li><b>Add:</b> write the names in the box, one per line, then click <span class="ui">Add</span>. Duplicates (also with different upper/lower case) are skipped.</li>
+  <li><b>Rename:</b> change the name in its field and save with ✓ – all books at that location are updated too. An optional note helps people find it.</li>
+  <li><b>Delete</b> only works once no book is located there.</li>
+  <li>The number next to each location leads to its books; the <span class="ui">Catalogue</span> can be filtered by location.</li>
+</ul>
+<p><b>In the holdings, but not defined</b> lists locations typed freely in the past. Choose <span class="ui">add as new location</span> or <span class="ui">replace with …</span> and click <span class="ui">Apply</span> – the books are updated too. For a different spelling (“regal a2”) or a similar name (“Regl A1”) the matching location is already preselected.</p>
+<p><b>Merging:</b> two defined locations cannot be merged by renaming. Move the books of one of them, then delete it.</p>
+{% if not current_user.is_global_manager %}<p>As a group librarian you can add locations. Renaming or replacing that also affects books of other groups is reserved for administrators and librarians without a group.</p>{% endif %}

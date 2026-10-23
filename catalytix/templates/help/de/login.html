@@ -1,0 +1,12 @@
+<p>Melde dich mit Benutzername und Passwort an.{% if f.ldap_on %} Hast du ein Konto im Netzwerk des Instituts, sind das dieselben Zugangsdaten wie für die PC-Anmeldung.{% endif %} <span class="ui">Angemeldet bleiben</span> hält dich 14 Tage auf diesem Gerät angemeldet – auf fremden oder gemeinsam genutzten Geräten bitte nicht anhaken.</p>
+<p>Ist ein zweiter Faktor eingerichtet, folgt ein zweiter Schritt: Code aus der Authenticator-App eingeben, <span class="ui">Mit Sicherheitsschlüssel bestätigen</span> oder über <span class="ui">Wiederherstellungscode verwenden</span> einen Notfallcode nutzen.</p>
+<p><b>Wenn es nicht klappt:</b></p>
+<ul>
+  <li><b>„Benutzername oder Passwort ist falsch“</b> – Schreibweise und Feststelltaste prüfen. Aus Sicherheitsgründen verrät die Seite nicht, ob es das Konto gibt oder ob es gesperrt ist.</li>
+  <li><b>„Zu viele Fehlversuche“</b> – nach 8 Fehlversuchen ist die Anmeldung 5 Minuten gesperrt. Warten oder einen Administrator bitten, die Sperre aufzuheben.</li>
+  <li><b>Passwort vergessen</b> – eine „Passwort vergessen“-Funktion gibt es bewusst nicht. {% if f.ldap_on %}Bei Netzwerk-Konten des Instituts setzt die IT das Passwort zurück, bei lokalen Konten vergibt ein Administrator ein neues.{% else %}Ein Administrator vergibt dir ein neues Passwort.{% endif %}</li>
+  <li><b>Handy oder Schlüssel verloren</b> – mit einem Wiederherstellungscode anmelden oder einen Administrator bitten, die Zwei-Faktor-Anmeldung zurückzusetzen.</li>
+  <li><b>Sicherheitsschlüssel wird nicht angenommen</b> – er gilt nur für die Adresse, unter der er eingerichtet wurde. Sonst App oder Wiederherstellungscode nutzen.</li>
+  {% if f.mfa_internal != "same" %}<li><b>Plötzlich nach dem zweiten Faktor gefragt?</b> Im Hausnetz gelten lockerere Regeln als von außen. Wer den Laptop mit nach Hause nimmt, muss sich dort neu anmelden – mit zweitem Faktor.</li>{% endif %}
+</ul>
+{% if f.registration_mode and f.registration_mode != "off" %}<p>Noch kein Konto? Auf der Anmeldeseite führt <span class="ui">Jetzt registrieren</span> zur Registrierung.</p>{% endif %}

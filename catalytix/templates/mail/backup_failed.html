@@ -1,0 +1,7 @@
+{% extends "mail/_layout.html" %}
+{% block content %}
+<p style="margin:0 0 12px;">{{ _("Hallo {name},", name=user.name) }}</p>
+<p style="margin:0 0 12px;">{{ _("die automatische Datensicherung ist <b>fehlgeschlagen</b>:") }}</p>
+<p style="margin:0 0 12px;padding:10px 14px;background:#fbeeea;border-radius:8px;font-family:Consolas,monospace;font-size:13px;">{{ message }}</p>
+{% if base_url %}<p style="margin:20px 0;"><a href="{{ base_url }}/admin/datensicherung" style="background:{{ mail_accent }};color:{{ mail_accent_ink }};padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:600;display:inline-block;">{{ _("Datensicherung ansehen") }}</a></p>{% endif %}
+{% endblock %}

@@ -1,0 +1,16 @@
+<p>Ob sich Leser selbst ein Konto anlegen dürfen, stellst du unter <span class="ui">Einstellungen → Selbstregistrierung</span> ein.
+Aktuell: <b>{% if f.registration_mode == "approval" %}erlaubt – Freigabe durch Administrator nötig{% elif f.registration_mode == "open" %}erlaubt – Konto sofort aktiv{% else %}aus{% endif %}</b>.</p>
+<ul>
+  <li><span class="ui">aus</span> – kein Link auf der Anmeldeseite, die Registrierungsseite gibt es nicht.</li>
+  <li><span class="ui">Freigabe durch Administrator</span> – das Konto entsteht gesperrt. Du gibst es unter <span class="ui">Benutzer</span> (Filter <span class="ui">Warten auf Freigabe</span>) mit <span class="ui">Freigeben</span> frei oder lehnst ab. Ein Zähler in der Seitenleiste zeigt Wartende an.</li>
+  <li><span class="ui">sofort aktiv</span> – das Konto ist direkt nutzbar.</li>
+</ul>
+<p><b>Optionen:</b></p>
+<ul>
+  <li><span class="ui">E-Mail-Adresse bestätigen lassen</span> – Link per Mail, 48 Stunden gültig.{% if f.registration_verify and not f.mail_on %} <b>Achtung:</b> Der E-Mail-Versand ist nicht aktiv, die Bestätigung greift deshalb gerade nicht.{% endif %}</li>
+  <li><span class="ui">Administratoren per E-Mail informieren</span> bei jeder neuen Registrierung.</li>
+  <li><span class="ui">Nur diese E-Mail-Domains zulassen</span>, z. B. <code>schule.de</code> (Subdomains eingeschlossen).</li>
+  <li><span class="ui">Gruppe für neue Leser</span> – sonst sehen sie nur allgemeine Bücher.</li>
+  <li>Ist unter <span class="ui">Rechtliches</span> eine Datenschutzerklärung hinterlegt, muss sie bestätigt werden.{% if not f.privacy_set %} Derzeit ist keine hinterlegt.{% endif %}</li>
+</ul>
+<p>Neue Konten sind immer <b>Leser</b>. Eingebauter Schutz: Bot-Falle, Mindest-Ausfüllzeit, höchstens 5 Registrierungen pro Stunde und IP, reservierte Namen, gesperrte AD-Benutzernamen, Passwort mindestens 10 Zeichen. Unbestätigte Konten werden nach 7 Tagen automatisch gelöscht.</p>

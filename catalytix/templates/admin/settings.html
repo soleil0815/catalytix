@@ -48,6 +48,18 @@
     </section>
 
     <section class="card card-pad">
+      <h2 style="margin-bottom: 6px">{{ icon("pin") }} {{ _("Vormerken") }}</h2>
+      <label class="check"><input type="checkbox" name="reservations_enabled" value="1" {{ 'checked' if s('reservations_enabled') == '1' }}>
+        <span>{{ _("Vormerken verliehener Bücher") }}<small class="muted">{{ _("Sind alle Exemplare verliehen, kann man ein Buch vormerken. Wird eines frei, wird es für die erste Person in der Warteschlange zurückgelegt; sie bekommt eine E-Mail. Vorgemerkte Bücher können Leser nicht selbst verlängern. Ausschalten löscht alle offenen Vormerkungen.") }}</small></span></label>
+      <div class="form-grid" style="margin-top: 12px">
+        <div class="field span-3"><label>{{ _("Abholfrist (Tage)") }}</label><input type="number" name="reservation_hold_days" min="1" max="60" value="{{ s('reservation_hold_days') }}">
+          <div class="hint">{{ _("So lange liegt ein frei gewordenes Exemplar bereit. Danach ist die nächste Person dran.") }}</div></div>
+        <div class="field span-3"><label>{{ _("Max. Vormerkungen je Person") }}</label><input type="number" name="reservation_max" min="0" max="100" value="{{ s('reservation_max') }}">
+          <div class="hint">{{ _("0 = unbegrenzt") }}</div></div>
+      </div>
+    </section>
+
+    <section class="card card-pad">
       <h2 style="margin-bottom: 6px">{{ icon("user") }} {{ _("Selbstregistrierung") }}</h2>
       <p class="muted" style="font-size: 13.5px">{{ _("Dürfen sich Leser selbst ein Konto anlegen? Neue Konten sind immer <b>Leser</b>. Mit aktiver Registrierung erscheint auf der Anmeldeseite der Link „Jetzt registrieren“.") }}</p>
       <div class="field"><label>{{ _("Registrierung") }}</label>

@@ -12,6 +12,9 @@
 <p><b>Zurückgeben:</b>
 {% if f.self_return %}Klicke unter <span class="ui">Meine Ausleihen</span> (oder auf der Buchseite) auf <span class="ui">Rückgabe</span> bzw. <span class="ui">Zurückgeben</span> und stell das Buch an seinen Standort zurück.
 {% else %}Bring das Buch zur Ausleihtheke – dort wird die Rückgabe gebucht. Erst dann verschwindet es aus deinen Ausleihen.{% endif %}</p>
+{% if f.reservations %}
+<p><b>Vormerken:</b> Sind alle Exemplare verliehen, klickst du auf der Buchseite auf <span class="ui">Vormerken</span> und stehst in der Warteschlange{% if f.reservation_max %} (höchstens {{ f.reservation_max }} {{ "Vormerkung" if f.reservation_max == 1 else "Vormerkungen" }} gleichzeitig){% endif %}. Wird ein Exemplar zurückgegeben, wird es für die erste Person in der Schlange zurückgelegt{% if f.mail_on %} – du bekommst dann eine E-Mail{% endif %}, und auf der <span class="ui">Übersicht</span> steht „liegt für dich bereit“. Hol es innerhalb von {{ f.hold_days }} {{ "Tag" if f.hold_days == 1 else "Tagen" }} ab, sonst ist die nächste Person dran. Deine Vormerkungen und deinen Platz siehst du unter <span class="ui">Meine Ausleihen</span>; dort kannst du sie auch löschen. Ein vorgemerktes Buch kannst du nicht selbst verlängern – andere warten darauf.</p>
+{% endif %}
 {% if current_user.is_librarian %}
 <p><b>Für Verwalter:</b> Bücher, die du verwaltest, kannst du dir immer selbst ausleihen. Auf der Buchseite verleihst du unter <span class="ui">An Benutzer verleihen</span> an andere – Name, Benutzername oder E-Mail eintippen und aus der Liste wählen; ob die Person das Buch ausleihen darf, wird beim Verleihen geprüft; <span class="ui">Fällig am</span> und eine Notiz sind optional. Viele Bücher nacheinander gehen schneller an der <span class="ui">Ausleihtheke</span>.</p>
 {% endif %}

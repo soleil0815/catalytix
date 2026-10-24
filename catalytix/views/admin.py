@@ -11,7 +11,7 @@ from sqlalchemy import func, or_
 from ..i18n import _, _n
 from ..isbn import SOURCES
 from ..ldap_auth import Directory, LDAPError, group_cn, parse_rules
-from ..models import (MIN_PASSWORD_LENGTH, DEFAULT_SETTINGS, ROLE_ADMIN, ROLES, Book, Group, Loan, User, db, get_setting,
+from ..models import (MIN_PASSWORD_LENGTH, DEFAULT_SETTINGS, ROLE_ADMIN, ROLES, Book, Group, Loan, User, db, get_bool, get_setting,
                       set_setting)
 from . import admin_required, form_bool, form_int, form_str, safe_next
 
@@ -484,6 +484,16 @@ def settings():
         set_setting("max_loans", min(form_int("max_loans", 0, 0), 1000))
         for key in ("self_checkout", "self_return", "self_extend"):
             set_setting(key, form_bool(key))
+        was_on = get_bool("reservations_enabled")
+        set_setting("reservations_enabled", form_bool("reservations_enabled"))
+        set_setting("reservation_hold_days", min(form_int("reservation_hold_days", 7, 1), 60))
+        set_setting("reservation_max", min(form_int("reservation_max", 5, 0), 100))
+        if was_on and not form_bool("reservations_enabled"):
+            from .. import reservations
+            db.session.commit()
+            n = reservations.cancel_all()   # sonst blieben Exemplare für Vormerkungen zurückgelegt
+            if n:
+                flash(_n("{n} offene Vormerkung gelöscht.", "{n} offene Vormerkungen gelöscht.", n), "info")
         reg = request.form.get("registration_mode")
         set_setting("registration_mode", reg if reg in ("off", "approval", "open") else "off")
         set_setting("registration_verify_email", form_bool("registration_verify_email"))

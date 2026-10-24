@@ -331,8 +331,10 @@ def dashboard():
         pairs = [(e["version"], i) for e in fresh for i in e["items"]]
         version, first = next(((v, i) for v, i in pairs if i["kind"] == "security"), pairs[0])
         news_hint = {"version": version, "first": first, "more": len(pairs) - 1}
+    from .. import reservations
+    ready = reservations.ready_for(current_user) if reservations.enabled() else []
     return render_template("dashboard.html", my_loans=my_loans, newest=newest, stats=stats,
-                           overdue=overdue, recent_loans=recent_loans, news_hint=news_hint)
+                           overdue=overdue, recent_loans=recent_loans, news_hint=news_hint, ready=ready)
 
 
 @bp.route("/profil", methods=["GET", "POST"])

@@ -42,9 +42,9 @@
   <section class="card card-pad">
     <h2 style="margin-bottom: 14px">{{ _("Ausleihe") }}</h2>
     <div class="avail">
-      <div class="num">{{ book.available }}</div>
+      <div class="num">{{ avail_me }}</div>
       <div><b>{{ _n("von {n} Exemplar verfügbar", "von {n} Exemplaren verfügbar", book.copies) }}</b><br>
-        <small>{{ _("Leihfrist {days} Tage", days=loan_days) }}</small></div>
+        <small>{{ _("Leihfrist {days} Tage", days=loan_days) }}{% if res_on and book.open_reservations %} · {{ _n("{n} Vormerkung", "{n} Vormerkungen", book.open_reservations|length) }}{% endif %}</small></div>
     </div>
 
     {% if own_loan %}
@@ -64,20 +64,58 @@
           <button class="btn">{{ icon("return") }} {{ _("Zurückgeben") }}</button></form>
         {% endif %}
       </div>
+      {% if extend_blocked %}<p class="muted" style="font-size: 13.5px; margin-top: 10px">{{ _("Verlängern ist nicht möglich: Das Buch ist vorgemerkt.") }}</p>{% endif %}
     {% elif not current_user.can_borrow(book) %}
       <div class="notice warn">{{ icon("lock") }}<div>{{ _("Dieses Buch gehört zur Gruppe <b>{group}</b>. Nur Mitglieder dieser Gruppe können es ausleihen.", group=book.group.name) }}</div></div>
-    {% elif book.available > 0 and (self_checkout or current_user.can_manage(book)) %}
+    {% else %}
+      {% if my_res and my_res.status == "ready" %}
+      <div class="notice ok" style="margin-bottom: 12px">{{ icon("check") }}<div>{{ _("Für dich zurückgelegt – bitte bis {date} abholen.", date=my_res.hold_until|de_day) }}</div></div>
+      {% endif %}
+      {% if avail_me > 0 and (self_checkout or current_user.can_manage(book)) %}
       <form method="post" action="{{ url_for('loans.borrow', book_id=book.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="btn primary lg">{{ icon("loan") }} {{ _("Für mich ausleihen") }}</button>
       </form>
-    {% elif book.available > 0 %}
+      {% elif avail_me > 0 %}
       <div class="notice">{{ icon("desk") }}<div>{{ _("Bitte leihe dieses Buch an der Ausleihtheke aus.") }}</div></div>
-    {% else %}
-      <div class="notice">{{ icon("clock") }}<div>{{ _("Derzeit sind alle Exemplare verliehen.") }}</div></div>
+      {% elif my_res %}
+      <div class="notice accent">{{ icon("clock") }}<div>{{ _("Du hast dieses Buch vorgemerkt – Platz {n} in der Warteschlange. Sobald ein Exemplar frei ist, wird es für dich zurückgelegt.", n=my_pos) }}</div></div>
+      {% else %}
+      <div class="notice">{{ icon("clock") }}<div>{{ _("Derzeit sind alle Exemplare verliehen.") if not book.held else _("Derzeit sind alle Exemplare verliehen oder für Vormerkungen zurückgelegt.") }}</div></div>
+      {% if res_on %}
+      <form method="post" action="{{ url_for('loans.reserve', book_id=book.id) }}" style="margin-top: 12px">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn primary">{{ icon("pin") }} {{ _("Vormerken") }}</button>
+        <small class="muted" style="display: block; margin-top: 6px">{{ _("Du wirst benachrichtigt, sobald ein Exemplar für dich bereitliegt.") }}</small>
+      </form>
+      {% endif %}
+      {% endif %}
+      {% if my_res %}
+      <form method="post" action="{{ url_for('loans.cancel_reservation', res_id=my_res.id) }}" style="margin-top: 10px">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button class="btn sm ghost">{{ icon("x") }} {{ _("Vormerkung löschen") }}</button></form>
+      {% endif %}
     {% endif %}
 
-    {% if current_user.can_manage(book) and book.available > 0 %}
+    {% if current_user.can_manage(book) and res_on and book.open_reservations %}
+    <hr>
+    <h3 style="margin-bottom: 10px">{{ _("Vormerkungen") }}</h3>
+    {% for r in book.open_reservations %}
+    <div class="list-row">
+      <span class="avatar" style="width:30px;height:30px;font-size:11px">{{ r.user.initials }}</span>
+      <div class="grow"><b>{{ r.user.name }}</b><small>{{ _("vorgemerkt am {date}", date=r.created_at|de_day) }}</small></div>
+      {% if r.status == "ready" %}<span class="badge ok">{{ _("zurückgelegt bis {date}", date=r.hold_until|de_day) }}</span>
+      {% else %}<span class="badge">{{ _("wartet") }}</span>{% endif %}
+      <form method="post" action="{{ url_for('loans.cancel_reservation', res_id=r.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button class="btn sm" title="{{ _('Vormerkung löschen') }}" aria-label="{{ _('Vormerkung löschen') }}">{{ icon("x") }}</button></form>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if current_user.can_manage(book) and (book.available > 0 or book.held) %}
     <hr>
     <h3 style="margin-bottom: 10px">{{ _("An Benutzer verleihen") }}</h3>
     <form method="post" action="{{ url_for('loans.borrow', book_id=book.id) }}" class="form-grid">

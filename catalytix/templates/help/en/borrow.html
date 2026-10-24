@@ -12,6 +12,9 @@
 <p><b>Returning:</b>
 {% if f.self_return %}Under <span class="ui">My loans</span> (or on the book page) click <span class="ui">Return</span> and put the book back at its location.
 {% else %}Bring the book to the circulation desk, where the return is recorded. Only then does it disappear from your loans.{% endif %}</p>
+{% if f.reservations %}
+<p><b>Reserving:</b> if all copies are on loan, click <span class="ui">Reserve</span> on the book page to join the queue{% if f.reservation_max %} (at most {{ f.reservation_max }} {{ "reservation" if f.reservation_max == 1 else "reservations" }} at a time){% endif %}. When a copy is returned, it is set aside for the first person in the queue{% if f.mail_on %} – you then get an email{% endif %}, and the <span class="ui">Overview</span> says it is ready for you. Collect it within {{ f.hold_days }} {{ "day" if f.hold_days == 1 else "days" }}, otherwise the next person gets it. Your reservations and your place in the queue are under <span class="ui">My loans</span>, where you can also delete them. You cannot extend a reserved book yourself – others are waiting for it.</p>
+{% endif %}
 {% if current_user.is_librarian %}
 <p><b>For librarians:</b> you can always borrow books you manage yourself. On the book page, <span class="ui">Lend to a user</span> lends a book to someone else – type a name, username or email and pick from the list; whether the person may borrow the book is checked when lending; <span class="ui">Due date</span> and a note are optional. For many books in a row, the <span class="ui">Circulation desk</span> is quicker.</p>
 {% endif %}

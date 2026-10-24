@@ -70,7 +70,7 @@
           <input type="hidden" name="modus" value="ausleihe">
           <input type="hidden" name="benutzer" value="{{ borrower.username }}">
           <input type="hidden" name="book_id" value="{{ book.id }}">
-          <button class="btn sm primary" {{ "disabled" if book.available == 0 or not borrower.can_borrow(book) }}
+          <button class="btn sm primary" {{ "disabled" if book.available_for(borrower) == 0 or not borrower.can_borrow(book) }}
                   title="{{ _('Keine Berechtigung für diese Gruppe') if not borrower.can_borrow(book) }}">{{ _("Verleihen") }}</button>
         </form>
         {% endif %}
@@ -80,6 +80,25 @@
     {% endif %}
   </div>
 
+  <div class="stack">
+  {% if borrower_ready %}
+  <section class="card">
+    <div class="card-head"><h3>{{ _("Für {name} zurückgelegt", name=borrower.name) }}</h3></div>
+    {% for r in borrower_ready %}
+    <div class="list-row">
+      <div class="mini-cover">{{ cover(r.book) }}</div>
+      <div class="grow"><b>{{ r.book.title }}</b><small>{{ _("abholen bis {date}", date=r.hold_until|de_day) }}{% if r.book.location %} · {{ r.book.location }}{% endif %}</small></div>
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="modus" value="ausleihe">
+        <input type="hidden" name="benutzer" value="{{ borrower.username }}">
+        <input type="hidden" name="book_id" value="{{ r.book.id }}">
+        <button class="btn sm primary">{{ _("Verleihen") }}</button>
+      </form>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
   <section class="card">
     <div class="card-head"><h3>{{ _("Ausleihen von {name}", name=borrower.name) if borrower else _("Aktive Ausleihen") }}</h3></div>
     {% for loan in borrower_loans %}
@@ -92,6 +111,7 @@
     <div class="empty" style="padding: 26px">{{ _("Keine aktiven Ausleihen.") if borrower else _("Zuerst einen Benutzer wählen.") }}</div>
     {% endfor %}
   </section>
+  </div>
 </div>
 
 {% else %}

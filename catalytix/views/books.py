@@ -47,14 +47,18 @@ MAX_COPIES = 10_000
 
 
 def _active_loan_counts():
-    """Unterabfrage: Buch-ID → Zahl der offenen Ausleihen (für Filter und Export ohne Abfrage je Buch)."""
-    return (db.session.query(Loan.book_id.label("book_id"), func.count(Loan.id).label("n"))
-            .filter(Loan.returned_at.is_(None)).group_by(Loan.book_id).subquery())
+    """Unterabfrage: Buch-ID → belegte Exemplare (offene Ausleihen plus für Vormerkungen zurückgelegte) – für Filter,
+    Vorschläge und Export ohne Abfrage je Buch."""
+    from ..models import occupied_counts
+    return occupied_counts()
 
 
 def _with_active_loans():
-    """Nur die offenen Ausleihen mitladen – genug für „verfügbar“, ohne den ganzen Verlauf."""
-    return selectinload(Book.loans.and_(Loan.returned_at.is_(None)))
+    """Nur die offenen Ausleihen (und zurückgelegten Vormerkungen) mitladen – genug für „verfügbar“, ohne den ganzen
+    Verlauf und ohne eine Abfrage je Buch."""
+    from ..models import RES_READY, Reservation
+    return (selectinload(Book.loans.and_(Loan.returned_at.is_(None))),
+            selectinload(Book.reservations.and_(Reservation.status == RES_READY)))
 
 
 def _bounded_int(value, maximum: int) -> int | None:
@@ -392,7 +396,7 @@ def index():
     total = query.order_by(None).count()
     pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)
     page = min(page, pages)
-    books = (query.options(_with_active_loans(), selectinload(Book.group))
+    books = (query.options(*_with_active_loans(), selectinload(Book.group))
              .order_by(order, Book.id).offset((page - 1) * PER_PAGE).limit(PER_PAGE).all())
 
     if current_user.is_global_manager or get_setting("catalog_visibility") == "all":
@@ -456,12 +460,21 @@ def detail(book_id):
         abort(404)
     own_loan = next((l for l in book.active_loans if l.user_id == current_user.id), None)
     from ..people import directory_available
+    from .. import reservations
+    res_on = reservations.enabled()
+    my_res = reservations.open_for(current_user, book) if res_on else None
+    waiting = res_on and any(r.status == "waiting" for r in book.reservations)
     return render_template("books/detail.html", book=book, own_loan=own_loan,
                            directory_search=current_user.can_manage(book) and directory_available(),
                            self_checkout=get_bool("self_checkout"),
                            self_return=get_bool("self_return"),
                            can_extend=bool(own_loan) and (current_user.can_manage(book) or (
-                               get_bool("self_extend") and own_loan.extensions < get_int("max_extensions", 2))),
+                               get_bool("self_extend") and own_loan.extensions < get_int("max_extensions", 2)
+                               and not waiting)),
+                           extend_blocked=bool(own_loan) and waiting and not current_user.can_manage(book),
+                           res_on=res_on, my_res=my_res,
+                           my_pos=reservations.position(my_res) if my_res else 0,
+                           avail_me=book.available_for(current_user),
                            loan_days=get_setting("loan_days"))
 
 
@@ -531,6 +544,8 @@ def edit(book_id):
         else:
             _apply_cover(book, old_url)
             db.session.commit()
+            from .. import reservations
+            reservations.rebalance(book.id)    # Anzahl der Exemplare geändert: Vormerkungen anpassen
             flash(_("Änderungen gespeichert."), "success")
             return redirect(url_for("books.detail", book_id=book.id))
     from .locations import names as location_names
@@ -633,6 +648,8 @@ def api_add_copy(book_id):
     db.session.execute(update(Book).where(Book.id == book.id, Book.copies < MAX_COPIES)
                        .values(copies=func.coalesce(Book.copies, 0) + 1).execution_options(synchronize_session=False))
     db.session.commit()
+    from .. import reservations
+    reservations.promote(book.id)          # neues Exemplar geht zuerst an die Warteschlange
     db.session.refresh(book)
     return jsonify({"ok": True, "copies": book.copies, "available": book.available})
 

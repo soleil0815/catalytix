@@ -299,6 +299,21 @@ def notify_return(loan: Loan):
         _send_async(_loan_mail, loan.id, "return", "return")
 
 
+def _reservation_mail(res_id: int):
+    from .models import Reservation
+    res = db.session.get(Reservation, res_id)
+    if res is None or res.status != "ready" or not can_notify(res.user):
+        return
+    subject, text, html = render_mail("reservation_ready", res=res, user=res.user, book=res.book)
+    send_mail(res.user.email, subject, text, html, kind="reservation", user_id=res.user_id)
+
+
+def notify_reservation_ready(res) -> None:
+    """Vorgemerktes Buch liegt bereit – immer, wenn E-Mail eingerichtet ist (sonst sieht man es in der App)."""
+    if mail_active() and can_notify(res.user):
+        _send_async(_reservation_mail, res.id)
+
+
 def send_manual_reminder(loan: Loan) -> tuple[bool, str]:
     if not mail_active():
         return False, _("E-Mail-Versand ist nicht eingerichtet.")
@@ -588,6 +603,9 @@ def start_scheduler(app, interval: int = 300):
                     cleanup_lockouts()
                     run_backup_daily()      # zuerst sichern, dann aufräumen
                     run_retention_daily()
+                    from .reservations import enabled as reservations_on, expire_due
+                    if reservations_on():
+                        expire_due()        # nicht abgeholte Vormerkungen: die nächste Person ist dran
                     run_scheduled()
             except Exception:  # noqa: BLE001
                 log.exception("Error in the reminder schedule")
@@ -611,5 +629,6 @@ def start_scheduler(app, interval: int = 300):
 
 
 __all__ = ["MailError", "SmtpConfig", "send_mail", "smtp_connect", "render_mail", "notify_loan", "notify_return",
+           "notify_reservation_ready",
            "send_manual_reminder", "run_notifications", "run_scheduled", "collect_due", "format_stats",
            "start_scheduler", "mail_active", "can_notify"]

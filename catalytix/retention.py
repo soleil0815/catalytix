@@ -70,6 +70,9 @@ def run_retention(now: datetime | None = None) -> dict:
     old_ids = [i for (i,) in db.session.query(Loan.id).filter(Loan.returned_at.isnot(None),
                                                              Loan.returned_at < cutoff)]
     loans = archive_loans(old_ids)
+    from .models import Reservation
+    db.session.query(Reservation).filter(Reservation.closed_at.isnot(None), Reservation.closed_at < cutoff).delete(
+        synchronize_session=False)    # abgeschlossene Vormerkungen: nur so lange wie Ausleihen
     active = select(Loan.id).where(Loan.returned_at.is_(None))
     mails = (db.session.query(MailLog)
              .filter(MailLog.created_at < cutoff,

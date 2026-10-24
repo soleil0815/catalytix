@@ -1,0 +1,15 @@
+{{ _("Liegt für dich bereit: {title}", title=book.title|safe) }}
+{{ _("Hallo {name},", name=user.name|safe) }}
+
+{{ _("ein von dir vorgemerktes Buch ist jetzt für dich zurückgelegt:") }}
+
+  {{ book.title }}{% if book.authors %} – {{ book.authors }}{% endif %}{% if book.location %}
+  {{ _("Standort {location}", location=book.location) }}{% endif %}
+  {{ _("Abholen bis: {date}", date=res.hold_until|de_day) }}
+
+{{ _("Holst du es bis dahin nicht ab, ist die nächste Person in der Warteschlange dran.") }}
+{% if base_url %}
+{{ _("Zum Buch:") }} {{ base_url }}/buecher/{{ book.id }}
+{% endif %}{% if footer %}
+--
+{{ footer }}{% endif %}

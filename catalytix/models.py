@@ -103,6 +103,7 @@ class User(UserMixin, db.Model):
 
     groups = db.relationship("Group", secondary=user_groups, back_populates="users")
     loans = db.relationship("Loan", back_populates="user", foreign_keys="Loan.user_id")
+    reservations = db.relationship("Reservation", back_populates="user", cascade="all, delete-orphan")
 
     # --- Flask-Login ---
     @property
@@ -219,14 +220,32 @@ class Book(db.Model):
     group = db.relationship("Group", back_populates="books")
     loans = db.relationship("Loan", back_populates="book", cascade="all, delete-orphan",
                             order_by="Loan.loaned_at.desc()")
+    reservations = db.relationship("Reservation", back_populates="book", cascade="all, delete-orphan",
+                                   order_by="Reservation.created_at, Reservation.id")
 
     @property
     def active_loans(self):
         return [l for l in self.loans if l.returned_at is None]
 
     @property
+    def open_reservations(self):
+        """Vormerkungen in der Warteschlange und bereitgelegte – in der Reihenfolge der Warteschlange."""
+        return [r for r in self.reservations if r.status in (RES_WAITING, RES_READY)]
+
+    @property
+    def held(self) -> int:
+        """Exemplare, die für eine Vormerkung zurückgelegt sind."""
+        return sum(1 for r in self.reservations if r.status == RES_READY)
+
+    @property
     def available(self) -> int:
-        return max(0, (self.copies or 0) - len(self.active_loans))
+        """Frei für alle: Exemplare minus Ausleihen minus zurückgelegte."""
+        return max(0, (self.copies or 0) - len(self.active_loans) - self.held)
+
+    def available_for(self, user) -> int:
+        """Frei für diese Person – ein für sie zurückgelegtes Exemplar zählt mit."""
+        mine = any(r.status == RES_READY and r.user_id == getattr(user, "id", None) for r in self.reservations)
+        return self.available + (1 if mine else 0)
 
     @property
     def cover(self) -> str:
@@ -356,6 +375,30 @@ class DirectoryPerson(db.Model):
     synced_at = db.Column(db.DateTime, default=datetime.now)
 
 
+RES_WAITING, RES_READY, RES_DONE, RES_CANCELLED, RES_EXPIRED = "waiting", "ready", "done", "cancelled", "expired"
+
+
+class Reservation(db.Model):
+    """Vormerkung: Warteschlange je Buch. Wird ein Exemplar frei, ist es für die erste Person zurückgelegt
+    (ready, bis hold_until); mit der Ausleihe an sie ist die Vormerkung erledigt (done)."""
+    __tablename__ = "reservations"
+    id = db.Column(db.Integer, primary_key=True)
+    book_id = db.Column(db.Integer, db.ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    status = db.Column(db.String(12), default=RES_WAITING, nullable=False, index=True)
+    ready_at = db.Column(db.DateTime)
+    hold_until = db.Column(db.Date)          # bereitgelegt bis einschließlich diesem Tag
+    closed_at = db.Column(db.DateTime)       # erledigt, storniert oder abgelaufen
+
+    book = db.relationship("Book", back_populates="reservations")
+    user = db.relationship("User", back_populates="reservations")
+
+    @property
+    def is_open(self) -> bool:
+        return self.status in (RES_WAITING, RES_READY)
+
+
 class Setting(db.Model):
     __tablename__ = "settings"
     key = db.Column(db.String(100), primary_key=True)
@@ -372,6 +415,9 @@ DEFAULT_SETTINGS = {
     "self_checkout": "1",
     "self_return": "0",
     "self_extend": "1",
+    "reservations_enabled": "0",      # Vormerken (Reservieren) verliehener Bücher
+    "reservation_hold_days": "7",     # so lange liegt ein frei gewordenes Exemplar für die Person bereit
+    "reservation_max": "5",           # offene Vormerkungen je Person (0 = unbegrenzt)
     "catalog_visibility": "groups",  # groups | all
     "isbn_sources": "dnb,openlibrary,google",
     "cache_covers": "1",
@@ -547,6 +593,17 @@ def manageable_books_query(user: User):
         return q
     ids = list(user.group_ids)
     return q.filter((Book.group_id.is_(None)) | (Book.group_id.in_(ids or [-1])))
+
+
+def occupied_counts():
+    """Unterabfrage book_id → n: offene Ausleihen plus zurückgelegte Vormerkungen je Buch."""
+    from sqlalchemy import literal, union_all
+    loans = db.session.query(Loan.book_id.label("book_id"), literal(1).label("one")).filter(Loan.returned_at.is_(None))
+    held = db.session.query(Reservation.book_id.label("book_id"), literal(1).label("one")).filter(
+        Reservation.status == RES_READY)
+    both = union_all(loans.statement, held.statement).subquery()
+    return (db.session.query(both.c.book_id.label("book_id"), func.count().label("n"))
+            .group_by(both.c.book_id).subquery())
 
 
 def count_active_loans(user_id: int) -> int:

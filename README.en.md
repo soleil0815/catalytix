@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 2.17.1** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 2.18.0** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -10,7 +10,7 @@ Web-based library management with ISBN scanning, lending, groups and sign-in via
 - **Locations** – fixed list of shelves and rooms; picked from a list instead of typed when adding books.
 - **Quick capture** – scan one ISBN after another; accept new titles with one click, or add a copy to an existing title.
 - **Search as you type** – matching books (search box at the top) and people (circulation desk) appear while typing.
-- **Lending** – self-checkout, a circulation desk optimised for scanners, returns, renewals, overdue tracking, loan limits.
+- **Lending** – self-checkout, a circulation desk optimised for scanners, returns, renewals, overdue tracking, loan limits, optional **reservations** of books on loan with a queue and collection period.
 - **Groups** – each group has its own collection; members can only borrow books of their groups (plus "general" books).
 - **Roles** – reader, librarian, administrator. The local admin account always works.
 - **Self-registration** (optional, off by default) – with admin approval, e-mail verification and domain restrictions.
@@ -35,7 +35,7 @@ curl -fsSLO https://raw.githubusercontent.com/soleil0815/catalytix/main/update.s
 ./update.sh --pull
 ```
 
-The script pulls the image, creates `docker-compose.yml`, `.env` and `.env.example` from the image, starts the container and shows the setup code. Later updates: `./update.sh --pull` (newest version) or `./update.sh --pull=2.17.1` (exactly this version, e.g. to go back).
+The script pulls the image, creates `docker-compose.yml`, `.env` and `.env.example` from the image, starts the container and shows the setup code. Later updates: `./update.sh --pull` (newest version) or `./update.sh --pull=2.18.0` (exactly this version, e.g. to go back).
 
 ### With Docker – build it yourself (zip package or git clone)
 
@@ -60,8 +60,8 @@ The `.env` file is not part of the update package. Additional services (e.g. a M
 
 ```bash
 ./update.sh --pull                   # get the newest version from GitHub (ready-made image, nothing is built)
-./update.sh --pull=2.17.1            # exactly this version from GitHub (stays on it until the next --pull)
-./update.sh catalytix-2.17.1.zip      # classic: install a package and build locally
+./update.sh --pull=2.18.0            # exactly this version from GitHub (stays on it until the next --pull)
+./update.sh catalytix-2.18.0.zip      # classic: install a package and build locally
 ./update.sh                          # rebuild the current version, or (in --pull mode) pull it again, and start
 ```
 
@@ -138,6 +138,15 @@ For a quick try-out, `python wsgi.py` is enough (listens on `127.0.0.1:9300` onl
 - Group librarians can add locations; renaming and replacing that affects books of other groups is reserved for administrators and librarians without a group.
 - The **catalogue** can be filtered by location.
 - Without defined locations the field stays a free text field as before.
+
+## Reservations
+
+Optional under *Einstellungen → Vormerken* (off by default):
+- When all copies of a book are on loan, it can be **reserved** on the book page, which puts you in a queue. *My loans* lists your reservations with your place in the queue; you can delete them there.
+- When a copy becomes free (return, additional copy, reservation deleted or expired), it is **set aside** for the first person: they get an email, the overview says it is ready for them, and the return at the desk says “Please put it aside – reserved for …”. For everyone else the copy counts as not available.
+- If the person does not collect it within the **collection period** (7 days by default), the next person gets it. Lending it to them completes the reservation.
+- Readers cannot extend reserved books themselves (librarians can). Librarians see the queue on the book page and can delete reservations.
+- Completed reservations are deleted with the retention period of loans. Switching the feature off deletes all open reservations.
 
 ## Roles and groups
 
@@ -248,7 +257,7 @@ Under **Administration → Einstellungen** you decide for whom 2FA is **mandator
 | keine Pflicht – not mandatory | nobody has to set up 2FA; users who have it are still asked |
 | keine Zwei-Faktor-Abfrage – no 2FA prompt | the password is enough on the LAN |
 
-- **What counts as internal** is set under *Internes Netz* (one network per line, e.g. `192.168.10.0/24`). Empty means `10.0.0.0/8`, `192.168.0.0/16`, `fc00::/7` and loopback – **without** `172.17.1.0/12`, because Docker creates its networks there (otherwise e.g. every request arriving via the Docker gateway would look internal). If your LAN uses 172.16–31.x, enter it explicitly. Ideally narrow it down to your actual LAN anyway. *Since this version:* if you left the field empty and have clients in 172.16/12, you now need to enter that network.
+- **What counts as internal** is set under *Internes Netz* (one network per line, e.g. `192.168.10.0/24`). Empty means `10.0.0.0/8`, `192.168.0.0/16`, `fc00::/7` and loopback – **without** `172.16.0.0/12`, because Docker creates its networks there (otherwise e.g. every request arriving via the Docker gateway would look internal). If your LAN uses 172.16–31.x, enter it explicitly. Ideally narrow it down to your actual LAN anyway. *Since this version:* if you left the field empty and have clients in 172.16/12, you now need to enter that network.
 - Behind the reverse proxy the **real visitor address** counts. The proxy must send `X-Forwarded-For` (Nginx Proxy Manager, Caddy and Traefik do so by default). If it is missing, the request is treated as **external** for safety. Forged headers from the internet are ignored.
 - **Important – port 9300 for the proxy only:** by default all private networks are trusted proxies (`CATALYTIX_TRUSTED_PROXIES=private`). Any LAN host that reaches Catalytix **directly** on port 9300 can therefore send a forged `X-Forwarded-For` header (e.g. to count as “internal” or to evade the per-address login lockout). Publish the port only to the proxy – with `CATALYTIX_BIND=127.0.0.1` in `.env` (proxy running directly on the server) or via a shared Docker network with the proxy (in `docker-compose.override.yml`; `docker-compose.yml` itself is replaced on updates) – **or** set `CATALYTIX_TRUSTED_PROXIES` to the proxy's address (e.g. `172.18.0.5` or the proxy's Docker network). This also matters for internet access: if someone reaches port 9300 e.g. via **IPv6** and Docker relays it internally, the request appears to come from the Docker gateway (172.x.0.1) – which the default setting trusts.
 - The settings page shows how your current connection is classified. To check, open it once from a phone on mobile data – it must say “extern”.
@@ -444,7 +453,7 @@ The repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) c
 git init -b main
 git add -A
 git update-index --chmod=+x update.sh docker-entrypoint.sh   # executable, even if committed on Windows
-git commit -m "Catalytix 2.17.1"
+git commit -m "Catalytix 2.18.0"
 git remote add origin git@github.com:soleil0815/catalytix.git
 git push -u origin main
 ```

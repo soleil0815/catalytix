@@ -124,7 +124,7 @@
     <thead><tr><th>{{ _("Zeit") }}</th><th>{{ _("Art") }}</th><th>{{ _("Empfänger") }}</th><th>{{ _("Betreff") }}</th><th>{{ _("Status") }}</th></tr></thead>
     <tbody>
     {% set kinds = {"loan": _("Ausleihe"), "return": _("Rückgabe"), "reminder": _("Erinnerung"), "overdue": _("Mahnung"),
-                    "digest": _("Übersicht"), "manual": _("Manuell"), "test": _("Test"), "account": _("Konto"), "backup": _("Datensicherung")} %}
+                    "digest": _("Übersicht"), "manual": _("Manuell"), "reservation": _("Vormerkung"), "test": _("Test"), "account": _("Konto"), "backup": _("Datensicherung")} %}
     {% for m in logs %}
     <tr>
       <td class="nowrap"><small>{{ m.created_at|de_date }}</small></td>

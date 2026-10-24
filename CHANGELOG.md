@@ -2,6 +2,28 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 2.18.0 – 24.10.2026
+- **Vormerken (Reservieren)**, optional unter *Einstellungen → Vormerken* (standardmäßig aus): Sind alle Exemplare
+  verliehen, kann man ein Buch auf seiner Seite vormerken und steht in einer Warteschlange (Platz sichtbar, auch unter
+  *Meine Ausleihen*, dort auch löschbar).
+- Wird ein Exemplar frei – Rückgabe, zusätzliches Exemplar, Vormerkung gelöscht oder abgelaufen –, wird es für die
+  erste Person **zurückgelegt**: E-Mail „liegt für dich bereit“, Hinweis auf der Übersicht, an der Theke meldet die
+  Rückgabe „Bitte zurücklegen – vorgemerkt für …“. Für alle anderen zählt das Exemplar als nicht verfügbar (Katalog,
+  Filter, Vorschläge, Theke, CSV-Export).
+- **Abholfrist** (Standard 7 Tage): Wird das Buch nicht abgeholt, läuft die Vormerkung ab und die nächste Person ist
+  dran. Mit der Ausleihe an die Person ist die Vormerkung erledigt; an der Theke steht das zurückgelegte Buch nach Wahl
+  der Person oben unter „Für … zurückgelegt“.
+- Vorgemerkte Bücher können Leser nicht selbst verlängern (Verwalter schon). Verwalter sehen die Warteschlange auf der
+  Buchseite und können Vormerkungen löschen. Höchstzahl offener Vormerkungen je Person einstellbar (Standard 5).
+- Weniger Exemplare als zurückgelegte: die zuletzt zurückgelegten gehen wieder in die Warteschlange (Platz bleibt).
+  Gesperrte Konten fallen beim Nachrücken heraus. Ausschalten löscht alle offenen Vormerkungen.
+- Abgeschlossene Vormerkungen werden mit der Aufbewahrungsfrist der Ausleihen gelöscht; Hinweis für die
+  Datenschutzerklärung in der Hilfe.
+- Datenbank: neue Tabelle `reservations` – wird beim Start automatisch angelegt.
+- Hilfe zur Ausleihtheke: Texte zur Automatik „Bei genauem Treffer (ISBN, Signatur)“ an 2.17.1 angepasst.
+- README: Netzangabe `172.16.0.0/12` (Abschnitt „Internes Netz“) war seit 2.16.1 durch ein Versehen beim
+  Hochzählen der Versionsnummer verfälscht.
+
 ## 2.17.1 – 24.10.2026
 Code-Audit (vier unabhängige Prüfer: Anmeldung/Rechte, Fachlogik/Daten, Betrieb/Update/CI, Oberfläche) – keine
 kritischen Befunde, alle bestätigten behoben; dazu folgt `./update.sh --pull` jetzt `latest`.

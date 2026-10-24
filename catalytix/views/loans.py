@@ -11,10 +11,10 @@ from sqlalchemy.orm import contains_eager
 
 from .. import isbn as isbnlib
 from ..i18n import _, format_day
-from ..models import (Book, Loan, User, count_active_loans, db, default_due_date, get_bool, get_int,
+from ..models import (Book, Loan, User, count_active_loans, db, default_due_date, get_bool, get_int, get_setting,
                       manageable_books_query)
 from ..mailer import notify_loan, notify_return, send_manual_reminder
-from .. import people
+from .. import people, reservations
 from . import get_by_id, librarian_required, parse_id, safe_next
 
 bp = Blueprint("loans", __name__)
@@ -57,8 +57,11 @@ def lend_book(book: Book, borrower: User, due: date | None = None, note: str = "
         if borrower.id in active:
             db.session.rollback()
             return False, _("{name} hat dieses Buch bereits ausgeliehen.", name=borrower.name)
-        if sum(active.values()) >= copies:
+        held = reservations.held_by_others(book.id, borrower.id)   # für Vormerkungen anderer zurückgelegt
+        if sum(active.values()) + held >= copies:
             db.session.rollback()
+            if held and sum(active.values()) < copies:
+                return False, _("Das freie Exemplar ist für eine Vormerkung zurückgelegt.")
             return False, _("Kein Exemplar verfügbar.")
         if limit and count_active_loans(borrower.id) >= limit:
             db.session.rollback()
@@ -66,6 +69,7 @@ def lend_book(book: Book, borrower: User, due: date | None = None, note: str = "
         loan = Loan(book_id=book.id, user_id=borrower.id, issued_by_id=current_user.id,
                     due_at=due or default_due_date(), note=note[:500])
         db.session.add(loan)
+        reservations.fulfil_on_loan(book.id, borrower.id)   # eigene Vormerkung ist damit erledigt
         db.session.commit()
     except IntegrityError:   # eindeutiger Index: dieselbe Person hat das Buch gerade eben schon bekommen
         db.session.rollback()
@@ -87,9 +91,13 @@ def return_loan(loan: Loan) -> str:
         .execution_options(synchronize_session=False))
     db.session.commit()
     db.session.refresh(loan)
+    msg = _("„{title}“ von {name} zurückgenommen.", title=loan.book.title, name=loan.user.name)
     if res.rowcount == 1:
         notify_return(loan)
-    return _("„{title}“ von {name} zurückgenommen.", title=loan.book.title, name=loan.user.name)
+        readied = reservations.promote(loan.book_id)
+        if readied and current_user.can_manage(loan.book):
+            msg += " " + _("Bitte zurücklegen – vorgemerkt für {names}.", names=", ".join(r.user.name for r in readied))
+    return msg
 
 
 @bp.route("/buecher/<int:book_id>/ausleihen", methods=["POST"])
@@ -150,6 +158,10 @@ def extend(loan_id):
     if not (manager or own):
         abort(403)
     max_ext, days = get_int("max_extensions", 2), get_int("extension_days", 14)
+    if not manager and reservations.enabled() and any(r.status == "waiting" for r in loan.book.reservations):
+        msg = _("Dieses Buch ist vorgemerkt und kann deshalb nicht verlängert werden. Bitte gib es bis zur Frist zurück.")
+        flash(msg, "error")
+        return _back(url_for("loans.index"))
     for _attempt in range(3):
         if loan.returned_at:
             flash(_("Diese Ausleihe ist bereits abgeschlossen."), "info")
@@ -169,6 +181,35 @@ def extend(loan_id):
             break
         db.session.refresh(loan)   # parallele Änderung – mit dem neuen Stand noch einmal prüfen
     return _back(url_for("loans.index"))
+
+
+@bp.route("/buecher/<int:book_id>/vormerken", methods=["POST"])
+@login_required
+def reserve(book_id):
+    book = get_by_id(Book, book_id) or abort(404)
+    if not reservations.enabled():
+        abort(404)
+    if not current_user.can_see(book, get_setting("catalog_visibility") == "all"):
+        abort(404)
+    ok, msg = reservations.reserve(book, current_user)
+    flash(msg, "success" if ok else "error")
+    return _back(url_for("books.detail", book_id=book.id))
+
+
+@bp.route("/vormerkungen/<int:res_id>/stornieren", methods=["POST"])
+@login_required
+def cancel_reservation(res_id):
+    from ..models import Reservation
+    res = get_by_id(Reservation, res_id) or abort(404)
+    if res.user_id != current_user.id and not current_user.can_manage(res.book):
+        abort(403)
+    if reservations.cancel(res):
+        if res.user_id == current_user.id:
+            flash(_("Vormerkung für „{title}“ gelöscht.", title=res.book.title), "success")
+        else:
+            flash(_("Vormerkung von {name} für „{title}“ gelöscht.", name=res.user.name, title=res.book.title),
+                  "success")
+    return _back(url_for("books.detail", book_id=res.book_id))
 
 
 @bp.route("/ausleihen/<int:loan_id>/erinnern", methods=["POST"])
@@ -216,7 +257,10 @@ def index():
     loans = (query.options(contains_eager(Loan.book), contains_eager(Loan.user))
              .order_by(Loan.id).offset((page - 1) * PER_PAGE).limit(PER_PAGE).all())
     from ..mailer import mail_active
+    my_reservations = reservations.open_of(current_user) if scope == "meine" and reservations.enabled() else []
     return render_template("loans/index.html", loans=loans, view=view, q=q, scope=scope, mail_on=mail_active(),
+                           my_reservations=my_reservations, positions={r.id: reservations.position(r)
+                                                                       for r in my_reservations},
                            page=page, pages=pages, total=total,
                            self_return=get_bool("self_return"), self_extend=get_bool("self_extend"),
                            max_ext=get_int("max_extensions", 2))
@@ -322,8 +366,11 @@ def desk():
     else:
         borrower_loans = [l for l in borrower.active_loans if current_user.can_manage(l.book)] if borrower else []
         borrower_groups = [g.name for g in borrower.groups if g.id in managed] if borrower else []
+    borrower_ready = []    # für die Person zurückgelegte Vormerkungen – direkt hier verleihen
+    if borrower is not None and not isinstance(borrower, people.Candidate) and reservations.enabled():
+        borrower_ready = [r for r in reservations.ready_for(borrower) if current_user.can_manage(r.book)]
     return render_template("loans/desk.html", mode=mode, code=code, books=books, loans=loans,
-                           borrower=borrower, borrower_loans=borrower_loans,
+                           borrower=borrower, borrower_loans=borrower_loans, borrower_ready=borrower_ready,
                            is_candidate=isinstance(borrower, people.Candidate),
                            borrower_groups=borrower_groups,
                            user_q=user_q,
@@ -350,8 +397,8 @@ def api_stock():
     like = f"%{_like_escape(q)}%"
     clean = isbnlib.clean_isbn(q)
     isbn13 = isbnlib.to_isbn13(clean) if len(clean) in (10, 13) else None
-    on_loan = (db.session.query(Loan.book_id, func.count(Loan.id).label("n"))
-               .filter(Loan.returned_at.is_(None)).group_by(Loan.book_id).subquery())
+    from ..models import occupied_counts
+    on_loan = occupied_counts()          # Ausleihen plus für Vormerkungen zurückgelegte Exemplare
     conds = [Book.title.ilike(like, escape="\\"), Book.subtitle.ilike(like, escape="\\"),
              Book.authors.ilike(like, escape="\\"), Book.tags.ilike(like, escape="\\"),
              Book.signature.ilike(like, escape="\\"), Book.isbn.ilike(like, escape="\\")]

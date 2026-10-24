@@ -1,5 +1,35 @@
 [
  {
+  "version": "2.18.0",
+  "date": "2026-10-24",
+  "items": [
+   {
+    "kind": "new",
+    "audience": "all",
+    "de": {
+     "title": "Bücher vormerken",
+     "text": "Sind alle Exemplare verliehen, kannst du ein Buch auf seiner Seite vormerken. Wird eines frei, wird es für dich zurückgelegt und du bekommst Bescheid. Deine Vormerkungen und deinen Platz in der Warteschlange siehst du unter „Meine Ausleihen“."
+    },
+    "en": {
+     "title": "Reserve books",
+     "text": "If all copies are on loan, you can reserve a book on its page. When one becomes free, it is set aside for you and you are notified. Your reservations and your place in the queue are shown under “My loans”."
+    }
+   },
+   {
+    "kind": "new",
+    "audience": "admin",
+    "de": {
+     "title": "Vormerken einschalten",
+     "text": "Das Vormerken ist optional: Einstellungen → Vormerken. Dort legst du auch die Abholfrist und die Höchstzahl an Vormerkungen je Person fest."
+    },
+    "en": {
+     "title": "Switching reservations on",
+     "text": "Reservations are optional: Settings → Reserve. There you also set the collection period and the maximum number of reservations per person."
+    }
+   }
+  ]
+ },
+ {
   "version": "2.17.1",
   "date": "2026-10-24",
   "items": [

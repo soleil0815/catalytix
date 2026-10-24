@@ -11,6 +11,24 @@
   {% endif %}
 </div>
 
+{% if my_reservations %}
+<section class="card" style="margin-bottom: 18px">
+  <div class="card-head"><h2>{{ _("Meine Vormerkungen") }}</h2></div>
+  {% for r in my_reservations %}
+  <div class="list-row">
+    <div class="mini-cover">{{ cover(r.book) }}</div>
+    <div class="grow"><a href="{{ url_for('books.detail', book_id=r.book.id) }}" style="color: inherit"><b>{{ r.book.title }}</b></a><small>{{ r.book.authors }}</small></div>
+    {% if r.status == "ready" %}<span class="badge ok">{{ _("liegt bereit bis {date}", date=r.hold_until|de_day) }}</span>
+    {% else %}<span class="badge">{{ _("Platz {n}", n=positions[r.id]) }}</span>{% endif %}
+    <form method="post" action="{{ url_for('loans.cancel_reservation', res_id=r.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ request.full_path }}">
+      <button class="btn sm" title="{{ _('Vormerkung löschen') }}" aria-label="{{ _('Vormerkung löschen') }}">{{ icon("x") }}</button></form>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
 <nav class="tabs">
   <a href="{{ url_for('loans.index', ansicht='aktiv', nur=nur) }}" class="{{ 'on' if view == 'aktiv' }}">{{ icon("book") }} {{ _("Aktiv") }}</a>
   <a href="{{ url_for('loans.index', ansicht='ueberfaellig', nur=nur) }}" class="{{ 'on' if view == 'ueberfaellig' }}">{{ icon("alert") }} {{ _("Überfällig") }}</a>

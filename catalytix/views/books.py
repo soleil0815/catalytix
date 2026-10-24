@@ -272,7 +272,7 @@ def _clean_image(raw: bytes) -> bytes | None:
     try:
         img = _open_image(raw)
         img = img.convert("RGB")
-        img.thumbnail((1200, 1600), Image.LANCZOS)
+        img.thumbnail((1200, 1600), Image.Resampling.LANCZOS)
         out = io.BytesIO()
         img.save(out, "JPEG", quality=86, optimize=True)
         return out.getvalue()

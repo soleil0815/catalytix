@@ -89,7 +89,7 @@ def _favicon_from(img) -> bytes:
     bbox = src.getbbox()          # transparente Ränder abschneiden
     if bbox:
         src = src.crop(bbox)
-    src.thumbnail((120, 120), Image.LANCZOS)
+    src.thumbnail((120, 120), Image.Resampling.LANCZOS)
     canvas = Image.new("RGBA", (128, 128), (0, 0, 0, 0))
     canvas.paste(src, ((128 - src.width) // 2, (128 - src.height) // 2), src)
     out = io.BytesIO()
@@ -114,7 +114,7 @@ def store(kind: str, upload) -> None:
     elif kind == "logo":
         img = _open_image(raw)
         img = img.convert("RGBA")
-        img.thumbnail((800, 300), Image.LANCZOS)
+        img.thumbnail((800, 300), Image.Resampling.LANCZOS)
         out = io.BytesIO()
         img.save(out, "PNG", optimize=True)
         name = _write("logo", out.getvalue(), ".png")
@@ -130,7 +130,7 @@ def store(kind: str, upload) -> None:
             bg.paste(img, mask=img.split()[-1])
             img = bg
         img = img.convert("RGB")
-        img.thumbnail((2560, 2560), Image.LANCZOS)
+        img.thumbnail((2560, 2560), Image.Resampling.LANCZOS)
         out = io.BytesIO()
         img.save(out, "JPEG", quality=84, optimize=True, progressive=True)   # ohne EXIF/GPS
         name = _write("bg", out.getvalue(), ".jpg")

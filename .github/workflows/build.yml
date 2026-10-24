@@ -144,7 +144,8 @@ jobs:
           for res in data.get("Results") or []:
               for v in res.get("Vulnerabilities") or []:
                   rows.append((v.get("Severity", ""), v.get("VulnerabilityID", ""), v.get("PkgName", ""),
-                               v.get("InstalledVersion", ""), v.get("FixedVersion", ""), res.get("Target", ""),
+                               v.get("InstalledVersion", ""), v.get("FixedVersion", ""),
+                               v.get("PkgPath") or res.get("Target", ""),
                                (v.get("Title") or "")[:90]))
               for s in res.get("Secrets") or []:
                   rows.append((s.get("Severity", ""), "secret:" + s.get("RuleID", ""), res.get("Target", ""),

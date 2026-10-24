@@ -3,14 +3,72 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
 ## 2.17.1 – 24.10.2026
+Code-Audit (vier unabhängige Prüfer: Anmeldung/Rechte, Fachlogik/Daten, Betrieb/Update/CI, Oberfläche) – keine
+kritischen Befunde, alle bestätigten behoben; dazu folgt `./update.sh --pull` jetzt `latest`.
+
+**Sicherheit und Rechte**
+- **Gruppen-Verwalter ohne Gruppe:** Verlor ein Verwalter seine letzte Gruppe (Gruppe gelöscht, Haken entfernt, im
+  AD aus der Gruppe genommen), verwaltete er danach den **gesamten** Bestand. Jetzt merkt sich das Konto, dass es
+  gruppengebunden war (`users.group_bound`), und verwaltet dann nur allgemeine Bücher. Den gesamten Bestand gibt es nur
+  noch, wenn ein Admin im Benutzerkonto „Ohne Gruppe den gesamten Bestand verwalten“ ankreuzt. Neue Verwalter ohne
+  Gruppe verwalten wie bisher alles; bestehende Konten mit Gruppen werden beim Start als gruppengebunden markiert.
+- **AD-Regeln für OUs:** Ein maskiertes Komma im Namen (`CN=Mallory\, OU=Bib-Admins,…`) konnte die Zugehörigkeit zu
+  einer OU vortäuschen und damit eine Rolle verschaffen. Verglichen wird jetzt Bestandteil für Bestandteil.
+- **Im AD abgelaufene Konten** (`accountExpires`) gelten wie deaktivierte: Sitzungen enden, der Abgleich sperrt sie.
+- **Registrierung:** Prüfungen „Name/Adresse schon vergeben?“ sind je Adresse begrenzt (10 in 15 Minuten, für alle
+  Server-Prozesse) – vorher ließen sich Konten und AD-Namen beliebig oft abfragen.
+- Ein von einem Admin gesperrtes, noch unbestätigtes Konto wird durch den Bestätigungslink nicht mehr aktiviert.
+- Die Theke macht ein inzwischen lokales Konto (Passwort per `flask reset-password`) nicht mehr zum AD-Konto;
+  `reset-password` hebt auch die Sperre durch den AD-Abgleich auf. Anmeldesperren zählen Schreibweisen wie
+  „ＡＮＮＡ“ (Vollbreite) wie „anna“.
+
+**Ausleihe und E-Mail**
+- **Erinnerungen nach einer Verlängerung:** Bisher galt eine einmal verschickte Erinnerung (bzw. die Höchstzahl an
+  Mahnungen) für die ganze Ausleihe – nach einer Verlängerung kam nichts mehr. Jetzt zählt je Frist
+  (`loans.due_changed_at`).
+- **Mailserver trennt unterwegs** (Nachrichtenlimit, Zeitlimit): Es wird neu verbunden; gelingt das nicht, wird der
+  Tag freigegeben und der Rest später nachgeholt (vorher gingen die übrigen Erinnerungen verloren).
+- Die Liste der fälligen Erinnerungen entsteht in wenigen Abfragen statt mehreren je Ausleihe (2.000 Ausleihen: vorher
+  rund 7.000 Abfragen beim Öffnen der E-Mail-Einstellungen). „Jetzt senden“ und der tägliche Lauf können sich nicht
+  mehr überschneiden (keine doppelten Erinnerungen).
+- **Ausleihtheke:** „Bei genauem Treffer sofort verleihen/zurücknehmen“ handelt nur noch bei Signatur, ISBN oder
+  „#Nummer“ – nicht mehr bei einem zufällig einzigen Treffer in Titel, Autor oder Schlagwort. Die Personensuche
+  per Freitext findet nur aktive Konten und nimmt `%`/`_` wörtlich.
+- Eine doppelte Rückgabe (Doppelklick, zwei Theken) überschreibt den Zeitpunkt nicht und verschickt nur eine
+  Bestätigung. Die Höchstzahl an Ausleihen je Person hält auch bei gleichzeitigen Ausleihen unter MySQL/PostgreSQL.
+- Benutzerliste: Gruppen werden in einer Abfrage geladen.
+
+**Update und GitHub**
 - **`./update.sh --pull` folgt jetzt `latest`:** In der `.env` steht danach `CATALYTIX_TAG=latest` statt einer
   festen Versionsnummer. Damit kann eine Container-Verwaltung, die Images automatisch aktualisiert, neue Versionen
-  selbst ziehen, sobald GitHub sie gebaut hat. Ein einfaches `./update.sh` holt im Pull-Modus ebenfalls `latest`.
-- `./update.sh --pull=X.Y.Z` hält wie bisher genau eine Version fest (z. B. zum Zurückgehen) – mit Hinweis, dass
-  `./update.sh --pull` wieder der neuesten folgt. Die Anzeige „alt → neu“ liest die bisherige Version aus dem
-  vorhandenen Image.
-- Hinweis: Updates über eine Container-Verwaltung laufen ohne die zusätzliche Sicherung, die `update.sh` vorher
-  macht; die regelmäßigen Datensicherungen und die automatische Anpassung der Datenbank beim Start bleiben.
+  selbst ziehen. `./update.sh --pull=X.Y.Z` hält genau eine Version fest (`CATALYTIX_PINNED=1`), bis zum nächsten
+  `--pull`. Installationen, die von älteren Versionen eine feste Nummer eingetragen bekamen, folgen ab jetzt `latest`.
+- **GitHub veröffentlicht `latest` und `<version>` nur noch bei einer neuen Versionsnummer** (höher als das letzte
+  Release). Pushes ohne neue Nummer erzeugen nur `sha-<commit>` – Server, die `latest` folgen, bekommen nie
+  unveröffentlichte Zwischenstände. Keine Tag-Läufe mehr (kein Wettlauf beim Release), `workflow_dispatch`
+  veröffentlicht nur auf `main`.
+- `update.sh`: Die installierte Version kommt aus dem laufenden Container (nicht aus evtl. veralteten Dateien im
+  Ordner). Wird ein Update nach dem `docker pull` abgebrochen, zeigt der Tag wieder auf das alte Image – vorher konnte
+  ein späteres `docker compose up` die neue Version ohne Sicherung starten und das Aufräumen das alte Image löschen.
+  Die Rücknahme bei einem Fehler während des Austauschs löscht nie mehr ein Original, das noch nicht verschoben war.
+  Im Pull-Modus werden veraltete Programmdateien früherer Zip-Installationen weggeräumt. Hinweis für den Weg zurück
+  im Pull-Modus: `./update.sh --pull=<alte Version>`. Fehler beim Schreiben der `.env` werden gemeldet.
+- Image: Gesundheitsprüfung mit 120 s Anlaufzeit (große `./data`), `update.sh` wartet bis zu 300 s; die
+  Versionsnummer steht als letztes Label (Abhängigkeiten bleiben im Build-Cache).
+- README: `docker-compose` 1.x erst ab 1.27 (ältere lesen die `docker-compose.yml` ohne `version:` nicht); `7z`
+  wird nicht unterstützt.
+
+**Oberfläche**
+- Eine spät eintreffende AD-Antwort in der Personensuche überschreibt keine schon gewählte Person mehr und öffnet die
+  Liste nicht wieder. Die Kamera geht aus, wenn der Scanner während des Starts geschlossen wird. In der
+  Schnellerfassung und beim ISBN-Abruf zählt nur noch das Ergebnis der zuletzt gescannten ISBN.
+- Abgelaufene Sitzung: Abfragen aus der Seite bekommen eine klare Meldung (HTTP 401) statt eines leeren Fehlerkastens.
+- Auswahllisten (Sortierung, Filter) lassen sich mit der Tastatur bedienen, ohne dass jede Pfeiltaste neu lädt.
+  Fehlermeldungen bleiben stehen, bis man sie schließt.
+- Handy: Lange Titel, Namen und Befehle verbreitern die Seite nicht mehr (u. a. Hilfe, Übersicht, Buchformular).
+- Neuigkeiten: Ein Sicherheitsupdate steht im Hinweis auf der Übersicht immer vorne; der Punkt am Benutzermenü wird
+  auch vorgelesen. Programmname aus Hilfe und CSV-Dateinamen entfernt (`bestand.csv` / `catalogue.csv`).
+- Datenbank: neue Spalten `users.group_bound` und `loans.due_changed_at` – werden beim Start automatisch angelegt.
 
 ## 2.17.0 – 24.10.2026
 - **Neuigkeiten in der App:** Unten in der Seitenleiste neben der Versionsnummer (und im Benutzermenü) steht

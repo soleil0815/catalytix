@@ -285,6 +285,17 @@ def create_app(test_config: dict | None = None) -> Flask:
     login_manager.localize_callback = _gettext
     login_manager.login_message_category = "info"
 
+    @login_manager.unauthorized_handler
+    def _unauthorized():
+        from flask import jsonify
+        if request.path.startswith("/api/"):
+            # Abfragen aus app.js: klare Antwort statt Umleitung auf die Anmeldeseite (HTML)
+            msg = _gettext("Deine Sitzung ist abgelaufen – bitte die Seite neu laden und erneut anmelden.")  # noqa: E501
+            return jsonify(ok=False, error=msg), 401
+        from flask_login.utils import login_url
+        flash(_gettext(login_manager.login_message), login_manager.login_message_category)
+        return redirect(login_url(login_manager.login_view, request.url))
+
     @login_manager.user_loader
     def load_user(user_id):
         uid, _, epoch = str(user_id).partition(":")
@@ -323,6 +334,11 @@ def create_app(test_config: dict | None = None) -> Flask:
         from .models import ensure_columns
         for col in ensure_columns():
             logging.getLogger(__name__).info("Database updated: column %s added", col)
+            if col == "users.group_bound":   # bestehende Konten mit Gruppen sind gruppengebunden
+                from sqlalchemy import text as _text
+                db.session.execute(_text("UPDATE users SET group_bound = :t WHERE id IN "
+                                         "(SELECT user_id FROM user_groups)"), {"t": True})
+                db.session.commit()
         from .models import ensure_indexes; ensure_indexes()  # noqa: E702
         _check_secret_key(app)
         from . import setupcode
@@ -512,6 +528,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         user.set_password(password)
         user.auth_source = "local"
         user.active = True
+        user.ldap_gone_at = None   # nicht mehr vom AD-Abgleich verwaltet
         db.session.commit()
         click.echo(f"Password set for {username}.")
 

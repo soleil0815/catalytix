@@ -71,7 +71,7 @@
 
       <section class="card card-pad">
         <h3 style="margin-bottom: 14px">{{ _("Cover") }}</h3>
-        <div style="display: grid; grid-template-columns: 90px 1fr; gap: 14px; align-items: start">
+        <div style="display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 14px; align-items: start">
           <div data-cover-preview>{{ cover(book) }}</div>
           <div>
             <div class="field"><label>{{ _("Bild-URL") }}</label><input type="url" name="cover_url" value="{{ book.cover_url or '' }}" data-cover-url></div>

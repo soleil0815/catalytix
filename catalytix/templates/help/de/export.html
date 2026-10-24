@@ -1,4 +1,4 @@
-<p>Im <span class="ui">Katalog</span> lädt der Knopf <span class="ui">CSV</span> oben rechts den Bestand als Tabelle herunter (<code>catalytix-bestand.csv</code>). Exportiert werden {% if current_user.is_global_manager %}alle Bücher{% else %}die Bücher deiner Gruppen und die allgemeinen Bücher{% endif %}, sortiert nach Titel – Such- und Filtereinstellungen spielen keine Rolle.</p>
+<p>Im <span class="ui">Katalog</span> lädt der Knopf <span class="ui">CSV</span> oben rechts den Bestand als Tabelle herunter (<code>bestand.csv</code>). Exportiert werden {% if current_user.is_global_manager %}alle Bücher{% else %}die Bücher deiner Gruppen und die allgemeinen Bücher{% endif %}, sortiert nach Titel – Such- und Filtereinstellungen spielen keine Rolle.</p>
 <p><b>Spalten:</b> ID, ISBN, Titel, Untertitel, Autoren, Verlag, Erschienen, Auflage, Seiten, Sprache, Kategorie, Schlagwörter, Standort, Signatur, Gruppe (oder „Allgemein“), Exemplare, Verfügbar.</p>
 <ul>
   <li>Die Datei ist <b>Excel-kompatibel</b>: Semikolon als Trennzeichen und UTF-8 mit Kennung, damit Umlaute stimmen. Doppelklick genügt.</li>

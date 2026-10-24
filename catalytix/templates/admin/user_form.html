@@ -52,6 +52,11 @@
         <p class="muted">{{ _("Noch keine Gruppen.") }} <a href="{{ url_for('admin.group_new') }}">{{ _("Gruppe anlegen →") }}</a></p>
         {% endfor %}
       </div>
+      {% if user.id and user.role == "librarian" and user.group_bound and not user.groups %}
+      <div class="notice warn" style="margin-top: 12px">{{ _("Dieses Konto hat keine Gruppe mehr und verwaltet deshalb nur allgemeine Bücher.") }}</div>
+      <label class="check" style="margin-top: 10px"><input type="checkbox" name="manage_all" value="1">
+        <span>{{ _("Ohne Gruppe den gesamten Bestand verwalten") }}<small class="muted">{{ _("Nur ankreuzen, wenn diese Person alle Bücher aller Gruppen verwalten soll.") }}</small></span></label>
+      {% endif %}
       {% if ldap_user %}<p class="muted" style="font-size: 12.5px; margin-top: 12px">{{ _("Gruppen mit AD-Zuordnung werden beim nächsten Login automatisch abgeglichen.") }}</p>{% endif %}
     </section>
   </div>

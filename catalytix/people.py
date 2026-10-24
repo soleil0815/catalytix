@@ -230,6 +230,8 @@ _rechecked: dict[int, float] = {}
 def _recheck_gone(user: User) -> str:
     """Vom Abgleich gesperrtes Konto an der Theke frisch prüfen (höchstens einmal pro Minute und Konto)."""
     global _outage_until
+    if user.auth_source != "ldap":
+        return ""   # inzwischen lokales Konto (z. B. Passwort per Kommandozeile gesetzt) – nie zurück zum AD machen
     from .ldap_auth import Directory, LDAPError
     from .views.main import AccountMismatch, account_for, same_person, sync_ldap_user
     now = time.monotonic()

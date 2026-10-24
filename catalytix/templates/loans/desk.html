@@ -52,7 +52,7 @@
           {% else %}<button class="btn">{{ icon("search") }} {{ _("Suchen") }}</button>{% endif %}
         </div>
         {% if not borrower %}<div class="hint">{{ _("Ohne gewählten Benutzer zeigt die Suche nur den Bestand – zum Verleihen zuerst oben die Person wählen.") }}</div>{% endif %}
-        <label class="check" style="margin-top: 12px"><input type="checkbox" name="auto" value="1" {{ "checked" if auto == "1" }}> {{ _("Bei eindeutigem Treffer sofort verleihen") }}</label>
+        <label class="check" style="margin-top: 12px"><input type="checkbox" name="auto" value="1" {{ "checked" if auto == "1" }}> {{ _("Bei genauem Treffer (ISBN, Signatur) sofort verleihen") }}</label>
       </form>
     </section>
 
@@ -108,7 +108,7 @@
           <button type="button" class="btn" data-scanner-open data-scanner-target="#return-code" data-scanner-submit>{{ icon("camera") }}</button>
           <button class="btn primary">{{ icon("return") }} {{ _("Suchen") }}</button>
         </div>
-        <label class="check" style="margin-top: 12px"><input type="checkbox" name="auto" value="1" {{ "checked" if auto == "1" }}> {{ _("Bei eindeutigem Treffer sofort zurücknehmen") }}</label>
+        <label class="check" style="margin-top: 12px"><input type="checkbox" name="auto" value="1" {{ "checked" if auto == "1" }}> {{ _("Bei genauem Treffer (ISBN, Signatur) sofort zurücknehmen") }}</label>
       </form>
     </section>
     {% if code %}

@@ -663,4 +663,4 @@ def export_csv():
                     b.group.name if b.group else _("Allgemein"), b.copies, max(0, (b.copies or 0) - lent)]])
     return Response("﻿" + buf.getvalue(), mimetype="text/csv",
                     headers={"Content-Disposition": "attachment; filename=" + (
-                        "catalytix-catalogue.csv" if get_locale() == "en" else "catalytix-bestand.csv")})
+                        "catalogue.csv" if get_locale() == "en" else "bestand.csv")})

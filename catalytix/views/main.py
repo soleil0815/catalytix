@@ -327,9 +327,10 @@ def dashboard():
     fresh = news.unseen(current_user, get_locale())
     news_hint = None
     if fresh:
-        items = [i for e in fresh for i in e["items"]]
-        news_hint = {"version": fresh[0]["version"], "first": items[0], "more": len(items) - 1,
-                     "security": any(i["kind"] == "security" for i in items)}
+        # Ein Sicherheitsupdate geht immer vor – auch wenn es aus einer älteren, noch nicht gesehenen Version stammt
+        pairs = [(e["version"], i) for e in fresh for i in e["items"]]
+        version, first = next(((v, i) for v, i in pairs if i["kind"] == "security"), pairs[0])
+        news_hint = {"version": version, "first": first, "more": len(pairs) - 1}
     return render_template("dashboard.html", my_loans=my_loans, newest=newest, stats=stats,
                            overdue=overdue, recent_loans=recent_loans, news_hint=news_hint)
 

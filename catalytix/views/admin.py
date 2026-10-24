@@ -106,7 +106,8 @@ def users():
         query = query.filter(User.active.is_(False), User.pending_approval.is_(False), User.email_verified.is_(True))
     from .. import lockout
     locked = lockout.locked_usernames()
-    users = query.order_by(User.pending_approval.desc(), User.username).all()
+    from sqlalchemy.orm import selectinload
+    users = query.options(selectinload(User.groups)).order_by(User.pending_approval.desc(), User.username).all()
     # Sperren werden unter dem vereinheitlichten Namen geführt („DOMÄNE\anna“ = „anna“)
     locked = {u.username.lower() for u in users if lockout.norm(u.username) in locked}
     if status == "anmeldesperre":
@@ -156,7 +157,9 @@ def _save_user(user: User, is_new: bool):
     user.active = active
     if active and user.pending_approval:   # „Konto aktiv“ angehakt = freigegeben
         user.pending_approval = False
-    if active and not user.email_verified:  # Admin bestätigt die Adresse stellvertretend
+    if not user.email_verified:
+        # Admin entscheidet: freigegeben (bestätigt die Adresse stellvertretend) oder gesperrt – dann darf ein später
+        # geklickter Bestätigungslink das Konto nicht wieder aktivieren
         user.email_verified = True
     user.email_notifications = form_bool("email_notifications")
     if password and (user.auth_source == "local" or is_new):
@@ -164,6 +167,12 @@ def _save_user(user: User, is_new: bool):
         user.set_password(password)
     ids = _ids(request.form.getlist("groups"))
     user.groups = Group.query.filter(Group.id.in_(ids)).all() if ids else []
+    # Ohne Gruppe verwaltet ein Verwalter den gesamten Bestand – bei einem Konto, das schon gruppengebunden war
+    # (letzte Gruppe gelöscht oder im AD entfernt), nur nach ausdrücklicher Bestätigung (siehe User.group_bound)
+    if user.groups:
+        user.group_bound = True
+    elif form_bool("manage_all"):
+        user.group_bound = False
     return None
 
 

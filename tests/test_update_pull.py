@@ -24,6 +24,7 @@ case "$1" in
   inspect)
     case "$*" in
       *com.docker.compose.project*) echo "";;
+      "inspect -f {{.Image}} catalytix") [ -n "$RUN_VERSION" ] && echo sha256:run;;
       "inspect -f {{.State.Status}} abc") echo running;;
       *) echo healthy;;
     esac;;
@@ -32,7 +33,9 @@ case "$1" in
     case "$2" in
       inspect)
         case "$*" in
+          *image.version*sha256:run*) echo "$RUN_VERSION";;
           *image.version*) echo "$IMG_VERSION";;
+          *{{.Id}}*) echo sha256:prev;;
           *RepoDigests*) echo "ghcr.io/soleil0815/catalytix@sha256:abc";;
         esac;;
       ls) [ "$5" = "ghcr.io/soleil0815/catalytix" ] && printf "%s\n" $GHCR_IMAGES;;
@@ -109,6 +112,33 @@ class PullTests(unittest.TestCase):
         self.assertEqual((self.inst / "data" / "catalytix.db").read_text(), "db")
         self.assertIn("1.0.0 → 2.0.0", out)
 
+    def test_installed_version_comes_from_running_container(self):
+        out = self.run_update("--pull", RUN_VERSION="1.5.0")
+        self.assertIn("1.5.0 → 2.0.0", out)
+
+    def test_stale_program_files_removed_in_pull_mode(self):
+        self.run_update("--pull")
+        for name in ("catalytix", "Dockerfile", "wsgi.py", "docker-entrypoint.sh", "requirements.txt"):
+            self.assertFalse((self.inst / name).exists(), name)
+        self.assertTrue((self.inst / "data" / "catalytix.db").exists())
+
+    def test_abort_after_pull_puts_tag_back(self):
+        self.run_update("--pull", ok=False, NO_DIST="1")
+        self.assertIn(f"docker tag sha256:prev {IMG}:latest", self.docker_log())
+        self.assertNotIn("compose up", self.docker_log())
+
+    def test_successful_pull_keeps_new_tag(self):
+        self.run_update("--pull")
+        self.assertNotIn("docker tag sha256:prev", self.docker_log())
+
+    def test_old_exact_tag_follows_latest(self):
+        # vor 2.17.1 schrieb --pull immer die genaue Version – das gilt nicht als absichtlich festgehalten
+        (self.inst / ".env").write_text(f"CATALYTIX_IMAGE={IMG}\nCATALYTIX_TAG=1.0.0\n")
+        out = self.run_update()
+        self.assertIn(f"docker pull {IMG}:latest", self.docker_log())
+        self.assertIn("CATALYTIX_TAG=latest\n", self.env())
+        self.assertIn("Following the newest version", out)
+
     def test_env_from_template_replaced_in_place(self):
         shutil.copy(ROOT / ".env.example", self.inst / ".env")
         self.run_update("--pull")
@@ -131,6 +161,7 @@ class PullTests(unittest.TestCase):
         self.assertIn(f"docker pull {IMG}:2.0.0", self.docker_log())
         self.assertNotIn("docker tag", self.docker_log())
         self.assertIn("CATALYTIX_TAG=2.0.0\n", self.env())
+        self.assertIn("CATALYTIX_PINNED=1\n", self.env())
         self.assertIn("Pinned to version 2.0.0", out)
         self.log.unlink()
         self.run_update()                                                   # bleibt bei der festen Version
@@ -139,6 +170,7 @@ class PullTests(unittest.TestCase):
         self.run_update("--pull")                                           # zurück zu latest
         self.assertIn(f"docker pull {IMG}:latest", self.docker_log())
         self.assertIn("CATALYTIX_TAG=latest\n", self.env())
+        self.assertNotIn("\nCATALYTIX_PINNED=1", self.env())
 
     def test_plain_update_in_pull_mode_pulls_latest(self):
         self.run_update("--pull")

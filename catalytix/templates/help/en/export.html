@@ -1,4 +1,4 @@
-<p>In the <span class="ui">Catalogue</span>, the <span class="ui">CSV</span> button at the top right downloads the collection as a spreadsheet (<code>catalytix-bestand.csv</code>). It contains {% if current_user.is_global_manager %}all books{% else %}the books of your groups and general books{% endif %}, sorted by title – search and filter settings make no difference.</p>
+<p>In the <span class="ui">Catalogue</span>, the <span class="ui">CSV</span> button at the top right downloads the collection as a spreadsheet (<code>catalogue.csv</code>). It contains {% if current_user.is_global_manager %}all books{% else %}the books of your groups and general books{% endif %}, sorted by title – search and filter settings make no difference.</p>
 <p><b>Columns</b> (headings in your language): ID, ISBN, title, subtitle, authors, publisher, published, edition, pages, language, category, tags, location, shelf mark, group (or “General”), copies, available.</p>
 <ul>
   <li>The file is <b>Excel-compatible</b>: semicolon-separated and UTF-8 with a byte order mark, so accented characters come out right. Just double-click it.</li>

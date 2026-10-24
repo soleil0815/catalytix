@@ -5,7 +5,6 @@ ARG PYTHON_IMAGE=python:3.13.16-slim-trixie@sha256:70729b46c69b4f1e97c4822c1af3d
 FROM ${PYTHON_IMAGE}
 
 LABEL org.opencontainers.image.title="Catalytix" \
-      org.opencontainers.image.version="2.17.1" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later" \
       org.opencontainers.image.source="https://github.com/soleil0815/catalytix" \
       org.opencontainers.image.description="Library management for training institutes (German/English)"
@@ -46,6 +45,9 @@ EXPOSE 9300
 # docker-compose.yml and update.sh always match the image version
 COPY docker-compose.yml .env.example update.sh README.md README.en.md CHANGELOG.md LICENSE /app/dist/
 
-HEALTHCHECK --interval=30s --timeout=5s CMD python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:9300/login')" || exit 1
+# Version label late: a new version number doesn't invalidate the cached dependency layers above
+LABEL org.opencontainers.image.version="2.17.1"
+# start-period: the entrypoint may first adjust owners/permissions in a large ./data
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s CMD python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:9300/login')" || exit 1
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["gunicorn", "--bind", "0.0.0.0:9300", "--workers", "2", "--threads", "4", "--access-logfile", "-", "wsgi:app"]

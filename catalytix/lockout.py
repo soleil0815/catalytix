@@ -6,6 +6,7 @@ und ein Administrator sie in der Oberfläche aufheben kann.
 """
 from __future__ import annotations
 
+import unicodedata
 from datetime import datetime, timedelta
 
 from .models import LoginAttempt, db
@@ -23,7 +24,8 @@ def norm(username: str) -> str:
         name = name.split("\\", 1)[1]
     if "@" in name:
         name = name.split("@", 1)[0]
-    return name.strip().lower()
+    # NFKC + casefold: „ａｎｎａ“ (Vollbreite) oder „ANNA“ zählen wie „anna“ – das AD vergleicht ähnlich großzügig
+    return unicodedata.normalize("NFKC", name).strip().casefold()
 
 
 def _since() -> datetime:

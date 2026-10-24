@@ -81,7 +81,7 @@ Options: `--pull[=VERSION]` (image from GitHub instead of building locally), `--
 
 **Going back to the previous version** if something is wrong after an update: keep the old zip and install it again with `./update.sh catalytix-OLD.zip` (the script warns about the older version). If the new version has already changed data, also restore the backup taken before the update (see [Backups](#backups) → restoring; it is the newest manual backup).
 
-Requires Docker Compose – any version, as `docker compose` or the older `docker-compose` (e.g. on a Synology) – and `unzip` for unpacking (alternatively `python3` or `7z`). If `.env` is missing, the script creates it from the template; run as root or as a member of the `docker` group.
+Requires Docker Compose – as `docker compose` (any version) or the older `docker-compose` from 1.27 on (e.g. on a Synology; older 1.x versions cannot read a `docker-compose.yml` without a `version:` line) – and `unzip` for unpacking (alternatively `python3`). If `.env` is missing, the script creates it from the template; run as root or as a member of the `docker` group.
 
 ### Reproducible build
 
@@ -144,7 +144,7 @@ For a quick try-out, `python wsgi.py` is enough (listens on `127.0.0.1:9300` onl
 | Role | Can |
 |---|---|
 | **Reader** (*Leser*) | Browse the catalogue, borrow permitted books, renew/return them if allowed |
-| **Librarian** (*Verwalter*) | Add/edit/delete books, lend to users, take returns, use the circulation desk – for the books of **their groups** and general books. A librarian **without** a group manages the entire collection. |
+| **Librarian** (*Verwalter*) | Add/edit/delete books, lend to users, take returns, use the circulation desk – for the books of **their groups** and general books. A librarian **without** a group manages the entire collection. If a group librarian loses their last group (group deleted, removed in AD), they only manage general books – the entire collection only once an admin ticks that explicitly in the user account. |
 | **Administrator** | Everything, plus users, groups, settings and Active Directory |
 
 Every book either belongs to a **group** or is **general**. General books can be borrowed by everyone, group books only by members of that group. Under *Einstellungen* (Settings) you decide whether readers see only their own books in the catalogue or the whole collection (borrowing stays restricted either way).
@@ -434,8 +434,8 @@ The repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) c
 
 | Event | What GitHub does |
 |---|---|
-| Push to `main` | tests (with exactly the pinned package versions), then the image `ghcr.io/soleil0815/catalytix` tagged `<version>`, `latest` and `sha-<commit>` – for `linux/amd64` and `linux/arm64` |
-| New version number on `main` | additionally, automatically, a release `v<version>` with `catalytix-<version>.zip` and `.sha256` for the classic update (GitHub creates the tag itself; if the release already exists, nothing happens) |
+| Push to `main` with a **new version number** | tests (with exactly the pinned package versions), then the image `ghcr.io/soleil0815/catalytix` tagged `<version>`, `latest` and `sha-<commit>` – for `linux/amd64` and `linux/arm64` –, then automatically the release `v<version>` with `catalytix-<version>.zip` and `.sha256` for the classic update (GitHub creates the tag itself) |
+| Push to `main` **without a new version number** | tests and only `sha-<commit>` – `latest` and `<version>` stay unchanged, so servers following `latest` never get unreleased intermediate states |
 | Pull request | tests and a trial build, nothing is published |
 
 **First push:**

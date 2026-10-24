@@ -107,6 +107,22 @@ def _rate_limited(ip: str) -> bool:
     return len(_REG_LOG[ip]) >= REG_PER_HOUR
 
 
+PROBES_PER_WINDOW = 10   # Prüfungen auf vergebene Namen/Adressen je Adresse in 15 Minuten (alle Server-Prozesse)
+
+
+def _probe_limited(ip: str) -> bool:
+    """Zählt diese Prüfung (in der Datenbank, wie die Anmeldesperre) und meldet, ob die Grenze erreicht ist."""
+    from datetime import datetime
+    from .. import lockout
+    from ..models import LoginAttempt
+    key = f"reg|{ip}"[:300]
+    since = datetime.now() - lockout.USER_WINDOW
+    if LoginAttempt.query.filter(LoginAttempt.key == key, LoginAttempt.created_at >= since).count() >= PROBES_PER_WINDOW:
+        return True
+    lockout.fail(key, "")
+    return False
+
+
 def maybe_activate(user: User):
     if user.email_verified and not user.pending_approval:
         user.active = True
@@ -244,6 +260,11 @@ def register():
             error = _("Die Passwörter stimmen nicht überein.")
         elif privacy and not request.form.get("privacy"):
             error = _("Bitte bestätige die Datenschutzhinweise.")
+        elif _probe_limited(ip):
+            # Jede Prüfung „Name/Adresse schon vergeben?“ zählt – sonst ließen sich Konten und AD-Namen beliebig
+            # oft abfragen (Formular wird nach jedem Fehler sofort wieder angenommen)
+            flash(_("Zu viele Registrierungen von deinem Anschluss. Bitte versuche es später erneut."), "error")
+            return render_template("register.html", v=values, privacy=privacy), 429
         elif User.query.filter(func.lower(User.username) == username.lower()).first():
             error = _("Dieser Benutzername ist bereits vergeben.")
         elif User.query.filter(func.lower(User.email) == email).first():

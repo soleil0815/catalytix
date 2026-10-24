@@ -59,7 +59,17 @@
   $$("[data-enter-clicks-next]").forEach((el) => el.addEventListener("keydown", (e) => {
     if (e.key === "Enter") { e.preventDefault(); if (el.nextElementSibling) el.nextElementSibling.click(); }
   }));
-  $$("[data-autosubmit]").forEach((el) => el.addEventListener("change", () => el.form && el.form.submit()));
+  // Auswahllisten: Mausauswahl sendet sofort; mit der Tastatur erst Enter oder Verlassen des Feldes – sonst lädt jede
+  // Pfeiltaste die Seite neu und man erreicht die weiteren Einträge nie
+  $$("[data-autosubmit]").forEach((el) => {
+    let keyed = false, start = el.value;
+    const submit = () => { if (el.form && el.value !== start) { start = el.value; el.form.submit(); } };
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); keyed = false; submit(); } else if (e.key !== "Tab") keyed = true;
+    });
+    el.addEventListener("change", () => { if (!keyed) submit(); });
+    el.addEventListener("blur", () => { if (keyed) { keyed = false; submit(); } });
+  });
   // Bilder, die nicht laden (z. B. Cover), ausblenden
   document.addEventListener("error", (e) => {
     if (e.target.tagName === "IMG" && e.target.hasAttribute("data-hide-broken")) e.target.remove();
@@ -72,7 +82,8 @@
   }
 
   $$(".flash").forEach((el) => {
-    const ms = el.classList.contains("error") ? 12000 : 6000;
+    if (el.classList.contains("error")) return;   // Fehler bleiben stehen, bis sie geschlossen werden
+    const ms = 6000;
     setTimeout(() => { el.style.transition = "opacity .4s"; el.style.opacity = "0"; setTimeout(() => el.remove(), 400); }, ms);
   });
 
@@ -332,6 +343,10 @@
     });
     let data = {};
     try { data = await res.json(); } catch (e) { /* kein JSON */ }
+    if (res.status === 401 || res.redirected || (res.ok && typeof data.ok === "undefined" && !Object.keys(data).length)) {
+      // Sitzung abgelaufen: der Server leitet zur Anmeldung um (HTML statt JSON)
+      return { ok: false, results: [], error: T("Deine Sitzung ist abgelaufen – bitte die Seite neu laden und erneut anmelden.") };
+    }
     if (!res.ok && !data.error) data.error = T("Fehler {status}", { status: res.status });
     return data;
   }
@@ -340,7 +355,9 @@
   const dialog = $("#scanner-dialog");
   let stream = null, stopLoop = null;
 
+  let scanRun = 0;   // jede Öffnung bekommt eine Nummer – Schließen macht laufende Starts ungültig
   function closeScanner() {
+    scanRun++;
     if (stopLoop) { stopLoop(); stopLoop = null; }
     if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
     if (dialog && dialog.open) dialog.close();
@@ -392,17 +409,24 @@
       closeScanner();
       onCode(code);
     };
+    const run = ++scanRun;
+    const stale = () => run !== scanRun || !dialog.open;
     try {
       const detect = await makeDetector();
+      if (stale()) return;
       if (!detect) { status.textContent = T("Barcode-Erkennung ist in diesem Browser nicht verfügbar."); return; }
-      stream = await navigator.mediaDevices.getUserMedia({
+      const media = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+      if (stale()) { media.getTracks().forEach((t) => t.stop()); return; }   // inzwischen geschlossen: Kamera aus
+      if (stream) stream.getTracks().forEach((t) => t.stop());
+      stream = media;
       video.srcObject = stream;
       await video.play();
+      if (stale()) { closeScanner(); return; }
       let active = true, last = null;
       stopLoop = () => { active = false; };
       const tick = async () => {
-        if (!active || done) return;
+        if (!active || done || stale()) return;
         try {
           const code = await detect(video);
           // erst übernehmen, wenn zwei Bilder nacheinander denselben Code liefern
@@ -454,15 +478,18 @@
       img.src = coverProxy(url);
     };
 
+    let lookupSeq = 0;
     async function lookup() {
       const isbn = cleanIsbn(isbnInput.value);
       if (!isbn) return;
+      const seq = ++lookupSeq;
       if (!validIsbn(isbn)) {
         statusBox.innerHTML = `<div class="notice warn">⚠ ${T("„{isbn}“ ist keine gültige ISBN – Prüfziffer stimmt nicht.", { isbn: esc(isbnInput.value) })}</div>`;
         return;
       }
       statusBox.innerHTML = '<div class="notice"><span class="spinner"></span> ' + T("Suche in den Katalogen …") + "</div>";
       const res = await api(`/api/isbn/${isbn}`);
+      if (seq !== lookupSeq) return;   // inzwischen eine andere ISBN gesucht
       if (!res.ok) { statusBox.innerHTML = `<div class="notice danger">${esc(res.error)}</div>`; return; }
       isbnInput.value = res.isbn;
       let html = "";
@@ -543,10 +570,12 @@
       reset();
     }
 
+    let quickSeq = 0;
     quickForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const isbn = cleanIsbn(input.value);
       if (!isbn) return;
+      const seq = ++quickSeq;
       resultBox.hidden = false;
       if (!validIsbn(isbn)) {
         resultBox.innerHTML = `<div class="card-body"><div class="notice warn">${T("„{isbn}“ ist keine gültige ISBN.", { isbn: esc(input.value) })}</div></div>`;
@@ -556,6 +585,7 @@
       }
       resultBox.innerHTML = '<div class="card-body"><span class="spinner"></span> ' + T("Suche {isbn} …", { isbn: esc(isbn) }) + "</div>";
       const res = await api(`/api/isbn/${isbn}`);
+      if (seq !== quickSeq) return;   // inzwischen die nächste ISBN gescannt – deren Ergebnis zählt
       if (!res.ok) { resultBox.innerHTML = `<div class="card-body"><div class="notice danger">${esc(res.error)}</div></div>`; reset(); return; }
       const d = res.data || {};
       const existing = (res.existing || []).filter((b) => b.manageable);
@@ -647,8 +677,12 @@
     let items = [], active = -1, timer = null, seq = 0, ctrl = null, moved = false;
     const close = () => { list.hidden = true; input.setAttribute("aria-expanded", "false"); active = -1;
       input.removeAttribute("aria-activedescendant"); };
+    // Laufende Abfragen verwerfen (gewählt oder Feld verlassen) – eine späte AD-Antwort darf die Liste nicht wieder
+    // öffnen und mit vorgewählter Zeile eine andere Person unterschieben
+    const cancel = () => { seq++; clearTimeout(timer); if (ctrl) ctrl.abort(); };
     const choose = (i) => {
       const it = items[i]; if (!it) return;
+      cancel();
       if (onChoose) { close(); onChoose(it); return; }
       input.value = valueOf(it); close();
       if (submit && input.form) input.form.submit();
@@ -659,6 +693,7 @@
       if (on) { input.setAttribute("aria-activedescendant", li.id); li.scrollIntoView({ block: "nearest" }); }
     });
     const show = (data, pending = "") => {
+      if (document.activeElement !== input) return;
       const keep = moved && items[active] ? valueOf(items[active]) : null;
       items = data.results || [];
       const rows = items.map((it, i) => `<li role="option" id="${listId}-${i}" data-i="${i}">${render(it)}</li>`);
@@ -713,7 +748,7 @@
       const li = e.target.closest("li[data-i]"); if (!li) return;
       e.preventDefault(); choose(Number(li.dataset.i));
     });
-    input.addEventListener("blur", () => setTimeout(close, 150));
+    input.addEventListener("blur", () => setTimeout(() => { if (document.activeElement !== input) { cancel(); close(); } }, 150));
   };
 
   const initials = (name) => (name || "").split(/[\s.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();

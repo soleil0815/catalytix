@@ -45,7 +45,7 @@ set -euo pipefail
 # important because a new package replaces this very file.
 main() {
 SERVICE=catalytix
-HEALTH_TIMEOUT=120   # seconds to wait for "healthy"
+HEALTH_TIMEOUT=300   # seconds to wait for "healthy" (the image allows 120 s start-up, e.g. for a big ./data)
 
 # ---------------------------------------------------------------- Output
 if [ -t 1 ]; then
@@ -69,8 +69,8 @@ for arg in "$@"; do
         --no-cache)  NOCACHE="--no-cache" ;;
         --prune)     PRUNE=1 ;;
         --no-cleanup) CLEANUP=0 ;;
-        --pull)      PULL=1 ;;
-        --pull=*)    PULL=1; PULL_TAG="${arg#--pull=}" ;;
+        --pull)      PULL=1; PULL_EXPLICIT=1 ;;
+        --pull=*)    PULL=1; PULL_TAG="${arg#--pull=}"; PULL_EXPLICIT=1 ;;
         -y|--yes)    YES=1 ;;
         -h|--help)   usage ;;
         -*)          die "Unknown option: $arg  (help: ./update.sh --help)" ;;
@@ -100,8 +100,8 @@ confirm() {
 
 # ---------------------------------------------------------------- Requirements
 command -v docker >/dev/null 2>&1 || die "Docker is not installed."
-# "docker compose" (plugin) or the older standalone "docker-compose" (e.g. Synology) –
-# there is no minimum version.
+# "docker compose" (plugin, any version) or the older standalone "docker-compose" (e.g. Synology) from 1.27 on –
+# older 1.x versions cannot read a docker-compose.yml without a "version:" line.
 if docker compose version >/dev/null 2>&1; then
     DC=(docker compose)
 elif command -v docker-compose >/dev/null 2>&1; then
@@ -131,16 +131,25 @@ env_set() {   # set KEY=VALUE in .env: replace an existing (or commented-out) li
           grep -q '^# Set by update.sh --pull' .env 2>/dev/null || printf '\n# Set by update.sh --pull\n'
           printf '%s=%s\n' "$key" "$val"; } > "$tmp"
     fi
-    cat "$tmp" > .env && rm -f -- "$tmp"     # keep owner and permissions of .env
+    cat "$tmp" > .env || { rm -f -- "$tmp"; die "Cannot write .env."; }     # keep owner and permissions of .env
+    rm -f -- "$tmp"
 }
 env_unset() {   # comment out KEY in .env
     [ -f .env ] || return 0
     grep -qE "^$1=" .env || return 0
     local tmp; tmp="$(mktemp "$INSTALL_DIR/.env.XXXXXX")" || die "Cannot write .env."
-    sed "s/^$1=/#$1=/" .env > "$tmp" && cat "$tmp" > .env && rm -f -- "$tmp"
+    sed "s/^$1=/#$1=/" .env > "$tmp" && cat "$tmp" > .env || { rm -f -- "$tmp"; die "Cannot write .env."; }
+    rm -f -- "$tmp"
 }
 image_version() {   # version label of a local image
     docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.version"}}' "$1" 2>/dev/null || true
+}
+running_version() {   # version of the image the existing container was created from (empty if unknown)
+    local img v
+    img="$(docker inspect -f '{{.Image}}' "$SERVICE" 2>/dev/null || true)"
+    [ -n "$img" ] || return 0
+    v="$(image_version "$img")"
+    if [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "$v"; fi
 }
 
 version_of() {   # read the program version from a Catalytix folder (empty if missing)
@@ -148,7 +157,10 @@ version_of() {   # read the program version from a Catalytix folder (empty if mi
     [ -f "$f" ] || return 0
     sed -n 's/^__version__ = "\(.*\)"/\1/p' "$f" 2>/dev/null | head -n1 || true
 }
-OLD_VERSION="$(version_of .)"
+# Installed version: preferably that of the existing container – files in the folder can be stale (e.g. program
+# files of an earlier zip install next to a --pull install) and a pulled "latest" tag says nothing yet
+OLD_VERSION="$(running_version)"
+[ -n "$OLD_VERSION" ] || OLD_VERSION="$(version_of .)"
 # Mode: images from GitHub (--pull, remembered in .env) or built locally (zip package)
 REG_IMAGE="$(env_get CATALYTIX_IMAGE)"
 [ "$REG_IMAGE" = catalytix ] && REG_IMAGE=""
@@ -159,11 +171,14 @@ if [ "$PULL" = 1 ]; then
     IMAGE="${REG_IMAGE:-$DEFAULT_IMAGE}"
     PULL_TAG="${PULL_TAG:-latest}"
     CUR_TAG="$(env_get CATALYTIX_TAG)"
-    if [ -n "$REG_IMAGE" ] && [ "$CUR_TAG" = latest ]; then
-        CUR_VERSION="$(image_version "${IMAGE}:latest")"      # version of the latest image pulled so far
-        [ -z "$CUR_VERSION" ] || OLD_VERSION="$CUR_VERSION"
-    elif [ -n "$REG_IMAGE" ] && [ -n "$CUR_TAG" ]; then
-        OLD_VERSION="$CUR_TAG"
+    if [ -z "$(running_version)" ] && [ -n "$REG_IMAGE" ] && [[ "$CUR_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        OLD_VERSION="$CUR_TAG"      # no container (stopped/removed): the pinned version is what was installed
+    fi
+    # Installs from before 2.17.1 always wrote the exact version: follow "latest" from now on unless the version
+    # was pinned on purpose with --pull=X.Y.Z (marked with CATALYTIX_PINNED=1)
+    if [ -z "${PULL_EXPLICIT:-}" ] && [[ "$PULL_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && [ "$(env_get CATALYTIX_PINNED)" != 1 ]; then
+        PULL_TAG=latest
+        warn "Following the newest version from now on (CATALYTIX_TAG=latest). Pin one with ./update.sh --pull=X.Y.Z."
     fi
 fi
 if [ -z "$OLD_VERSION" ]; then
@@ -238,11 +253,14 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 # Never touched when installing
 KEEP_RE='^(data|instance|\.env|docker-compose\.override\.yml|\.catalytix-update\..*)$'
 
-STAGE=""; SWAP_STATE=""; MOVED=()
+STAGE=""; SWAP_STATE=""; MOVED=(); PLACED=(); PULLED_TAG=""; PREV_TAG_ID=""
 cleanup() {
     local rc=$?
     if [ "$SWAP_STATE" = running ]; then
         rollback || true
+    fi
+    if [ -n "$PULLED_TAG" ] && [ "$SWAP_STATE" != done ] && [ -n "$PREV_TAG_ID" ]; then
+        docker tag "$PREV_TAG_ID" "$PULLED_TAG" >/dev/null 2>&1 || true   # aborted: tag points to the old image again
     fi
     if [ -n "$STAGE" ] && [ -d "$STAGE" ]; then
         if [ "$SWAP_STATE" = failed ]; then
@@ -256,17 +274,23 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
-rollback() {   # swap already replaced entries back (in reverse order)
-    local i name ok=1
+rollback() {   # put the previous entries back
+    local i name path ok=1
     warn "Error while installing – restoring the previous files …"
-    for (( i=${#MOVED[@]}-1; i>=0; i-- )); do
-        name="${MOVED[$i]}"
-        if [ -e "$STAGE/old/$name" ] || [ -L "$STAGE/old/$name" ]; then
-            rm -rf -- "./$name" && mv -- "$STAGE/old/$name" "./$name" || ok=0
-        else
-            rm -rf -- "./$name" || ok=0      # did not exist before
+    # 1. remove what this script placed and that did not exist before
+    for (( i=${#PLACED[@]}-1; i>=0; i-- )); do
+        name="${PLACED[$i]}"
+        if [ ! -e "$STAGE/old/$name" ] && [ ! -L "$STAGE/old/$name" ]; then
+            rm -rf -- "./$name" || ok=0
         fi
     done
+    # 2. everything in old/ goes back (also an entry whose move was interrupted before it was recorded);
+    #    whatever is in its place now can only be the new version placed by this script
+    while IFS= read -r -d '' path; do
+        name="${path##*/}"
+        if [ -e "./$name" ] || [ -L "./$name" ]; then rm -rf -- "./$name" || { ok=0; continue; }; fi
+        mv -- "$path" "./$name" || ok=0
+    done < <(find "$STAGE/old" -mindepth 1 -maxdepth 1 -print0 2>/dev/null)
     if [ "$ok" = 1 ]; then
         SWAP_STATE=restored
         warn "Previous version restored – nothing changed."
@@ -333,6 +357,10 @@ fi
 # ---------------------------------------------------------------- 1b. Pull the image built by GitHub (--pull)
 if [ "$PULL" = 1 ]; then
     step "Pulling image ${IMAGE}:${PULL_TAG}"
+    # Remember what the tag pointed to: if the update is aborted before the files are swapped, the tag is put back,
+    # so "docker compose up" (or a container manager) doesn't start the new version without the backup
+    PREV_TAG_ID="$(docker image inspect -f '{{.Id}}' "${IMAGE}:${PULL_TAG}" 2>/dev/null || true)"
+    PULLED_TAG="${IMAGE}:${PULL_TAG}"
     docker pull "${IMAGE}:${PULL_TAG}" \
         || die "Could not pull ${IMAGE}:${PULL_TAG} (network? version exists? private image → docker login ghcr.io) – nothing changed."
     NEW_VERSION="$(image_version "${IMAGE}:${PULL_TAG}")"
@@ -387,18 +415,23 @@ if [ -n "$ZIP" ] || [ "$PULL" = 1 ]; then
         [[ "$name" =~ $KEEP_RE ]] || ENTRIES+=("$name")
     done < <(find "$SRC" -mindepth 1 -maxdepth 1 -print0)
     if [ -n "$ZIP" ]; then
-        for name in catalytix tests; do     # also remove old program folders the package no longer has
-            if [ -e "./$name" ] && [ ! -e "$SRC/$name" ]; then ENTRIES+=("$name"); fi
-        done
+        STALE=(catalytix tests)             # also remove old program folders the package no longer has
+    else
+        # --pull: the program is in the image – program files of an earlier local install would only be stale
+        STALE=(catalytix tests docs Dockerfile docker-entrypoint.sh wsgi.py requirements.txt requirements.in .dockerignore)
     fi
+    for name in "${STALE[@]}"; do
+        if [ -e "./$name" ] && [ ! -e "$SRC/$name" ]; then ENTRIES+=("$name"); fi
+    done
     SWAP_STATE=running
     for name in "${ENTRIES[@]}"; do
-        MOVED+=("$name")
         if [ -e "./$name" ] || [ -L "./$name" ]; then
             mv -- "./$name" "$STAGE/old/$name" || { rollback; die "Installation failed ($name) – the previous version is unchanged."; }
+            MOVED+=("$name")
         fi
         if [ -e "$SRC/$name" ]; then
             mv -- "$SRC/$name" "./$name" || { rollback; die "Installation failed ($name) – the previous version is unchanged."; }
+            PLACED+=("$name")
         fi
     done
     if [ -n "$ZIP" ]; then
@@ -428,8 +461,10 @@ if [ "$PULL" = 1 ]; then
     env_set CATALYTIX_IMAGE "$IMAGE"
     if [ "$PULL_TAG" = latest ]; then
         env_set CATALYTIX_TAG latest
+        env_unset CATALYTIX_PINNED
     else
         env_set CATALYTIX_TAG "$VERSION"
+        env_set CATALYTIX_PINNED 1
         warn "Pinned to version ${VERSION} – \"./update.sh --pull\" follows the newest version again."
     fi
 else
@@ -452,12 +487,20 @@ else
     ok "Image built."
 fi
 
+way_back() {
+    if [ "$PULL" = 1 ] && [ -n "$OLD_VERSION" ]; then
+        echo "./update.sh --pull=${OLD_VERSION}"
+    else
+        echo "install the old package with ./update.sh catalytix-OLD.zip"
+    fi
+}
+
 # ---------------------------------------------------------------- 5. Start
 step "Restarting the container"
 UP_OPTS=(-d --remove-orphans)
 [ "$PULL" = 1 ] && UP_OPTS+=(--no-build)
 "${DC[@]}" up "${UP_OPTS[@]}" "$SERVICE" \
-    || die "Could not start the container (see message above). To go back: install the old package with ./update.sh."
+    || die "Could not start the container (see message above). To go back: $(way_back)"
 
 printf 'Waiting for start '
 STATUS=""
@@ -487,7 +530,7 @@ if [ "$STATUS" = healthy ]; then
 else
     warn "Status: ${STATUS:-unknown}. The last log lines:"
     "${DC[@]}" logs --tail 40 "$SERVICE" || true
-    die "The container did not start healthy. To go back: install the old package with ./update.sh."
+    die "The container did not start healthy. To go back: $(way_back)"
 fi
 
 # ---------------------------------------------------------------- 6. Clean up

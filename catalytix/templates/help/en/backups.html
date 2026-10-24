@@ -7,7 +7,7 @@
   <li><span class="ui">Back up now</span> creates a backup immediately – useful before major changes or an update.</li>
   <li>Each backup can be <b>downloaded</b> or deleted. Location: <code>./data/backups</code> or the folder set in <code>CATALYTIX_BACKUP_DIR</code> (e.g. a NAS).</li>
   <li>If a backup fails, a warning sign appears next to the menu item and administrators get an email{% if not f.mail_on %} (once email delivery is active){% endif %}.</li>
-  <li>The database is backed up. Covers, logo and <code>secret_key</code> are files in <code>./data</code> – take the whole folder when moving servers. Always restore a database together with its <code>secret_key</code>: without the matching key, 2FA sign-ins and stored SMTP/AD passwords do not work, and Catalytix will not start.</li>
+  <li>The database is backed up. Covers, logo and <code>secret_key</code> are files in <code>./data</code> – take the whole folder when moving servers. Always restore a database together with its <code>secret_key</code>: without the matching key, 2FA sign-ins and stored SMTP/AD passwords do not work, and the program will not start.</li>
 </ul>
 <p><b>Important:</b> backups are stored on the same server and do not protect against disk failure. Copy the folder to another place regularly.</p>
 <p><b>Restoring</b> (on the server; the current state is backed up automatically first):</p>

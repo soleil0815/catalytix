@@ -83,6 +83,26 @@ def normalize_dn(dn: str) -> str:
     return re.sub(r"\s*([,=])\s*", r"\1", (dn or "").strip()).lower()
 
 
+def split_dn(dn: str) -> list[str]:
+    r"""DN in seine Bestandteile zerlegen; „\,“ (und jedes andere mit \ maskierte Zeichen) trennt nicht."""
+    parts, cur, i = [], [], 0
+    while i < len(dn):
+        ch = dn[i]
+        if ch == "\\" and i + 1 < len(dn):
+            cur.append(dn[i:i + 2])
+            i += 2
+            continue
+        if ch == ",":
+            parts.append("".join(cur))
+            cur = []
+        else:
+            cur.append(ch)
+        i += 1
+    if cur or parts:
+        parts.append("".join(cur))
+    return [p for p in parts if p]
+
+
 def parse_rules(text: str) -> list[str]:
     rules = []
     for line in (text or "").splitlines():
@@ -117,7 +137,11 @@ def rule_matches(rule: str, user_dn: str, group_dns: set[str]) -> bool:
     u = normalize_dn(user_dn)
     if r in group_dns:
         return True
-    return u == r or u.endswith("," + r)
+    # OU/Container: die Bestandteile (RDNs) der Regel müssen das Ende des Benutzer-DNs bilden. Verglichen wird
+    # Bestandteil für Bestandteil – ein maskiertes Komma im Namen („CN=Mallory\\, OU=Bib-Admins,…“) ist kein
+    # Trenner und darf keine Zugehörigkeit zu einer OU vortäuschen.
+    rr, ur = split_dn(r), split_dn(u)
+    return bool(rr) and len(ur) >= len(rr) and ur[-len(rr):] == rr
 
 
 def resolve_role(user_dn: str, groups: list[str], cfg: dict | None = None) -> tuple[str | None, str]:
@@ -240,7 +264,7 @@ class Directory:
             flt = f"(&{uf}{flt})"
         conn.search(self.base_dn, flt, SUBTREE,
                     attributes=["displayName", "cn", "mail", "memberOf", "givenName", "sn",
-                                "objectSid", "primaryGroupID", "objectGUID", "entryUUID", "userAccountControl", self.user_attr], size_limit=2)
+                                "objectSid", "primaryGroupID", "objectGUID", "entryUUID", "userAccountControl", "accountExpires", self.user_attr], size_limit=2)
         entries = [e for e in conn.response if e.get("type") == "searchResEntry"]
         if not entries:
             raise LDAPUserNotFound(_("Benutzer '{username}' nicht unterhalb von {base} gefunden.", username=username, base=self.base_dn))
@@ -431,11 +455,7 @@ class Directory:
 
         cached_groups=True (nur Vorschlagssuche): Gruppen bis zu SEARCH_GROUP_TTL Sekunden wiederverwenden."""
         attrs = entry.get("attributes", {})
-        try:
-            uac = int(_first(attrs.get("userAccountControl")) or 0)
-        except (TypeError, ValueError):
-            uac = 0
-        if uac & 2:   # ACCOUNTDISABLE
+        if _disabled(attrs):   # im AD deaktiviert oder abgelaufen
             return None
         user_dn = entry["dn"]
         name = _first(attrs.get(self.user_attr)) or username
@@ -508,7 +528,7 @@ class Directory:
         try:
             svc.search(self.base_dn, flt, SUBTREE, size_limit=limit * 2,
                        attributes=["displayName", "cn", "mail", "memberOf", "givenName", "sn", "objectSid",
-                                   "primaryGroupID", "objectGUID", "entryUUID", "userAccountControl", self.user_attr])
+                                   "primaryGroupID", "objectGUID", "entryUUID", "userAccountControl", "accountExpires", self.user_attr])
             entries = [e for e in svc.response if e.get("type") == "searchResEntry"]
             for entry in entries:
                 info = self._user_from_entry(svc, entry, "", cached_groups=True)
@@ -543,7 +563,7 @@ class Directory:
             parts += ["(objectCategory=person)", "(!(userAccountControl:1.2.840.113556.1.4.803:=2))"]
         flt = f"(&{''.join(parts)})"
         attrs = ["displayName", "cn", "mail", "memberOf", "givenName", "sn", "objectSid", "primaryGroupID",
-                 "objectGUID", "entryUUID", "userAccountControl", self.user_attr]
+                 "objectGUID", "entryUUID", "userAccountControl", "accountExpires", self.user_attr]
         conn = self.service_connection()
         try:
             # Erst alle Seiten vollständig lesen und das Ergebnis prüfen – die Gruppenauflösung danach nutzt
@@ -609,7 +629,7 @@ class Directory:
         try:
             svc.search(self.base_dn, flt, SUBTREE, size_limit=2,
                        attributes=["displayName", "cn", "mail", "memberOf", "givenName", "sn", "objectSid",
-                                   "primaryGroupID", "objectGUID", "entryUUID", "userAccountControl", self.user_attr])
+                                   "primaryGroupID", "objectGUID", "entryUUID", "userAccountControl", "accountExpires", self.user_attr])
             entries = [e for e in svc.response if e.get("type") == "searchResEntry"]
             if not entries:
                 code = (svc.result or {}).get("result", 0)
@@ -627,11 +647,7 @@ class Directory:
     def _user_from_known_groups(self, entry: dict, groups: list[str]) -> "LDAPUser | None":
         """Wie _user_from_entry, aber mit schon bekannten Gruppen (ohne weitere Abfragen)."""
         attrs = entry.get("attributes", {}) or {}
-        try:
-            uac = int(_first(attrs.get("userAccountControl")) or 0)
-        except (TypeError, ValueError):
-            uac = 0
-        if uac & 2:
+        if _disabled(attrs):
             return None
         name = _first(attrs.get(self.user_attr))
         display = _first(attrs.get("displayName")) or " ".join(
@@ -661,6 +677,41 @@ def _as_list(v):
 def _escape_bytes(data: bytes) -> str:
     """Binärwert (z. B. SID) für einen LDAP-Filter kodieren."""
     return "".join(f"\\{b:02x}" for b in data)
+
+
+AD_NEVER = 0x7FFFFFFFFFFFFFFF
+
+
+def _expired(value) -> bool:
+    """accountExpires (AD): abgelaufen? 0 und 0x7FFF… bedeuten „nie“. ldap3 liefert je nach Schema-Info eine Zahl
+    (100-ns-Schritte seit 1601) oder schon ein datetime."""
+    from datetime import datetime, timedelta, timezone
+    vals = _as_list(value)
+    if not vals:
+        return False
+    v = vals[0]
+    if isinstance(v, datetime):
+        if v.year <= 1601 or v.year >= 9999:
+            return False
+        if v.tzinfo is None:
+            v = v.replace(tzinfo=timezone.utc)
+        return v <= datetime.now(timezone.utc)
+    try:
+        n = int(v)
+    except (TypeError, ValueError):
+        return False
+    if n <= 0 or n >= AD_NEVER:
+        return False
+    return datetime(1601, 1, 1, tzinfo=timezone.utc) + timedelta(microseconds=n // 10) <= datetime.now(timezone.utc)
+
+
+def _disabled(attrs: dict) -> bool:
+    """Im AD deaktiviert (userAccountControl, Bit 2) oder abgelaufen (accountExpires)."""
+    try:
+        uac = int(_first(attrs.get("userAccountControl")) or 0)
+    except (TypeError, ValueError):
+        uac = 0
+    return bool(uac & 2) or _expired(attrs.get("accountExpires"))
 
 
 def _first(v) -> str:

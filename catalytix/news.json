@@ -4,10 +4,52 @@
   "date": "2026-10-24",
   "items": [
    {
+    "kind": "security",
+    "audience": "admin",
+    "de": {
+     "title": "Code-Audit abgeschlossen",
+     "text": "Vier unabhängige Prüfungen von Anmeldung, Fachlogik, Betrieb und Oberfläche – nichts Kritisches, alle Befunde behoben. Unter anderem: Ein Gruppen-Verwalter, der seine letzte Gruppe verliert, verwaltet nicht mehr den gesamten Bestand; AD-Regeln für OUs lassen sich nicht mehr durch Kommas im Namen täuschen; im AD abgelaufene Konten werden wie deaktivierte behandelt; die Registrierung lässt sich nicht mehr zum Ausforschen von Konten nutzen."
+    },
+    "en": {
+     "title": "Code audit completed",
+     "text": "Four independent reviews of sign-in, business logic, operation and interface – nothing critical, all findings fixed. Among other things: a group librarian who loses their last group no longer manages the entire collection; AD rules for OUs can no longer be fooled by commas in a name; accounts that expired in AD are treated like disabled ones; registration can no longer be used to probe for accounts."
+    }
+   },
+   {
+    "kind": "fixed",
+    "audience": "all",
+    "de": {
+     "title": "Erinnerungen nach Verlängerung",
+     "text": "Nach einer Verlängerung kommt rechtzeitig vor der neuen Frist wieder eine Erinnerung per E-Mail."
+    },
+    "en": {
+     "title": "Reminders after an extension",
+     "text": "After an extension, you get an email reminder again before the new due date."
+    }
+   },
+   {
+    "kind": "fixed",
+    "audience": "librarian",
+    "de": {
+     "title": "Sicherer an der Ausleihtheke",
+     "text": "„Sofort verleihen/zurücknehmen“ handelt nur noch bei genauen Treffern (ISBN, Signatur), eine spät eintreffende Personensuche überschreibt keine schon gewählte Person mehr, und die Kamera geht beim Schließen des Scanners zuverlässig aus."
+    },
+    "en": {
+     "title": "Safer at the circulation desk",
+     "text": "“Lend/return immediately” only acts on exact matches (ISBN, shelf mark), a late person search no longer replaces a person you already picked, and the camera reliably switches off when the scanner is closed."
+    }
+   },
+   {
     "kind": "improved",
     "audience": "admin",
-    "de": {"title": "Immer die neueste Version", "text": "Nach ./update.sh --pull folgt der Server jetzt automatisch der neuesten Version. Eine Container-Verwaltung, die Images selbst aktualisiert, holt neue Versionen damit ohne weiteres Zutun. Mit ./update.sh --pull=X.Y.Z bleibt der Server bei genau einer Version."},
-    "en": {"title": "Always the newest version", "text": "After ./update.sh --pull the server now follows the newest version automatically. A container manager that updates images by itself picks up new versions without further steps. With ./update.sh --pull=X.Y.Z the server stays on exactly one version."}
+    "de": {
+     "title": "Immer die neueste Version",
+     "text": "Nach ./update.sh --pull folgt der Server jetzt automatisch der neuesten Version. Eine Container-Verwaltung, die Images selbst aktualisiert, holt neue Versionen damit ohne weiteres Zutun. Mit ./update.sh --pull=X.Y.Z bleibt der Server bei genau einer Version."
+    },
+    "en": {
+     "title": "Always the newest version",
+     "text": "After ./update.sh --pull the server now follows the newest version automatically. A container manager that updates images by itself picks up new versions without further steps. With ./update.sh --pull=X.Y.Z the server stays on exactly one version."
+    }
    }
   ]
  },
@@ -18,8 +60,14 @@
    {
     "kind": "new",
     "audience": "all",
-    "de": {"title": "Neuigkeiten", "text": "Was sich mit einer neuen Version ändert, steht ab jetzt hier – neue Funktionen, Verbesserungen und Sicherheitsupdates. Ein kleiner Punkt neben der Versionsnummer zeigt, wenn es etwas Neues gibt."},
-    "en": {"title": "What's new", "text": "From now on, changes in a new version are listed here – new features, improvements and security updates. A small dot next to the version number shows when there is something new."}
+    "de": {
+     "title": "Neuigkeiten",
+     "text": "Was sich mit einer neuen Version ändert, steht ab jetzt hier – neue Funktionen, Verbesserungen und Sicherheitsupdates. Ein kleiner Punkt neben der Versionsnummer zeigt, wenn es etwas Neues gibt."
+    },
+    "en": {
+     "title": "What's new",
+     "text": "From now on, changes in a new version are listed here – new features, improvements and security updates. A small dot next to the version number shows when there is something new."
+    }
    }
   ]
  },
@@ -30,8 +78,14 @@
    {
     "kind": "improved",
     "audience": "admin",
-    "de": {"title": "Updates direkt von GitHub", "text": "Mit ./update.sh --pull holt der Server das fertige Programm, statt es selbst zu bauen – schneller und mit weniger Last. Das Update mit Zip-Paket funktioniert weiter wie bisher."},
-    "en": {"title": "Updates straight from GitHub", "text": "With ./update.sh --pull the server downloads the finished program instead of building it itself – faster and with less load. Updating with a zip package still works as before."}
+    "de": {
+     "title": "Updates direkt von GitHub",
+     "text": "Mit ./update.sh --pull holt der Server das fertige Programm, statt es selbst zu bauen – schneller und mit weniger Last. Das Update mit Zip-Paket funktioniert weiter wie bisher."
+    },
+    "en": {
+     "title": "Updates straight from GitHub",
+     "text": "With ./update.sh --pull the server downloads the finished program instead of building it itself – faster and with less load. Updating with a zip package still works as before."
+    }
    }
   ]
  },
@@ -42,20 +96,38 @@
    {
     "kind": "security",
     "audience": "all",
-    "de": {"title": "Anmeldung besser geschützt", "text": "Angriffe von außen auf viele Konten gleichzeitig werden gebremst. Sperren nach Fehlversuchen aus dem Internet treffen dich im Hausnetz nicht mehr."},
-    "en": {"title": "Better protected sign-in", "text": "Attacks from outside on many accounts at once are slowed down. Lockouts after failed attempts from the internet no longer affect you on the internal network."}
+    "de": {
+     "title": "Anmeldung besser geschützt",
+     "text": "Angriffe von außen auf viele Konten gleichzeitig werden gebremst. Sperren nach Fehlversuchen aus dem Internet treffen dich im Hausnetz nicht mehr."
+    },
+    "en": {
+     "title": "Better protected sign-in",
+     "text": "Attacks from outside on many accounts at once are slowed down. Lockouts after failed attempts from the internet no longer affect you on the internal network."
+    }
    },
    {
     "kind": "security",
     "audience": "admin",
-    "de": {"title": "Sicherheitsprüfung abgeschlossen", "text": "Eine unabhängige Prüfung von Programm und Betrieb fand keine kritischen Lücken; alle übrigen Befunde sind behoben. Unter anderem braucht die Ersteinrichtung jetzt einen Einrichtungscode, Links in Registrierungs-Mails kommen nur noch aus der eingestellten Basis-Adresse, und Daten und Sicherungen sind nur noch für das Programm selbst lesbar."},
-    "en": {"title": "Security review completed", "text": "An independent review of the program and its operation found no critical issues; all other findings have been fixed. Among other things, the initial setup now needs a setup code, links in registration emails only use the configured base address, and data and backups are readable only by the program itself."}
+    "de": {
+     "title": "Sicherheitsprüfung abgeschlossen",
+     "text": "Eine unabhängige Prüfung von Programm und Betrieb fand keine kritischen Lücken; alle übrigen Befunde sind behoben. Unter anderem braucht die Ersteinrichtung jetzt einen Einrichtungscode, Links in Registrierungs-Mails kommen nur noch aus der eingestellten Basis-Adresse, und Daten und Sicherungen sind nur noch für das Programm selbst lesbar."
+    },
+    "en": {
+     "title": "Security review completed",
+     "text": "An independent review of the program and its operation found no critical issues; all other findings have been fixed. Among other things, the initial setup now needs a setup code, links in registration emails only use the configured base address, and data and backups are readable only by the program itself."
+    }
    },
    {
     "kind": "improved",
     "audience": "admin",
-    "de": {"title": "Aufräumen beim Update", "text": "Nach einem erfolgreichen Update werden alte Programmversionen und Pakete entfernt. Die vorige Version bleibt für den Weg zurück."},
-    "en": {"title": "Clean-up after updates", "text": "After a successful update, old program versions and packages are removed. The previous version is kept so you can go back."}
+    "de": {
+     "title": "Aufräumen beim Update",
+     "text": "Nach einem erfolgreichen Update werden alte Programmversionen und Pakete entfernt. Die vorige Version bleibt für den Weg zurück."
+    },
+    "en": {
+     "title": "Clean-up after updates",
+     "text": "After a successful update, old program versions and packages are removed. The previous version is kept so you can go back."
+    }
    }
   ]
  },
@@ -66,14 +138,26 @@
    {
     "kind": "improved",
     "audience": "librarian",
-    "de": {"title": "Personensuche ohne Wartezeit", "text": "Personen aus dem Active Directory werden im Hintergrund bereitgehalten. An der Ausleihtheke erscheinen sie sofort beim Tippen."},
-    "en": {"title": "Instant person search", "text": "People from Active Directory are kept ready in the background. At the circulation desk they appear as soon as you type."}
+    "de": {
+     "title": "Personensuche ohne Wartezeit",
+     "text": "Personen aus dem Active Directory werden im Hintergrund bereitgehalten. An der Ausleihtheke erscheinen sie sofort beim Tippen."
+    },
+    "en": {
+     "title": "Instant person search",
+     "text": "People from Active Directory are kept ready in the background. At the circulation desk they appear as soon as you type."
+    }
    },
    {
     "kind": "improved",
     "audience": "admin",
-    "de": {"title": "AD-Konten bleiben aktuell", "text": "Namen, E-Mail-Adressen, Rollen und Gruppen werden regelmäßig aus dem Active Directory übernommen, auch Umbenennungen. Wer im AD deaktiviert oder gelöscht wird, wird gesperrt – nicht gelöscht, die Ausleihen bleiben sichtbar."},
-    "en": {"title": "AD accounts stay up to date", "text": "Names, email addresses, roles and groups are regularly taken over from Active Directory, including renames. Anyone disabled or deleted in AD is locked – not deleted, so their loans stay visible."}
+    "de": {
+     "title": "AD-Konten bleiben aktuell",
+     "text": "Namen, E-Mail-Adressen, Rollen und Gruppen werden regelmäßig aus dem Active Directory übernommen, auch Umbenennungen. Wer im AD deaktiviert oder gelöscht wird, wird gesperrt – nicht gelöscht, die Ausleihen bleiben sichtbar."
+    },
+    "en": {
+     "title": "AD accounts stay up to date",
+     "text": "Names, email addresses, roles and groups are regularly taken over from Active Directory, including renames. Anyone disabled or deleted in AD is locked – not deleted, so their loans stay visible."
+    }
    }
   ]
  },
@@ -84,8 +168,14 @@
    {
     "kind": "new",
     "audience": "all",
-    "de": {"title": "Vorschläge im Suchfeld", "text": "Schon beim Tippen erscheinen oben passende Bücher mit Autor und freien Exemplaren. Ein Klick öffnet das Buch direkt."},
-    "en": {"title": "Suggestions in the search box", "text": "Matching books with author and available copies appear at the top while you type. One click opens the book."}
+    "de": {
+     "title": "Vorschläge im Suchfeld",
+     "text": "Schon beim Tippen erscheinen oben passende Bücher mit Autor und freien Exemplaren. Ein Klick öffnet das Buch direkt."
+    },
+    "en": {
+     "title": "Suggestions in the search box",
+     "text": "Matching books with author and available copies appear at the top while you type. One click opens the book."
+    }
    }
   ]
  },
@@ -96,8 +186,14 @@
    {
     "kind": "new",
     "audience": "librarian",
-    "de": {"title": "Bestandssuche an der Ausleihtheke", "text": "Im Buchfeld der Theke erscheinen beim Tippen passende Bücher mit Standort und freien Exemplaren – Suche nach Titel, Autor, Signatur, ISBN und Schlagwort."},
-    "en": {"title": "Stock search at the circulation desk", "text": "In the book field at the circulation desk, matching books with location and available copies appear while you type – search by title, author, shelf mark, ISBN and keyword."}
+    "de": {
+     "title": "Bestandssuche an der Ausleihtheke",
+     "text": "Im Buchfeld der Theke erscheinen beim Tippen passende Bücher mit Standort und freien Exemplaren – Suche nach Titel, Autor, Signatur, ISBN und Schlagwort."
+    },
+    "en": {
+     "title": "Stock search at the circulation desk",
+     "text": "In the book field at the circulation desk, matching books with location and available copies appear while you type – search by title, author, shelf mark, ISBN and keyword."
+    }
    }
   ]
  }

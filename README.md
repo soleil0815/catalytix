@@ -79,7 +79,7 @@ Optionen: `--pull[=VERSION]` (Image von GitHub statt lokal bauen), `--no-backup`
 
 **Zurück zur vorigen Version**, falls nach einem Update etwas nicht stimmt: das alte Zip aufheben und mit `./update.sh catalytix-ALT.zip` wieder einspielen (das Skript warnt vor der älteren Version). Hat die neue Version schon Daten verändert, zusätzlich die Sicherung von vor dem Update zurückspielen (siehe [Datensicherung](#datensicherung) → Wiederherstellen; es ist die neueste manuelle Sicherung).
 
-Das Skript braucht Docker Compose – egal welche Version, als `docker compose` oder als älteres `docker-compose` (z. B. auf einer Synology) – und zum Entpacken `unzip` (ersatzweise `python3` oder `7z`). Fehlt die `.env`, legt es sie aus der Vorlage an; ausführen als root oder als Mitglied der Gruppe `docker`.
+Das Skript braucht Docker Compose – als `docker compose` (jede Version) oder als älteres `docker-compose` ab 1.27 (z. B. auf einer Synology; ältere 1.x-Versionen können die `docker-compose.yml` ohne `version:`-Zeile nicht lesen) – und zum Entpacken `unzip` (ersatzweise `python3`). Fehlt die `.env`, legt es sie aus der Vorlage an; ausführen als root oder als Mitglied der Gruppe `docker`.
 
 ### Reproduzierbarer Build
 
@@ -142,7 +142,7 @@ Zum Ausprobieren reicht auch `python wsgi.py` (nur `127.0.0.1:9300`).
 | Rolle | Darf |
 |---|---|
 | **Leser** | Katalog durchsuchen, erlaubte Bücher ausleihen, ggf. selbst verlängern/zurückgeben |
-| **Verwalter** | Bücher erfassen/bearbeiten/löschen, an Benutzer verleihen, Rücknahme, Ausleihtheke – für die Bücher **seiner Gruppen** und allgemeine Bücher. Ein Verwalter **ohne** Gruppe verwaltet den gesamten Bestand. |
+| **Verwalter** | Bücher erfassen/bearbeiten/löschen, an Benutzer verleihen, Rücknahme, Ausleihtheke – für die Bücher **seiner Gruppen** und allgemeine Bücher. Ein Verwalter **ohne** Gruppe verwaltet den gesamten Bestand. Verliert ein Gruppen-Verwalter seine letzte Gruppe (Gruppe gelöscht, im AD entfernt), verwaltet er nur noch allgemeine Bücher – den gesamten Bestand bekommt er erst, wenn ein Admin das im Benutzerkonto ausdrücklich ankreuzt. |
 | **Administrator** | Alles, dazu Benutzer, Gruppen, Einstellungen und Active Directory |
 
 Jedes Buch gehört entweder zu einer **Gruppe** oder ist **allgemein**. Allgemeine Bücher kann jeder ausleihen, Gruppenbücher nur Mitglieder der Gruppe. Unter *Einstellungen* legst du fest, ob Leser im Katalog nur ihre Bücher sehen oder den ganzen Bestand (Ausleihe bleibt trotzdem beschränkt).
@@ -424,8 +424,8 @@ Das Repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) e
 
 | Ereignis | Was GitHub macht |
 |---|---|
-| Push auf `main` | Tests (mit genau den festgelegten Paketversionen), dann Image `ghcr.io/soleil0815/catalytix` mit den Tags `<version>`, `latest` und `sha-<commit>` – für `linux/amd64` und `linux/arm64` |
-| Neue Versionsnummer auf `main` | zusätzlich automatisch ein Release `v<version>` mit `catalytix-<version>.zip` und `.sha256` für das klassische Update (Tag legt GitHub selbst an; gibt es das Release schon, passiert nichts) |
+| Push auf `main` mit **neuer Versionsnummer** | Tests (mit genau den festgelegten Paketversionen), dann Image `ghcr.io/soleil0815/catalytix` mit den Tags `<version>`, `latest` und `sha-<commit>` – für `linux/amd64` und `linux/arm64` –, danach automatisch das Release `v<version>` mit `catalytix-<version>.zip` und `.sha256` für das klassische Update (den Tag legt GitHub selbst an) |
+| Push auf `main` **ohne neue Versionsnummer** | Tests und nur `sha-<commit>` – `latest` und `<version>` bleiben unverändert, Server, die `latest` folgen, bekommen also nie unveröffentlichte Zwischenstände |
 | Pull Request | Tests und Probe-Build, nichts wird veröffentlicht |
 
 **Erster Push:**

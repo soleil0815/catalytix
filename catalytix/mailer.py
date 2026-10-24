@@ -145,18 +145,52 @@ def build_message(cfg: SmtpConfig, to: str, subject: str, text: str, html: str |
     return msg
 
 
+class SharedSmtp:
+    """Eine SMTP-Verbindung für einen Sammelversand, die sich nach einer Trennung einmal neu verbindet."""
+
+    def __init__(self, cfg: SmtpConfig):
+        self.cfg = cfg
+        self.conn = smtp_connect(cfg)
+        self.reconnect_failed = False
+
+    def send(self, msg):
+        try:
+            return self.conn.send_message(msg)
+        except smtplib.SMTPServerDisconnected:
+            try:
+                self.conn = smtp_connect(self.cfg)
+            except MailError:
+                self.reconnect_failed = True
+                raise
+            return self.conn.send_message(msg)
+
+    def quit(self):
+        try:
+            self.conn.quit()
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def send_mail(to: str, subject: str, text: str, html: str | None = None, *, kind: str,
               loan_ids: list[int] | None = None, user_id: int | None = None,
-              cfg: SmtpConfig | None = None, smtp: smtplib.SMTP | None = None) -> tuple[bool, str]:
-    """Versendet eine Mail und protokolliert sie (eine Protokollzeile je Ausleihe)."""
+              cfg: SmtpConfig | None = None, smtp: "smtplib.SMTP | SharedSmtp | None" = None) -> tuple[bool, str]:
+    """Versendet eine Mail und protokolliert sie (eine Protokollzeile je Ausleihe).
+
+    smtp: eine offene Verbindung oder SharedSmtp (Sammelversand) – SharedSmtp verbindet sich neu, wenn der Server
+    die Verbindung unterwegs getrennt hat (Nachrichtenlimit je Verbindung, Leerlauf-Zeitlimit)."""
     cfg = cfg or SmtpConfig.from_settings()
     error = ""
     try:
         msg = build_message(cfg, to, subject, text, html)
         own = smtp is None
-        conn = smtp or smtp_connect(cfg)
+        if isinstance(smtp, SharedSmtp):
+            refused = smtp.send(msg)
+            own, conn = False, None
+        else:
+            conn = smtp or smtp_connect(cfg)
         try:
-            refused = conn.send_message(msg)
+            if conn is not None:
+                refused = conn.send_message(msg)
             if refused:
                 raise MailError(_("Empfänger abgelehnt: {recipients}", recipients=", ".join(refused)))
         finally:
@@ -277,34 +311,82 @@ def send_manual_reminder(loan: Loan) -> tuple[bool, str]:
 
 # ---------------------------------------------------------------- Tägliche Erinnerungen
 
-def _sent(loan_id: int, kind: str):
-    return MailLog.query.filter_by(loan_id=loan_id, kind=kind, status="sent")
+def _sent_logs(loan_ids: list[int]) -> dict[tuple[int, str], list[datetime]]:
+    """Versandzeitpunkte von Erinnerungen und Mahnungen je (Ausleihe, Art) – in wenigen Abfragen."""
+    sent: dict[tuple[int, str], list[datetime]] = {}
+    for start in range(0, len(loan_ids), 500):
+        chunk = loan_ids[start:start + 500]
+        rows = (db.session.query(MailLog.loan_id, MailLog.kind, MailLog.created_at)
+                .filter(MailLog.loan_id.in_(chunk), MailLog.kind.in_(("reminder", "overdue")),
+                        MailLog.status == "sent").all())
+        for loan_id, kind, created in rows:
+            sent.setdefault((loan_id, kind), []).append(created)
+    return sent
 
 
 def collect_due(today: date | None = None) -> dict[int, dict]:
-    """Ermittelt je Benutzer, welche Ausleihen erinnert bzw. gemahnt werden müssen."""
+    """Ermittelt je Benutzer, welche Ausleihen erinnert bzw. gemahnt werden müssen.
+
+    Nach einer Verlängerung (Loan.due_changed_at) zählen frühere Erinnerungen und Mahnungen nicht mehr –
+    für die neue Frist wird wieder erinnert und gegebenenfalls gemahnt."""
+    from sqlalchemy.orm import joinedload
     today = today or date.today()
     per_user: dict[int, dict] = {}
-    active = Loan.query.filter(Loan.returned_at.is_(None)).all()
+    remind_on, overdue_on = get_bool("mail_reminder"), get_bool("mail_overdue")
+    if not (remind_on or overdue_on):
+        return {}
+    active = Loan.query.options(joinedload(Loan.user)).filter(Loan.returned_at.is_(None)).all()
     rem_days = get_int("mail_reminder_days", 2)
     repeat = max(1, get_int("mail_overdue_repeat_days", 7))
     max_over = get_int("mail_overdue_max", 3)
+    sent = _sent_logs([l.id for l in active])
     for loan in active:
         if not can_notify(loan.user):
             continue
+        since = loan.due_changed_at
+
+        def times(kind):
+            return [t for t in sent.get((loan.id, kind), []) if since is None or t >= since]
         bucket = per_user.setdefault(loan.user_id, {"user": loan.user, "due_soon": [], "overdue": []})
         days_left = (loan.due_at - today).days
-        if get_bool("mail_reminder") and 0 <= days_left <= rem_days and _sent(loan.id, "reminder").count() == 0:
+        if remind_on and 0 <= days_left <= rem_days and not times("reminder"):
             bucket["due_soon"].append(loan)
-        elif get_bool("mail_overdue") and days_left < 0:
-            prev = _sent(loan.id, "overdue")
-            count = prev.count()
-            if max_over and count >= max_over:
+        elif overdue_on and days_left < 0:
+            prev = times("overdue")
+            if max_over and len(prev) >= max_over:
                 continue
-            last = prev.with_entities(func.max(MailLog.created_at)).scalar()
-            if last is None or (today - last.date()).days >= repeat:
+            if not prev or (today - max(prev).date()).days >= repeat:
                 bucket["overdue"].append(loan)
     return {uid: b for uid, b in per_user.items() if b["due_soon"] or b["overdue"]}
+
+
+RUN_LOCK_MINUTES = 30   # ein Versandlauf gilt höchstens so lange als „läuft“ (abgestürzter Prozess)
+
+
+def _claim_run() -> str | None:
+    """Sperre für einen Versandlauf – „Jetzt senden“ und der tägliche Lauf in einem anderen Prozess dürfen sich nicht
+    überschneiden (sonst gehen Erinnerungen doppelt raus). Liefert das Kennzeichen zum Freigeben oder None."""
+    from datetime import timedelta
+    key = "mail_running"
+    if db.session.get(Setting, key) is None:
+        try:
+            db.session.add(Setting(key=key, value=""))
+            db.session.commit()
+        except Exception:  # noqa: BLE001 – anderer Prozess war schneller
+            db.session.rollback()
+    now = datetime.now()
+    stale = (now - timedelta(minutes=RUN_LOCK_MINUTES)).isoformat(timespec="seconds")
+    token = now.isoformat(timespec="microseconds")
+    res = db.session.execute(update(Setting).where(Setting.key == key, (Setting.value == "") | (Setting.value < stale))
+                             .values(value=token))
+    db.session.commit()
+    return token if res.rowcount == 1 else None
+
+
+def _release_run(token: str) -> None:
+    db.session.rollback()
+    db.session.execute(update(Setting).where(Setting.key == "mail_running", Setting.value == token).values(value=""))
+    db.session.commit()
 
 
 def run_notifications(today: date | None = None) -> dict:
@@ -313,11 +395,22 @@ def run_notifications(today: date | None = None) -> dict:
     if not mail_active():
         stats["skipped"] = "inactive"
         return stats
+    token = _claim_run()
+    if token is None:
+        stats["skipped"] = "running"
+        return stats
+    try:
+        return _run_notifications(stats, today)
+    finally:
+        _release_run(token)
+
+
+def _run_notifications(stats: dict, today: date | None) -> dict:
     today = today or date.today()
     cfg = SmtpConfig.from_settings()
     smtp = None
     try:
-        smtp = smtp_connect(cfg)
+        smtp = SharedSmtp(cfg)
     except MailError as exc:
         stats["errors"] += 1
         stats["error"] = str(exc)
@@ -349,10 +442,10 @@ def run_notifications(today: date | None = None) -> dict:
         if get_bool("mail_digest"):
             stats["digest"] = _send_digests(cfg, smtp, today)
     finally:
-        try:
-            smtp.quit()
-        except Exception:  # noqa: BLE001
-            pass
+        smtp.quit()
+    if smtp.reconnect_failed and stats["errors"]:
+        # Server unterwegs nicht mehr erreichbar: den Tag freigeben, damit ein späterer Lauf den Rest nachholt
+        stats["error"] = _("Verbindung zum Mailserver während des Versands verloren.")
     return stats
 
 
@@ -445,6 +538,8 @@ def last_result_text(raw: str) -> str:
 
 def format_stats(stats: dict) -> str:
     if stats.get("skipped"):
+        if stats["skipped"] == "running":
+            return _("Ein Versand läuft gerade schon – bitte gleich noch einmal versuchen.")
         return _("E-Mail-Versand ist nicht aktiv.") if stats["skipped"] == "inactive" else str(stats["skipped"])
     if stats.get("error"):
         return _("Fehler – {error}", error=stats["error"])

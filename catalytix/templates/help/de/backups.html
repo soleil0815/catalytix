@@ -7,7 +7,7 @@
   <li><span class="ui">Jetzt sichern</span> legt sofort eine Sicherung an – sinnvoll vor größeren Änderungen oder einem Update.</li>
   <li>Jede Sicherung lässt sich <b>herunterladen</b> oder löschen. Ablage: <code>./data/backups</code> oder der Ordner aus <code>CATALYTIX_BACKUP_DIR</code> (z. B. ein NAS).</li>
   <li>Schlägt eine Sicherung fehl, erscheint ein Warnzeichen am Menüpunkt und Administratoren bekommen eine E-Mail{% if not f.mail_on %} (sobald der E-Mail-Versand aktiv ist){% endif %}.</li>
-  <li>Gesichert wird die Datenbank. Cover, Logo und <code>secret_key</code> liegen als Dateien in <code>./data</code> – für einen Umzug den ganzen Ordner mitnehmen. Eine Datenbank immer zusammen mit ihrer <code>secret_key</code> zurückspielen: Ohne den passenden Schlüssel funktionieren 2FA-Anmeldungen und gespeicherte SMTP-/AD-Passwörter nicht, und Catalytix startet nicht.</li>
+  <li>Gesichert wird die Datenbank. Cover, Logo und <code>secret_key</code> liegen als Dateien in <code>./data</code> – für einen Umzug den ganzen Ordner mitnehmen. Eine Datenbank immer zusammen mit ihrer <code>secret_key</code> zurückspielen: Ohne den passenden Schlüssel funktionieren 2FA-Anmeldungen und gespeicherte SMTP-/AD-Passwörter nicht, und das Programm startet nicht.</li>
 </ul>
 <p><b>Wichtig:</b> Die Sicherungen liegen auf demselben Server und schützen nicht vor einem Festplattenausfall. Kopiert den Ordner regelmäßig an einen anderen Ort.</p>
 <p><b>Wiederherstellen</b> (auf dem Server; der aktuelle Stand wird vorher automatisch gesichert):</p>

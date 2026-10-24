@@ -376,10 +376,10 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
 
 /* ------------------------------------------------------------ Responsiv */
 @media (max-width: 1080px) {
-  .split, .grid-3 { grid-template-columns: 1fr; }
+  .split, .grid-3 { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 860px) {
-  .app { grid-template-columns: 1fr; background: none; }
+  .app { grid-template-columns: minmax(0, 1fr); background: none; }
   /* Höhe über top/bottom statt 100vh: 100vh ist auf Handys höher als der sichtbare Bereich
      (Adressleiste) – dadurch lag der Abmelde-Bereich unten außerhalb des Bildschirms. */
   .sidebar { position: fixed; left: 0; top: 0; bottom: 0; height: auto; max-height: 100dvh; width: 264px; z-index: 50;
@@ -389,13 +389,13 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
   .menu-btn { display: inline-grid; }
   .topbar { padding: 12px 16px; }
   .content { padding: 20px 16px 50px; }
-  .grid-2 { grid-template-columns: 1fr; }
-  .book-hero { grid-template-columns: 1fr; gap: 22px; }
+  .grid-2 { grid-template-columns: minmax(0, 1fr); }
+  .book-hero { grid-template-columns: minmax(0, 1fr); gap: 22px; }
   .book-hero .cover-col { max-width: 200px; }
   .books-grid { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 20px 14px; }
-  .form-grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: minmax(0, 1fr); }
   .form-grid > * { grid-column: auto !important; }
-  .auth { grid-template-columns: 1fr; }
+  .auth { grid-template-columns: minmax(0, 1fr); }
   .auth-art { display: none; }
   .auth-mobile-logo { display: inline-block; }
   .auth-mobile-name { display: block; }
@@ -492,7 +492,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
 .help-topic .ui { font-weight: 600; }
 .help-search { margin-bottom: 18px; }
 .help-empty { display: none; }
-@media (max-width: 860px) { .help-layout { grid-template-columns: 1fr; } .help-toc { position: static; } }
+@media (max-width: 860px) { .help-layout { grid-template-columns: minmax(0, 1fr); } .help-toc { position: static; } }
 .help-topic pre { background: var(--paper-2); border-radius: 10px; padding: 12px 14px; overflow-x: auto; font-size: 13px; line-height: 1.5; }
 .help-topic pre code { background: none; padding: 0; }
 .help-topic code { font-size: .92em; }
@@ -510,3 +510,8 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
 .user-suggest .who small { display: block; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .user-suggest .avatar.sm { width: 30px; height: 30px; font-size: 11px; flex: none; }
 .input-group.user-search { position: relative; }
+
+/* Lange Wörter (Titel, Namen, Befehle) dürfen die Seite auf dem Handy nicht verbreitern */
+h1, h2, h3, .who b, .list-row, td, .kv dd, .notice, .card-head h2 { overflow-wrap: anywhere; }
+.content pre, .content code { white-space: pre-wrap; overflow-wrap: anywhere; }
+.content input, .content select, .content textarea { max-width: 100%; min-width: 0; }

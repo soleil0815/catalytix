@@ -47,6 +47,9 @@ def lend_book(book: Book, borrower: User, due: date | None = None, note: str = "
     limit = get_int("max_loans", 0)
     try:
         lock_book(book.id)
+        if limit and db.session.get_bind().dialect.name != "sqlite":
+            # Höchstzahl je Person: auch parallele Ausleihen verschiedener Bücher für dieselbe Person serialisieren
+            db.session.query(User.id).filter(User.id == borrower.id).with_for_update().first()
         # Ab hier frisch aus der Datenbank zählen – parallele Anfragen warten bis zum Commit.
         copies = db.session.query(Book.copies).filter(Book.id == book.id).scalar() or 0
         active = dict(db.session.query(Loan.user_id, func.count(Loan.id))
@@ -76,10 +79,16 @@ def lend_book(book: Book, borrower: User, due: date | None = None, note: str = "
 
 
 def return_loan(loan: Loan) -> str:
-    loan.returned_at = datetime.now()
-    loan.returned_by_id = current_user.id
+    # Nur zurücknehmen, wenn die Ausleihe noch offen ist – zwei gleichzeitige Rückgaben (Doppelklick, zwei Theken)
+    # dürfen weder den Zeitpunkt überschreiben noch zwei Bestätigungen verschicken.
+    res = db.session.execute(
+        update(Loan).where(Loan.id == loan.id, Loan.returned_at.is_(None))
+        .values(returned_at=datetime.now(), returned_by_id=current_user.id)
+        .execution_options(synchronize_session=False))
     db.session.commit()
-    notify_return(loan)
+    db.session.refresh(loan)
+    if res.rowcount == 1:
+        notify_return(loan)
     return _("„{title}“ von {name} zurückgenommen.", title=loan.book.title, name=loan.user.name)
 
 
@@ -153,7 +162,7 @@ def extend(loan_id):
         # Nur übernehmen, wenn in der Zwischenzeit niemand sonst verlängert oder zurückgegeben hat
         res = db.session.execute(
             update(Loan).where(Loan.id == loan.id, Loan.returned_at.is_(None), Loan.extensions == old_ext)
-            .values(extensions=Loan.extensions + 1, due_at=new_due).execution_options(synchronize_session=False))
+            .values(extensions=Loan.extensions + 1, due_at=new_due, due_changed_at=datetime.now()).execution_options(synchronize_session=False))
         db.session.commit()
         if res.rowcount == 1:
             flash(_("Verlängert bis {date}.", date=format_day(new_due)), "success")
@@ -220,7 +229,9 @@ def _like_escape(text: str) -> str:
     return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
-def _find_books(code: str):
+def _find_books(code: str, exact_only: bool = False):
+    """Bücher zu einem Code. exact_only: nur Signatur, ISBN oder „#Nummer“ – für die Automatik an der Theke, die
+    nie auf einen ungefähren Treffer hin verleihen oder zurücknehmen soll."""
     code = (code or "").strip()
     if not code:
         return []
@@ -240,6 +251,8 @@ def _find_books(code: str):
         found = base.filter(Book.id == parse_id(code[1:])).all()
         if found:
             return found
+    if exact_only:
+        return []
     like = f"%{_like_escape(code)}%"
     found = base.filter(Book.title.ilike(like, escape="\\")).order_by(Book.title).limit(20).all()
     if not found:   # auch Autor, Untertitel und Schlagwörter
@@ -258,8 +271,10 @@ def desk():
     if user_q:
         borrower = people.find(user_q)
         if borrower is None:
-            hits = User.query.filter(or_(User.display_name.ilike(f"%{user_q}%"),
-                                         User.username.ilike(f"%{user_q}%"))).limit(2).all()
+            like = f"%{_like_escape(user_q)}%"
+            hits = User.query.filter(User.active.is_(True),
+                                     or_(User.display_name.ilike(like, escape="\\"),
+                                         User.username.ilike(like, escape="\\"))).limit(2).all()
             borrower = hits[0] if len(hits) == 1 else None
         if borrower is None:
             flash(_("Benutzer „{query}“ nicht eindeutig gefunden.", query=user_q), "error")
@@ -283,14 +298,16 @@ def desk():
 
     if code:
         books = _find_books(code)
+        auto = request.method == "POST" and request.values.get("auto") == "1"
+        exact = _find_books(code, exact_only=True) if auto else []
         if mode == "rueckgabe":
             loans = [l for b in books for l in b.active_loans]
-            if len(loans) == 1 and request.method == "POST" and request.values.get("auto") == "1":
-                flash(return_loan(loans[0]), "success")
+            exact_loans = [l for b in exact for l in b.active_loans]
+            if auto and len(exact_loans) == 1:
+                flash(return_loan(exact_loans[0]), "success")
                 return redirect(url_for("loans.desk", modus="rueckgabe", auto="1"))
-        elif mode == "ausleihe" and borrower and len(books) == 1 and request.method == "POST" \
-                and request.values.get("auto") == "1":
-            ok, msg, _person = people.lend_to(books[0], borrower)
+        elif mode == "ausleihe" and borrower and auto and len(exact) == 1:
+            ok, msg, _person = people.lend_to(exact[0], borrower)
             flash(msg, "success" if ok else "error")
             return redirect(url_for("loans.desk", modus="ausleihe", benutzer=borrower.username, auto="1"))
         if not books:

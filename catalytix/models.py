@@ -96,6 +96,10 @@ class User(UserMixin, db.Model):
     # Bis zu welcher Version die Neuigkeiten gesehen wurden; neue Konten starten beim aktuellen Stand.
     # Bestehende Konten bekommen beim Nachrüsten NULL (siehe news.py) – deshalb ein Callable als Standardwert.
     news_seen = db.Column(db.String(20), default=lambda: _app_version())
+    # War das Konto schon einer Gruppe zugeordnet? Dann macht das Wegfallen der letzten Gruppe (Gruppe gelöscht,
+    # im AD entfernt) aus einem Gruppen-Verwalter keinen Verwalter des gesamten Bestands. Nur ein Admin kann das
+    # ausdrücklich, indem er das Konto ohne Gruppe speichert.
+    group_bound = db.Column(db.Boolean, default=False, nullable=False)
 
     groups = db.relationship("Group", secondary=user_groups, back_populates="users")
     loans = db.relationship("Loan", back_populates="user", foreign_keys="Loan.user_id")
@@ -151,7 +155,7 @@ class User(UserMixin, db.Model):
     @property
     def is_global_manager(self) -> bool:
         """Admins und Verwalter ohne Gruppenzuordnung verwalten den gesamten Bestand."""
-        return self.is_admin or (self.role == ROLE_LIBRARIAN and not self.groups)
+        return self.is_admin or (self.role == ROLE_LIBRARIAN and not self.groups and not self.group_bound)
 
     def can_see(self, book: "Book", catalog_all: bool = False) -> bool:
         if catalog_all or self.is_global_manager or book.group_id is None:
@@ -250,6 +254,8 @@ class Loan(db.Model):
     due_at = db.Column(db.Date, nullable=False)
     returned_at = db.Column(db.DateTime)
     extensions = db.Column(db.Integer, default=0, nullable=False)
+    # Zeitpunkt der letzten Änderung der Frist (Verlängerung): Erinnerungen und Mahnungen davor zählen nicht mehr
+    due_changed_at = db.Column(db.DateTime)
     note = db.Column(db.String(500), default="")
 
     # Höchstens eine offene Ausleihe je Buch und Person (Schutz vor gleichzeitigen Anfragen).
@@ -547,6 +553,11 @@ def count_active_loans(user_id: int) -> int:
     return db.session.query(func.count(Loan.id)).filter(
         Loan.user_id == user_id, Loan.returned_at.is_(None)
     ).scalar() or 0
+
+
+@event.listens_for(User.groups, "append")
+def _mark_group_bound(user, _group, _initiator):
+    user.group_bound = True
 
 
 def _add_column_ddl(table, col, dialect) -> list[str]:

@@ -59,6 +59,11 @@ class Group(db.Model):
         return f"<Group {self.name}>"
 
 
+def _app_version() -> str:
+    from . import __version__
+    return __version__
+
+
 class User(UserMixin, db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
@@ -88,6 +93,9 @@ class User(UserMixin, db.Model):
     auth_epoch = db.Column(db.Integer, default=0, nullable=False)
     # Sprache der Oberfläche und der E-Mails ("" = Browser bzw. Standardsprache)
     language = db.Column(db.String(5), default="", nullable=False)
+    # Bis zu welcher Version die Neuigkeiten gesehen wurden; neue Konten starten beim aktuellen Stand.
+    # Bestehende Konten bekommen beim Nachrüsten NULL (siehe news.py) – deshalb ein Callable als Standardwert.
+    news_seen = db.Column(db.String(20), default=lambda: _app_version())
 
     groups = db.relationship("Group", secondary=user_groups, back_populates="users")
     loans = db.relationship("Loan", back_populates="user", foreign_keys="Loan.user_id")

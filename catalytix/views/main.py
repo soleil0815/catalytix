@@ -9,8 +9,8 @@ from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import func
 
 from ..ldap_auth import LDAPError, authenticate, ldap_enabled, normalize_dn, rule_matches
-from .. import lockout
-from ..i18n import _
+from .. import lockout, news
+from ..i18n import _, get_locale
 from ..models import (MIN_PASSWORD_LENGTH, ROLE_ADMIN, Book, Group, Loan, User, db, get_bool, get_setting,
                       manageable_books_query, set_setting, visible_books_query)
 from . import form_str, safe_next
@@ -324,8 +324,14 @@ def dashboard():
         overdue = active_q.filter(Loan.due_at < today).order_by(Loan.due_at).limit(10).all()
         recent_loans = (Loan.query.filter(Loan.book_id.in_(book_ids))
                         .order_by(Loan.loaned_at.desc()).limit(8).all())
+    fresh = news.unseen(current_user, get_locale())
+    news_hint = None
+    if fresh:
+        items = [i for e in fresh for i in e["items"]]
+        news_hint = {"version": fresh[0]["version"], "first": items[0], "more": len(items) - 1,
+                     "security": any(i["kind"] == "security" for i in items)}
     return render_template("dashboard.html", my_loans=my_loans, newest=newest, stats=stats,
-                           overdue=overdue, recent_loans=recent_loans)
+                           overdue=overdue, recent_loans=recent_loans, news_hint=news_hint)
 
 
 @bp.route("/profil", methods=["GET", "POST"])
@@ -456,6 +462,23 @@ def set_language(code):
 @login_required
 def about():
     return render_template("about.html", has_license=_license_file() is not None)
+
+
+@bp.route("/neuigkeiten")
+@login_required
+def whats_new():
+    entries = news.for_user(current_user, get_locale())
+    if news.mark_seen(current_user):
+        db.session.commit()
+    return render_template("news.html", entries=entries)
+
+
+@bp.route("/neuigkeiten/gelesen", methods=["POST"])
+@login_required
+def news_dismiss():
+    if news.mark_seen(current_user):
+        db.session.commit()
+    return redirect(url_for("main.dashboard"))
 
 
 @bp.route("/info/lizenz")

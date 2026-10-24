@@ -27,7 +27,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "2.16.1"
+__version__ = "2.17.0"
 APP_NAME = "Catalytix"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Wo der Quellcode zu finden ist (AGPL § 13). Wer Catalytix verändert betreibt, trägt hier
@@ -440,7 +440,11 @@ def create_app(test_config: dict | None = None) -> Flask:
             "registration_open": get_setting("registration_mode") in ("approval", "open"),
             "pending_registrations": 0,
             "overdue_count": 0,
+            "news_unseen": False,
         }
+        if has_request_context() and current_user.is_authenticated:
+            from .news import has_unseen
+            ctx["news_unseen"] = has_unseen(current_user)
         # Außerhalb einer Anfrage (z. B. Mail-Versand im Hintergrund) gibt es keinen Benutzer
         if has_request_context() and current_user.is_authenticated and current_user.is_admin:
             ctx["pending_registrations"] = User.query.filter_by(pending_approval=True, email_verified=True).count()

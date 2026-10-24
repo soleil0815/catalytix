@@ -61,7 +61,10 @@
     {% if imprint_url or privacy_url %}<nav class="legal-links side-legal" aria-label="{{ _('Rechtliches') }}">
       {%- if imprint_url %}<a href="{{ imprint_url }}" rel="noopener" target="_blank">{{ _("Impressum") }}</a>{% endif %}
       {%- if privacy_url %}<a href="{{ privacy_url }}" rel="noopener" target="_blank">{{ _("Datenschutz") }}</a>{% endif %}</nav>{% endif %}
-    <a class="side-version" href="{{ url_for('main.about') }}" title="{{ _('Version, Lizenz und Quellcode') }}">{{ _("Version {version}", version=version) }}</a>
+    <div class="side-version">
+      <a href="{{ url_for('main.about') }}" title="{{ _('Version, Lizenz und Quellcode') }}">{{ _("Version {version}", version=version) }}</a>
+      <a class="side-news" href="{{ url_for('main.whats_new') }}">{{ _("Neuigkeiten") }}{% if news_unseen %}<span class="news-dot" title="{{ _('Es gibt Neuigkeiten') }}"></span><span class="sr-only">{{ _("(neu)") }}</span>{% endif %}</a>
+    </div>
     <div class="side-foot">
       <a href="{{ url_for('main.profile') }}" class="avatar" title="{{ _('Profil') }}">{{ current_user.initials }}</a>
       <a class="who" href="{{ url_for('main.profile') }}" title="{{ _('Mein Profil') }}" style="text-decoration: none"><b>{{ current_user.name }}</b><span>{{ current_user.role_label }}{% if current_user.auth_source == 'ldap' %} · AD{% endif %}</span></a>
@@ -86,12 +89,13 @@
       <a class="btn primary sm" href="{{ url_for('books.create') }}">{{ icon("plus") }} <span>{{ _("Buch") }}</span></a>
       {% endif %}
       <details class="user-menu">
-        <summary aria-label="{{ _('Benutzermenü') }}"><span class="avatar">{{ current_user.initials }}</span></summary>
+        <summary aria-label="{{ _('Benutzermenü') }}"><span class="avatar">{{ current_user.initials }}</span>{% if news_unseen %}<span class="news-dot on-avatar"></span>{% endif %}</summary>
         <div class="menu">
           <div class="who"><b>{{ current_user.name }}</b><span class="muted">{{ current_user.role_label }}</span></div>
           <a href="{{ url_for('main.profile') }}">{{ icon("user") }} {{ _("Profil") }}</a>
           <a href="{{ url_for('security.settings') }}">{{ icon("shield") }} {{ _("Sicherheit") }}</a>
           <a href="{{ help_url_for() }}">{{ icon("help") }} {{ _("Hilfe") }}</a>
+          <a href="{{ url_for('main.whats_new') }}">{{ icon("sparkle") }} {{ _("Neuigkeiten") }}{% if news_unseen %}<span class="news-dot"></span>{% endif %}</a>
           <button type="button" data-theme-toggle>{{ icon("moon") }} {{ _("Hell / Dunkel") }}</button>
           {{ lang_switch() }}
           <form method="post" action="{{ url_for('main.logout') }}">

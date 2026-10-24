@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ _("Neuigkeiten") }}{% endblock %}
+{% set kind_label = {"security": _("Sicherheit"), "new": _("Neu"), "improved": _("Verbessert"), "fixed": _("Behoben")} %}
+{% set kind_class = {"security": "ok", "new": "accent", "improved": "brass", "fixed": ""} %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Version {version}", version=version) }}</div><h1>{{ _("Neuigkeiten") }}</h1>
+    <p>{{ _("Neue Funktionen, Verbesserungen und Sicherheitsupdates der letzten Versionen.") }}</p></div>
+</div>
+<div class="news-list">
+  {% for entry in entries %}
+  <section class="card card-pad news-entry{{ ' unseen' if entry.unseen }}">
+    <div class="news-head">
+      <h2>{{ _("Version {version}", version=entry.version) }}</h2>
+      {% if entry.date %}<span class="muted">{{ entry.date|de_day }}</span>{% endif %}
+      {% if entry.unseen %}<span class="badge accent">{{ _("neu für dich") }}</span>{% endif %}
+    </div>
+    <ul>
+      {% for item in entry["items"] %}
+      <li>
+        <span class="badge {{ kind_class[item.kind] }}">{% if item.kind == "security" %}{{ icon("shield") }}{% endif %}{{ kind_label[item.kind] }}</span>
+        <div><b>{{ item.title }}</b><p>{{ item.text }}</p></div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% else %}
+  <p class="muted">{{ _("Noch keine Neuigkeiten.") }}</p>
+  {% endfor %}
+</div>
+{% endblock %}

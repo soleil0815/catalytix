@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 2.16.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 2.17.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name eurer Bibliothek.
 
@@ -33,7 +33,7 @@ curl -fsSLO https://raw.githubusercontent.com/soleil0815/catalytix/main/update.s
 ./update.sh --pull
 ```
 
-Das Skript holt das Image, legt `docker-compose.yml`, `.env` und `.env.example` aus dem Image an, startet den Container und zeigt den Einrichtungscode. Spätere Updates: `./update.sh --pull` (neueste Version) oder `./update.sh --pull=2.16.1` (genau diese Version).
+Das Skript holt das Image, legt `docker-compose.yml`, `.env` und `.env.example` aus dem Image an, startet den Container und zeigt den Einrichtungscode. Spätere Updates: `./update.sh --pull` (neueste Version) oder `./update.sh --pull=2.17.0` (genau diese Version).
 
 ### Mit Docker – selbst bauen (Zip-Paket oder Git-Klon)
 
@@ -58,8 +58,8 @@ Die `.env` ist nicht im Update-Paket enthalten. Zusätzliche Dienste (z. B. eine
 
 ```bash
 ./update.sh --pull                   # neueste Version von GitHub holen (fertiges Image, nichts wird gebaut)
-./update.sh --pull=2.16.1            # genau diese Version von GitHub
-./update.sh catalytix-2.16.1.zip      # klassisch: Paket einspielen und lokal bauen
+./update.sh --pull=2.17.0            # genau diese Version von GitHub
+./update.sh catalytix-2.17.0.zip      # klassisch: Paket einspielen und lokal bauen
 ./update.sh                          # aktuellen Stand neu bauen bzw. (im --pull-Modus) neu holen und starten
 ```
 
@@ -120,6 +120,8 @@ Zum Ausprobieren reicht auch `python wsgi.py` (nur `127.0.0.1:9300`).
 - Das **?** springt direkt zum Abschnitt der aktuellen Seite (z. B. von der Ausleihtheke zur Hilfe für die Theke).
 - Die Texte richten sich nach euren Einstellungen: Leihfrist, Verlängerungen, Selbstausleihe, E-Mail-Erinnerungen, Registrierung, Zwei-Faktor-Pflicht, AD-Konto oder lokales Konto …
 - Suchfeld über alle Themen; das **Handbuch als PDF** (Deutsch bzw. Englisch, je nach Sprache) ist dort verlinkt.
+
+**Neuigkeiten:** Unten in der Seitenleiste (neben der Versionsnummer) und im Benutzermenü steht *Neuigkeiten* – kurze, verständliche Hinweise zu neuen Funktionen, Verbesserungen und Sicherheitsupdates, je nach Rolle (Leser sehen keine reinen Admin-Themen). Gibt es nach einem Update etwas Neues, zeigt ein kleiner Punkt das an, und auf der Übersicht erscheint eine Zeile, die sich wegklicken lässt. Neue Konten starten ohne alte Meldungen. Die Texte stehen in `catalytix/news.json` (je Version, deutsch und englisch, Art `security`/`new`/`improved`/`fixed`, Zielgruppe `all`/`librarian`/`admin`).
 
 **Handbücher:** `docs/Handbuch-Catalytix.pdf` (Deutsch) und `docs/Manual-Catalytix.pdf` (Englisch) liegen im Paket und im Image.
 
@@ -242,7 +244,7 @@ Unter **Administration → Einstellungen** legst du fest, für wen 2FA bei **Zug
 | keine Pflicht | niemand muss 2FA einrichten; wer sie eingerichtet hat, wird trotzdem gefragt |
 | keine Zwei-Faktor-Abfrage | im LAN reicht das Passwort |
 
-- **Was „intern“ ist**, legst du unter *Internes Netz* fest (ein Netz pro Zeile, z. B. `192.168.10.0/24`). Leer bedeutet `10.0.0.0/8`, `192.168.0.0/16`, `fc00::/7` und Loopback – **ohne** `172.16.1.0/12`, weil Docker seine Netze dort anlegt (sonst sähe z. B. jeder über das Docker-Gateway ankommende Zugriff intern aus). Nutzt euer LAN 172.16–31.x, tragt es ausdrücklich ein. Am besten ohnehin auf euer tatsächliches LAN eingrenzen. *Seit dieser Version:* Wer das Feld leer gelassen hat und Clients aus 172.16/12 hat, muss das Netz jetzt eintragen.
+- **Was „intern“ ist**, legst du unter *Internes Netz* fest (ein Netz pro Zeile, z. B. `192.168.10.0/24`). Leer bedeutet `10.0.0.0/8`, `192.168.0.0/16`, `fc00::/7` und Loopback – **ohne** `172.17.0.0/12`, weil Docker seine Netze dort anlegt (sonst sähe z. B. jeder über das Docker-Gateway ankommende Zugriff intern aus). Nutzt euer LAN 172.16–31.x, tragt es ausdrücklich ein. Am besten ohnehin auf euer tatsächliches LAN eingrenzen. *Seit dieser Version:* Wer das Feld leer gelassen hat und Clients aus 172.16/12 hat, muss das Netz jetzt eintragen.
 - Hinter dem Reverse-Proxy zählt die **echte Adresse des Besuchers**. Der Proxy muss dafür `X-Forwarded-For` mitschicken (Nginx Proxy Manager, Caddy und Traefik tun das von sich aus). Fehlt die Angabe, gilt der Zugriff aus Sicherheitsgründen als **extern**. Gefälschte Angaben aus dem Internet werden ignoriert.
 - **Wichtig – Port 9300 nur für den Proxy:** Standardmäßig gelten alle privaten Netze als vertrauenswürdige Proxys (`CATALYTIX_TRUSTED_PROXIES=private`). Jeder Rechner im LAN, der Catalytix **direkt** auf Port 9300 erreicht, kann daher eine gefälschte `X-Forwarded-For`-Angabe mitschicken (z. B. um als „intern“ zu gelten oder die Anmeldesperre je Adresse zu umgehen). Veröffentlicht den Port daher nur für den Proxy – mit `CATALYTIX_BIND=127.0.0.1` in der `.env` (Proxy direkt auf dem Server) oder über ein gemeinsames Docker-Netz mit dem Proxy (in `docker-compose.override.yml`; `docker-compose.yml` selbst wird bei Updates ersetzt) – **oder** setzt `CATALYTIX_TRUSTED_PROXIES` auf die Adresse des Proxys (z. B. `172.18.0.5` bzw. das Docker-Netz des Proxys). Das gilt auch für Zugriffe aus dem Internet: Erreicht jemand Port 9300 z. B. über **IPv6** und Docker leitet das intern weiter, kommt die Anfrage scheinbar vom Docker-Gateway (172.x.0.1) – und dem wird mit der Standardeinstellung vertraut.
 - Die Einstellungsseite zeigt, wie deine aktuelle Verbindung eingestuft wird. Zum Prüfen einmal vom Handy über mobile Daten aufrufen – dort muss „extern“ stehen.
@@ -423,7 +425,7 @@ Das Repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) e
 | Ereignis | Was GitHub macht |
 |---|---|
 | Push auf `main` | Tests (mit genau den festgelegten Paketversionen), dann Image `ghcr.io/soleil0815/catalytix` mit den Tags `<version>`, `latest` und `sha-<commit>` – für `linux/amd64` und `linux/arm64` |
-| Tag `v<version>` (z. B. `v2.16.1`) | zusätzlich ein Release mit `catalytix-<version>.zip` und `.sha256` für das klassische Update |
+| Tag `v<version>` (z. B. `v2.17.0`) | zusätzlich ein Release mit `catalytix-<version>.zip` und `.sha256` für das klassische Update |
 | Pull Request | Tests und Probe-Build, nichts wird veröffentlicht |
 
 **Erster Push:**
@@ -432,14 +434,14 @@ Das Repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) e
 git init -b main
 git add -A
 git update-index --chmod=+x update.sh docker-entrypoint.sh   # ausführbar, auch wenn unter Windows committet
-git commit -m "Catalytix 2.16.1"
+git commit -m "Catalytix 2.17.0"
 git remote add origin git@github.com:soleil0815/catalytix.git
 git push -u origin main
 ```
 
 Danach unter *Actions* den Lauf abwarten. **Einmalig das Paket öffentlich machen:** GitHub → Profil → *Packages* → `catalytix` → *Package settings* → *Change visibility* → *Public*. Sonst müssen sich die Server erst mit einem Token (Recht `read:packages`) anmelden: `docker login ghcr.io`.
 
-**Neue Version veröffentlichen:** Versionsnummer an drei Stellen erhöhen – `catalytix/__init__.py`, Label in `Dockerfile`, Standard-Tag in `docker-compose.yml` (der Workflow prüft, dass sie übereinstimmen) –, CHANGELOG ergänzen, pushen. Für ein Release mit Zip zusätzlich `git tag v2.16.1 && git push origin v2.16.1`. Die Server holen die neue Version mit `./update.sh --pull`.
+**Neue Version veröffentlichen:** Versionsnummer an drei Stellen erhöhen – `catalytix/__init__.py`, Label in `Dockerfile`, Standard-Tag in `docker-compose.yml` (der Workflow prüft, dass sie übereinstimmen) –, CHANGELOG ergänzen, Neuigkeiten für die Oberfläche in `catalytix/news.json` eintragen (der Test prüft, dass die aktuelle Version dort steht), pushen. Für ein Release mit Zip zusätzlich `git tag v2.17.0 && git push origin v2.17.0`. Die Server holen die neue Version mit `./update.sh --pull`.
 
 ## Tests
 

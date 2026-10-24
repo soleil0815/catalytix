@@ -2,6 +2,20 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 2.17.0 – 24.10.2026
+- **Neuigkeiten in der App:** Unten in der Seitenleiste neben der Versionsnummer (und im Benutzermenü) steht
+  *Neuigkeiten* – kurze, verständliche Hinweise zu neuen Funktionen, Verbesserungen und **Sicherheitsupdates**,
+  deutsch und englisch. Jeder sieht nur, was seine Rolle betrifft (Leser keine reinen Admin-Themen).
+- Dezent: Gibt es nach einem Update etwas Neues, erscheint ein kleiner Punkt neben *Neuigkeiten* (auf dem Handy am
+  Avatar) und auf der Übersicht eine schmale Zeile „Neu in Version …“, die sich wegklicken lässt. Wer die Seite
+  öffnet oder die Zeile schließt, sieht sie bis zum nächsten Update nicht mehr. Neue Konten starten ohne alte
+  Meldungen; bestehende Konten sehen nach diesem Update nur die Neuigkeiten dieser Version, die älteren stehen auf
+  der Seite zum Nachlesen.
+- Die Texte stehen in `catalytix/news.json` (je Version; Art `security`/`new`/`improved`/`fixed`, Zielgruppe
+  `all`/`librarian`/`admin`). Ein Test prüft Vollständigkeit beider Sprachen und dass die aktuelle Version einen
+  Eintrag hat.
+- Datenbank: neue Spalte `users.news_seen` – wird beim Start automatisch angelegt.
+
 ## 2.16.1 – 23.10.2026
 - **GitHub-Workflow repariert:** Der Testlauf auf GitHub brach ab, weil ein Test PyYAML benutzte, das nicht zu den
   Paketen von Catalytix gehört. Der Test prüft die Workflow-Datei jetzt ohne PyYAML.

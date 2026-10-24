@@ -240,7 +240,7 @@ class RepoFilesTests(unittest.TestCase):
 
     def test_trivy_scan_before_publishing(self):
         import re
-        for name in ("build.yml", "scan.yml"):
+        for name in ("build.yml", "rebuild.yml"):
             text = (ROOT / ".github" / "workflows" / name).read_text()
             uses = re.findall(r"aquasecurity/trivy-action@(\S+)", text)
             self.assertTrue(uses, name)
@@ -250,6 +250,12 @@ class RepoFilesTests(unittest.TestCase):
             self.assertIn("severity: HIGH,CRITICAL", text)
         build = (ROOT / ".github" / "workflows" / "build.yml").read_text()
         self.assertLess(build.index("trivy-action"), build.index("name: Build (and push)"))
+        weekly = (ROOT / ".github" / "workflows" / "rebuild.yml").read_text()
+        self.assertIn("ref: ${{ needs.release.outputs.tag }}", weekly)       # nur veröffentlichte Releases
+        self.assertIn("needs: [release, test]", weekly)                        # erst nach den Tests
+        self.assertLess(weekly.index("trivy-action"), weekly.index("name: Build and publish"))
+        self.assertIn("publish-refs/heads/main", weekly)                       # nie gleichzeitig mit build.yml
+        self.assertIn("group: publish-${{ github.ref }}", build)
         self.assertTrue((ROOT / ".trivyignore").exists())
 
     def test_image_carries_installation_files(self):

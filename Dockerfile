@@ -9,6 +9,13 @@ LABEL org.opencontainers.image.title="Catalytix" \
       org.opencontainers.image.source="https://github.com/soleil0815/catalytix" \
       org.opencontainers.image.description="Library management for training institutes (German/English)"
 
+# OS_UPDATES=1 (set by the GitHub builds, including the weekly rebuild): install the current Debian security
+# updates on top of the pinned base image. Local builds keep exactly the pinned state (default 0).
+ARG OS_UPDATES=0
+RUN if [ "$OS_UPDATES" = 1 ]; then \
+      apt-get update && apt-get -y --no-install-recommends upgrade && rm -rf /var/lib/apt/lists/*; \
+    fi
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -50,7 +57,7 @@ EXPOSE 9300
 COPY docker-compose.yml .env.example update.sh README.md README.en.md CHANGELOG.md LICENSE /app/dist/
 
 # Version label late: a new version number doesn't invalidate the cached dependency layers above
-LABEL org.opencontainers.image.version="2.18.1"
+LABEL org.opencontainers.image.version="2.18.2"
 # start-period: the entrypoint may first adjust owners/permissions in a large ./data
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s CMD python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:9300/login')" || exit 1
 ENTRYPOINT ["docker-entrypoint.sh"]

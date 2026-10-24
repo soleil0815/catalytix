@@ -8,6 +8,8 @@
 # pull request            → tests and a test build of the image (nothing is pushed)
 # every build             → Trivy scan of the image first; HIGH/CRITICAL vulnerabilities with a fix stop the run
 #                           before anything is published (see .trivyignore for accepted exceptions)
+# Mondays                 → rebuild.yml rebuilds the latest release with current Debian security updates and
+#                           publishes it as :latest if tests and scan pass
 name: Build
 
 on:
@@ -19,8 +21,8 @@ on:
 permissions:
   contents: read
 
-concurrency:      # one run per branch at a time: two pushes never race to create the same release
-  group: ${{ github.workflow }}-${{ github.ref }}
+concurrency:      # one run per branch at a time: two pushes never race to create the same release;
+  group: publish-${{ github.ref }}   # the weekly rebuild (rebuild.yml) uses publish-refs/heads/main, too
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -116,6 +118,7 @@ jobs:
           load: true
           push: false
           tags: catalytix-scan:${{ github.sha }}
+          build-args: OS_UPDATES=1
           cache-from: type=gha
 
       # Pinned to the full commit of the immutable release v0.36.0 (published after the supply chain attack of
@@ -168,6 +171,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: ${{ steps.meta.outputs.publish == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
+          build-args: OS_UPDATES=1
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

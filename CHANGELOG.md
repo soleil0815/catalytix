@@ -2,6 +2,17 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 2.18.2 – 24.10.2026
+- **Wöchentlicher automatischer Neubau** (`.github/workflows/rebuild.yml`, ersetzt den reinen Prüflauf `scan.yml`):
+  Jeden Montag wird der Stand des **letzten Releases** (nie unveröffentlichte Commits von `main`) ohne Build-Cache
+  neu gebaut – mit den aktuellen Debian-Sicherheitsupdates –, getestet und mit Trivy geprüft. Nur wenn alles
+  besteht, wird das Image als `latest` veröffentlicht, dazu `<version>-r<Datum>` und `sha-<commit>`; der Tag
+  `<version>` bleibt das Image des Releases. Läuft nie gleichzeitig mit einem Release-Build.
+- Findet Trivy eine Lücke in einem (fest gepinnten) Python-Paket, schlägt der Lauf fehl und nichts wird veröffentlicht
+  – GitHub meldet das per E-Mail; dann braucht es eine neue Version mit dem aktualisierten Paket.
+- `Dockerfile`: `OS_UPDATES=1` (in allen GitHub-Builds gesetzt) spielt die aktuellen Debian-Sicherheitsupdates auf das
+  gepinnte Basis-Image. Lokale Builds (Zip-Paket) bleiben ohne die Option exakt beim gepinnten Stand.
+
 ## 2.18.1 – 24.10.2026
 - **Sicherheitsprüfung mit Trivy** im GitHub-Workflow: Das Image wird vor dem Veröffentlichen gebaut und geprüft.
   Bekannte Schwachstellen der Stufe HIGH/CRITICAL, für die es eine Korrektur gibt, stoppen den Lauf – dann wird

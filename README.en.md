@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 2.18.1** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 2.18.2** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -35,7 +35,7 @@ curl -fsSLO https://raw.githubusercontent.com/soleil0815/catalytix/main/update.s
 ./update.sh --pull
 ```
 
-The script pulls the image, creates `docker-compose.yml`, `.env` and `.env.example` from the image, starts the container and shows the setup code. Later updates: `./update.sh --pull` (newest version) or `./update.sh --pull=2.18.1` (exactly this version, e.g. to go back).
+The script pulls the image, creates `docker-compose.yml`, `.env` and `.env.example` from the image, starts the container and shows the setup code. Later updates: `./update.sh --pull` (newest version) or `./update.sh --pull=2.18.2` (exactly this version, e.g. to go back).
 
 ### With Docker – build it yourself (zip package or git clone)
 
@@ -60,8 +60,8 @@ The `.env` file is not part of the update package. Additional services (e.g. a M
 
 ```bash
 ./update.sh --pull                   # get the newest version from GitHub (ready-made image, nothing is built)
-./update.sh --pull=2.18.1            # exactly this version from GitHub (stays on it until the next --pull)
-./update.sh catalytix-2.18.1.zip      # classic: install a package and build locally
+./update.sh --pull=2.18.2            # exactly this version from GitHub (stays on it until the next --pull)
+./update.sh catalytix-2.18.2.zip      # classic: install a package and build locally
 ./update.sh                          # rebuild the current version, or (in --pull mode) pull it again, and start
 ```
 
@@ -445,7 +445,7 @@ The repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) c
 |---|---|
 | Push to `main` with a **new version number** | tests (with exactly the pinned package versions), then the image `ghcr.io/soleil0815/catalytix` tagged `<version>`, `latest` and `sha-<commit>` – for `linux/amd64` and `linux/arm64` –, then automatically the release `v<version>` with `catalytix-<version>.zip` and `.sha256` for the classic update (GitHub creates the tag itself) |
 | Every build | **security scan with Trivy** before publishing: if the image contains a known HIGH or CRITICAL vulnerability that already has a fix (base image or Python package), the run stops and nothing is published. Vulnerabilities without an available fix only appear in the report. Deliberately accepted exceptions go into `.trivyignore` with a reason |
-| Every Monday | `latest` is scanned again (`.github/workflows/scan.yml`) – new vulnerabilities become known after a release, too. If the scan fails, GitHub notifies you by email; then publish a new version with an updated base image or package |
+| Every Monday, automatically | **Weekly rebuild** (`.github/workflows/rebuild.yml`): the code of the latest release (never unreleased intermediate states) is rebuilt with the current Debian security updates, tested and scanned with Trivy – only if everything passes is it published as `latest` (plus `<version>-r<date>`; the `<version>` tag stays the release image). Servers following `latest` get the updates without a new version number. Python packages stay pinned: if Trivy finds something there, the run fails, nothing is published and GitHub notifies you by email – then a new version with the updated package is needed |
 | Push to `main` **without a new version number** | tests and only `sha-<commit>` – `latest` and `<version>` stay unchanged, so servers following `latest` never get unreleased intermediate states |
 | Pull request | tests and a trial build, nothing is published |
 
@@ -455,7 +455,7 @@ The repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) c
 git init -b main
 git add -A
 git update-index --chmod=+x update.sh docker-entrypoint.sh   # executable, even if committed on Windows
-git commit -m "Catalytix 2.18.1"
+git commit -m "Catalytix 2.18.2"
 git remote add origin git@github.com:soleil0815/catalytix.git
 git push -u origin main
 ```

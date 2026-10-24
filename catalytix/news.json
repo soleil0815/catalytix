@@ -1,5 +1,23 @@
 [
  {
+  "version": "2.18.2",
+  "date": "2026-10-24",
+  "items": [
+   {
+    "kind": "security",
+    "audience": "admin",
+    "de": {
+     "title": "Wöchentlicher Neubau mit Sicherheitsupdates",
+     "text": "Jeden Montag wird die aktuelle Version automatisch mit den neuesten Sicherheitsupdates des Betriebssystems neu gebaut, getestet und geprüft. Besteht sie, erscheint sie als „latest“ – ein Server, der „latest“ folgt, bekommt die Updates ohne weiteres Zutun."
+    },
+    "en": {
+     "title": "Weekly rebuild with security updates",
+     "text": "Every Monday the current version is automatically rebuilt with the latest operating system security updates, tested and scanned. If it passes, it is published as “latest” – a server following “latest” gets the updates without any further action."
+    }
+   }
+  ]
+ },
+ {
   "version": "2.18.1",
   "date": "2026-10-24",
   "items": [

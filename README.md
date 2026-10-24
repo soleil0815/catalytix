@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 2.18.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 2.18.2** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name eurer Bibliothek.
 
@@ -33,7 +33,7 @@ curl -fsSLO https://raw.githubusercontent.com/soleil0815/catalytix/main/update.s
 ./update.sh --pull
 ```
 
-Das Skript holt das Image, legt `docker-compose.yml`, `.env` und `.env.example` aus dem Image an, startet den Container und zeigt den Einrichtungscode. Spätere Updates: `./update.sh --pull` (neueste Version) oder `./update.sh --pull=2.18.1` (genau diese Version, z. B. um zurückzugehen).
+Das Skript holt das Image, legt `docker-compose.yml`, `.env` und `.env.example` aus dem Image an, startet den Container und zeigt den Einrichtungscode. Spätere Updates: `./update.sh --pull` (neueste Version) oder `./update.sh --pull=2.18.2` (genau diese Version, z. B. um zurückzugehen).
 
 ### Mit Docker – selbst bauen (Zip-Paket oder Git-Klon)
 
@@ -58,8 +58,8 @@ Die `.env` ist nicht im Update-Paket enthalten. Zusätzliche Dienste (z. B. eine
 
 ```bash
 ./update.sh --pull                   # neueste Version von GitHub holen (fertiges Image, nichts wird gebaut)
-./update.sh --pull=2.18.1            # genau diese Version von GitHub (bleibt dabei bis zum nächsten --pull)
-./update.sh catalytix-2.18.1.zip      # klassisch: Paket einspielen und lokal bauen
+./update.sh --pull=2.18.2            # genau diese Version von GitHub (bleibt dabei bis zum nächsten --pull)
+./update.sh catalytix-2.18.2.zip      # klassisch: Paket einspielen und lokal bauen
 ./update.sh                          # aktuellen Stand neu bauen bzw. (im --pull-Modus) neu holen und starten
 ```
 
@@ -435,7 +435,7 @@ Das Repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) e
 |---|---|
 | Push auf `main` mit **neuer Versionsnummer** | Tests (mit genau den festgelegten Paketversionen), dann Image `ghcr.io/soleil0815/catalytix` mit den Tags `<version>`, `latest` und `sha-<commit>` – für `linux/amd64` und `linux/arm64` –, danach automatisch das Release `v<version>` mit `catalytix-<version>.zip` und `.sha256` für das klassische Update (den Tag legt GitHub selbst an) |
 | Jeder Build | vor dem Veröffentlichen **Sicherheitsprüfung mit Trivy**: Enthält das Image eine bekannte Schwachstelle der Stufe HIGH oder CRITICAL, für die es schon eine Korrektur gibt (Basis-Image oder Python-Paket), bricht der Lauf ab und es wird nichts veröffentlicht. Schwachstellen ohne verfügbare Korrektur stehen nur im Bericht. Bewusst akzeptierte Ausnahmen kommen mit Begründung in `.trivyignore` |
-| Jeden Montag | `latest` wird erneut geprüft (`.github/workflows/scan.yml`) – auch nach einem Release werden neue Schwachstellen bekannt. Schlägt die Prüfung fehl, meldet GitHub das per E-Mail; dann eine neue Version mit aktualisiertem Basis-Image bzw. Paket veröffentlichen |
+| Jeden Montag, automatisch | **Wöchentlicher Neubau** (`.github/workflows/rebuild.yml`): Der Stand des letzten Releases (nie unveröffentlichte Zwischenstände) wird mit den aktuellen Debian-Sicherheitsupdates neu gebaut, getestet und mit Trivy geprüft – nur wenn alles besteht, wird er als `latest` veröffentlicht (zusätzlich `<version>-r<Datum>`; der Tag `<version>` bleibt das Image des Releases). Server, die `latest` folgen, bekommen die Updates so ohne neue Versionsnummer. Python-Pakete bleiben fest: Findet Trivy dort etwas, schlägt der Lauf fehl, es wird nichts veröffentlicht und GitHub meldet das per E-Mail – dann braucht es eine neue Version mit dem aktualisierten Paket |
 | Push auf `main` **ohne neue Versionsnummer** | Tests und nur `sha-<commit>` – `latest` und `<version>` bleiben unverändert, Server, die `latest` folgen, bekommen also nie unveröffentlichte Zwischenstände |
 | Pull Request | Tests und Probe-Build, nichts wird veröffentlicht |
 
@@ -445,7 +445,7 @@ Das Repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) e
 git init -b main
 git add -A
 git update-index --chmod=+x update.sh docker-entrypoint.sh   # ausführbar, auch wenn unter Windows committet
-git commit -m "Catalytix 2.18.1"
+git commit -m "Catalytix 2.18.2"
 git remote add origin git@github.com:soleil0815/catalytix.git
 git push -u origin main
 ```

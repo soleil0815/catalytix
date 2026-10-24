@@ -238,6 +238,20 @@ class RepoFilesTests(unittest.TestCase):
         self.assertIn("ghcr.io/${GITHUB_REPOSITORY,,}", text)
         self.assertIn("linux/amd64,linux/arm64", text)
 
+    def test_trivy_scan_before_publishing(self):
+        import re
+        for name in ("build.yml", "scan.yml"):
+            text = (ROOT / ".github" / "workflows" / name).read_text()
+            uses = re.findall(r"aquasecurity/trivy-action@(\S+)", text)
+            self.assertTrue(uses, name)
+            for ref in uses:      # nach dem Supply-Chain-Angriff 2026: nur auf einen vollen Commit gepinnt
+                self.assertRegex(ref, r"^[0-9a-f]{40}$", name)
+            self.assertIn('exit-code: "1"', text)
+            self.assertIn("severity: HIGH,CRITICAL", text)
+        build = (ROOT / ".github" / "workflows" / "build.yml").read_text()
+        self.assertLess(build.index("trivy-action"), build.index("name: Build (and push)"))
+        self.assertTrue((ROOT / ".trivyignore").exists())
+
     def test_image_carries_installation_files(self):
         df = (ROOT / "Dockerfile").read_text()
         self.assertIn("/app/dist/", df)

@@ -444,6 +444,8 @@ The repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) c
 | Event | What GitHub does |
 |---|---|
 | Push to `main` with a **new version number** | tests (with exactly the pinned package versions), then the image `ghcr.io/soleil0815/catalytix` tagged `<version>`, `latest` and `sha-<commit>` – for `linux/amd64` and `linux/arm64` –, then automatically the release `v<version>` with `catalytix-<version>.zip` and `.sha256` for the classic update (GitHub creates the tag itself) |
+| Every build | **security scan with Trivy** before publishing: if the image contains a known HIGH or CRITICAL vulnerability that already has a fix (base image or Python package), the run stops and nothing is published. Vulnerabilities without an available fix only appear in the report. Deliberately accepted exceptions go into `.trivyignore` with a reason |
+| Every Monday | `latest` is scanned again (`.github/workflows/scan.yml`) – new vulnerabilities become known after a release, too. If the scan fails, GitHub notifies you by email; then publish a new version with an updated base image or package |
 | Push to `main` **without a new version number** | tests and only `sha-<commit>` – `latest` and `<version>` stay unchanged, so servers following `latest` never get unreleased intermediate states |
 | Pull request | tests and a trial build, nothing is published |
 

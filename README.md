@@ -434,6 +434,8 @@ Das Repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) e
 | Ereignis | Was GitHub macht |
 |---|---|
 | Push auf `main` mit **neuer Versionsnummer** | Tests (mit genau den festgelegten Paketversionen), dann Image `ghcr.io/soleil0815/catalytix` mit den Tags `<version>`, `latest` und `sha-<commit>` – für `linux/amd64` und `linux/arm64` –, danach automatisch das Release `v<version>` mit `catalytix-<version>.zip` und `.sha256` für das klassische Update (den Tag legt GitHub selbst an) |
+| Jeder Build | vor dem Veröffentlichen **Sicherheitsprüfung mit Trivy**: Enthält das Image eine bekannte Schwachstelle der Stufe HIGH oder CRITICAL, für die es schon eine Korrektur gibt (Basis-Image oder Python-Paket), bricht der Lauf ab und es wird nichts veröffentlicht. Schwachstellen ohne verfügbare Korrektur stehen nur im Bericht. Bewusst akzeptierte Ausnahmen kommen mit Begründung in `.trivyignore` |
+| Jeden Montag | `latest` wird erneut geprüft (`.github/workflows/scan.yml`) – auch nach einem Release werden neue Schwachstellen bekannt. Schlägt die Prüfung fehl, meldet GitHub das per E-Mail; dann eine neue Version mit aktualisiertem Basis-Image bzw. Paket veröffentlichen |
 | Push auf `main` **ohne neue Versionsnummer** | Tests und nur `sha-<commit>` – `latest` und `<version>` bleiben unverändert, Server, die `latest` folgen, bekommen also nie unveröffentlichte Zwischenstände |
 | Pull Request | Tests und Probe-Build, nichts wird veröffentlicht |
 

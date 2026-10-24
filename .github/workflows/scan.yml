@@ -1,0 +1,53 @@
+# Weekly security scan of the published image (ghcr.io/<owner>/catalytix:latest).
+# New vulnerabilities are found after a release, too: if this run fails, GitHub notifies the repository owner by
+# email – then publish a new version (updated base image / packages), which is scanned again before release.
+name: Security scan
+
+on:
+  schedule:
+    - cron: "17 5 * * 1"     # Mondays 05:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  scan:
+    name: Trivy scan of :latest
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Log in to the GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image name
+        id: meta
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}:latest" >> "$GITHUB_OUTPUT"
+
+      # Same pinning as in build.yml (full commit of the immutable release v0.36.0, CVE-2026-33634)
+      - name: Scan (Trivy)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
+        with:
+          version: v0.76.0
+          image-ref: ${{ steps.meta.outputs.image }}
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          format: table
+          output: trivy-report.txt
+          exit-code: "1"
+
+      - name: Scan report
+        if: always()
+        run: |
+          if [ -s trivy-report.txt ]; then
+            { echo "### Trivy scan of :latest"; echo '```'; cat trivy-report.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            cat trivy-report.txt
+          fi

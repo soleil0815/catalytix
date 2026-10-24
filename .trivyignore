@@ -1,0 +1,4 @@
+# Accepted vulnerabilities for the Trivy scan (.github/workflows/build.yml and scan.yml).
+# Only add an entry after checking that it does not affect Catalytix – one ID per line, with a comment:
+#   reason, who/when, and when to look at it again. Example:
+# CVE-2099-12345   # libfoo in the base image, only used by apt, not reachable at runtime – 2026-10-24, recheck 2026-12

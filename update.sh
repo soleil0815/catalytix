@@ -3,10 +3,11 @@
 # Catalytix – rebuild and update the container
 #
 #   ./update.sh catalytix-X.Y.Z.zip install a new package, build the image locally, start
-#   ./update.sh --pull              get the newest image built by GitHub (ghcr.io) and start it
-#   ./update.sh --pull=X.Y.Z        get exactly this version from GitHub
+#   ./update.sh --pull              get the newest image built by GitHub (ghcr.io), start it and
+#                                   follow "latest" from now on
+#   ./update.sh --pull=X.Y.Z        get exactly this version from GitHub and stay on it
 #   ./update.sh                     rebuild and restart the current version (with --pull mode:
-#                                   pull the same version again, nothing is built)
+#                                   pull latest – or the pinned version – again, nothing is built)
 #
 # Options:
 #   --no-backup   don't take a backup first
@@ -15,7 +16,8 @@
 #   --no-cleanup  don't clean up after the update
 #   -y, --yes     no questions
 #
-# --pull remembers the GitHub image in .env (CATALYTIX_IMAGE, CATALYTIX_TAG); installing a
+# --pull remembers the GitHub image in .env (CATALYTIX_IMAGE, CATALYTIX_TAG=latest), so a container
+# manager that updates images automatically can pull new versions too; installing a
 # zip package switches back to building locally. The installation files (docker-compose.yml,
 # update.sh, .env.example, READMEs) come from the image, so they always match the version.
 #   -h, --help    this help
@@ -78,7 +80,7 @@ done
 
 [ "$PULL" = 0 ] || [ -z "$ZIP" ] || die "Either a zip package or --pull, not both."
 [ -z "$PULL_TAG" ] || [[ "$PULL_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$|^latest$ ]] \
-    || die "--pull=… expects a version like 2.17.0 (or latest)."
+    || die "--pull=… expects a version like 2.17.1 (or latest)."
 
 # Resolve the package path BEFORE changing into the program folder (also relative paths like ../x.zip)
 if [ -n "$ZIP" ]; then
@@ -151,12 +153,18 @@ OLD_VERSION="$(version_of .)"
 REG_IMAGE="$(env_get CATALYTIX_IMAGE)"
 [ "$REG_IMAGE" = catalytix ] && REG_IMAGE=""
 if [ -z "$ZIP" ] && [ "$PULL" = 0 ] && [ -n "$REG_IMAGE" ]; then
-    PULL=1; PULL_TAG="$(env_get CATALYTIX_TAG)"    # --pull mode stays: same version again, nothing is built
+    PULL=1; PULL_TAG="$(env_get CATALYTIX_TAG)"    # --pull mode stays: latest (or the pinned version), nothing is built
 fi
 if [ "$PULL" = 1 ]; then
     IMAGE="${REG_IMAGE:-$DEFAULT_IMAGE}"
     PULL_TAG="${PULL_TAG:-latest}"
-    if [ -n "$REG_IMAGE" ] && [ -n "$(env_get CATALYTIX_TAG)" ]; then OLD_VERSION="$(env_get CATALYTIX_TAG)"; fi
+    CUR_TAG="$(env_get CATALYTIX_TAG)"
+    if [ -n "$REG_IMAGE" ] && [ "$CUR_TAG" = latest ]; then
+        CUR_VERSION="$(image_version "${IMAGE}:latest")"      # version of the latest image pulled so far
+        [ -z "$CUR_VERSION" ] || OLD_VERSION="$CUR_VERSION"
+    elif [ -n "$REG_IMAGE" ] && [ -n "$CUR_TAG" ]; then
+        OLD_VERSION="$CUR_TAG"
+    fi
 fi
 if [ -z "$OLD_VERSION" ]; then
     if [ -z "$ZIP" ] && [ "$PULL" = 0 ]; then
@@ -414,10 +422,16 @@ fi
 ensure_env
 if [ "$PULL" = 1 ]; then
     VERSION="$NEW_VERSION"
-    # Remember the image in .env – docker compose then always starts exactly this version
+    # Remember the image in .env. --pull follows "latest" (container managers that update images can then pull
+    # new versions themselves); --pull=X.Y.Z pins exactly that version until the next --pull.
     [ "$PULL_TAG" = "$VERSION" ] || docker tag "${IMAGE}:${PULL_TAG}" "${IMAGE}:${VERSION}"
     env_set CATALYTIX_IMAGE "$IMAGE"
-    env_set CATALYTIX_TAG "$VERSION"
+    if [ "$PULL_TAG" = latest ]; then
+        env_set CATALYTIX_TAG latest
+    else
+        env_set CATALYTIX_TAG "$VERSION"
+        warn "Pinned to version ${VERSION} – \"./update.sh --pull\" follows the newest version again."
+    fi
 else
     VERSION="$(version_of .)"
     if [ -n "$REG_IMAGE" ]; then

@@ -2,7 +2,7 @@
 
 Die Einträge stehen in news.json (je Version, deutsch und englisch, mit Zielgruppe). Jedes Konto merkt sich in
 users.news_seen, bis zu welcher Version es die Neuigkeiten gesehen hat. Neue Konten starten beim aktuellen Stand
-(keine alten Meldungen); bestehende Konten ohne Eintrag sehen nach dem Update nur die Neuigkeiten dieser Version.
+(keine alten Meldungen); Konten von vor dieser Funktion (NULL) sehen alles ab ihrer Einführung (2.17.0) als neu.
 """
 import json
 from datetime import date
@@ -11,6 +11,7 @@ from pathlib import Path
 
 KINDS = ("security", "new", "improved", "fixed")        # Reihenfolge auf der Seite: Sicherheit zuerst
 AUDIENCES = ("all", "librarian", "admin")
+INTRODUCED = "2.17.0"     # ab dieser Version gibt es die Neuigkeiten
 
 
 def vtuple(version: str) -> tuple:
@@ -44,10 +45,8 @@ def _may_see(user, audience: str) -> bool:
 def _seen(user) -> tuple:
     if user.news_seen:
         return vtuple(user.news_seen)
-    # Konto von vor dieser Funktion: alles vor der aktuellen Version gilt als gesehen
-    current = vtuple(current_version())
-    older = [vtuple(e["version"]) for e in _entries() if vtuple(e["version"]) < current]
-    return max(older, default=(0,))
+    # Konto von vor dieser Funktion (NULL): alles vor ihrer Einführung gilt als gesehen
+    return tuple(x - 1 if i == 2 else x for i, x in enumerate(vtuple(INTRODUCED)))
 
 
 def _day(value):

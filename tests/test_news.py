@@ -91,9 +91,10 @@ class NewsTests(unittest.TestCase):
         leser.news_seen = None                                # Konto von vor dieser Funktion
         db.session.commit()
         entries = news.for_user(leser, "de")
-        self.assertTrue(entries[0]["unseen"])
-        self.assertEqual(entries[0]["version"], __version__)
-        self.assertFalse(any(e["unseen"] for e in entries[1:]))
+        unseen = [e["version"] for e in entries if e["unseen"]]
+        self.assertIn(news.INTRODUCED, unseen)                    # auch bei einem Sprung über mehrere Versionen
+        self.assertTrue(all(news.vtuple(v) >= news.vtuple(news.INTRODUCED) for v in unseen))
+        self.assertTrue(any(not e["unseen"] for e in entries))     # ältere Einträge nur zum Nachlesen
 
     def test_hint_dot_and_mark_seen(self):
         with self.fake([{"version": __version__, "date": "2026-10-24",

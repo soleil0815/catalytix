@@ -2,6 +2,16 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 2.17.1 – 24.10.2026
+- **`./update.sh --pull` folgt jetzt `latest`:** In der `.env` steht danach `CATALYTIX_TAG=latest` statt einer
+  festen Versionsnummer. Damit kann eine Container-Verwaltung, die Images automatisch aktualisiert, neue Versionen
+  selbst ziehen, sobald GitHub sie gebaut hat. Ein einfaches `./update.sh` holt im Pull-Modus ebenfalls `latest`.
+- `./update.sh --pull=X.Y.Z` hält wie bisher genau eine Version fest (z. B. zum Zurückgehen) – mit Hinweis, dass
+  `./update.sh --pull` wieder der neuesten folgt. Die Anzeige „alt → neu“ liest die bisherige Version aus dem
+  vorhandenen Image.
+- Hinweis: Updates über eine Container-Verwaltung laufen ohne die zusätzliche Sicherung, die `update.sh` vorher
+  macht; die regelmäßigen Datensicherungen und die automatische Anpassung der Datenbank beim Start bleiben.
+
 ## 2.17.0 – 24.10.2026
 - **Neuigkeiten in der App:** Unten in der Seitenleiste neben der Versionsnummer (und im Benutzermenü) steht
   *Neuigkeiten* – kurze, verständliche Hinweise zu neuen Funktionen, Verbesserungen und **Sicherheitsupdates**,

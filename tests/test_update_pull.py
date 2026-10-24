@@ -103,7 +103,7 @@ class PullTests(unittest.TestCase):
         self.assertIn("exec -T catalytix docker-entrypoint.sh flask --app wsgi backup", log)   # Sicherung vorher
         env = self.env()
         self.assertIn(f"CATALYTIX_IMAGE={IMG}\n", env)
-        self.assertIn("CATALYTIX_TAG=2.0.0\n", env)
+        self.assertIn("CATALYTIX_TAG=latest\n", env)                                  # folgt latest
         self.assertIn("TZ=Europe/Berlin", env)                                       # eigene Werte bleiben
         self.assertEqual((self.inst / "docker-compose.yml").read_text(), "neu aus dem Image\n")
         self.assertEqual((self.inst / "data" / "catalytix.db").read_text(), "db")
@@ -123,21 +123,32 @@ class PullTests(unittest.TestCase):
         shutil.copy(ROOT / "update.sh", self.inst / "update.sh")
         self.run_update("--pull")
         self.assertTrue((self.inst / "docker-compose.yml").exists())
-        self.assertEqual((self.inst / ".env").read_text().count("CATALYTIX_TAG=2.0.0"), 1)
+        self.assertEqual((self.inst / ".env").read_text().count("CATALYTIX_TAG=latest"), 1)
         self.assertEqual(os.stat(self.inst / ".env").st_mode & 0o077, 0)
 
-    def test_pull_exact_version(self):
-        self.run_update("--pull=2.0.0")
+    def test_pull_exact_version_pins_until_next_pull(self):
+        out = self.run_update("--pull=2.0.0")
         self.assertIn(f"docker pull {IMG}:2.0.0", self.docker_log())
         self.assertNotIn("docker tag", self.docker_log())
+        self.assertIn("CATALYTIX_TAG=2.0.0\n", self.env())
+        self.assertIn("Pinned to version 2.0.0", out)
+        self.log.unlink()
+        self.run_update()                                                   # bleibt bei der festen Version
+        self.assertIn(f"docker pull {IMG}:2.0.0", self.docker_log())
+        self.log.unlink()
+        self.run_update("--pull")                                           # zurück zu latest
+        self.assertIn(f"docker pull {IMG}:latest", self.docker_log())
+        self.assertIn("CATALYTIX_TAG=latest\n", self.env())
 
-    def test_plain_update_in_pull_mode_pulls_same_version(self):
+    def test_plain_update_in_pull_mode_pulls_latest(self):
         self.run_update("--pull")
         self.log.unlink()
-        self.run_update()
+        out = self.run_update(IMG_VERSION="2.1.0")
         log = self.docker_log()
-        self.assertIn(f"docker pull {IMG}:2.0.0", log)
+        self.assertIn(f"docker pull {IMG}:latest", log)
         self.assertNotIn("compose build", log)
+        self.assertIn("CATALYTIX_TAG=latest\n", self.env())
+        self.assertIn("→ 2.1.0", out)
 
     def test_zip_switches_back_to_local_build(self):
         self.run_update("--pull")

@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 2.17.0** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 2.17.1** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -35,7 +35,7 @@ curl -fsSLO https://raw.githubusercontent.com/soleil0815/catalytix/main/update.s
 ./update.sh --pull
 ```
 
-The script pulls the image, creates `docker-compose.yml`, `.env` and `.env.example` from the image, starts the container and shows the setup code. Later updates: `./update.sh --pull` (newest version) or `./update.sh --pull=2.17.0` (exactly this version).
+The script pulls the image, creates `docker-compose.yml`, `.env` and `.env.example` from the image, starts the container and shows the setup code. Later updates: `./update.sh --pull` (newest version) or `./update.sh --pull=2.17.1` (exactly this version, e.g. to go back).
 
 ### With Docker – build it yourself (zip package or git clone)
 
@@ -60,12 +60,12 @@ The `.env` file is not part of the update package. Additional services (e.g. a M
 
 ```bash
 ./update.sh --pull                   # get the newest version from GitHub (ready-made image, nothing is built)
-./update.sh --pull=2.17.0            # exactly this version from GitHub
-./update.sh catalytix-2.17.0.zip      # classic: install a package and build locally
+./update.sh --pull=2.17.1            # exactly this version from GitHub (stays on it until the next --pull)
+./update.sh catalytix-2.17.1.zip      # classic: install a package and build locally
 ./update.sh                          # rebuild the current version, or (in --pull mode) pull it again, and start
 ```
 
-**Two ways, switch freely:** `--pull` remembers the GitHub image in `.env` (`CATALYTIX_IMAGE`, `CATALYTIX_TAG`) – `docker compose up -d` then always starts exactly this version. The installation files (`docker-compose.yml`, `update.sh`, READMEs) come from the image, so they always match the version. Installing a zip package switches back to building locally automatically (the two entries are commented out in `.env`). Zip packages with checksums are available under *Releases* in the GitHub repository.
+**Two ways, switch freely:** `--pull` remembers the GitHub image in `.env` (`CATALYTIX_IMAGE`, `CATALYTIX_TAG=latest`) – the container then always follows the newest version. A container manager that updates images automatically can therefore pull new versions itself (the package on GitHub must be public for that; only `update.sh` takes the extra backup before the update, the regular backups keep running). `--pull=X.Y.Z` instead holds exactly one version until the next `./update.sh --pull`. The installation files (`docker-compose.yml`, `update.sh`, READMEs) come from the image, so they always match the version. Installing a zip package switches back to building locally automatically (the two entries are commented out in `.env`). Zip packages with checksums are available under *Releases* in the GitHub repository.
 
 The script
 1. checks a given package (unpacks it into a work folder next to the installation, shows old and new version, warns about an older one),
@@ -248,7 +248,7 @@ Under **Administration → Einstellungen** you decide for whom 2FA is **mandator
 | keine Pflicht – not mandatory | nobody has to set up 2FA; users who have it are still asked |
 | keine Zwei-Faktor-Abfrage – no 2FA prompt | the password is enough on the LAN |
 
-- **What counts as internal** is set under *Internes Netz* (one network per line, e.g. `192.168.10.0/24`). Empty means `10.0.0.0/8`, `192.168.0.0/16`, `fc00::/7` and loopback – **without** `172.17.0.0/12`, because Docker creates its networks there (otherwise e.g. every request arriving via the Docker gateway would look internal). If your LAN uses 172.16–31.x, enter it explicitly. Ideally narrow it down to your actual LAN anyway. *Since this version:* if you left the field empty and have clients in 172.16/12, you now need to enter that network.
+- **What counts as internal** is set under *Internes Netz* (one network per line, e.g. `192.168.10.0/24`). Empty means `10.0.0.0/8`, `192.168.0.0/16`, `fc00::/7` and loopback – **without** `172.17.1.0/12`, because Docker creates its networks there (otherwise e.g. every request arriving via the Docker gateway would look internal). If your LAN uses 172.16–31.x, enter it explicitly. Ideally narrow it down to your actual LAN anyway. *Since this version:* if you left the field empty and have clients in 172.16/12, you now need to enter that network.
 - Behind the reverse proxy the **real visitor address** counts. The proxy must send `X-Forwarded-For` (Nginx Proxy Manager, Caddy and Traefik do so by default). If it is missing, the request is treated as **external** for safety. Forged headers from the internet are ignored.
 - **Important – port 9300 for the proxy only:** by default all private networks are trusted proxies (`CATALYTIX_TRUSTED_PROXIES=private`). Any LAN host that reaches Catalytix **directly** on port 9300 can therefore send a forged `X-Forwarded-For` header (e.g. to count as “internal” or to evade the per-address login lockout). Publish the port only to the proxy – with `CATALYTIX_BIND=127.0.0.1` in `.env` (proxy running directly on the server) or via a shared Docker network with the proxy (in `docker-compose.override.yml`; `docker-compose.yml` itself is replaced on updates) – **or** set `CATALYTIX_TRUSTED_PROXIES` to the proxy's address (e.g. `172.18.0.5` or the proxy's Docker network). This also matters for internet access: if someone reaches port 9300 e.g. via **IPv6** and Docker relays it internally, the request appears to come from the Docker gateway (172.x.0.1) – which the default setting trusts.
 - The settings page shows how your current connection is classified. To check, open it once from a phone on mobile data – it must say “extern”.
@@ -444,7 +444,7 @@ The repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) c
 git init -b main
 git add -A
 git update-index --chmod=+x update.sh docker-entrypoint.sh   # executable, even if committed on Windows
-git commit -m "Catalytix 2.17.0"
+git commit -m "Catalytix 2.17.1"
 git remote add origin git@github.com:soleil0815/catalytix.git
 git push -u origin main
 ```

@@ -270,6 +270,27 @@ class RepoFilesTests(unittest.TestCase):
             self.assertIn("7 days ago", wf)
             self.assertLess(wf.index("Run the tests in the image"), wf.index("trivy-action"))
 
+    @unittest.skipUnless(shutil.which("pip") or Path(sys.executable).with_name("pip").exists(), "pip fehlt (im Image)")
+    def test_lock_floor_raises_only_older_installs(self):
+        try:
+            import pip  # noqa: F401
+        except ImportError:
+            self.skipTest("pip fehlt")
+        import importlib.metadata as md
+        import runpy
+        from unittest import mock
+        lock = Path(tempfile.mkdtemp()) / "lock.txt"
+        lock.write_text("pillow==999.0.0\nnot-installed-pkg==1.0\n"
+                        "certifi==0.0.1\nwaitress==99.0 ; sys_platform == \"nonexistent\"\n")
+        mod = runpy.run_path(str(ROOT / "tools" / "lock_floor.py"))
+        with mock.patch("subprocess.check_call") as call:
+            mod["main"](str(lock))
+        args = call.call_args[0][0]
+        self.assertIn("pillow==999.0.0", args)                 # zu alt installiert → anheben
+        self.assertFalse(any(a.startswith("certifi") for a in args))   # neuer installiert → bleibt
+        self.assertFalse(any(a.startswith("waitress") for a in args))  # Marker passt nicht
+        self.assertTrue(md.version("pillow"))
+
     def test_image_carries_installation_files(self):
         df = (ROOT / "Dockerfile").read_text()
         self.assertIn("/app/dist/", df)

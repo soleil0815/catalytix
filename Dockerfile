@@ -32,9 +32,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PGID=1000
 
 WORKDIR /app
-COPY requirements.txt requirements.in ./
+COPY requirements.txt requirements.in tools/lock_floor.py ./
 # DEPS=pinned (default): exactly the lock file, without pulling in sub-dependencies (--no-deps).
-# DEPS=current: resolve requirements.in anew – newest versions within its ranges, only uploaded before DEPS_CUTOFF.
+# DEPS=current: resolve requirements.in anew – newest versions within its ranges, only uploaded before DEPS_CUTOFF;
+# versions pinned in requirements.txt are a lower bound (reviewed security fixes skip the cool-down).
 # Then check that everything fits together, record what is installed (/app/installed-packages.txt) and remove pip:
 # the program doesn't need it at runtime, and pip brings its own (vendored) copies of urllib3, msgpack and
 # setuptools that security scanners rightly report as outdated.
@@ -43,14 +44,16 @@ ARG DEPS_CUTOFF=
 RUN pip install pip==26.2.2 \
  && if [ "$DEPS" = current ]; then \
       [ -n "$DEPS_CUTOFF" ] || { echo "DEPS=current needs DEPS_CUTOFF"; exit 1; }; \
-      pip install --only-binary=:all: --uploaded-prior-to "$DEPS_CUTOFF" -r requirements.in; \
+      pip install --only-binary=:all: --uploaded-prior-to "$DEPS_CUTOFF" -r requirements.in \
+      && python lock_floor.py requirements.txt; \
     else \
       pip install --no-deps --only-binary=:all: -r requirements.txt; \
     fi \
  && pip check \
  && pip freeze --exclude pip > /app/installed-packages.txt \
  && python -m pip uninstall -y pip \
- && python -c "import ensurepip, os, shutil; shutil.rmtree(os.path.dirname(ensurepip.__file__))"
+ && python -c "import ensurepip, os, shutil; shutil.rmtree(os.path.dirname(ensurepip.__file__))" \
+ && rm -f lock_floor.py
 # Time zone: TZ (e.g. Europe/Berlin) needs /usr/share/zoneinfo (Debian package tzdata, included
 # in the python-slim image). If it is missing, the build says so here and Catalytix at start-up.
 RUN test -e /usr/share/zoneinfo/Europe/Berlin \

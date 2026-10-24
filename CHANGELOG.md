@@ -9,7 +9,10 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
     aktuelle Sicherheitsupdates.
   - Python-Pakete: neu aufgelöst aus `requirements.in` (`DEPS=current`) – neueste Versionen innerhalb der erlaubten
     Bereiche, aber nur Veröffentlichungen, die mindestens 7 Tage alt sind (`pip --uploaded-prior-to`, Schutz vor
-    frisch hochgeladenen Schadversionen).
+    frisch hochgeladenen Schadversionen). Versionen aus `requirements.txt` gelten dabei als Untergrenze: Eine geprüfte
+    Sicherheitskorrektur, die dort eingetragen ist, darf die Wartezeit überspringen (`tools/lock_floor.py`). Der erste
+    Lauf hatte genau das gezeigt: Die Wartezeit hätte die Korrektur von certifi (5 Tage alt) zurückgehalten, Trivy hat
+    die Veröffentlichung gestoppt.
   - **Die Tests laufen jetzt im fertigen Image** (genau dessen Python und Pakete) – erst danach Trivy und
     Veröffentlichung. Die installierten Versionen stehen in `/app/installed-packages.txt` und in der Zusammenfassung des
     Laufs.

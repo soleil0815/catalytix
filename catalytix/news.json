@@ -1,5 +1,35 @@
 [
  {
+  "version": "2.18.1",
+  "date": "2026-10-24",
+  "items": [
+   {
+    "kind": "security",
+    "audience": "all",
+    "de": {
+     "title": "Sicherheitsupdate für Bilder",
+     "text": "Die Bibliothek, die Cover und Logos verarbeitet, hatte mehrere schwere Sicherheitslücken. Sie ist jetzt auf dem neuesten Stand."
+    },
+    "en": {
+     "title": "Security update for images",
+     "text": "The library that processes covers and logos had several serious security flaws. It is now up to date."
+    }
+   },
+   {
+    "kind": "security",
+    "audience": "admin",
+    "de": {
+     "title": "Sicherheitsprüfung vor jeder Version",
+     "text": "Jede neue Version wird vor dem Veröffentlichen automatisch auf bekannte Schwachstellen geprüft (Trivy), die veröffentlichte Version zusätzlich jede Woche. Ein Image mit schweren, behebbaren Lücken wird nicht mehr veröffentlicht. Bei dieser ersten Prüfung behoben: Pillow 13.0.0 (Bildverarbeitung, mehrere kritische Lücken), certifi 2026.10.19; pip ist nicht mehr im Image."
+    },
+    "en": {
+     "title": "Security check before every version",
+     "text": "Every new version is automatically checked for known vulnerabilities before it is published (Trivy), and the published version again every week. An image with serious fixable flaws is no longer published. Fixed in this first check: Pillow 13.0.0 (image processing, several critical flaws), certifi 2026.10.19; pip is no longer in the image."
+    }
+   }
+  ]
+ },
+ {
   "version": "2.18.0",
   "date": "2026-10-24",
   "items": [

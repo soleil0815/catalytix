@@ -2,6 +2,21 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 2.18.1 – 24.10.2026
+- **Sicherheitsprüfung mit Trivy** im GitHub-Workflow: Das Image wird vor dem Veröffentlichen gebaut und geprüft.
+  Bekannte Schwachstellen der Stufe HIGH/CRITICAL, für die es eine Korrektur gibt, stoppen den Lauf – dann wird
+  nichts veröffentlicht (Bericht als Tabelle in der Zusammenfassung des Laufs und als Anmerkung). Schwachstellen ohne
+  verfügbare Korrektur blockieren nicht. Ausnahmen mit Begründung in `.trivyignore`. Zusätzlich prüft
+  `.github/workflows/scan.yml` jeden Montag das veröffentlichte `latest`.
+- Die Trivy-Action ist auf den vollen Commit des unveränderlichen Releases v0.36.0 gepinnt, Trivy selbst auf v0.76.0
+  (nach dem Supply-Chain-Angriff auf Trivy im März 2026, CVE-2026-33634); ein Test prüft das.
+- **Behoben, was die erste Prüfung gefunden hat** (33 Befunde, 6 kritisch):
+  - **Pillow 13.0.0** (vorher 12.3.0) – 29 Lücken in der Bildverarbeitung, die bei Cover- und Logo-Uploads genutzt
+    wird. Der Code nutzt jetzt `Image.Resampling.LANCZOS`.
+  - **certifi 2026.10.19** (vorher 2026.7.22).
+  - **pip wird nach der Installation aus dem Image entfernt** – es wird zur Laufzeit nicht gebraucht und brachte eigene,
+    veraltete Kopien von urllib3, msgpack und setuptools mit.
+
 ## 2.18.0 – 24.10.2026
 - **Vormerken (Reservieren)**, optional unter *Einstellungen → Vormerken* (standardmäßig aus): Sind alle Exemplare
   verliehen, kann man ein Buch auf seiner Seite vormerken und steht in einer Warteschlange (Platz sichtbar, auch unter

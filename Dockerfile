@@ -21,10 +21,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 COPY requirements.txt .
 # Pin pip itself, then install exactly the lock file – without pulling in sub-dependencies
-# (--no-deps) – and finally check that everything fits together.
+# (--no-deps) – and check that everything fits together. Finally remove pip: the program doesn't need it at
+# runtime, and pip brings its own (vendored) copies of urllib3, msgpack and setuptools that security scanners
+# rightly report as outdated.
 RUN pip install pip==26.2.2 \
  && pip install --no-deps --only-binary=:all: -r requirements.txt \
- && pip check
+ && pip check \
+ && python -m pip uninstall -y pip \
+ && rm -rf /usr/local/lib/python3.13/ensurepip
 # Time zone: TZ (e.g. Europe/Berlin) needs /usr/share/zoneinfo (Debian package tzdata, included
 # in the python-slim image). If it is missing, the build says so here and Catalytix at start-up.
 RUN test -e /usr/share/zoneinfo/Europe/Berlin \
@@ -46,7 +50,7 @@ EXPOSE 9300
 COPY docker-compose.yml .env.example update.sh README.md README.en.md CHANGELOG.md LICENSE /app/dist/
 
 # Version label late: a new version number doesn't invalidate the cached dependency layers above
-LABEL org.opencontainers.image.version="2.18.0"
+LABEL org.opencontainers.image.version="2.18.1"
 # start-period: the entrypoint may first adjust owners/permissions in a large ./data
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s CMD python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:9300/login')" || exit 1
 ENTRYPOINT ["docker-entrypoint.sh"]

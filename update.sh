@@ -80,7 +80,7 @@ done
 
 [ "$PULL" = 0 ] || [ -z "$ZIP" ] || die "Either a zip package or --pull, not both."
 [ -z "$PULL_TAG" ] || [[ "$PULL_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$|^latest$ ]] \
-    || die "--pull=… expects a version like 2.18.0 (or latest)."
+    || die "--pull=… expects a version like 2.18.1 (or latest)."
 
 # Resolve the package path BEFORE changing into the program folder (also relative paths like ../x.zip)
 if [ -n "$ZIP" ]; then
@@ -174,7 +174,7 @@ if [ "$PULL" = 1 ]; then
     if [ -z "$(running_version)" ] && [ -n "$REG_IMAGE" ] && [[ "$CUR_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         OLD_VERSION="$CUR_TAG"      # no container (stopped/removed): the pinned version is what was installed
     fi
-    # Installs from before 2.18.0 always wrote the exact version: follow "latest" from now on unless the version
+    # Installs from before 2.17.1 always wrote the exact version: follow "latest" from now on unless the version
     # was pinned on purpose with --pull=X.Y.Z (marked with CATALYTIX_PINNED=1)
     if [ -z "${PULL_EXPLICIT:-}" ] && [[ "$PULL_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && [ "$(env_get CATALYTIX_PINNED)" != 1 ]; then
         PULL_TAG=latest

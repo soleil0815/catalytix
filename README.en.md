@@ -435,7 +435,7 @@ The repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) c
 | Event | What GitHub does |
 |---|---|
 | Push to `main` | tests (with exactly the pinned package versions), then the image `ghcr.io/soleil0815/catalytix` tagged `<version>`, `latest` and `sha-<commit>` – for `linux/amd64` and `linux/arm64` |
-| Tag `v<version>` (e.g. `v2.17.0`) | additionally a release with `catalytix-<version>.zip` and `.sha256` for the classic update |
+| New version number on `main` | additionally, automatically, a release `v<version>` with `catalytix-<version>.zip` and `.sha256` for the classic update (GitHub creates the tag itself; if the release already exists, nothing happens) |
 | Pull request | tests and a trial build, nothing is published |
 
 **First push:**
@@ -451,7 +451,7 @@ git push -u origin main
 
 Then wait for the run under *Actions*. **Make the package public once:** GitHub → profile → *Packages* → `catalytix` → *Package settings* → *Change visibility* → *Public*. Otherwise the servers first have to sign in with a token (scope `read:packages`): `docker login ghcr.io`.
 
-**Publishing a new version:** raise the version number in three places – `catalytix/__init__.py`, the label in `Dockerfile`, the default tag in `docker-compose.yml` (the workflow checks that they match) –, add to the CHANGELOG, add the notes for the interface to `catalytix/news.json` (a test checks that the current version is listed there), push. For a release with a zip, also `git tag v2.17.0 && git push origin v2.17.0`. Servers fetch the new version with `./update.sh --pull`.
+**Publishing a new version:** raise the version number in three places – `catalytix/__init__.py`, the label in `Dockerfile`, the default tag in `docker-compose.yml` (the workflow checks that they match) –, add to the CHANGELOG, add the notes for the interface to `catalytix/news.json` (a test checks that the current version is listed there), push. The release with the zip is created automatically, no tag needed. Servers fetch the new version with `./update.sh --pull`.
 
 ## Tests
 

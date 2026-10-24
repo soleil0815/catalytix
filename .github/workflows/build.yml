@@ -1,8 +1,9 @@
 # Catalytix – tests, container image (GitHub Container Registry) and release zip
 #
-# push to main            → tests, then image ghcr.io/<owner>/catalytix:<version>, :latest, :sha-<commit>
-# push a tag v<version>   → the same, plus a GitHub release with catalytix-<version>.zip and .sha256
-#                           (the tag must match __version__ in catalytix/__init__.py)
+# push to main            → tests, then image ghcr.io/<owner>/catalytix:<version>, :latest, :sha-<commit>;
+#                           for a new version number also a GitHub release v<version> with
+#                           catalytix-<version>.zip and .sha256 (the tag is created automatically)
+# push a tag v<version>   → the same for that tag (must match __version__ in catalytix/__init__.py)
 # pull request            → tests and a test build of the image (nothing is pushed)
 name: Build
 
@@ -94,26 +95,41 @@ jobs:
   release:
     name: Release zip
     needs: image
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v7
 
-      - name: Build catalytix-<version>.zip and its checksum
-        id: zip
-        run: |
-          v="${GITHUB_REF_NAME#v}"
-          git archive --format=zip --prefix=catalytix/ -o "catalytix-$v.zip" HEAD
-          sha256sum "catalytix-$v.zip" > "catalytix-$v.zip.sha256"
-          echo "version=$v" >> "$GITHUB_OUTPUT"
-
-      - name: Create the GitHub release
+      - name: Is there already a release for this version?
+        id: check
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          v="${{ steps.zip.outputs.version }}"
-          gh release create "$GITHUB_REF_NAME" "catalytix-$v.zip" "catalytix-$v.zip.sha256" \
+          v="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' catalytix/__init__.py)"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          if gh release view "v$v" >/dev/null 2>&1; then
+            echo "Release v$v exists – nothing to do."
+            echo "create=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "create=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build catalytix-<version>.zip and its checksum
+        if: steps.check.outputs.create == 'true'
+        run: |
+          v="${{ steps.check.outputs.version }}"
+          git archive --format=zip --prefix=catalytix/ -o "catalytix-$v.zip" HEAD
+          sha256sum "catalytix-$v.zip" > "catalytix-$v.zip.sha256"
+
+      - name: Create the GitHub release
+        if: steps.check.outputs.create == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="${{ steps.check.outputs.version }}"
+          gh release create "v$v" "catalytix-$v.zip" "catalytix-$v.zip.sha256" \
+            --target "$GITHUB_SHA" \
             --title "Catalytix $v" \
             --notes "Update with the image built by GitHub: \`./update.sh --pull\` – or classically with this package: \`./update.sh catalytix-$v.zip\` (put the .sha256 file next to it). Changes: see CHANGELOG.md."

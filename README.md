@@ -425,7 +425,7 @@ Das Repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) e
 | Ereignis | Was GitHub macht |
 |---|---|
 | Push auf `main` | Tests (mit genau den festgelegten Paketversionen), dann Image `ghcr.io/soleil0815/catalytix` mit den Tags `<version>`, `latest` und `sha-<commit>` – für `linux/amd64` und `linux/arm64` |
-| Tag `v<version>` (z. B. `v2.17.0`) | zusätzlich ein Release mit `catalytix-<version>.zip` und `.sha256` für das klassische Update |
+| Neue Versionsnummer auf `main` | zusätzlich automatisch ein Release `v<version>` mit `catalytix-<version>.zip` und `.sha256` für das klassische Update (Tag legt GitHub selbst an; gibt es das Release schon, passiert nichts) |
 | Pull Request | Tests und Probe-Build, nichts wird veröffentlicht |
 
 **Erster Push:**
@@ -441,7 +441,7 @@ git push -u origin main
 
 Danach unter *Actions* den Lauf abwarten. **Einmalig das Paket öffentlich machen:** GitHub → Profil → *Packages* → `catalytix` → *Package settings* → *Change visibility* → *Public*. Sonst müssen sich die Server erst mit einem Token (Recht `read:packages`) anmelden: `docker login ghcr.io`.
 
-**Neue Version veröffentlichen:** Versionsnummer an drei Stellen erhöhen – `catalytix/__init__.py`, Label in `Dockerfile`, Standard-Tag in `docker-compose.yml` (der Workflow prüft, dass sie übereinstimmen) –, CHANGELOG ergänzen, Neuigkeiten für die Oberfläche in `catalytix/news.json` eintragen (der Test prüft, dass die aktuelle Version dort steht), pushen. Für ein Release mit Zip zusätzlich `git tag v2.17.0 && git push origin v2.17.0`. Die Server holen die neue Version mit `./update.sh --pull`.
+**Neue Version veröffentlichen:** Versionsnummer an drei Stellen erhöhen – `catalytix/__init__.py`, Label in `Dockerfile`, Standard-Tag in `docker-compose.yml` (der Workflow prüft, dass sie übereinstimmen) –, CHANGELOG ergänzen, Neuigkeiten für die Oberfläche in `catalytix/news.json` eintragen (der Test prüft, dass die aktuelle Version dort steht), pushen. Das Release mit Zip entsteht automatisch, ein Tag ist nicht nötig. Die Server holen die neue Version mit `./update.sh --pull`.
 
 ## Tests
 

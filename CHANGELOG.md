@@ -15,6 +15,8 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
   `all`/`librarian`/`admin`). Ein Test prüft Vollständigkeit beider Sprachen und dass die aktuelle Version einen
   Eintrag hat.
 - Datenbank: neue Spalte `users.news_seen` – wird beim Start automatisch angelegt.
+- GitHub: Das **Release mit Zip-Paket entsteht jetzt automatisch**, sobald eine neue Versionsnummer auf `main`
+  ankommt – kein Tag mehr nötig (gibt es das Release schon, passiert nichts).
 
 ## 2.16.1 – 23.10.2026
 - **GitHub-Workflow repariert:** Der Testlauf auf GitHub brach ab, weil ein Test PyYAML benutzte, das nicht zu den

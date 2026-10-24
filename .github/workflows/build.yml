@@ -129,17 +129,36 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           trivyignores: .trivyignore
-          format: table
-          output: trivy-report.txt
+          format: json
+          output: trivy.json
           exit-code: "1"
 
       - name: Scan report
         if: always()
         run: |
-          if [ -s trivy-report.txt ]; then
-            { echo "### Trivy scan (HIGH/CRITICAL with a fix available)"; echo '```'; cat trivy-report.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-            cat trivy-report.txt
-          fi
+          [ -s trivy.json ] || exit 0
+          python3 - <<'PY'
+          import json, os
+          data = json.load(open("trivy.json"))
+          rows = []
+          for res in data.get("Results") or []:
+              for v in res.get("Vulnerabilities") or []:
+                  rows.append((v.get("Severity", ""), v.get("VulnerabilityID", ""), v.get("PkgName", ""),
+                               v.get("InstalledVersion", ""), v.get("FixedVersion", ""), res.get("Target", ""),
+                               (v.get("Title") or "")[:90]))
+              for s in res.get("Secrets") or []:
+                  rows.append((s.get("Severity", ""), "secret:" + s.get("RuleID", ""), res.get("Target", ""),
+                               "", "", "", (s.get("Title") or "")[:90]))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as out:
+              out.write("### Trivy: %d finding(s) – HIGH/CRITICAL with a fix available\n\n" % len(rows))
+              if rows:
+                  out.write("| Severity | ID | Package | Installed | Fixed in | Target | Title |\n|---|---|---|---|---|---|---|\n")
+                  for r in rows:
+                      out.write("| " + " | ".join(x.replace("|", "/") for x in r) + " |\n")
+          if rows:   # one annotation with the complete list (annotations are visible without opening the log)
+              print("::error title=Trivy: %d finding(s)::" % len(rows)
+                    + "%0A".join("%s %s %s %s -> %s (%s)" % r[:6] for r in rows))
+          PY
 
       - name: Build (and push)
         uses: docker/build-push-action@v7

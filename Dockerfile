@@ -1,6 +1,14 @@
-# Base image pinned exactly: Python 3.13.16 on Debian 13 (trixie), frozen to exactly
-# this state by its digest (same on amd64 and arm64).
-# For a new base image, change tag and digest together and run the tests.
+# Two ways to build:
+# - Local builds (zip package, update.sh): exactly reproducible – base image pinned by digest (Python 3.13.16 on
+#   Debian 13 "trixie"), Python packages exactly as in requirements.txt.
+# - GitHub builds (release and weekly rebuild) keep EVERYTHING current within the same foundation:
+#     PYTHON_IMAGE=python:3.13-slim-trixie   newest Python 3.13 patch release on Debian trixie
+#     OS_UPDATES=1                           current Debian security updates on top
+#     DEPS=current                           newest Python packages allowed by requirements.in (same major/minor
+#                                            series), only releases older than DEPS_CUTOFF (cool-down against
+#                                            freshly published malicious releases)
+#   Tests and the Trivy scan run on exactly that image before anything is published.
+# Raising the foundation (Debian 14, Python 3.14, new major versions) is a deliberate change here.
 ARG PYTHON_IMAGE=python:3.13.16-slim-trixie@sha256:70729b46c69b4f1e97c4822c1af3df53a1476cf5ddc6c087c0c10bc3a5678c2f
 FROM ${PYTHON_IMAGE}
 
@@ -9,8 +17,6 @@ LABEL org.opencontainers.image.title="Catalytix" \
       org.opencontainers.image.source="https://github.com/soleil0815/catalytix" \
       org.opencontainers.image.description="Library management for training institutes (German/English)"
 
-# OS_UPDATES=1 (set by the GitHub builds, including the weekly rebuild): install the current Debian security
-# updates on top of the pinned base image. Local builds keep exactly the pinned state (default 0).
 ARG OS_UPDATES=0
 RUN if [ "$OS_UPDATES" = 1 ]; then \
       apt-get update && apt-get -y --no-install-recommends upgrade && rm -rf /var/lib/apt/lists/*; \
@@ -26,16 +32,25 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PGID=1000
 
 WORKDIR /app
-COPY requirements.txt .
-# Pin pip itself, then install exactly the lock file – without pulling in sub-dependencies
-# (--no-deps) – and check that everything fits together. Finally remove pip: the program doesn't need it at
-# runtime, and pip brings its own (vendored) copies of urllib3, msgpack and setuptools that security scanners
-# rightly report as outdated.
+COPY requirements.txt requirements.in ./
+# DEPS=pinned (default): exactly the lock file, without pulling in sub-dependencies (--no-deps).
+# DEPS=current: resolve requirements.in anew – newest versions within its ranges, only uploaded before DEPS_CUTOFF.
+# Then check that everything fits together, record what is installed (/app/installed-packages.txt) and remove pip:
+# the program doesn't need it at runtime, and pip brings its own (vendored) copies of urllib3, msgpack and
+# setuptools that security scanners rightly report as outdated.
+ARG DEPS=pinned
+ARG DEPS_CUTOFF=
 RUN pip install pip==26.2.2 \
- && pip install --no-deps --only-binary=:all: -r requirements.txt \
+ && if [ "$DEPS" = current ]; then \
+      [ -n "$DEPS_CUTOFF" ] || { echo "DEPS=current needs DEPS_CUTOFF"; exit 1; }; \
+      pip install --only-binary=:all: --uploaded-prior-to "$DEPS_CUTOFF" -r requirements.in; \
+    else \
+      pip install --no-deps --only-binary=:all: -r requirements.txt; \
+    fi \
  && pip check \
+ && pip freeze --exclude pip > /app/installed-packages.txt \
  && python -m pip uninstall -y pip \
- && rm -rf /usr/local/lib/python3.13/ensurepip
+ && python -c "import ensurepip, os, shutil; shutil.rmtree(os.path.dirname(ensurepip.__file__))"
 # Time zone: TZ (e.g. Europe/Berlin) needs /usr/share/zoneinfo (Debian package tzdata, included
 # in the python-slim image). If it is missing, the build says so here and Catalytix at start-up.
 RUN test -e /usr/share/zoneinfo/Europe/Berlin \
@@ -57,7 +72,7 @@ EXPOSE 9300
 COPY docker-compose.yml .env.example update.sh README.md README.en.md CHANGELOG.md LICENSE /app/dist/
 
 # Version label late: a new version number doesn't invalidate the cached dependency layers above
-LABEL org.opencontainers.image.version="2.18.2"
+LABEL org.opencontainers.image.version="2.18.3"
 # start-period: the entrypoint may first adjust owners/permissions in a large ./data
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s CMD python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:9300/login')" || exit 1
 ENTRYPOINT ["docker-entrypoint.sh"]

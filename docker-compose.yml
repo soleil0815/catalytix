@@ -7,7 +7,7 @@ services:
     build: .
     # Locally built (update.sh with a zip package) or pulled from GitHub (update.sh --pull, which sets
     # CATALYTIX_IMAGE=ghcr.io/soleil0815/catalytix and CATALYTIX_TAG=latest in .env).
-    image: "${CATALYTIX_IMAGE:-catalytix}:${CATALYTIX_TAG:-2.18.2}"
+    image: "${CATALYTIX_IMAGE:-catalytix}:${CATALYTIX_TAG:-2.18.3}"
     container_name: catalytix
     restart: unless-stopped
     security_opt:

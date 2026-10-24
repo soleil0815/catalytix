@@ -85,6 +85,8 @@ jobs:
               new=true
             fi
           fi
+          # Python packages: only releases that are at least 7 days old (cool-down against malicious releases)
+          echo "cutoff=$(date -u -d '7 days ago' +%Y-%m-%dT00:00:00Z)" >> "$GITHUB_OUTPUT"
           {
             echo "version=$v"
             echo "publish=$publish"
@@ -118,8 +120,23 @@ jobs:
           load: true
           push: false
           tags: catalytix-scan:${{ github.sha }}
-          build-args: OS_UPDATES=1
+          pull: true
+          build-args: |
+            PYTHON_IMAGE=python:3.13-slim-trixie
+            OS_UPDATES=1
+            DEPS=current
+            DEPS_CUTOFF=${{ steps.meta.outputs.cutoff }}
           cache-from: type=gha
+
+      # The tests run in exactly the image that gets published (its Python and packages), with the code of this
+      # checkout mounted – it is the same code that is in the image.
+      - name: Run the tests in the image
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" --entrypoint python -e CATALYTIX_DATA_DIR=/tmp/catalytix-test \
+            -v "$PWD:/src" -w /src/tests catalytix-scan:${{ github.sha }} -m unittest discover -q
+          { echo "### Packages in the image"; echo '```'
+            docker run --rm --entrypoint sh catalytix-scan:${{ github.sha }} -c 'python --version; grep PRETTY_NAME /etc/os-release; cat /app/installed-packages.txt'
+            echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       # Pinned to the full commit of the immutable release v0.36.0 (published after the supply chain attack of
       # March 2026, CVE-2026-33634) – never to a tag. The Trivy binary itself is pinned with "version".
@@ -171,7 +188,12 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: ${{ steps.meta.outputs.publish == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: OS_UPDATES=1
+          pull: true
+          build-args: |
+            PYTHON_IMAGE=python:3.13-slim-trixie
+            OS_UPDATES=1
+            DEPS=current
+            DEPS_CUTOFF=${{ steps.meta.outputs.cutoff }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

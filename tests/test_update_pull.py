@@ -258,6 +258,18 @@ class RepoFilesTests(unittest.TestCase):
         self.assertIn("group: publish-${{ github.ref }}", build)
         self.assertTrue((ROOT / ".trivyignore").exists())
 
+    def test_github_builds_keep_everything_current(self):
+        df = (ROOT / "Dockerfile").read_text()
+        self.assertIn("ARG DEPS=pinned", df)                       # lokal: reproduzierbar
+        self.assertRegex(df, r"ARG PYTHON_IMAGE=python:[0-9.]+-slim-trixie@sha256:[0-9a-f]{64}")
+        self.assertIn('--uploaded-prior-to "$DEPS_CUTOFF"', df)
+        for name in ("build.yml", "rebuild.yml"):
+            wf = (ROOT / ".github" / "workflows" / name).read_text()
+            self.assertEqual(wf.count("DEPS=current"), 2, name)     # Scan-Build und veröffentlichter Build gleich
+            self.assertEqual(wf.count("PYTHON_IMAGE=python:3.13-slim-trixie"), 2, name)
+            self.assertIn("7 days ago", wf)
+            self.assertLess(wf.index("Run the tests in the image"), wf.index("trivy-action"))
+
     def test_image_carries_installation_files(self):
         df = (ROOT / "Dockerfile").read_text()
         self.assertIn("/app/dist/", df)

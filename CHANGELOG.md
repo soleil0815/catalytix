@@ -2,6 +2,21 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 2.18.3 – 24.10.2026
+- **Alles im Image von GitHub bleibt aktuell** – bei jedem Release und beim wöchentlichen Neubau, innerhalb derselben
+  Grundlage:
+  - Python: neueste 3.13-Patch-Version (`python:3.13-slim-trixie` statt fest 3.13.16), Debian 13 „trixie“ plus
+    aktuelle Sicherheitsupdates.
+  - Python-Pakete: neu aufgelöst aus `requirements.in` (`DEPS=current`) – neueste Versionen innerhalb der erlaubten
+    Bereiche, aber nur Veröffentlichungen, die mindestens 7 Tage alt sind (`pip --uploaded-prior-to`, Schutz vor
+    frisch hochgeladenen Schadversionen).
+  - **Die Tests laufen jetzt im fertigen Image** (genau dessen Python und Pakete) – erst danach Trivy und
+    Veröffentlichung. Die installierten Versionen stehen in `/app/installed-packages.txt` und in der Zusammenfassung des
+    Laufs.
+- Lokale Builds (Zip-Paket, `update.sh`) bleiben exakt reproduzierbar: gepinntes Basis-Image und `requirements.txt`.
+- Der Unterbau (Debian 14, Python 3.14, neue Hauptversionen) wird bewusst angehoben, wenn die jetzige Grundlage keine
+  Updates mehr bekommt.
+
 ## 2.18.2 – 24.10.2026
 - **Wöchentlicher automatischer Neubau** (`.github/workflows/rebuild.yml`, ersetzt den reinen Prüflauf `scan.yml`):
   Jeden Montag wird der Stand des **letzten Releases** (nie unveröffentlichte Commits von `main`) ohne Build-Cache

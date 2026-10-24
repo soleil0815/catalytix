@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 2.18.2** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 2.18.3** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name eurer Bibliothek.
 
@@ -33,7 +33,7 @@ curl -fsSLO https://raw.githubusercontent.com/soleil0815/catalytix/main/update.s
 ./update.sh --pull
 ```
 
-Das Skript holt das Image, legt `docker-compose.yml`, `.env` und `.env.example` aus dem Image an, startet den Container und zeigt den Einrichtungscode. Spätere Updates: `./update.sh --pull` (neueste Version) oder `./update.sh --pull=2.18.2` (genau diese Version, z. B. um zurückzugehen).
+Das Skript holt das Image, legt `docker-compose.yml`, `.env` und `.env.example` aus dem Image an, startet den Container und zeigt den Einrichtungscode. Spätere Updates: `./update.sh --pull` (neueste Version) oder `./update.sh --pull=2.18.3` (genau diese Version, z. B. um zurückzugehen).
 
 ### Mit Docker – selbst bauen (Zip-Paket oder Git-Klon)
 
@@ -58,8 +58,8 @@ Die `.env` ist nicht im Update-Paket enthalten. Zusätzliche Dienste (z. B. eine
 
 ```bash
 ./update.sh --pull                   # neueste Version von GitHub holen (fertiges Image, nichts wird gebaut)
-./update.sh --pull=2.18.2            # genau diese Version von GitHub (bleibt dabei bis zum nächsten --pull)
-./update.sh catalytix-2.18.2.zip      # klassisch: Paket einspielen und lokal bauen
+./update.sh --pull=2.18.3            # genau diese Version von GitHub (bleibt dabei bis zum nächsten --pull)
+./update.sh catalytix-2.18.3.zip      # klassisch: Paket einspielen und lokal bauen
 ./update.sh                          # aktuellen Stand neu bauen bzw. (im --pull-Modus) neu holen und starten
 ```
 
@@ -81,9 +81,15 @@ Optionen: `--pull[=VERSION]` (Image von GitHub statt lokal bauen), `--no-backup`
 
 Das Skript braucht Docker Compose – als `docker compose` (jede Version) oder als älteres `docker-compose` ab 1.27 (z. B. auf einer Synology; ältere 1.x-Versionen können die `docker-compose.yml` ohne `version:`-Zeile nicht lesen) – und zum Entpacken `unzip` (ersatzweise `python3`). Fehlt die `.env`, legt es sie aus der Vorlage an; ausführen als root oder als Mitglied der Gruppe `docker`.
 
-### Reproduzierbarer Build
+### Aktuelles Image von GitHub – reproduzierbarer Build lokal
 
-Jeder Build ergibt dasselbe Image:
+**Das Image von GitHub hält alles aktuell** (bei jedem Release und jeden Montag neu gebaut), innerhalb derselben Grundlage:
+- **Python:** neueste 3.13-Patch-Version (`python:3.13-slim-trixie`) auf **Debian 13 „trixie“**, dazu die aktuellen Debian-Sicherheitsupdates.
+- **Python-Pakete:** neueste Versionen innerhalb der Bereiche in `requirements.in` (gleiche Haupt- bzw. Nebenversion, also Fehler- und Sicherheitskorrekturen). Nur Veröffentlichungen, die **mindestens 7 Tage alt** sind – Schutz vor frisch hochgeladenen Schadversionen, wie es sie bei Supply-Chain-Angriffen gab.
+- Veröffentlicht wird erst, wenn **alle Tests im fertigen Image** und der **Trivy-Scan** bestehen. Welche Versionen drin sind, steht im Image unter `/app/installed-packages.txt` und in der Zusammenfassung des GitHub-Laufs.
+- Den Unterbau (Debian 14, Python 3.14, neue Hauptversionen von Paketen) heben wir bewusst an, wenn die jetzige Grundlage keine Updates mehr bekommt (Debian 13: Sicherheitsupdates bis etwa 2028, LTS bis etwa 2030; Python 3.13: bis Oktober 2029).
+
+**Lokal gebaut (Zip-Paket) ergibt jeder Build dasselbe Image:**
 - **Basis-Image** fest: `python:3.13.16-slim-trixie`, zusätzlich über den Digest (`@sha256:…`) eingefroren – auch wenn Docker Hub das Tag später neu belegt, wird genau dieser Stand verwendet.
 - **Alle Python-Pakete** stehen in `requirements.txt` mit exakter Version, auch alle Unterabhängigkeiten. Installiert wird mit `--no-deps` (nichts wird nachgezogen) und nur aus fertigen Paketen (`--only-binary`), anschließend prüft `pip check`, dass alles zusammenpasst. Auch `pip` selbst ist festgelegt.
 - `requirements.in` listet nur die direkten Abhängigkeiten mit erlaubten Bereichen – als Grundlage, wenn die Versionen einmal bewusst angehoben werden. Danach `requirements.txt` vollständig nachziehen und die Tests laufen lassen.
@@ -445,7 +451,7 @@ Das Repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) e
 git init -b main
 git add -A
 git update-index --chmod=+x update.sh docker-entrypoint.sh   # ausführbar, auch wenn unter Windows committet
-git commit -m "Catalytix 2.18.2"
+git commit -m "Catalytix 2.18.3"
 git remote add origin git@github.com:soleil0815/catalytix.git
 git push -u origin main
 ```

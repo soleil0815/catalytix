@@ -81,6 +81,8 @@ jobs:
           image="ghcr.io/${GITHUB_REPOSITORY,,}"
           v="${{ needs.release.outputs.version }}"
           sha="$(git rev-parse --short=7 HEAD)"
+          # Python packages: only releases that are at least 7 days old (cool-down against malicious releases)
+          echo "cutoff=$(date -u -d '7 days ago' +%Y-%m-%dT00:00:00Z)" >> "$GITHUB_OUTPUT"
           {
             echo "image=$image"
             echo "tags<<EOF"
@@ -103,8 +105,22 @@ jobs:
           push: false
           no-cache: true
           pull: true
-          build-args: OS_UPDATES=1
+          build-args: |
+            PYTHON_IMAGE=python:3.13-slim-trixie
+            OS_UPDATES=1
+            DEPS=current
+            DEPS_CUTOFF=${{ steps.meta.outputs.cutoff }}
           tags: catalytix-scan:weekly
+
+      # The tests run in exactly the image that gets published (its Python and packages), with the code of this
+      # checkout mounted – it is the same code that is in the image.
+      - name: Run the tests in the image
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" --entrypoint python -e CATALYTIX_DATA_DIR=/tmp/catalytix-test \
+            -v "$PWD:/src" -w /src/tests catalytix-scan:weekly -m unittest discover -q
+          { echo "### Packages in the image"; echo '```'
+            docker run --rm --entrypoint sh catalytix-scan:weekly -c 'python --version; grep PRETTY_NAME /etc/os-release; cat /app/installed-packages.txt'
+            echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       # Pinned to the full commit of the immutable release v0.36.0 (supply chain attack March 2026, CVE-2026-33634)
       - name: Scan the image for vulnerabilities (Trivy)
@@ -162,5 +178,10 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: OS_UPDATES=1
+          pull: true
+          build-args: |
+            PYTHON_IMAGE=python:3.13-slim-trixie
+            OS_UPDATES=1
+            DEPS=current
+            DEPS_CUTOFF=${{ steps.meta.outputs.cutoff }}
           tags: ${{ steps.meta.outputs.tags }}

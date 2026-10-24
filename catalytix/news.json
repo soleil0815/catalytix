@@ -1,5 +1,23 @@
 [
  {
+  "version": "2.18.3",
+  "date": "2026-10-24",
+  "items": [
+   {
+    "kind": "security",
+    "audience": "admin",
+    "de": {
+     "title": "Alles im Image bleibt aktuell",
+     "text": "Das Image von GitHub holt bei jedem Release und jeden Montag die neuesten Updates für Python, das Betriebssystem und alle Python-Pakete (nur Versionen, die mindestens 7 Tage alt sind). Veröffentlicht wird erst, wenn alle Tests im fertigen Image und die Sicherheitsprüfung bestehen."
+    },
+    "en": {
+     "title": "Everything in the image stays current",
+     "text": "The image from GitHub picks up the latest updates for Python, the operating system and all Python packages with every release and every Monday (only versions at least 7 days old). It is only published once all tests in the finished image and the security check pass."
+    }
+   }
+  ]
+ },
+ {
   "version": "2.18.2",
   "date": "2026-10-24",
   "items": [

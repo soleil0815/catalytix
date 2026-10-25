@@ -160,7 +160,8 @@ class LockFileTests(unittest.TestCase):
             lock.copy_locks(Path(b), Path(a))
             self.assertIn("ARG DEBIAN_SNAPSHOT=20990101T000000Z", Path(a, "Dockerfile").read_text())
             Path(b, "requirements.in").write_text("Flask>=3.1,<4\nneu>=1,<2\n")
-            self.assertEqual(lock.main(["same-build", a, b]), 1)        # unveröffentlichte Bau-Änderung
+            with mock.patch("sys.stdout"):     # die Fehlermeldung nicht als echte Anmerkung am GitHub-Lauf ausgeben
+                self.assertEqual(lock.main(["same-build", a, b]), 1)    # unveröffentlichte Bau-Änderung
 
 
 class WorkflowTests(unittest.TestCase):

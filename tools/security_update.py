@@ -7,6 +7,8 @@
                                s1 for every program version)
   changelog TAG VERSION OLD NEW  insert the change log entry for TAG (list of changed packages) into CHANGELOG.md
   is-highest VERSION LATEST    exit code 0 if VERSION >= LATEST (only then may :latest be set)
+  highest                      read release tags (one per line) from stdin, print the highest version (not GitHub's
+                               "latest" flag, which only marks the most recently created release)
 
 Package list format (one per line): "base <image>", "python <version>", "deb <name> <version>", "pip <name> <version>".
 """
@@ -71,15 +73,21 @@ def next_tag(version: str, text: str | None = None) -> str:
     return f"{version}-s{max(used, default=0) + 1}"
 
 
-def changelog_entry(tag: str, version: str, changes, today: dt.date | None = None) -> str:
+def changelog_entry(tag: str, version: str, changes, today: dt.date | None = None, first: bool = False) -> str:
     today = today or dt.date.today()
-    return "\n".join([
-        f"## {tag} – {today:%d.%m.%Y} (Sicherheitsupdate)",
-        f"Gleiches Programm wie {version}, nur aktualisierte Pakete (wöchentliches Sicherheitsupdate, automatisch "
-        "gebaut, getestet und mit Trivy geprüft):",
-        *format_changes(changes),
-        "",
-    ]) + "\n"
+    head = [f"## {tag} – {today:%d.%m.%Y} (Sicherheitsupdate)",
+            f"Gleiches Programm wie {version}, nur aktualisierte Pakete (wöchentliches Sicherheitsupdate, automatisch "
+            "gebaut, getestet und mit Trivy geprüft):"]
+    if first:     # the previous image had no package list – nothing to compare with
+        new = [c for c in changes if c[3]]
+        counts = {k: sum(1 for c in new if c[0] == k) for k in ("deb", "pip")}
+        body = [f"- Erster Stand mit vollständiger Paketliste ({counts['deb']} Debian-Pakete, {counts['pip']} "
+                "Python-Pakete, siehe `/app/image-packages.txt`) – ein Vergleich mit dem vorigen Image ist nicht "
+                "möglich.",
+                *[line for line in format_changes([c for c in changes if c[0] in ("base", "python")])]]
+    else:
+        body = format_changes(changes)
+    return "\n".join([*head, *body, ""]) + "\n"
 
 
 def insert_changelog(entry: str, text: str) -> str:
@@ -106,12 +114,20 @@ def main(argv=None) -> int:
         return 0
     if cmd == "changelog" and len(argv) == 5:
         tag, version, old, new = argv[1:]
-        changes = diff(Path(old).read_text(), Path(new).read_text())
+        old_text = Path(old).read_text()
+        changes = diff(old_text, Path(new).read_text())
         if not changes:
             print("no changes – no change log entry")
             return UNCHANGED
-        CHANGELOG.write_text(insert_changelog(changelog_entry(tag, version, changes),
+        first = not parse(old_text)
+        CHANGELOG.write_text(insert_changelog(changelog_entry(tag, version, changes, first=first),
                                               CHANGELOG.read_text(encoding="utf-8")), encoding="utf-8")
+        return 0
+    if cmd == "highest" and len(argv) == 1:
+        versions = [t.strip() for t in sys.stdin.read().split() if re.fullmatch(r"v?\d+\.\d+\.\d+", t.strip())]
+        if not versions:
+            return 1
+        print(max(versions, key=vtuple).lstrip("v"))
         return 0
     if cmd == "is-highest" and len(argv) == 3:
         return 0 if vtuple(argv[1]) >= vtuple(argv[2]) else 1

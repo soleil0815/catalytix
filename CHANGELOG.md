@@ -22,10 +22,16 @@ Bau und Auslieferung neu aufgestellt: alles fest, automatisch sicher und aktuell
   nehmen jetzt genau die festgelegten Versionen.
 
 **Wöchentliches Sicherheitsupdate** (`.github/workflows/security-update.yml`, montags 04:17 UTC, auch von Hand)
-- Code des letzten Releases, Versionen neu festlegen, ohne Zwischenspeicher bauen, mit dem veröffentlichten `latest`
-  vergleichen – nichts geändert: nichts tun. Sonst: Tests im Image, Trivy, und nur wenn alles besteht: Locks und
-  CHANGELOG-Eintrag (Liste der geänderten Pakete) auf `main`, Image als `<version>-s<Zähler>` und `latest`.
-  Ersetzt den Wochen-Neubau `rebuild.yml`.
+- Code des höchsten Releases, Versionen neu festlegen, einmal ohne Zwischenspeicher für amd64 und arm64 bauen, mit
+  dem veröffentlichten `latest` vergleichen – nichts geändert: nichts tun. Sonst: Tests im Image, Trivy für beide
+  Plattformen, und nur wenn alles besteht: genau diese Images als `<version>-s<Zähler>` veröffentlichen, Locks und
+  CHANGELOG-Eintrag (Liste der geänderten Pakete) auf `main`, danach `latest` umstellen. Ersetzt den Wochen-Neubau
+  `rebuild.yml`.
+- Auch beim Release werden beide Plattformen einmal gebaut, getestet bzw. geprüft und genau diese Images
+  veröffentlicht. Der Debian-Stand ist immer ein vollständig importierter Zeitpunkt (Vortag 00:00 UTC), der Bau prüft,
+  dass kein Paket zurückgehalten wurde. Prüfungen der Registry und der GitHub-API werten Fehler nie als „nicht
+  vorhanden“; die höchste Version wird aus allen Releases bestimmt. Unabhängiger Review der neuen Abläufe vor der
+  Veröffentlichung.
 
 **Trivy, Scans, Unterbau**
 - Trivy nicht mehr als GitHub Action, sondern feste Version 0.76.0, per SHA-256 geprüft (`tools/trivy.lock`,

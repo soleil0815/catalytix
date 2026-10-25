@@ -79,6 +79,24 @@ class VersionLimitTests(unittest.TestCase):
         with mock.patch.object(lock, "pypi_project", return_value=pypi):
             self.assertEqual(lock.newest_on_pypi("Flask", "3.1.3", None), "3.4.0")
 
+    def test_constraints_cover_packages_with_markers(self):
+        old = {"gunicorn": {"name": "gunicorn", "version": "26.2.0", "marker": 'sys_platform != "win32"', "hashes": []},
+               "certifi": {"name": "certifi", "version": "2026.10.19", "marker": "", "hashes": []}}
+        text = lock.constraints_for(old, None, newest=lambda n, v, c: v)
+        self.assertIn("gunicorn>=26.2.0,<=26.2.0", text)        # auch gunicorn bekommt die Wartezeit
+        self.assertIn("certifi>=2026.10.19,<=2026.10.19", text)
+
+    def test_pip_has_no_upper_limit(self):
+        self.assertIsNone(lock.upper_bound("26.2.2", "pip"))
+        self.assertEqual(lock.upper_bound("26.2.0", "gunicorn"), (27,))
+
+    def test_snapshot_is_a_complete_past_state(self):
+        with mock.patch.object(lock, "newest_base_image", side_effect=SystemExit("stop")):
+            with self.assertRaises(SystemExit):
+                lock.update(now=dt.datetime(2026, 10, 26, 4, 17, tzinfo=dt.timezone.utc))
+        src = (ROOT / "tools" / "lock.py").read_text()
+        self.assertIn('(now - dt.timedelta(days=1)).strftime("%Y%m%dT000000Z")', src)
+
     def test_resolver_result_outside_foundation_refused(self):
         old = {"flask": {"name": "Flask", "version": "3.1.3", "marker": "", "hashes": ["a" * 64]}}
         with self.assertRaises(SystemExit):
@@ -111,7 +129,8 @@ class LockFileTests(unittest.TestCase):
         text = (ROOT / "Dockerfile").read_text()
         self.assertIn("snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}", text)
         self.assertIn('[ "$VERSION_CODENAME" = trixie ]', text)
-        self.assertIn("upgrade --with-new-pkgs", text)            # auch die Pakete des Basis-Images
+        self.assertIn("full-upgrade", text)                       # auch die Pakete des Basis-Images, nichts zurückgehalten
+        self.assertIn("Packages left out of the upgrade", text)
         self.assertIn("--require-hashes", text)
         self.assertIn("python -m pip uninstall -y pip", text)     # Paketmanager nicht im fertigen Image
         self.assertIn('! python -c "import pip"', text)
@@ -170,9 +189,12 @@ class WorkflowTests(unittest.TestCase):
                 self.assertIn("permissions:", block, f"{name}/{job}")
                 self.assertNotIn("write-all", block)
         self.assertNotIn("pull_request_target", "".join(self.all_workflows().values()))
-        # Schreibrechte nur in den veröffentlichenden Jobs
-        for name, job in (("build.yml", "check"), ("security-update.yml", "update")):
-            self.assertNotIn(": write", jobs(workflow(name))[job], f"{name}/{job}")
+        # Schreibrechte nur dort, wo veröffentlicht wird
+        self.assertNotIn(": write", jobs(workflow("build.yml"))["check"])
+        self.assertNotIn("contents: write", jobs(workflow("security-update.yml"))["update"])
+        self.assertNotIn("packages: write", jobs(workflow("security-update.yml"))["record"])
+        for name in ("scan.yml", "foundation.yml"):
+            self.assertNotIn(": write", workflow(name), name)
 
     def test_schedules(self):
         self.assertRegex(workflow("security-update.yml"), r'cron: "\d+ [0-6] \* \* 1"')      # montags früh
@@ -181,46 +203,90 @@ class WorkflowTests(unittest.TestCase):
         for name in ("security-update.yml", "scan.yml", "foundation.yml"):
             self.assertIn("workflow_dispatch:", workflow(name), name)                        # von Hand startbar
 
-    def test_publishing_never_concurrent_and_only_from_main(self):
-        self.assertIn("group: publish-${{ github.ref }}", workflow("build.yml"))
-        sec = workflow("security-update.yml")
-        self.assertIn("group: publish-refs/heads/main", sec)
-        self.assertIn("cancel-in-progress: false", sec)
+    def test_publishing_jobs_never_concurrent_and_only_from_main(self):
+        publishing = [("build.yml", "publish"), ("build.yml", "release"), ("security-update.yml", "update"),
+                      ("security-update.yml", "record"), ("security-update.yml", "promote")]
+        for name, job in publishing:
+            block = jobs(workflow(name))[job]
+            self.assertIn("group: publish\n", block, f"{name}/{job}")
+            self.assertIn("cancel-in-progress: false", block, f"{name}/{job}")
         self.assertIn("github.ref == 'refs/heads/main'", jobs(workflow("build.yml"))["publish"])
-        self.assertIn("if: github.ref == 'refs/heads/main'", jobs(sec)["update"])
+        self.assertIn("if: github.ref == 'refs/heads/main'", jobs(workflow("security-update.yml"))["update"])
 
     def test_release_order(self):
-        check = jobs(workflow("build.yml"))["check"]
+        wf = jobs(workflow("build.yml"))
+        check = wf["check"]
         order = ["Check locks", "Build the image (without cache)", "Run the tests in the image", "Security scan"]
         positions = [check.index(o) for o in order]
         self.assertEqual(positions, sorted(positions))
-        self.assertIn("--no-cache", check)
-        publish = jobs(workflow("build.yml"))["publish"]
+        publish = wf["publish"]
+        order = ["Already published?", "--no-cache", "test_in_image", "scan catalytix-ci:amd64",
+                 "scan catalytix-ci:arm64", "--push", "imagetools create -t"]
+        positions = [publish.index(o) for o in order]
+        self.assertEqual(positions, sorted(positions), order)
         self.assertIn("needs: check", publish)
-        self.assertIn("never overwritten", publish)
-        self.assertIn("is-highest", check)                                   # :latest nur für die höchste Version
+        self.assertIn("is-highest", check)
+        self.assertIn("is-highest", publish)                 # :latest nur für die höchste Version
+        self.assertIn("needs: [check, publish]", wf["release"])
 
     def test_security_update_order(self):
-        text = workflow("security-update.yml")
-        upd = jobs(text)["update"]
-        order = ["Latest release", "same-build", "lock.py update", "--no-cache", "Compare with the published",
-                 "Run the tests in the image", "trivy_scan.py scan", "upload-artifact"]
+        wf = jobs(workflow("security-update.yml"))
+        upd = wf["update"]
+        order = ["highest_release", "same-build", "lock.py update", "--no-cache", "Compare with the published",
+                 "test_in_image", "scan catalytix-ci:amd64", "scan catalytix-ci:arm64", "next-tag", "--push",
+                 "upload-artifact"]
         positions = [upd.index(o) for o in order]
         self.assertEqual(positions, sorted(positions), order)
-        self.assertIn("if: steps.compare.outputs.changed == 'true'", upd)     # nichts geändert: nichts tun
-        pub = jobs(text)["publish"]
-        self.assertIn("needs: update", pub)
-        self.assertIn("if: needs.update.outputs.changed == 'true'", pub)
-        order = ["main changed during the run", "is-highest", "--no-cache", "next-tag", "imagetools inspect",
-                 "changelog", "git push", "--push"]
-        positions = [pub.index(o) for o in order]
-        self.assertEqual(positions, sorted(positions), order)
-        self.assertIn('-t "$image:$TAG" -t "$image:latest"', pub)
+        for step in ("Run the tests", "Security scan", "Push the security update"):
+            block = upd[upd.index(step):]
+            self.assertIn("if: steps.compare.outputs.changed == 'true'", block[:300], step)   # sonst nichts tun
+        self.assertIn("while image_exists", upd)                                              # nie überschreiben
+        rec = wf["record"]
+        self.assertIn("if: needs.update.outputs.changed == 'true'", rec)
+        self.assertLess(rec.index("commits/main"), rec.index("changelog"))                   # main nicht bewegt
+        self.assertLess(rec.index("changelog"), rec.index("git push"))
+        self.assertIn("needs: [update, record]", wf["promote"])
+        self.assertIn("is-highest", wf["promote"])
 
     def test_errors_are_readable_on_the_run(self):
+        ci = (ROOT / "tools" / "ci.sh").read_text()
+        self.assertIn('echo "::error title=$1::$2"', ci)
         for name in ("build.yml", "security-update.yml"):
-            text = workflow(name)
-            self.assertGreaterEqual(text.count("::error title="), 4, name)
+            self.assertGreaterEqual(workflow(name).count("fail \""), 6, name)
+
+
+class CiHelperTests(unittest.TestCase):
+    """tools/ci.sh mit nachgestelltem docker/gh: Fehler der Registry gelten nie als „nicht veröffentlicht“."""
+
+    def run_sh(self, script, docker_out="", docker_rc=0, gh_out="", gh_rc=0):
+        with tempfile.TemporaryDirectory() as tmp:
+            for name, out, rc in (("docker", docker_out, docker_rc), ("gh", gh_out, gh_rc)):
+                f = Path(tmp) / name
+                f.write_text(f"#!/bin/sh\nprintf '%s\\n' '{out}'\nexit {rc}\n")
+                f.chmod(0o755)
+            env = dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}", GITHUB_REPOSITORY="o/r")
+            return subprocess.run(["bash", "-c", f"set -e -o pipefail; . tools/ci.sh; {script}"], cwd=ROOT,
+                                  env=env, capture_output=True, text=True)
+
+    def test_image_exists(self):
+        self.assertEqual(self.run_sh("image_exists x:1").returncode, 0)
+        r = self.run_sh("image_exists x:1 || echo missing", "ERROR: x:1: not found", 1)
+        self.assertIn("missing", r.stdout)
+        r = self.run_sh("image_exists x:1 || echo missing", "connection reset by peer", 1)
+        self.assertNotIn("missing", r.stdout)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("::error title=Registry not reachable", r.stdout)
+
+    def test_release_exists(self):
+        r = self.run_sh("release_exists 1.0.0 || echo missing", gh_out="gh: Not Found (HTTP 404)", gh_rc=1)
+        self.assertIn("missing", r.stdout)
+        r = self.run_sh("release_exists 1.0.0 || echo missing", gh_out="gh: Server Error (HTTP 502)", gh_rc=1)
+        self.assertNotIn("missing", r.stdout)
+        self.assertIn("::error title=GitHub API not reachable", r.stdout)
+
+    def test_highest_release_is_by_number(self):
+        r = self.run_sh("highest_release", gh_out="v2.18.4\nv2.19.0\nv2.9.0")
+        self.assertEqual(r.stdout.strip(), "2.19.0")
 
 
 class FakeTrivy:
@@ -290,6 +356,23 @@ class TrivyFlowTests(unittest.TestCase):
         with self.assertRaises(SystemExit), mock.patch("sys.stdout"):
             trivy_scan.install(lockdata, fetch=lambda url, dest: Path(dest).write_bytes(b"not trivy"))
 
+    def test_install_success_path(self):
+        import hashlib
+        import io
+        import tarfile
+        buf = io.BytesIO()
+        with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+            data = b"#!/bin/sh\necho trivy\n"
+            info = tarfile.TarInfo("trivy")
+            info.size, info.mode = len(data), 0o755
+            tar.addfile(info, io.BytesIO(data))
+        blob = buf.getvalue()
+        lockdata = dict(trivy_scan.read_lock(), sha256=hashlib.sha256(blob).hexdigest())
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(trivy_scan, "INSTALL_DIR", Path(tmp)), \
+                mock.patch("sys.stdout"):
+            binary = trivy_scan.install(lockdata, fetch=lambda url, dest: Path(dest).write_bytes(blob))
+            self.assertEqual(subprocess.run([str(binary)], capture_output=True, text=True).stdout.strip(), "trivy")
+
     def test_ignore_file_needs_reason_and_expiry(self):
         today = dt.date(2026, 10, 25)
         with tempfile.TemporaryDirectory() as tmp:
@@ -345,6 +428,18 @@ class SecurityUpdateTests(unittest.TestCase):
         text = security_update.insert_changelog(entry, "# Änderungen\n\nIntro\n\n## 2.18.3 – x\n- a\n")
         self.assertLess(text.index("2.18.3-s1"), text.index("## 2.18.3 –"))
         self.assertTrue(text.startswith("# Änderungen"))
+
+    def test_first_entry_without_old_package_list(self):
+        entry = security_update.changelog_entry("2.19.0-s1", "2.19.0", security_update.diff("", self.NEW),
+                                                dt.date(2026, 10, 26), first=True)
+        self.assertIn("Erster Stand mit vollständiger Paketliste (2 Debian-Pakete, 3 Python-Pakete", entry)
+        self.assertNotIn("libssl3t64", entry)
+
+    def test_highest_ignores_security_tags(self):
+        with mock.patch("sys.stdin") as stdin, mock.patch("sys.stdout") as stdout:
+            stdin.read.return_value = "v2.19.0\nv2.20.0-s1\nv2.18.4\nnonsense"
+            self.assertEqual(security_update.main(["highest"]), 0)
+        self.assertEqual("".join(c.args[0] for c in stdout.write.call_args_list).strip(), "2.19.0")
 
     def test_latest_only_for_highest(self):
         self.assertEqual(security_update.main(["is-highest", "2.18.3", "2.18.3"]), 0)

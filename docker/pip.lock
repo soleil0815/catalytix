@@ -1,5 +1,5 @@
 # pip for building the image only (removed from the finished image) – written by tools/lock.py.
-# Exact version and SHA-256 of every published file; updated within its major version.
+# Exact version and SHA-256 of every published file (calendar version – no upper limit).
 
 pip==26.2.2 \
     --hash=sha256:3a8e5c800492787f33a4114ef54444546c340df428974ebba17e0fd47e11af2f \

@@ -107,6 +107,8 @@ Requires Docker Compose – as `docker compose` (any version) or the older `dock
 | "Unreleased build changes on main" | `main` has changes to `Dockerfile` or `requirements.in` that are not in a release yet | Publish a new program version first |
 | *Foundation check* yellow/red | The Debian release or Python series gets no security updates in ≤ 12 or ≤ 6 months | Raise the foundation deliberately: switch the `Dockerfile` and `tools/lock.py` (`FOUNDATION`) to the new Debian release or Python series, `tools/lock.py update`, all tests, new program version |
 
+**What stops Trivy:** HIGH/CRITICAL vulnerabilities with an available fix, and secrets found in the image (e.g. keys) – the latter always. Both platforms (amd64 and arm64) are scanned, and exactly the tested and scanned image is published.
+
 **`.trivyignore`:** only checked, non-exploitable findings – each entry `ID exp:YYYY-MM-DD` (at most 6 months) with a comment line above it as the reason. After the expiry date the finding blocks again.
 
 **Built locally** (zip package, `update.sh`) gives the same image as on GitHub; the build needs access to Docker Hub, PyPI and snapshot.debian.org.

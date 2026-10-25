@@ -9,7 +9,7 @@
 ARG PYTHON_IMAGE=python:3.13.17-slim-trixie@sha256:d98cc29d3266e535dd9da1099688d9cb3ca4753813571e071763d17725460962
 FROM ${PYTHON_IMAGE}
 ARG PYTHON_IMAGE
-ARG DEBIAN_SNAPSHOT=20261025T080000Z
+ARG DEBIAN_SNAPSHOT=20261024T000000Z
 
 LABEL org.opencontainers.image.title="Catalytix" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later" \
@@ -24,17 +24,19 @@ LABEL org.opencontainers.image.title="Catalytix" \
 RUN set -eu; \
     . /etc/os-release; \
     [ "$VERSION_CODENAME" = trixie ] || { echo "Expected Debian trixie, found $VERSION_CODENAME"; exit 1; }; \
+    key=""; for k in /usr/share/keyrings/debian-archive-keyring.pgp /usr/share/keyrings/debian-archive-keyring.gpg; do \
+      [ -f "$k" ] && { key="$k"; break; }; done; \
+    [ -n "$key" ] || { echo "Debian archive keyring not found"; exit 1; }; \
     rm -f /etc/apt/sources.list /etc/apt/sources.list.d/*; \
     printf '%s\n' \
       "Types: deb" "URIs: https://snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}/" \
-      "Suites: trixie trixie-updates" "Components: main" \
-      "Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg" "" \
+      "Suites: trixie trixie-updates" "Components: main" "Signed-By: $key" "" \
       "Types: deb" "URIs: https://snapshot.debian.org/archive/debian-security/${DEBIAN_SNAPSHOT}/" \
-      "Suites: trixie-security" "Components: main" \
-      "Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg" > /etc/apt/sources.list.d/snapshot.sources; \
+      "Suites: trixie-security" "Components: main" "Signed-By: $key" > /etc/apt/sources.list.d/snapshot.sources; \
     apt-get -o Acquire::Check-Valid-Until=false -o Acquire::Retries=5 update; \
     DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=5 -y --no-install-recommends \
-      -o Dpkg::Options::=--force-confold upgrade --with-new-pkgs; \
+      -o Dpkg::Options::=--force-confold full-upgrade; \
+    if apt-get -s full-upgrade | grep -q '^Inst '; then echo "Packages left out of the upgrade"; exit 1; fi; \
     apt-get clean; rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONDONTWRITEBYTECODE=1 \

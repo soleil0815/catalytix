@@ -105,6 +105,8 @@ Das Skript braucht Docker Compose – als `docker compose` (jede Version) oder a
 | „Unreleased build changes on main“ | Auf `main` liegen Änderungen an `Dockerfile` oder `requirements.in`, die noch in keinem Release sind | Erst eine neue Programmversion veröffentlichen |
 | *Foundation check* gelb/rot | Debian- oder Python-Reihe bekommt in ≤ 12 bzw. ≤ 6 Monaten keine Sicherheitsupdates mehr | Unterbau bewusst anheben: im `Dockerfile` und in `tools/lock.py` (`FOUNDATION`) auf die neue Debian-Version bzw. Python-Reihe umstellen, `tools/lock.py update`, alle Tests, neue Programmversion |
 
+**Was Trivy stoppt:** Schwachstellen HIGH/CRITICAL, für die es eine Korrektur gibt, und gefundene Geheimnisse (z. B. Schlüssel) im Image – Letztere immer. Geprüft werden beide Plattformen (amd64 und arm64), und veröffentlicht wird genau das getestete und geprüfte Image.
+
 **`.trivyignore`:** nur geprüfte, nicht ausnutzbare Befunde – je Eintrag `ID exp:JJJJ-MM-TT` (höchstens 6 Monate) mit einer Kommentarzeile darüber als Begründung. Nach dem Ablaufdatum blockiert der Befund wieder.
 
 **Lokal gebaut** (Zip-Paket, `update.sh`) entsteht dasselbe Image wie auf GitHub; der Bau braucht dafür Zugang zu Docker Hub, PyPI und snapshot.debian.org.

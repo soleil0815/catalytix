@@ -57,31 +57,36 @@ def parse_version(v: str) -> tuple:
     return tuple(int(x) for x in nums.group(1).split("."))
 
 
-def is_calendar_version(v: str) -> bool:
-    """certifi 2026.10.19, tzdata 2026.2 … – no compatibility promise tied to the number, always take the newest."""
-    return parse_version(v)[0] >= 2000
+# Calendar-versioned packages whose first number is a short year (pip 26.x, packaging 26.x) – like certifi 2026.10.19
+# they make no compatibility promise with the number, so they have no upper limit.
+CALENDAR_PACKAGES = {"pip", "packaging", "certifi", "tzdata"}
 
 
-def upper_bound(v: str) -> tuple | None:
+def is_calendar_version(v: str, name: str = "") -> bool:
+    """certifi 2026.10.19, tzdata 2026.2, pip 26.2 … – always take the newest."""
+    return parse_version(v)[0] >= 2000 or name.lower() in CALENDAR_PACKAGES
+
+
+def upper_bound(v: str, name: str = "") -> tuple | None:
     """Exclusive upper limit within the foundation: next major version; before 1.0 the next minor version."""
-    if is_calendar_version(v):
+    if is_calendar_version(v, name):
         return None
     parts = parse_version(v) + (0, 0)
     major, minor = parts[0], parts[1]
     return (0, minor + 1) if major == 0 else (major + 1,)
 
 
-def within(candidate: str, current: str) -> bool:
+def within(candidate: str, current: str, name: str = "") -> bool:
     """May `candidate` replace `current`? Never lower, never across the limit."""
     c, cur = parse_version(candidate), parse_version(current)
     if c < cur:
         return False
-    limit = upper_bound(current)
+    limit = upper_bound(current, name)
     return limit is None or c[:len(limit)] < limit
 
 
 def bound_spec(name: str, current: str) -> str:
-    limit = upper_bound(current)
+    limit = upper_bound(current, name)
     spec = f"{name}>={current}"
     return spec if limit is None else spec + ",<" + ".".join(str(x) for x in limit)
 
@@ -115,7 +120,7 @@ def read_lock(path: Path = REQUIREMENTS) -> dict[str, dict]:
 
 PIP_HEADER = [
     "# pip for building the image only (removed from the finished image) – written by tools/lock.py.",
-    "# Exact version and SHA-256 of every published file; updated within its major version.",
+    "# Exact version and SHA-256 of every published file (calendar version – no upper limit).",
     "",
 ]
 
@@ -208,7 +213,7 @@ def newest_on_pypi(name: str, current: str, cutoff: dt.datetime | None) -> str:
         if is_prerelease(v) or not files or all(f.get("yanked") for f in files):
             continue
         try:
-            if not within(v, current) or parse_version(v) <= parse_version(best):
+            if not within(v, current, name) or parse_version(v) <= parse_version(best):
                 continue
         except ValueError:
             continue
@@ -293,7 +298,7 @@ def plan_python(old: dict[str, dict], resolved: dict[str, str], cutoff, pip_old:
     changes = []
     for key, version in resolved.items():
         prev = old.get(key)
-        if prev and not within(version, prev["version"]):
+        if prev and not within(version, prev["version"], key):
             raise SystemExit(f"lock: {key} {prev['version']} -> {version} would leave the foundation")
         name = prev["name"] if prev else key
         new[key] = {"name": name, "version": version, "marker": prev["marker"] if prev else "", "hashes": []}
@@ -324,9 +329,7 @@ def constraints_for(old: dict[str, dict], cutoff, newest=None) -> str:
     locked (e.g. a security fix that was taken on purpose) – it only applies to newer ones."""
     newest = newest or newest_on_pypi
     lines = []
-    for p in old.values():
-        if p["marker"]:
-            continue
+    for p in old.values():      # also entries with a marker (gunicorn): a constraint for an unused package is harmless
         allowed = newest(p["name"], p["version"], cutoff)
         lines.append(f"{p['name']}>={p['version']},<={allowed}")
     return "\n".join(lines) + "\n"
@@ -344,7 +347,9 @@ def update(cooldown_days: int = COOLDOWN_DAYS, report: Path | None = None, now: 
         raise SystemExit(f"lock: base image {image} is outside the foundation of {docker['image']}")
     if image != docker["image"]:
         changes.append(f"base {docker['image']} -> {image}")
-    snapshot = now.strftime("%Y%m%dT%H0000Z")          # exact Debian archive state (to the hour)
+    # Exact Debian archive state: yesterday 00:00 UTC – a moment that is completely imported on snapshot.debian.org,
+    # so every build with this value (test, scan, publish) gets exactly the same packages
+    snapshot = (now - dt.timedelta(days=1)).strftime("%Y%m%dT000000Z")
 
     old = read_lock()
     pip_lock = read_lock(PIP_LOCK)

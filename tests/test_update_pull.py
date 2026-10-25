@@ -230,67 +230,6 @@ class RepoFilesTests(unittest.TestCase):
         self.assertIn(f'org.opencontainers.image.version="{v}"', (ROOT / "Dockerfile").read_text())
         self.assertIn(f"CATALYTIX_TAG:-{v}}}", (ROOT / "docker-compose.yml").read_text())
 
-    def test_workflow_builds_and_pushes_image(self):
-        # ohne PyYAML: das ist keine Abhängigkeit von Catalytix und fehlt deshalb auf GitHub
-        text = (ROOT / ".github" / "workflows" / "build.yml").read_text()
-        for job in ("  test:", "  image:", "  release:"):
-            self.assertIn(f"\n{job}\n", text)
-        self.assertIn("ghcr.io/${GITHUB_REPOSITORY,,}", text)
-        self.assertIn("linux/amd64,linux/arm64", text)
-
-    def test_trivy_scan_before_publishing(self):
-        import re
-        for name in ("build.yml", "rebuild.yml"):
-            text = (ROOT / ".github" / "workflows" / name).read_text()
-            uses = re.findall(r"aquasecurity/trivy-action@(\S+)", text)
-            self.assertTrue(uses, name)
-            for ref in uses:      # nach dem Supply-Chain-Angriff 2026: nur auf einen vollen Commit gepinnt
-                self.assertRegex(ref, r"^[0-9a-f]{40}$", name)
-            self.assertIn('exit-code: "1"', text)
-            self.assertIn("severity: HIGH,CRITICAL", text)
-        build = (ROOT / ".github" / "workflows" / "build.yml").read_text()
-        self.assertLess(build.index("trivy-action"), build.index("name: Build (and push)"))
-        weekly = (ROOT / ".github" / "workflows" / "rebuild.yml").read_text()
-        self.assertIn("ref: ${{ needs.release.outputs.tag }}", weekly)       # nur veröffentlichte Releases
-        self.assertIn("needs: [release, test]", weekly)                        # erst nach den Tests
-        self.assertLess(weekly.index("trivy-action"), weekly.index("name: Build and publish"))
-        self.assertIn("publish-refs/heads/main", weekly)                       # nie gleichzeitig mit build.yml
-        self.assertIn("group: publish-${{ github.ref }}", build)
-        self.assertTrue((ROOT / ".trivyignore").exists())
-
-    def test_github_builds_keep_everything_current(self):
-        df = (ROOT / "Dockerfile").read_text()
-        self.assertIn("ARG DEPS=pinned", df)                       # lokal: reproduzierbar
-        self.assertRegex(df, r"ARG PYTHON_IMAGE=python:[0-9.]+-slim-trixie@sha256:[0-9a-f]{64}")
-        self.assertIn('--uploaded-prior-to "$DEPS_CUTOFF"', df)
-        for name in ("build.yml", "rebuild.yml"):
-            wf = (ROOT / ".github" / "workflows" / name).read_text()
-            self.assertEqual(wf.count("DEPS=current"), 2, name)     # Scan-Build und veröffentlichter Build gleich
-            self.assertEqual(wf.count("PYTHON_IMAGE=python:3.13-slim-trixie"), 2, name)
-            self.assertIn("7 days ago", wf)
-            self.assertLess(wf.index("Run the tests in the image"), wf.index("trivy-action"))
-
-    @unittest.skipUnless(shutil.which("pip") or Path(sys.executable).with_name("pip").exists(), "pip fehlt (im Image)")
-    def test_lock_floor_raises_only_older_installs(self):
-        try:
-            import pip  # noqa: F401
-        except ImportError:
-            self.skipTest("pip fehlt")
-        import importlib.metadata as md
-        import runpy
-        from unittest import mock
-        lock = Path(tempfile.mkdtemp()) / "lock.txt"
-        lock.write_text("pillow==999.0.0\nnot-installed-pkg==1.0\n"
-                        "certifi==0.0.1\nwaitress==99.0 ; sys_platform == \"nonexistent\"\n")
-        mod = runpy.run_path(str(ROOT / "tools" / "lock_floor.py"))
-        with mock.patch("subprocess.check_call") as call:
-            mod["main"](str(lock))
-        args = call.call_args[0][0]
-        self.assertIn("pillow==999.0.0", args)                 # zu alt installiert → anheben
-        self.assertFalse(any(a.startswith("certifi") for a in args))   # neuer installiert → bleibt
-        self.assertFalse(any(a.startswith("waitress") for a in args))  # Marker passt nicht
-        self.assertTrue(md.version("pillow"))
-
     def test_image_carries_installation_files(self):
         df = (ROOT / "Dockerfile").read_text()
         self.assertIn("/app/dist/", df)

@@ -1,5 +1,23 @@
 [
  {
+  "version": "2.19.0",
+  "date": "2026-10-25",
+  "items": [
+   {
+    "kind": "security",
+    "audience": "admin",
+    "de": {
+     "title": "Feste Versionen und wöchentliche Sicherheitsupdates",
+     "text": "Alle Bestandteile des Programm-Images sind jetzt mit exakter Version und Prüfsumme festgelegt. Jeden Montag werden sie automatisch innerhalb des Unterbaus erneuert, getestet und geprüft; nur wenn alles besteht, erscheint ein Sicherheitsupdate (z. B. 2.19.0-s1). Zusätzlich wird das veröffentlichte Image täglich auf neue Schwachstellen geprüft, und wöchentlich, wie lange Betriebssystem und Python noch Updates bekommen."
+    },
+    "en": {
+     "title": "Pinned versions and weekly security updates",
+     "text": "All components of the program image are now pinned with exact version and checksum. Every Monday they are renewed automatically within the foundation, tested and scanned; only if everything passes is a security update published (e.g. 2.19.0-s1). In addition, the published image is scanned daily for new vulnerabilities, and weekly it is checked how long the operating system and Python still get updates."
+    }
+   }
+  ]
+ },
+ {
   "version": "2.18.3",
   "date": "2026-10-24",
   "items": [

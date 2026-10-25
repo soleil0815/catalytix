@@ -2,6 +2,48 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 2.19.0 – 25.10.2026
+Bau und Auslieferung neu aufgestellt: alles fest, automatisch sicher und aktuell – ohne Versionssprünge.
+
+**Reproduzierbarer Bau**
+- Basis-Image mit fester Version **und** Prüfsumme: `python:3.13.17-slim-trixie@sha256:…` (vorher 3.13.16; in den
+  GitHub-Builds von 2.18.3 der wandernde Tag `3.13-slim-trixie`).
+- **Debian-Pakete** auf einen festen Archiv-Stand (`DEBIAN_SNAPSHOT`, snapshot.debian.org) – alle Pakete im Image,
+  auch die des Basis-Images. Der Bau bricht ab, wenn das Basis-Image nicht Debian „trixie“ ist.
+- **Python-Pakete** in `requirements.txt` mit exakter Version und SHA-256 jeder Datei, auch indirekte
+  (`--require-hashes`); `pip` in `docker/pip.lock`, nach der Installation aus dem Image entfernt (geprüft).
+  Die Inhaltsliste steht im Image unter `/app/image-packages.txt`.
+- `tools/lock.py update` legt alle Versionen neu fest – nur innerhalb des Unterbaus: gleiche Debian-Version, gleiche
+  Python-Reihe, jedes Paket innerhalb seiner Hauptversion (vor 1.0: Unterversion), Kalenderversionen (z. B.
+  `certifi`) ohne Grenze; neue Versionen erst nach 7 Tagen, eine schon festgelegte Version wird nie ausgeschlossen.
+  `requirements.in` folgt dieser Regel (z. B. `Flask>=3.1,<4`). Erste Festlegung: Python 3.13.17, cryptography 50.0.2,
+  SQLAlchemy 2.1.5, Werkzeug 3.1.9, MarkupSafe 3.0.4, charset-normalizer 3.5.2, pycparser 3.11.
+- Die Build-Optionen von 2.18.3 (`OS_UPDATES`, `DEPS=current`, `tools/lock_floor.py`) entfallen – die GitHub-Builds
+  nehmen jetzt genau die festgelegten Versionen.
+
+**Wöchentliches Sicherheitsupdate** (`.github/workflows/security-update.yml`, montags 04:17 UTC, auch von Hand)
+- Code des letzten Releases, Versionen neu festlegen, ohne Zwischenspeicher bauen, mit dem veröffentlichten `latest`
+  vergleichen – nichts geändert: nichts tun. Sonst: Tests im Image, Trivy, und nur wenn alles besteht: Locks und
+  CHANGELOG-Eintrag (Liste der geänderten Pakete) auf `main`, Image als `<version>-s<Zähler>` und `latest`.
+  Ersetzt den Wochen-Neubau `rebuild.yml`.
+
+**Trivy, Scans, Unterbau**
+- Trivy nicht mehr als GitHub Action, sondern feste Version 0.76.0, per SHA-256 geprüft (`tools/trivy.lock`,
+  `tools/trivy_scan.py`); nur HOCH/KRITISCH mit Korrektur stoppt. `.trivyignore`: jeder Eintrag mit Begründung und
+  Ablaufdatum (höchstens 6 Monate), sonst stoppt der Lauf.
+- **Täglicher Scan** des veröffentlichten `latest` (`scan.yml`).
+- **Unterbau-Prüfung** wöchentlich (`foundation.yml`, endoflife.date): ab 12 Monaten vor Ende der Sicherheitsupdates
+  von Debian 13 bzw. Python 3.13 ein Hinweis, ab 6 Monaten ein roter Lauf.
+
+**Sicherheit der Workflows**
+- Alle Actions auf Commit-Prüfsummen, `permissions: {}` als Vorgabe und minimale Rechte je Job, keine gespeicherten
+  Git-Anmeldedaten (`persist-credentials: false`), veröffentlicht wird nur von `main` und nie gleichzeitig (gemeinsame
+  Sperre), veröffentlichte Tags werden nie überschrieben, `latest` nur für die höchste Version. Tests laufen im
+  fertigen Image statt auf dem Runner. Ursachen von Fehlern stehen lesbar als Anmerkung am Lauf.
+- Selbsttests (`tests/test_supply_chain.py`): Zeitpläne, Reihenfolge der Schritte, Versionsgrenzen, Rechte, Pinning,
+  Ablauf mit nachgestelltem Trivy, Zähler und Änderungsprotokoll, Unterbau-Schwellen.
+- README und Hilfe (*Wartung*): was automatisch passiert und was bei einem roten Lauf zu tun ist.
+
 ## 2.18.3 – 24.10.2026
 - **Alles im Image von GitHub bleibt aktuell** – bei jedem Release und beim wöchentlichen Neubau, innerhalb derselben
   Grundlage:

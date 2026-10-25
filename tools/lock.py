@@ -113,8 +113,15 @@ def read_lock(path: Path = REQUIREMENTS) -> dict[str, dict]:
     return pkgs
 
 
+PIP_HEADER = [
+    "# pip for building the image only (removed from the finished image) – written by tools/lock.py.",
+    "# Exact version and SHA-256 of every published file; updated within its major version.",
+    "",
+]
+
+
 def write_lock(pkgs: dict[str, dict], path: Path = REQUIREMENTS) -> None:
-    lines = [
+    lines = list(PIP_HEADER) if path == PIP_LOCK else [
         "# ------------------------------------------------------------------",
         "# Exactly pinned package versions (lock file) – written by tools/lock.py, do not edit by hand.",
         "#",

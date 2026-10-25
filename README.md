@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 2.18.3** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 2.19.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name eurer Bibliothek.
 
@@ -33,7 +33,7 @@ curl -fsSLO https://raw.githubusercontent.com/soleil0815/catalytix/main/update.s
 ./update.sh --pull
 ```
 
-Das Skript holt das Image, legt `docker-compose.yml`, `.env` und `.env.example` aus dem Image an, startet den Container und zeigt den Einrichtungscode. Spätere Updates: `./update.sh --pull` (neueste Version) oder `./update.sh --pull=2.18.3` (genau diese Version, z. B. um zurückzugehen).
+Das Skript holt das Image, legt `docker-compose.yml`, `.env` und `.env.example` aus dem Image an, startet den Container und zeigt den Einrichtungscode. Spätere Updates: `./update.sh --pull` (neueste Version) oder `./update.sh --pull=2.19.0` (genau diese Version, z. B. um zurückzugehen).
 
 ### Mit Docker – selbst bauen (Zip-Paket oder Git-Klon)
 
@@ -58,8 +58,8 @@ Die `.env` ist nicht im Update-Paket enthalten. Zusätzliche Dienste (z. B. eine
 
 ```bash
 ./update.sh --pull                   # neueste Version von GitHub holen (fertiges Image, nichts wird gebaut)
-./update.sh --pull=2.18.3            # genau diese Version von GitHub (bleibt dabei bis zum nächsten --pull)
-./update.sh catalytix-2.18.3.zip      # klassisch: Paket einspielen und lokal bauen
+./update.sh --pull=2.19.0            # genau diese Version von GitHub (bleibt dabei bis zum nächsten --pull)
+./update.sh catalytix-2.19.0.zip      # klassisch: Paket einspielen und lokal bauen
 ./update.sh                          # aktuellen Stand neu bauen bzw. (im --pull-Modus) neu holen und starten
 ```
 
@@ -81,18 +81,33 @@ Optionen: `--pull[=VERSION]` (Image von GitHub statt lokal bauen), `--no-backup`
 
 Das Skript braucht Docker Compose – als `docker compose` (jede Version) oder als älteres `docker-compose` ab 1.27 (z. B. auf einer Synology; ältere 1.x-Versionen können die `docker-compose.yml` ohne `version:`-Zeile nicht lesen) – und zum Entpacken `unzip` (ersatzweise `python3`). Fehlt die `.env`, legt es sie aus der Vorlage an; ausführen als root oder als Mitglied der Gruppe `docker`.
 
-### Aktuelles Image von GitHub – reproduzierbarer Build lokal
+### Feste Versionen und automatische Sicherheitsupdates
 
-**Das Image von GitHub hält alles aktuell** (bei jedem Release und jeden Montag neu gebaut), innerhalb derselben Grundlage:
-- **Python:** neueste 3.13-Patch-Version (`python:3.13-slim-trixie`) auf **Debian 13 „trixie“**, dazu die aktuellen Debian-Sicherheitsupdates.
-- **Python-Pakete:** neueste Versionen innerhalb der Bereiche in `requirements.in` (gleiche Haupt- bzw. Nebenversion, also Fehler- und Sicherheitskorrekturen). Nur Veröffentlichungen, die **mindestens 7 Tage alt** sind – Schutz vor frisch hochgeladenen Schadversionen, wie es sie bei Supply-Chain-Angriffen gab.
-- Veröffentlicht wird erst, wenn **alle Tests im fertigen Image** und der **Trivy-Scan** bestehen. Welche Versionen drin sind, steht im Image unter `/app/installed-packages.txt` und in der Zusammenfassung des GitHub-Laufs.
-- Den Unterbau (Debian 14, Python 3.14, neue Hauptversionen von Paketen) heben wir bewusst an, wenn die jetzige Grundlage keine Updates mehr bekommt (Debian 13: Sicherheitsupdates bis etwa 2028, LTS bis etwa 2030; Python 3.13: bis Oktober 2029).
+**Jeder Bau ist reproduzierbar** – alle Eingaben stehen mit exakter Version im Repository:
+- **Basis-Image** mit fester Version und Prüfsumme (`ARG PYTHON_IMAGE=python:3.13.x-slim-trixie@sha256:…` im `Dockerfile`). Der Name legt den **Unterbau** fest: Debian 13 „trixie“, Python 3.13.
+- **Debian-Pakete:** alle Pakete im Image, auch die des Basis-Images, werden auf einen festen Stand des Debian-Archivs gebracht (`ARG DEBIAN_SNAPSHOT=…`, über snapshot.debian.org). Welche Versionen genau drin sind, steht im Image unter `/app/image-packages.txt`.
+- **Python-Pakete:** `requirements.txt` enthält alle Pakete, auch indirekte, mit exakter Version und der SHA-256-Prüfsumme jeder Datei – pip installiert nichts anderes (`--require-hashes`). `pip` selbst steht in `docker/pip.lock` und wird nach der Installation aus dem Image entfernt.
+- **Neu festlegen:** `python3 tools/lock.py update` (braucht Docker und Internet) – immer nur **innerhalb des Unterbaus**: gleiche Debian-Version, gleiche Python-Reihe, jedes Paket innerhalb seiner Hauptversion (vor 1.0: Unterversion; Bereiche in `requirements.in`). Ausnahme ohne Grenze: Kalenderversionen wie die Stammzertifikate (`certifi`). Neue Paketversionen werden erst übernommen, wenn sie mindestens 7 Tage alt sind (Schutz vor frisch hochgeladenen Schadversionen). `python3 tools/lock.py check` prüft die Locks.
 
-**Lokal gebaut (Zip-Paket) ergibt jeder Build dasselbe Image:**
-- **Basis-Image** fest: `python:3.13.16-slim-trixie`, zusätzlich über den Digest (`@sha256:…`) eingefroren – auch wenn Docker Hub das Tag später neu belegt, wird genau dieser Stand verwendet.
-- **Alle Python-Pakete** stehen in `requirements.txt` mit exakter Version, auch alle Unterabhängigkeiten. Installiert wird mit `--no-deps` (nichts wird nachgezogen) und nur aus fertigen Paketen (`--only-binary`), anschließend prüft `pip check`, dass alles zusammenpasst. Auch `pip` selbst ist festgelegt.
-- `requirements.in` listet nur die direkten Abhängigkeiten mit erlaubten Bereichen – als Grundlage, wenn die Versionen einmal bewusst angehoben werden. Danach `requirements.txt` vollständig nachziehen und die Tests laufen lassen.
+**Automatisch auf GitHub** (Einzelheiten unter [GitHub](#github-image-bauen-und-versionen-veröffentlichen)):
+- **Jeden Montag früh – Sicherheitsupdate:** neueste Versionen innerhalb des Unterbaus festlegen, ohne Zwischenspeicher neu bauen, die Tests im fertigen Image laufen lassen, mit Trivy prüfen. Nur wenn **alles** besteht, wird das Image als `latest` und als **`<Programmversion>-s<Zähler>`** veröffentlicht (z. B. `2.19.0-s1`, `2.19.0-s2` – „gleiches Programm, nur neue Pakete“; eine neue Programmversion beginnt wieder bei `s1`), mit einem Eintrag im CHANGELOG, der die geänderten Pakete auflistet. Hat sich nichts geändert, passiert nichts.
+- **Täglich:** Trivy prüft das veröffentlichte `latest` auf Schwachstellen, die erst nach dem Release bekannt wurden.
+- **Wöchentlich:** Prüfung, wie lange Debian 13 und Python 3.13 noch Sicherheitsupdates bekommen. Ab 12 Monaten vorher ein Hinweis am Lauf, ab 6 Monaten wird der Lauf rot. Den Unterbau hebt niemand still an – das ist eine bewusste Änderung (siehe unten).
+
+**Wird ein Lauf rot,** wird nichts veröffentlicht, die laufende Installation bleibt unverändert, und GitHub schickt eine E-Mail. Die Ursache steht oben am Lauf (*Actions* → Lauf öffnen, Anmerkungen und Zusammenfassung):
+
+| Lauf / Meldung | Bedeutung | Was zu tun ist |
+|---|---|---|
+| *Security update* – „Trivy: … blocking finding(s)“ | Ein Paket hat eine schwere Lücke mit Korrektur, die Korrektur ist aber noch nicht im Image – meist, weil sie jünger als 7 Tage ist | Abwarten (nächster Montag) oder *Actions → Security update → Run workflow* mit `cooldown_days` = `0` starten. Hilft das nicht: die Korrektur liegt außerhalb des Unterbaus (z. B. nur in einer neuen Hauptversion) – das Paket bewusst anheben |
+| *Daily scan* rot | Für das veröffentlichte Image wurde eine neue Lücke bekannt | Ebenso: *Security update* von Hand starten; ist sie nicht ausnutzbar, mit Begründung und Ablaufdatum in `.trivyignore` eintragen |
+| „Tests failed in the new image“ | Ein Paket-Update verträgt sich nicht mit dem Programm | Fehler im Log ansehen, Programm anpassen oder das Paket in `requirements.in` begrenzen, neue Programmversion |
+| „Locking failed“ / „Image build failed“ | Docker Hub, PyPI oder snapshot.debian.org waren nicht erreichbar oder lieferten Unerwartetes | Meist vorübergehend: Lauf später erneut starten |
+| „Unreleased build changes on main“ | Auf `main` liegen Änderungen an `Dockerfile` oder `requirements.in`, die noch in keinem Release sind | Erst eine neue Programmversion veröffentlichen |
+| *Foundation check* gelb/rot | Debian- oder Python-Reihe bekommt in ≤ 12 bzw. ≤ 6 Monaten keine Sicherheitsupdates mehr | Unterbau bewusst anheben: im `Dockerfile` und in `tools/lock.py` (`FOUNDATION`) auf die neue Debian-Version bzw. Python-Reihe umstellen, `tools/lock.py update`, alle Tests, neue Programmversion |
+
+**`.trivyignore`:** nur geprüfte, nicht ausnutzbare Befunde – je Eintrag `ID exp:JJJJ-MM-TT` (höchstens 6 Monate) mit einer Kommentarzeile darüber als Begründung. Nach dem Ablaufdatum blockiert der Befund wieder.
+
+**Lokal gebaut** (Zip-Paket, `update.sh`) entsteht dasselbe Image wie auf GitHub; der Bau braucht dafür Zugang zu Docker Hub, PyPI und snapshot.debian.org.
 
 ### Ohne Docker (Linux)
 
@@ -435,15 +450,17 @@ Katalog-Export als CSV (Excel-kompatibel) gibt es im Katalog für Verwalter.
 
 ## GitHub: Image bauen und Versionen veröffentlichen
 
-Das Repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) enthält den Workflow `.github/workflows/build.yml`:
+Das Repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) enthält die Workflows unter `.github/workflows/`:
 
 | Ereignis | Was GitHub macht |
 |---|---|
-| Push auf `main` mit **neuer Versionsnummer** | Tests (mit genau den festgelegten Paketversionen), dann Image `ghcr.io/soleil0815/catalytix` mit den Tags `<version>`, `latest` und `sha-<commit>` – für `linux/amd64` und `linux/arm64` –, danach automatisch das Release `v<version>` mit `catalytix-<version>.zip` und `.sha256` für das klassische Update (den Tag legt GitHub selbst an) |
-| Jeder Build | vor dem Veröffentlichen **Sicherheitsprüfung mit Trivy**: Enthält das Image eine bekannte Schwachstelle der Stufe HIGH oder CRITICAL, für die es schon eine Korrektur gibt (Basis-Image oder Python-Paket), bricht der Lauf ab und es wird nichts veröffentlicht. Schwachstellen ohne verfügbare Korrektur stehen nur im Bericht. Bewusst akzeptierte Ausnahmen kommen mit Begründung in `.trivyignore` |
-| Jeden Montag, automatisch | **Wöchentlicher Neubau** (`.github/workflows/rebuild.yml`): Der Stand des letzten Releases (nie unveröffentlichte Zwischenstände) wird mit den aktuellen Debian-Sicherheitsupdates neu gebaut, getestet und mit Trivy geprüft – nur wenn alles besteht, wird er als `latest` veröffentlicht (zusätzlich `<version>-r<Datum>`; der Tag `<version>` bleibt das Image des Releases). Server, die `latest` folgen, bekommen die Updates so ohne neue Versionsnummer. Python-Pakete bleiben fest: Findet Trivy dort etwas, schlägt der Lauf fehl, es wird nichts veröffentlicht und GitHub meldet das per E-Mail – dann braucht es eine neue Version mit dem aktualisierten Paket |
-| Push auf `main` **ohne neue Versionsnummer** | Tests und nur `sha-<commit>` – `latest` und `<version>` bleiben unverändert, Server, die `latest` folgen, bekommen also nie unveröffentlichte Zwischenstände |
-| Pull Request | Tests und Probe-Build, nichts wird veröffentlicht |
+| Push auf `main` (und Pull Requests) | Locks prüfen, Image **ohne Zwischenspeicher** bauen, **alle Tests im fertigen Image**, **Trivy-Scan** (`build.yml`) |
+| … mit **neuer Versionsnummer** | nur wenn alles bestanden ist: Image `ghcr.io/soleil0815/catalytix:<version>` (und `latest`, wenn es die höchste Version ist) für `linux/amd64` und `linux/arm64`, danach das Release `v<version>` mit `catalytix-<version>.zip` und `.sha256` |
+| Montags früh (oder von Hand) | **Sicherheitsupdate** (`security-update.yml`) – siehe [Feste Versionen und automatische Sicherheitsupdates](#feste-versionen-und-automatische-sicherheitsupdates); veröffentlicht `<version>-s<Zähler>` und `latest` |
+| Täglich | **Scan** des veröffentlichten `latest` (`scan.yml`) |
+| Montags | **Unterbau-Prüfung** (`foundation.yml`) |
+
+Für alle Workflows gilt: Actions auf Commit-Prüfsummen festgelegt, minimale Rechte je Job, keine gespeicherten Git-Anmeldedaten, veröffentlicht wird nur vom Zweig `main` und nie zweimal gleichzeitig, eine veröffentlichte Version wird nie überschrieben, `latest` zeigt immer auf die höchste Version. Trivy wird nicht als GitHub Action eingebunden (die Actions `trivy-action`/`setup-trivy` wurden im März 2026 kompromittiert, CVE-2026-33634), sondern als feste Version geladen und per SHA-256 geprüft (`tools/trivy.lock`, `tools/trivy_scan.py`). Gestoppt wird nur bei Schwachstellen HIGH/CRITICAL, für die es eine Korrektur gibt.
 
 **Erster Push:**
 
@@ -451,7 +468,7 @@ Das Repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) e
 git init -b main
 git add -A
 git update-index --chmod=+x update.sh docker-entrypoint.sh   # ausführbar, auch wenn unter Windows committet
-git commit -m "Catalytix 2.18.3"
+git commit -m "Catalytix 2.19.0"
 git remote add origin git@github.com:soleil0815/catalytix.git
 git push -u origin main
 ```

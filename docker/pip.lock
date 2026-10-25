@@ -1,2 +1,14 @@
-# pip for building the image only (removed from the finished image) – written by tools/lock.py
-pip==26.2.2
+# ------------------------------------------------------------------
+# Exactly pinned package versions (lock file) – written by tools/lock.py, do not edit by hand.
+#
+# Every package, including indirect dependencies, with exact version and the SHA-256 of every
+# published file: pip refuses anything else (hash checking). Direct dependencies and their
+# allowed ranges are in requirements.in.
+#
+# Installation:   pip install --require-hashes --no-deps -r requirements.txt
+# New versions:    python3 tools/lock.py update   (within the foundation, see the script)
+# ------------------------------------------------------------------
+
+pip==26.2.2 \
+    --hash=sha256:3a8e5c800492787f33a4114ef54444546c340df428974ebba17e0fd47e11af2f \
+    --hash=sha256:fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70

@@ -1,26 +1,41 @@
-# Two ways to build:
-# - Local builds (zip package, update.sh): exactly reproducible – base image pinned by digest (Python 3.13.16 on
-#   Debian 13 "trixie"), Python packages exactly as in requirements.txt.
-# - GitHub builds (release and weekly rebuild) keep EVERYTHING current within the same foundation:
-#     PYTHON_IMAGE=python:3.13-slim-trixie   newest Python 3.13 patch release on Debian trixie
-#     OS_UPDATES=1                           current Debian security updates on top
-#     DEPS=current                           newest Python packages allowed by requirements.in (same major/minor
-#                                            series), only releases older than DEPS_CUTOFF (cool-down against
-#                                            freshly published malicious releases)
-#   Tests and the Trivy scan run on exactly that image before anything is published.
-# Raising the foundation (Debian 14, Python 3.14, new major versions) is a deliberate change here.
+# Reproducible build – every input is locked (see tools/lock.py, which fixes the versions anew):
+# - Base image: exact tag AND digest. The tag names the foundation: Debian 13 "trixie", Python 3.13.
+# - Debian packages: exact archive state DEBIAN_SNAPSHOT on snapshot.debian.org – all packages, including those
+#   of the base image, are brought to that state.
+# - Python packages: requirements.txt with exact versions and SHA-256 hashes (also indirect dependencies);
+#   pip itself from docker/pip.lock. pip is removed from the finished image.
+# The weekly security update on GitHub sets newer values here – always INSIDE the foundation. Raising the
+# foundation (Debian 14, Python 3.14, new major versions) is a deliberate change.
 ARG PYTHON_IMAGE=python:3.13.16-slim-trixie@sha256:70729b46c69b4f1e97c4822c1af3df53a1476cf5ddc6c087c0c10bc3a5678c2f
 FROM ${PYTHON_IMAGE}
+ARG PYTHON_IMAGE
+ARG DEBIAN_SNAPSHOT=20261025T000000Z
 
 LABEL org.opencontainers.image.title="Catalytix" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later" \
       org.opencontainers.image.source="https://github.com/soleil0815/catalytix" \
-      org.opencontainers.image.description="Library management for training institutes (German/English)"
+      org.opencontainers.image.description="Library management for training institutes (German/English)" \
+      org.opencontainers.image.base.name="${PYTHON_IMAGE}" \
+      catalytix.debian-snapshot="${DEBIAN_SNAPSHOT}"
 
-ARG OS_UPDATES=0
-RUN if [ "$OS_UPDATES" = 1 ]; then \
-      apt-get update && apt-get -y --no-install-recommends upgrade && rm -rf /var/lib/apt/lists/*; \
-    fi
+# Debian packages: exactly the archive state DEBIAN_SNAPSHOT (signed by Debian as usual). Snapshot Release files
+# are old by nature, hence Check-Valid-Until=false. The codename check stops the build if the base image is not the
+# expected Debian release.
+RUN set -eu; \
+    . /etc/os-release; \
+    [ "$VERSION_CODENAME" = trixie ] || { echo "Expected Debian trixie, found $VERSION_CODENAME"; exit 1; }; \
+    rm -f /etc/apt/sources.list /etc/apt/sources.list.d/*; \
+    printf '%s\n' \
+      "Types: deb" "URIs: https://snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}/" \
+      "Suites: trixie trixie-updates" "Components: main" \
+      "Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg" "" \
+      "Types: deb" "URIs: https://snapshot.debian.org/archive/debian-security/${DEBIAN_SNAPSHOT}/" \
+      "Suites: trixie-security" "Components: main" \
+      "Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg" > /etc/apt/sources.list.d/snapshot.sources; \
+    apt-get -o Acquire::Check-Valid-Until=false -o Acquire::Retries=5 update; \
+    DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=5 -y --no-install-recommends \
+      -o Dpkg::Options::=--force-confold upgrade --with-new-pkgs; \
+    apt-get clean; rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -32,28 +47,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PGID=1000
 
 WORKDIR /app
-COPY requirements.txt requirements.in tools/lock_floor.py ./
-# DEPS=pinned (default): exactly the lock file, without pulling in sub-dependencies (--no-deps).
-# DEPS=current: resolve requirements.in anew – newest versions within its ranges, only uploaded before DEPS_CUTOFF;
-# versions pinned in requirements.txt are a lower bound (reviewed security fixes skip the cool-down).
-# Then check that everything fits together, record what is installed (/app/installed-packages.txt) and remove pip:
-# the program doesn't need it at runtime, and pip brings its own (vendored) copies of urllib3, msgpack and
-# setuptools that security scanners rightly report as outdated.
-ARG DEPS=pinned
-ARG DEPS_CUTOFF=
-RUN pip install pip==26.2.2 \
- && if [ "$DEPS" = current ]; then \
-      [ -n "$DEPS_CUTOFF" ] || { echo "DEPS=current needs DEPS_CUTOFF"; exit 1; }; \
-      pip install --only-binary=:all: --uploaded-prior-to "$DEPS_CUTOFF" -r requirements.in \
-      && python lock_floor.py requirements.txt; \
-    else \
-      pip install --no-deps --only-binary=:all: -r requirements.txt; \
-    fi \
+COPY docker/pip.lock requirements.txt ./
+# Exactly the locked versions, every file checked against its SHA-256 (--require-hashes), nothing pulled in on top
+# (--no-deps), only pre-built packages. Then: do they fit together? Finally remove pip – it is not needed at runtime.
+RUN pip install --no-cache-dir --require-hashes --no-deps -r pip.lock \
+ && pip install --no-cache-dir --require-hashes --no-deps --only-binary=:all: -r requirements.txt \
  && pip check \
- && pip freeze --exclude pip > /app/installed-packages.txt \
  && python -m pip uninstall -y pip \
  && python -c "import ensurepip, os, shutil; shutil.rmtree(os.path.dirname(ensurepip.__file__))" \
- && rm -f lock_floor.py
+ && rm -f pip.lock requirements.txt
 # Time zone: TZ (e.g. Europe/Berlin) needs /usr/share/zoneinfo (Debian package tzdata, included
 # in the python-slim image). If it is missing, the build says so here and Catalytix at start-up.
 RUN test -e /usr/share/zoneinfo/Europe/Berlin \
@@ -73,6 +75,15 @@ EXPOSE 9300
 # Installation files for "update.sh --pull": copied from the image into the program folder, so that
 # docker-compose.yml and update.sh always match the image version
 COPY docker-compose.yml .env.example update.sh README.md README.en.md CHANGELOG.md LICENSE /app/dist/
+
+# What is inside (compared by the weekly security update; listed in the change log when something changed)
+RUN { echo "base ${PYTHON_IMAGE}"; \
+      echo "python $(python -c 'import platform; print(platform.python_version())')"; \
+      dpkg-query -W -f='deb ${Package} ${Version}\n' | sort; \
+      python -c "import importlib.metadata as m; print('\n'.join(sorted('pip %s %s' % (d.metadata['Name'].lower(), d.version) for d in m.distributions())))"; \
+    } > /app/image-packages.txt \
+ && ! command -v pip >/dev/null \
+ && ! python -c "import pip" 2>/dev/null
 
 # Version label late: a new version number doesn't invalidate the cached dependency layers above
 LABEL org.opencontainers.image.version="2.18.3"

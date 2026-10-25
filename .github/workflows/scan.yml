@@ -1,0 +1,37 @@
+# Daily security scan of the published image (ghcr.io/<owner>/catalytix:latest).
+# Reports vulnerabilities that become known only after the release: if this run fails, GitHub sends an email.
+# It changes nothing – the weekly security update (or a new program version) brings the fix.
+name: Daily scan
+
+on:
+  schedule:
+    - cron: "47 5 * * *"          # every day 05:47 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  scan:
+    name: Trivy scan of :latest
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Pull the published image
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin >/dev/null
+          docker pull -q "ghcr.io/${GITHUB_REPOSITORY,,}:latest" \
+            || { echo "::error title=Image not available::Could not pull :latest."; docker logout ghcr.io; exit 1; }
+          docker logout ghcr.io >/dev/null
+
+      - name: Security scan (Trivy)
+        run: |
+          python3 tools/trivy_scan.py install
+          python3 tools/trivy_scan.py scan "ghcr.io/${GITHUB_REPOSITORY,,}:latest"

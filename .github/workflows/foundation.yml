@@ -1,0 +1,25 @@
+# Weekly check of the foundation: how long do the Debian release and the Python series of the image still get
+# security updates (endoflife.date)? 12 months or less: warning on the run. 6 months or less: the run fails (red,
+# GitHub sends an email). Nobody raises the foundation silently – it is a deliberate change (see README).
+name: Foundation check
+
+on:
+  schedule:
+    - cron: "7 6 * * 1"           # Mondays 06:07 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  foundation:
+    name: Security support of Debian and Python
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check the end of security support
+        run: python3 tools/foundation_check.py

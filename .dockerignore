@@ -9,3 +9,4 @@ tests
 .git
 .github
 *.sha256
+.trivy

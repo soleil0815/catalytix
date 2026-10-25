@@ -1,0 +1,226 @@
+# Weekly security update – Mondays early, automatically; can also be started by hand (Actions → Security update →
+# Run workflow).
+#
+# 1. Takes the code of the latest release (tag v<version>; never unreleased commits from main).
+# 2. tools/lock.py update: newest base image, Debian packages and Python packages – only INSIDE the foundation
+#    (Debian 13 "trixie", Python 3.13, every package within its major version; calendar versions like certifi
+#    without limit; only releases at least <cooldown> days old).
+# 3. Builds the image without cache. All Debian packages (also those of the base image) are brought to the locked
+#    archive state; pip is removed from the finished image.
+# 4. Compares the package list with the published :latest. Nothing changed → nothing happens.
+# 5. Runs the tests IN the new image, then the Trivy scan.
+# 6. Only if EVERYTHING passed: commits the new locks and a change log entry (list of changed packages) to main and
+#    publishes the image as <version>-s<counter> (e.g. 2.18.3-s1; a new program version starts again at s1) and as
+#    :latest. Published tags are never overwritten.
+# If something fails, nothing is published; GitHub sends an email and the cause is shown on the run.
+name: Security update
+
+on:
+  schedule:
+    - cron: "17 4 * * 1"          # Mondays 04:17 UTC
+  workflow_dispatch:
+    inputs:
+      cooldown_days:
+        description: "Only take package releases at least this many days old (0 = also brand-new security fixes)"
+        default: "7"
+        required: true
+
+permissions: {}
+
+concurrency:                      # never at the same time as a release (same group as build.yml on main)
+  group: publish-refs/heads/main
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Update, build, test, scan
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      changed: ${{ steps.compare.outputs.changed }}
+      version: ${{ steps.release.outputs.version }}
+      main_sha: ${{ steps.release.outputs.main_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Latest release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" \
+            || { echo "::error title=No release::Could not read the latest release."; exit 1; }
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error title=No release::Unexpected latest release '$tag'."; exit 1; }
+          git worktree add --detach release "$tag" >/dev/null
+          python3 tools/lock.py same-build release . || exit 1
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+          echo "main_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "Security update for $tag"
+
+      - name: Prepare Docker
+        run: |
+          docker buildx create --name ci --driver docker-container --use >/dev/null
+          docker buildx inspect --bootstrap >/dev/null
+
+      - name: Fix newer versions (inside the foundation)
+        env:
+          COOLDOWN: ${{ github.event.inputs.cooldown_days || '7' }}
+        run: |
+          [[ "$COOLDOWN" =~ ^[0-9]+$ ]] || { echo "::error title=Invalid input::cooldown_days must be a number."; exit 1; }
+          python3 tools/lock.py copy-locks . release
+          python3 release/tools/lock.py update --cooldown-days "$COOLDOWN" --report lock-report.json \
+            || { echo "::error title=Locking failed::Newer versions could not be determined (see log) – nothing is published."; exit 1; }
+          python3 release/tools/lock.py check
+
+      - name: Build the image (without cache)
+        run: |
+          docker buildx build --no-cache --pull --platform linux/amd64 --load -t catalytix-ci:update release \
+            || { echo "::error title=Image build failed::See the log of this step – nothing is published."; exit 1; }
+
+      - name: Compare with the published image
+        id: compare
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin >/dev/null
+          docker run --rm --entrypoint cat catalytix-ci:update /app/image-packages.txt > new-packages.txt
+          if docker pull -q "$image:latest" >/dev/null 2>&1; then
+            docker run --rm --entrypoint sh "$image:latest" -c 'cat /app/image-packages.txt 2>/dev/null || true' > old-packages.txt
+          else
+            : > old-packages.txt
+          fi
+          docker logout ghcr.io >/dev/null
+          set +e
+          python3 tools/security_update.py diff old-packages.txt new-packages.txt > changes.txt
+          rc=$?
+          set -e
+          if [ "$rc" = 3 ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "### Security update: nothing changed – nothing to do" >> "$GITHUB_STEP_SUMMARY"
+            echo "Nothing changed."
+            exit 0
+          fi
+          [ "$rc" = 0 ] || exit "$rc"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          { echo "### Changed packages"; cat changes.txt; } >> "$GITHUB_STEP_SUMMARY"
+          cat changes.txt
+
+      - name: Run the tests in the image
+        if: steps.compare.outputs.changed == 'true'
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" --entrypoint python -e CATALYTIX_DATA_DIR=/tmp/catalytix-test \
+            -v "$PWD/release:/src" -w /src/tests catalytix-ci:update -m unittest discover -q \
+            || { echo "::error title=Tests failed in the new image::See the log of this step – nothing is published."; exit 1; }
+
+      - name: Security scan (Trivy)
+        if: steps.compare.outputs.changed == 'true'
+        run: |
+          python3 tools/trivy_scan.py install
+          python3 tools/trivy_scan.py scan catalytix-ci:update
+
+      - name: Hand over the new locks
+        if: steps.compare.outputs.changed == 'true'
+        run: |
+          mkdir -p handover/docker
+          cp release/Dockerfile release/requirements.txt handover/
+          cp release/docker/pip.lock handover/docker/
+          cp old-packages.txt new-packages.txt handover/
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: steps.compare.outputs.changed == 'true'
+        with:
+          name: security-update
+          path: handover/
+          retention-days: 7
+          include-hidden-files: false
+
+  publish:
+    name: Publish security update
+    needs: update
+    if: needs.update.outputs.changed == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: security-update
+          path: handover
+
+      - name: Check that nothing moved in between
+        env:
+          MAIN_SHA: ${{ needs.update.outputs.main_sha }}
+          VERSION: ${{ needs.update.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ "$(git rev-parse HEAD)" = "$MAIN_SHA" ] \
+            || { echo "::error title=main changed during the run::Start the security update again."; exit 1; }
+          latest="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)"
+          python3 tools/security_update.py is-highest "$VERSION" "${latest#v}" \
+            || { echo "::error title=Not the highest version::$VERSION is lower than $latest – :latest is not set."; exit 1; }
+          git worktree add --detach release "v$VERSION" >/dev/null
+          python3 tools/lock.py copy-locks handover release
+          python3 tools/lock.py copy-locks handover .
+
+      - name: Prepare Docker (amd64 + arm64)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq qemu-user-static >/dev/null
+          docker buildx create --name ci --driver docker-container --use >/dev/null
+          docker buildx inspect --bootstrap >/dev/null
+
+      - name: Build for both platforms (without cache)
+        run: |
+          docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64 release \
+            || { echo "::error title=Image build failed::See the log of this step – nothing is published."; exit 1; }
+
+      - name: Log in to the GitHub Container Registry
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+      - name: Change log entry and new locks on main
+        id: tag
+        env:
+          VERSION: ${{ needs.update.outputs.version }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          tag="$(python3 tools/security_update.py next-tag "$VERSION")"
+          while docker buildx imagetools inspect "$image:$tag" >/dev/null 2>&1; do   # never overwrite
+            n="${tag##*-s}"; tag="$VERSION-s$((n + 1))"
+          done
+          python3 tools/security_update.py changelog "$tag" "$VERSION" handover/old-packages.txt handover/new-packages.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Dockerfile requirements.txt docker/pip.lock CHANGELOG.md
+          git commit -q -m "Sicherheitsupdate $tag: aktualisierte Pakete für $VERSION"
+          git push -q "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main \
+            || { echo "::error title=Could not update main::main changed in the meantime – start the security update again."; exit 1; }
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Publish
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          # Same locked inputs as above – the layers come from the build of the previous step
+          docker buildx build --platform linux/amd64,linux/arm64 --push -t "$image:$TAG" -t "$image:latest" release \
+            || { echo "::error title=Publishing failed::See the log of this step."; exit 1; }
+          echo "### Published $image:$TAG and :latest" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Log out
+        if: always()
+        run: docker logout ghcr.io

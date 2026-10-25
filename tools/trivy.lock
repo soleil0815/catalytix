@@ -1,0 +1,6 @@
+# Trivy for the security scans – loaded as a fixed release and checked against this SHA-256 before it runs.
+# Deliberately NOT the GitHub actions trivy-action / setup-trivy (compromised in March 2026, CVE-2026-33634).
+# Update: new version + its checksum from trivy_<version>_checksums.txt of the release, after checking the release.
+version=0.76.0
+url=https://github.com/aquasecurity/trivy/releases/download/v0.76.0/trivy_0.76.0_Linux-64bit.tar.gz
+sha256=e24b1c51293c1b15e4ba8d45bbc7891ba053f90278ec2698f3562c993e145fe7

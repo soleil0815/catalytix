@@ -1,17 +1,19 @@
-# Direct dependencies of Catalytix (for maintenance only).
-# Installation always uses requirements.txt – there ALL packages
-# including sub-dependencies are pinned to an exact version.
-Flask>=3.1,<3.2
-Flask-SQLAlchemy>=3.1,<3.2
+# Direct dependencies with their allowed range – the foundation for tools/lock.py.
+# Rule: within the major version (before 1.0: within the minor version). The weekly security update only picks
+# versions inside these ranges; leaving a range (e.g. Flask 4) is a deliberate change made here.
+# Installation always uses requirements.txt – there ALL packages including sub-dependencies are pinned to an exact
+# version with SHA-256 hashes.
+Flask>=3.1,<4
+Flask-SQLAlchemy>=3.1,<4
 Flask-Login>=0.6.3,<0.7
-Flask-WTF>=1.3,<1.4
-SQLAlchemy>=2.1,<2.2
-ldap3>=2.9.1,<2.10
+Flask-WTF>=1.3,<2
+SQLAlchemy>=2.1,<3
+ldap3>=2.9.1,<3
 cryptography>=50,<51
 fido2>=2.2,<3
-segno>=1.6,<1.7
+segno>=1.6,<2
 Pillow>=13,<14
 requests>=2.34,<3
 gunicorn>=26.2,<27 ; sys_platform != "win32"
 waitress>=3.0.2,<4 ; sys_platform == "win32"
-PyMySQL>=1.2,<1.3
+PyMySQL>=1.2,<2

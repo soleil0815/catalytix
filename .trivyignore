@@ -1,4 +1,7 @@
-# Accepted vulnerabilities for the Trivy scan (.github/workflows/build.yml and rebuild.yml).
-# Only add an entry after checking that it does not affect Catalytix – one ID per line, with a comment:
-#   reason, who/when, and when to look at it again. Example:
-# CVE-2099-12345   # libfoo in the base image, only used by apt, not reachable at runtime – 2026-10-24, recheck 2026-12
+# Accepted vulnerability findings for the Trivy scans (checked by tools/trivy_scan.py).
+# Only after checking that the finding cannot be exploited in this program. Every entry needs:
+#   - an expiry date (exp:YYYY-MM-DD, at most 6 months ahead) – after that the finding blocks again,
+#   - a reason in the comment line directly above it (what, why not exploitable, who/when).
+# Example:
+#   # libfoo in the base image: only used by apt at build time, not reachable at runtime – checked 2026-10-25
+#   CVE-2099-12345 exp:2027-04-25

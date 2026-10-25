@@ -1,225 +1,161 @@
-# Catalytix – tests, container image (GitHub Container Registry) and release zip
+# Program release: tests, container image (GitHub Container Registry) and release zip.
 #
-# push to main with a NEW version number (no release v<version> yet, higher than the latest release)
-#                         → tests, image ghcr.io/<owner>/catalytix:<version> + :latest + :sha-<commit>,
-#                           then the GitHub release v<version> with catalytix-<version>.zip and .sha256
-# push to main, same version → tests and only :sha-<commit> – :latest and :<version> stay untouched, so servers
-#                           that follow "latest" never get unreleased commits
-# pull request            → tests and a test build of the image (nothing is pushed)
-# every build             → Trivy scan of the image first; HIGH/CRITICAL vulnerabilities with a fix stop the run
-#                           before anything is published (see .trivyignore for accepted exceptions)
-# Mondays                 → rebuild.yml rebuilds the latest release with current Debian security updates and
-#                           publishes it as :latest if tests and scan pass
+# push to main             → check locks, build the image WITHOUT cache, run the tests IN the image, Trivy scan.
+#   with a NEW version     → only then: publish ghcr.io/<owner>/catalytix:<version> (+ :latest if it is the highest
+#                            version) and the GitHub release v<version> with catalytix-<version>.zip and .sha256.
+#                            Published versions are never overwritten.
+# pull request             → the same checks, nothing is published.
+#
+# Security of this workflow: actions pinned to full commit SHAs, minimal permissions per job, no Git credentials
+# stored in the checkout, publishing only from main, never two publishing runs at the same time (shared with the
+# weekly security update), Trivy is NOT used as a GitHub action (see tools/trivy_scan.py).
 name: Build
 
 on:
   push:
     branches: [main]
   pull_request:
-  workflow_dispatch:      # publishes only when run on main (see "publish" below)
+  workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
-concurrency:      # one run per branch at a time: two pushes never race to create the same release;
-  group: publish-${{ github.ref }}   # the weekly rebuild (rebuild.yml) uses publish-refs/heads/main, too
+concurrency:
+  group: publish-${{ github.ref }}   # the security update (security-update.yml) uses publish-refs/heads/main, too
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  test:
-    name: Tests
+  check:
+    name: Build, test and scan
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      new: ${{ steps.version.outputs.new }}
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
-          python-version: "3.13"
+          persist-credentials: false
 
-      - name: Install the pinned dependencies
+      - name: Check locks, version numbers and .trivyignore
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          python -m pip install pip==26.2.2
-          pip install --no-deps --only-binary=:all: -r requirements.txt
-          pip check
-
-      - name: Check that all version numbers match
-        run: |
+          python3 tools/lock.py check || { echo "::error title=Locks incomplete::See 'lock check' lines in the log – run tools/lock.py update."; exit 1; }
+          python3 tools/trivy_scan.py check-ignore
           v=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' catalytix/__init__.py)
-          grep -q "org.opencontainers.image.version=\"$v\"" Dockerfile || { echo "::error::Dockerfile label is not $v"; exit 1; }
-          grep -q "CATALYTIX_TAG:-$v}" docker-compose.yml || { echo "::error::docker-compose.yml default tag is not $v"; exit 1; }
+          grep -q "org.opencontainers.image.version=\"$v\"" Dockerfile || { echo "::error title=Version mismatch::Dockerfile label is not $v"; exit 1; }
+          grep -q "CATALYTIX_TAG:-$v}" docker-compose.yml || { echo "::error title=Version mismatch::docker-compose.yml default tag is not $v"; exit 1; }
+          latest="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name 2>/dev/null || true)"
+          new=false
+          if [ "$GITHUB_EVENT_NAME" != pull_request ] && [ "$GITHUB_REF" = refs/heads/main ] \
+             && ! gh release view "v$v" >/dev/null 2>&1; then
+            if [ -z "$latest" ] || python3 tools/security_update.py is-highest "$v" "${latest#v}"; then
+              new=true
+            else
+              echo "::warning title=Not published::Version $v is lower than the latest release ${latest} – nothing is published."
+            fi
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "new=$new" >> "$GITHUB_OUTPUT"
+          echo "Version $v – new release: $new"
 
-      - name: Run the tests
-        working-directory: tests
-        run: python -m unittest discover -q
+      - name: Prepare Docker
+        run: |
+          docker buildx create --name ci --driver docker-container --use >/dev/null
+          docker buildx inspect --bootstrap >/dev/null
 
-  image:
-    name: Container image
-    needs: test
+      - name: Build the image (without cache)
+        run: |
+          docker buildx build --no-cache --pull --platform linux/amd64 --load -t catalytix-ci:check . \
+            || { echo "::error title=Image build failed::See the log of this step."; exit 1; }
+
+      # The tests run in exactly the image that gets published (its Python and packages) with the code of this
+      # checkout mounted – the same code that is in the image.
+      - name: Run the tests in the image
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" --entrypoint python -e CATALYTIX_DATA_DIR=/tmp/catalytix-test \
+            -v "$PWD:/src" -w /src/tests catalytix-ci:check -m unittest discover -q \
+            || { echo "::error title=Tests failed in the image::See the log of this step – nothing is published."; exit 1; }
+          { echo "### Packages in the image"; echo '```'
+            docker run --rm --entrypoint cat catalytix-ci:check /app/image-packages.txt | grep -v '^deb '
+            echo "($(docker run --rm --entrypoint cat catalytix-ci:check /app/image-packages.txt | grep -c '^deb ') Debian packages)"
+            echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Security scan (Trivy)
+        run: |
+          python3 tools/trivy_scan.py install
+          python3 tools/trivy_scan.py scan catalytix-ci:check
+
+  publish:
+    name: Publish image
+    needs: check
+    if: needs.check.outputs.new == 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write
-    outputs:
-      version: ${{ steps.meta.outputs.version }}
-      new: ${{ steps.meta.outputs.new }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
 
-      - name: Image name, version and what to publish
-        id: meta
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Prepare Docker (amd64 + arm64)
         run: |
-          image="ghcr.io/${GITHUB_REPOSITORY,,}"
-          v="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' catalytix/__init__.py)"
-          publish=false; new=false
-          if [ "$GITHUB_EVENT_NAME" != pull_request ] && [ "$GITHUB_REF" = refs/heads/main ]; then
-            publish=true
-            latest="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name 2>/dev/null || true)"
-            latest="${latest#v}"
-            if gh release view "v$v" >/dev/null 2>&1; then
-              echo "Release v$v exists – publishing only sha-${GITHUB_SHA::7}."
-            elif [ -n "$latest" ] && [ "$(printf '%s\n%s\n' "$latest" "$v" | sort -V | tail -n1)" != "$v" ]; then
-              echo "::warning::Version $v is lower than the latest release $latest – not publishing latest."
-            else
-              new=true
-            fi
-          fi
-          # Python packages: only releases that are at least 7 days old (cool-down against malicious releases)
-          echo "cutoff=$(date -u -d '7 days ago' +%Y-%m-%dT00:00:00Z)" >> "$GITHUB_OUTPUT"
-          {
-            echo "version=$v"
-            echo "publish=$publish"
-            echo "new=$new"
-            echo "tags<<EOF"
-            echo "$image:sha-${GITHUB_SHA::7}"
-            if [ "$new" = true ]; then echo "$image:$v"; echo "$image:latest"; fi
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - uses: docker/setup-qemu-action@v4
-      - uses: docker/setup-buildx-action@v4
+          sudo apt-get update -qq && sudo apt-get install -y -qq qemu-user-static >/dev/null
+          docker buildx create --name ci --driver docker-container --use >/dev/null
+          docker buildx inspect --bootstrap >/dev/null
 
       - name: Log in to the GitHub Container Registry
-        if: steps.meta.outputs.publish == 'true'
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
-      # Security check BEFORE anything is published: build the image once for amd64, scan it with Trivy and stop
-      # if it contains a known HIGH or CRITICAL vulnerability that already has a fix (base image or Python
-      # package). Unfixable findings (no patched version exists yet) don't block – they show up in the report.
-      # Accepted exceptions go into .trivyignore with a reason and a date.
-      - name: Build for the security scan
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          platforms: linux/amd64
-          load: true
-          push: false
-          tags: catalytix-scan:${{ github.sha }}
-          pull: true
-          build-args: |
-            PYTHON_IMAGE=python:3.13-slim-trixie
-            OS_UPDATES=1
-            DEPS=current
-            DEPS_CUTOFF=${{ steps.meta.outputs.cutoff }}
-          cache-from: type=gha
-
-      # The tests run in exactly the image that gets published (its Python and packages), with the code of this
-      # checkout mounted – it is the same code that is in the image.
-      - name: Run the tests in the image
+      - name: Publish (never overwrite a version)
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
         run: |
-          docker run --rm --user "$(id -u):$(id -g)" --entrypoint python -e CATALYTIX_DATA_DIR=/tmp/catalytix-test \
-            -v "$PWD:/src" -w /src/tests catalytix-scan:${{ github.sha }} -m unittest discover -q
-          { echo "### Packages in the image"; echo '```'
-            docker run --rm --entrypoint sh catalytix-scan:${{ github.sha }} -c 'python --version; grep PRETTY_NAME /etc/os-release; cat /app/installed-packages.txt'
-            echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          if docker buildx imagetools inspect "$image:$VERSION" >/dev/null 2>&1; then
+            echo "::error title=Version already published::$image:$VERSION exists – published versions are never overwritten. Raise the version number."
+            exit 1
+          fi
+          # Same locked inputs as the tested image (base image digest, Debian snapshot, hashed packages)
+          docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64 --push \
+            -t "$image:$VERSION" -t "$image:latest" -t "$image:sha-${GITHUB_SHA::7}" . \
+            || { echo "::error title=Publishing failed::See the log of this step."; exit 1; }
+          echo "Published $image:$VERSION and :latest"
 
-      # Pinned to the full commit of the immutable release v0.36.0 (published after the supply chain attack of
-      # March 2026, CVE-2026-33634) – never to a tag. The Trivy binary itself is pinned with "version".
-      - name: Scan the image for vulnerabilities (Trivy)
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
-        with:
-          version: v0.76.0
-          image-ref: catalytix-scan:${{ github.sha }}
-          scanners: vuln,secret
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          trivyignores: .trivyignore
-          format: json
-          output: trivy.json
-          exit-code: "1"
-
-      - name: Scan report
+      - name: Log out
         if: always()
-        run: |
-          [ -s trivy.json ] || exit 0
-          python3 - <<'PY'
-          import json, os
-          data = json.load(open("trivy.json"))
-          rows = []
-          for res in data.get("Results") or []:
-              for v in res.get("Vulnerabilities") or []:
-                  rows.append((v.get("Severity", ""), v.get("VulnerabilityID", ""), v.get("PkgName", ""),
-                               v.get("InstalledVersion", ""), v.get("FixedVersion", ""),
-                               v.get("PkgPath") or res.get("Target", ""),
-                               (v.get("Title") or "")[:90]))
-              for s in res.get("Secrets") or []:
-                  rows.append((s.get("Severity", ""), "secret:" + s.get("RuleID", ""), res.get("Target", ""),
-                               "", "", "", (s.get("Title") or "")[:90]))
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as out:
-              out.write("### Trivy: %d finding(s) – HIGH/CRITICAL with a fix available\n\n" % len(rows))
-              if rows:
-                  out.write("| Severity | ID | Package | Installed | Fixed in | Target | Title |\n|---|---|---|---|---|---|---|\n")
-                  for r in rows:
-                      out.write("| " + " | ".join(x.replace("|", "/") for x in r) + " |\n")
-          if rows:   # one annotation with the complete list (annotations are visible without opening the log)
-              print("::error title=Trivy: %d finding(s)::" % len(rows)
-                    + "%0A".join("%s %s %s %s -> %s (%s)" % r[:6] for r in rows))
-          PY
-
-      - name: Build (and push)
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: ${{ steps.meta.outputs.publish == 'true' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          pull: true
-          build-args: |
-            PYTHON_IMAGE=python:3.13-slim-trixie
-            OS_UPDATES=1
-            DEPS=current
-            DEPS_CUTOFF=${{ steps.meta.outputs.cutoff }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        run: docker logout ghcr.io
 
   release:
     name: Release zip
-    needs: image
-    if: needs.image.outputs.new == 'true'
+    needs: [check, publish]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Build catalytix-<version>.zip and its checksum
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
         run: |
-          v="${{ needs.image.outputs.version }}"
-          git archive --format=zip --prefix=catalytix/ -o "catalytix-$v.zip" HEAD
-          sha256sum "catalytix-$v.zip" > "catalytix-$v.zip.sha256"
+          git archive --format=zip --prefix=catalytix/ -o "catalytix-$VERSION.zip" HEAD
+          sha256sum "catalytix-$VERSION.zip" > "catalytix-$VERSION.zip.sha256"
 
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.check.outputs.version }}
         run: |
-          v="${{ needs.image.outputs.version }}"
-          gh release view "v$v" >/dev/null 2>&1 && { echo "Release v$v exists already."; exit 0; }
-          gh release create "v$v" "catalytix-$v.zip" "catalytix-$v.zip.sha256" \
+          gh release view "v$VERSION" >/dev/null 2>&1 && { echo "Release v$VERSION exists already."; exit 0; }
+          gh release create "v$VERSION" "catalytix-$VERSION.zip" "catalytix-$VERSION.zip.sha256" \
             --target "$GITHUB_SHA" \
-            --title "Catalytix $v" \
-            --notes "Update with the image built by GitHub: \`./update.sh --pull\` – or classically with this package: \`./update.sh catalytix-$v.zip\` (put the .sha256 file next to it). Changes: see CHANGELOG.md."
+            --title "Catalytix $VERSION" \
+            --notes "Update with the image built by GitHub: \`./update.sh --pull\` – or classically with this package: \`./update.sh catalytix-$VERSION.zip\` (put the .sha256 file next to it). Changes: see CHANGELOG.md."

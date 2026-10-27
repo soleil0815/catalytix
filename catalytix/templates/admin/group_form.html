@@ -15,6 +15,10 @@
         <div class="field span-6"><label>{{ _("AD-Gruppe (optional)") }}</label>
           <input class="mono" type="text" name="ldap_dn" value="{{ group.ldap_dn or '' }}" placeholder="{{ _('Klasse7a  oder  CN=Klasse7a,OU=Gruppen,DC=schule,DC=local') }}">
           <div class="hint">{{ _("Name oder DN einer AD-Gruppe. Ihre Mitglieder werden bei der Anmeldung automatisch dieser Bibliotheksgruppe zugeordnet (und bei Austritt wieder entfernt).") }}</div></div>
+        <div class="field span-6">
+          <label class="check"><input type="checkbox" name="not_lendable" value="1" {{ "checked" if group.lendable is false }}>
+            <span>{{ _("Präsenzbestand – Bücher dieser Gruppe werden nicht verliehen") }}</span></label>
+          <div class="hint">{{ _("Die Bücher erscheinen weiter im Katalog, werden an der Ausleihtheke aber nicht angeboten und können weder ausgeliehen noch vorgemerkt werden. Bestehende Ausleihen lassen sich normal zurückgeben.") }}</div></div>
       </div>
     </section>
     <section class="card card-pad">

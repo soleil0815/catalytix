@@ -5,6 +5,7 @@
   <li><b>Sortieren</b> nach Titel, Autor, zuletzt erfasst oder Erscheinungsjahr.</li>
   <li><b>Ansicht:</b> Rechts schaltest du zwischen <span class="ui">Kacheln</span> mit Cover und kompakter <span class="ui">Liste</span> um. Dein Browser merkt sich die Wahl.</li>
   <li>Ein Klick auf Cover oder Titel öffnet die <b>Buchseite</b> mit Standort, Signatur und der Zahl freier Exemplare.</li>
+  {% if f.is_librarian %}<li>Unter jedem freien Buch, das du verwaltest, steht <span class="ui">Verleihen</span>: Es öffnet die Buchseite direkt beim Formular <span class="ui">An Benutzer verleihen</span>.</li>{% endif %}
   <li>Schlagwörter auf der Buchseite sind anklickbar und zeigen ähnliche Bücher.</li>
 </ul>
 {% if current_user.is_global_manager %}

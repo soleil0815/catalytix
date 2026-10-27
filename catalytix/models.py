@@ -50,6 +50,8 @@ class Group(db.Model):
     # Optional: DN einer AD-Gruppe – Mitglieder werden beim Login automatisch zugeordnet
     ldap_dn = db.Column(db.String(500), default="")
     color = db.Column(db.String(16), default="#2f6f62")
+    # False = Präsenzbestand: Bücher der Gruppe werden nicht verliehen und nicht vorgemerkt
+    lendable = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
 
     books = db.relationship("Book", back_populates="group")
@@ -236,6 +238,11 @@ class Book(db.Model):
     def held(self) -> int:
         """Exemplare, die für eine Vormerkung zurückgelegt sind."""
         return sum(1 for r in self.reservations if r.status == RES_READY)
+
+    @property
+    def lendable(self) -> bool:
+        """False, wenn das Buch zu einer Gruppe ohne Verleih gehört (Präsenzbestand)."""
+        return not (self.group and self.group.lendable is False)
 
     @property
     def available(self) -> int:
@@ -678,6 +685,13 @@ def ensure_indexes() -> bool:
             "Unique index for open loans not created (duplicate open loans present?): %s", exc)
         return False
     return True
+
+
+def lendable_books():
+    """SQL-Bedingung: Bücher ohne Gruppe oder in einer Gruppe, die verliehen wird (kein Präsenzbestand)."""
+    from sqlalchemy import or_, select
+    return or_(Book.group_id.is_(None),
+               ~Book.group_id.in_(select(Group.id).where(Group.lendable.is_(False))))
 
 
 def ensure_columns() -> list[str]:

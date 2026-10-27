@@ -132,6 +132,7 @@ def facts() -> dict:
         "catalog_all": get_setting("catalog_visibility") == "all",
         "mfa_required": twofa.required_for(current_user),
         "is_ldap": current_user.auth_source == "ldap",
+        "is_librarian": current_user.is_librarian,
         "has_2fa": current_user.has_2fa,
         "languages": LANGUAGES,
         # Administration

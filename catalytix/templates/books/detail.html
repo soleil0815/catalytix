@@ -41,11 +41,19 @@
 <div class="grid grid-2" style="margin-top: 30px">
   <section class="card card-pad">
     <h2 style="margin-bottom: 14px">{{ _("Ausleihe") }}</h2>
+    {% if not book.lendable %}
+    <div class="avail">
+      <div class="num">{{ book.copies }}</div>
+      <div><b>{{ _n("{n} Exemplar im Präsenzbestand", "{n} Exemplare im Präsenzbestand", book.copies) }}</b><br>
+        <small>{{ _("Nur zur Nutzung vor Ort") }}</small></div>
+    </div>
+    {% else %}
     <div class="avail">
       <div class="num">{{ avail_me }}</div>
       <div><b>{{ _n("von {n} Exemplar verfügbar", "von {n} Exemplaren verfügbar", book.copies) }}</b><br>
         <small>{{ _("Leihfrist {days} Tage", days=loan_days) }}{% if res_on and book.open_reservations %} · {{ _n("{n} Vormerkung", "{n} Vormerkungen", book.open_reservations|length) }}{% endif %}</small></div>
     </div>
+    {% endif %}
 
     {% if own_loan %}
       <div class="notice accent" style="margin-bottom: 12px">{{ icon("book") }}
@@ -65,6 +73,8 @@
         {% endif %}
       </div>
       {% if extend_blocked %}<p class="muted" style="font-size: 13.5px; margin-top: 10px">{{ _("Verlängern ist nicht möglich: Das Buch ist vorgemerkt.") }}</p>{% endif %}
+    {% elif not book.lendable %}
+      <div class="notice warn">{{ icon("lock") }}<div>{{ _("Präsenzbestand: Dieses Buch gehört zur Gruppe <b>{group}</b> und wird nicht verliehen.", group=book.group.name) }}</div></div>
     {% elif not current_user.can_borrow(book) %}
       <div class="notice warn">{{ icon("lock") }}<div>{{ _("Dieses Buch gehört zur Gruppe <b>{group}</b>. Nur Mitglieder dieser Gruppe können es ausleihen.", group=book.group.name) }}</div></div>
     {% else %}
@@ -115,13 +125,13 @@
     {% endfor %}
     {% endif %}
 
-    {% if current_user.can_manage(book) and (book.available > 0 or book.held) %}
+    {% if current_user.can_manage(book) and book.lendable and (book.available > 0 or book.held) %}
     <hr>
-    <h3 style="margin-bottom: 10px">{{ _("An Benutzer verleihen") }}</h3>
+    <h3 id="verleihen" style="margin-bottom: 10px">{{ _("An Benutzer verleihen") }}</h3>
     <form method="post" action="{{ url_for('loans.borrow', book_id=book.id) }}" class="form-grid">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="field span-4"><label>{{ _("Benutzer") }}</label>
-        <div class="user-search"><input type="text" name="benutzer" required data-user-search autocomplete="off"
+        <div class="user-search"><input type="text" name="benutzer" required data-user-search autocomplete="off"{% if request.args.get("verleihen") %} autofocus{% endif %}
                placeholder="{{ _("Name, Benutzername oder E-Mail") }}" role="combobox" aria-autocomplete="list" aria-expanded="false"></div>
         <div class="hint">{% if directory_search %}{{ _("Findet auch Personen aus dem Active Directory, die sich noch nie angemeldet haben.") }} {% endif %}{{ _("Ob die Person dieses Buch ausleihen darf, wird beim Verleihen geprüft.") }}</div></div>
       <div class="field span-2"><label>{{ _("Fällig am") }}</label><input type="date" name="due_at"></div>

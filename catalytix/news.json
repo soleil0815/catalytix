@@ -1,5 +1,59 @@
 [
  {
+  "version": "2.20.0",
+  "date": "2026-10-27",
+  "items": [
+   {
+    "kind": "new",
+    "audience": "librarian",
+    "de": {
+     "title": "Verleihen direkt aus dem Katalog",
+     "text": "Unter jedem freien Buch, das du verwaltest, steht im Katalog jetzt „Verleihen“. Es öffnet die Buchseite direkt beim Formular „An Benutzer verleihen“ – der Weg über die Ausleihtheke ist dafür nicht mehr nötig."
+    },
+    "en": {
+     "title": "Lend straight from the catalogue",
+     "text": "Every available book you manage now has a “Lend” button in the catalogue. It opens the book page right at the “Lend to a user” form – no detour via the circulation desk."
+    }
+   },
+   {
+    "kind": "new",
+    "audience": "admin",
+    "de": {
+     "title": "Präsenzbestand: Gruppen ohne Verleih",
+     "text": "Eine Gruppe lässt sich als Präsenzbestand markieren (Administration → Gruppen). Ihre Bücher bleiben im Katalog sichtbar, werden aber an der Ausleihtheke nicht angeboten und können weder ausgeliehen noch vorgemerkt werden."
+    },
+    "en": {
+     "title": "Reference only: groups without lending",
+     "text": "A group can now be marked as reference only (Administration → Groups). Its books stay visible in the catalogue but are not offered at the circulation desk and can neither be borrowed nor reserved."
+    }
+   },
+   {
+    "kind": "improved",
+    "audience": "librarian",
+    "de": {
+     "title": "Gleiches Buch noch einmal erfasst? Exemplare werden hinzugezählt",
+     "text": "Legst du ein Buch an, das es mit derselben ISBN in derselben Gruppe schon gibt, entsteht kein zweiter Eintrag mehr – die Exemplare werden beim vorhandenen Buch hinzugezählt."
+    },
+    "en": {
+     "title": "Same book added again? The copies are added",
+     "text": "If you add a book that already exists with the same ISBN in the same group, no second entry is created any more – the copies are added to the existing book."
+    }
+   },
+   {
+    "kind": "new",
+    "audience": "all",
+    "de": {
+     "title": "Eigene Daten im Profil ändern",
+     "text": "Lokale und selbst registrierte Konten können Anzeigename und E-Mail-Adresse jetzt selbst unter Profil → Meine Daten ändern. Bei Anmeldung über das Active Directory kommen diese Daten weiterhin aus dem Verzeichnis."
+    },
+    "en": {
+     "title": "Edit your own details in the profile",
+     "text": "Local and self-registered accounts can now change their display name and email address themselves under Profile → My details. For Active Directory sign-ins these details still come from the directory."
+    }
+   }
+  ]
+ },
+ {
   "version": "2.19.0",
   "date": "2026-10-25",
   "items": [

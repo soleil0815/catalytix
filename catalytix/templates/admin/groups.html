@@ -18,7 +18,7 @@
     <div class="actions"><span class="dot" style="background: {{ g.color }}; width: 12px; height: 12px"></span><h3>{{ g.name }}</h3>
       {% if g.ldap_dn %}<span class="badge accent" style="margin-left:auto">{{ icon("server") }} AD</span>{% endif %}</div>
     <p class="muted" style="margin-top: 8px; min-height: 1.5em">{{ g.description or "–" }}</p>
-    <div class="actions"><span class="badge">{{ _n("{n} Mitglied", "{n} Mitglieder", g.users|length) }}</span><span class="badge">{{ _n("{n} Titel", "{n} Titel", book_counts.get(g.id, 0)) }}</span></div>
+    <div class="actions"><span class="badge">{{ _n("{n} Mitglied", "{n} Mitglieder", g.users|length) }}</span><span class="badge">{{ _n("{n} Titel", "{n} Titel", book_counts.get(g.id, 0)) }}</span>{% if g.lendable is false %}<span class="badge warn">{{ icon("lock") }} {{ _("Präsenzbestand") }}</span>{% endif %}</div>
   </a>
   {% endfor %}
 </div>

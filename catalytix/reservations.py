@@ -65,6 +65,9 @@ def _free_copies(book_id: int) -> int:
 def reserve(book: Book, user: User) -> tuple[bool, str]:
     if not enabled():
         return False, _("Vormerkungen sind nicht eingeschaltet.")
+    if not book.lendable:
+        return False, _("„{title}“ gehört zum Präsenzbestand (Gruppe „{group}“) und wird nicht verliehen.",
+                        title=book.title, group=book.group.name)
     if not user.active:
         return False, _("{name} ist gesperrt.", name=user.name)
     if not user.can_borrow(book):
@@ -189,6 +192,15 @@ def expire_due(today: date | None = None) -> int:
     if books:
         log.info("Reservations: %d not collected in time – next in line notified", len(due))
     return len(books)
+
+
+def cancel_for_group(group_id: int) -> int:
+    """Gruppe wird Präsenzbestand: offene Vormerkungen ihrer Bücher beenden (ohne Commit – der Aufrufer speichert)."""
+    ids = db.session.query(Book.id).filter(Book.group_id == group_id)
+    n = db.session.execute(
+        update(Reservation).where(Reservation.book_id.in_(ids), Reservation.status.in_((RES_WAITING, RES_READY)))
+        .values(status=RES_CANCELLED, closed_at=datetime.now()).execution_options(synchronize_session=False))
+    return n.rowcount or 0
 
 
 def cancel_all() -> int:

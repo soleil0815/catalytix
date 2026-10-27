@@ -12,7 +12,7 @@ from sqlalchemy.orm import contains_eager
 from .. import isbn as isbnlib
 from ..i18n import _, format_day
 from ..models import (Book, Loan, User, count_active_loans, db, default_due_date, get_bool, get_int, get_setting,
-                      manageable_books_query)
+                      lendable_books, manageable_books_query)
 from ..mailer import notify_loan, notify_return, send_manual_reminder
 from .. import people, reservations
 from . import get_by_id, librarian_required, parse_id, safe_next
@@ -39,6 +39,9 @@ def lock_book(book_id: int) -> None:
 
 def lend_book(book: Book, borrower: User, due: date | None = None, note: str = "") -> tuple[bool, str]:
     """Zentrale Ausleihlogik inkl. aller Prüfungen."""
+    if not book.lendable:
+        return False, _("„{title}“ gehört zum Präsenzbestand (Gruppe „{group}“) und wird nicht verliehen.",
+                        title=book.title, group=book.group.name)
     if not borrower.active:
         return False, _("{name} ist gesperrt.", name=borrower.name)
     if not borrower.can_borrow(book):
@@ -324,6 +327,7 @@ def desk():
             flash(_("Benutzer „{query}“ nicht eindeutig gefunden.", query=user_q), "error")
 
     books, loans = [], []
+    code_flashed = False
     if request.method == "POST":
         if mode == "rueckgabe" and request.form.get("loan_id"):
             loan = get_by_id(Loan, parse_id(request.form.get("loan_id")) or 0) or abort(404)
@@ -342,6 +346,14 @@ def desk():
 
     if code:
         books = _find_books(code)
+        if mode == "ausleihe":   # Präsenzbestand wird an der Theke gar nicht erst zum Verleihen angeboten
+            present = [b for b in books if not b.lendable]
+            books = [b for b in books if b.lendable]
+            if present and not books:
+                b = present[0]
+                flash(_("„{title}“ gehört zum Präsenzbestand (Gruppe „{group}“) und wird nicht verliehen.",
+                        title=b.title, group=b.group.name), "error")
+                code_flashed = True
         auto = request.method == "POST" and request.values.get("auto") == "1"
         exact = _find_books(code, exact_only=True) if auto else []
         if mode == "rueckgabe":
@@ -354,7 +366,7 @@ def desk():
             ok, msg, _person = people.lend_to(exact[0], borrower)
             flash(msg, "success" if ok else "error")
             return redirect(url_for("loans.desk", modus="ausleihe", benutzer=borrower.username, auto="1"))
-        if not books:
+        if not books and not code_flashed:
             flash(_("Kein Buch zu „{code}“ gefunden.", code=code), "error")
 
     # Gruppen-Verwalter sehen nur Ausleihen und Gruppen, die sie selbst verwalten
@@ -407,6 +419,8 @@ def api_stock():
     base = (manageable_books_query(current_user)
             .outerjoin(on_loan, on_loan.c.book_id == Book.id)
             .add_columns(func.coalesce(on_loan.c.n, 0)))
+    if mode != "rueckgabe":   # Präsenzbestand wird zum Verleihen gar nicht erst angeboten
+        base = base.filter(lendable_books())
     # Genaue Treffer (Signatur, ISBN) zuerst und unabhängig von der Begrenzung holen – sonst fiele z. B. die
     # Signatur „77“ bei vielen Teiltreffern aus der Liste
     exact_conds = [Book.signature == q, func.lower(Book.signature) == q.lower()]

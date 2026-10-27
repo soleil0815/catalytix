@@ -19,12 +19,12 @@ import urllib3.connectionpool
 from flask import (Blueprint, Response, abort, current_app, flash, jsonify, redirect,
                    render_template, request, send_from_directory, url_for)
 from flask_login import current_user, login_required
-from sqlalchemy import func, or_, update
+from sqlalchemy import case, func, or_, update
 from sqlalchemy.orm import selectinload
 from werkzeug.utils import secure_filename
 
 from .. import isbn as isbnlib
-from ..i18n import _
+from ..i18n import _, _n
 from ..i18n import get_locale
 from ..models import (Book, Group, Loan, User, db, get_bool, get_int, get_setting, manageable_books_query,
                       visible_books_query)
@@ -499,6 +499,17 @@ def _fill_book(book: Book) -> str | None:
     return location_error
 
 
+def _same_book(book: Book) -> Book | None:
+    """Bereits vorhandenes Buch mit derselben ISBN in derselben Gruppe, das die Person verwalten darf."""
+    if not book.isbn:
+        return None
+    same_group = Book.group_id.is_(None) if book.group_id is None else Book.group_id == book.group_id
+    for other in Book.query.filter(Book.isbn == book.isbn, same_group).order_by(Book.id):
+        if current_user.can_manage(other):
+            return other
+    return None
+
+
 @bp.route("/buecher/neu", methods=["GET", "POST"])
 @librarian_required
 def create():
@@ -509,6 +520,24 @@ def create():
             flash(error, "error")
         elif not book.title:
             flash(_("Ein Titel ist erforderlich."), "error")
+        elif (same := _same_book(book)) is not None:
+            # Dasselbe Buch (ISBN) in derselben Gruppe gibt es schon: Exemplare dort hinzuzählen statt doppelt anlegen
+            add = book.copies or 0
+            if add:
+                total = func.coalesce(Book.copies, 0) + add       # in SQL: gleichzeitige Erfassungen zählen beide
+                db.session.execute(update(Book).where(Book.id == same.id)
+                                   .values(copies=case((total > MAX_COPIES, MAX_COPIES), else_=total))
+                                   .execution_options(synchronize_session=False))
+            db.session.commit()
+            from .. import reservations
+            reservations.promote(same.id)          # neue Exemplare gehen zuerst an die Warteschlange
+            db.session.refresh(same)
+            flash(_n("„{title}“ ist bereits im Bestand – {n} Exemplar hinzugefügt, jetzt {copies}.",
+                     "„{title}“ ist bereits im Bestand – {n} Exemplare hinzugefügt, jetzt {copies}.",
+                     add, title=same.title, copies=same.copies), "success")
+            if request.form.get("next_action") == "another":
+                return redirect(url_for("books.create"))
+            return redirect(url_for("books.detail", book_id=same.id))
         else:
             book.created_by_id = current_user.id
             _apply_cover(book)

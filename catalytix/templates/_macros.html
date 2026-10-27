@@ -55,6 +55,7 @@
 
 {% macro avail_badge(book) -%}
 {%- if book.copies == 0 -%}<span class="badge">{{ _("nicht im Bestand") }}</span>
+{%- elif not book.lendable -%}<span class="badge">{{ _("Präsenzbestand") }}</span>
 {%- elif book.available > 0 -%}<span class="badge ok">{{ _("{available} von {copies} frei", available=book.available, copies=book.copies) }}</span>
 {%- elif book.held and not book.active_loans -%}<span class="badge warn">{{ _("zurückgelegt") }}</span>
 {%- else -%}<span class="badge warn">{{ _("ausgeliehen") }}</span>

@@ -340,36 +340,21 @@ def dashboard():
 @bp.route("/profil", methods=["GET", "POST"])
 @login_required
 def profile():
-    if request.method == "POST" and request.form.get("action") == "notify":
+    action = request.form.get("action") if request.method == "POST" else None
+    if action == "data":
+        # Eigene Daten ändern – nur lokale (registrierte/angelegte) Konten; AD-Konten kommen aus dem Verzeichnis
+        if current_user.auth_source != "local":
+            abort(400)
+        current_user.display_name = form_str("display_name", 200)
+        if _apply_email(form_str("email", 200)):
+            db.session.commit()
+            flash(_("Deine Daten wurden gespeichert."), "success")
+        return redirect(url_for("main.profile"))
+    if action == "notify":
         current_user.email_notifications = bool(request.form.get("email_notifications"))
-        if current_user.auth_source == "local":
-            from ..mailer import valid_email
-            mail = form_str("email", 200)
-            if mail and not valid_email(mail):
-                flash(_("Bitte eine gültige E-Mail-Adresse eingeben."), "error")
+        if current_user.auth_source == "local" and "email" in request.form:
+            if not _apply_email(form_str("email", 200)):
                 return redirect(url_for("main.profile"))
-            changed = bool(mail) and mail.lower() != (current_user.email or "").lower()
-            if changed and User.query.filter(func.lower(User.email) == mail.lower(),
-                                             User.id != current_user.id).first() is not None:
-                flash(_("Diese E-Mail-Adresse wird bereits von einem anderen Konto verwendet."), "error")
-                return redirect(url_for("main.profile"))
-            if current_user.self_registered and changed:
-                from .register import _allowed_domain, needs_verification, send_email_change
-                if not _allowed_domain(mail):
-                    # gleiche Regel wie bei der Registrierung
-                    flash(_("Diese E-Mail-Adresse ist für dein Konto nicht erlaubt."), "error")
-                    return redirect(url_for("main.profile"))
-                if needs_verification():
-                    # wie bei der Registrierung: erst nach Bestätigung über die neue Adresse
-                    db.session.commit()
-                    if send_email_change(current_user._get_current_object(), mail):
-                        flash(_("Wir haben einen Bestätigungslink an {email} geschickt. Die neue Adresse gilt, "
-                                "sobald du ihn öffnest.", email=mail), "info")
-                    else:
-                        flash(_("Die Bestätigungsmail konnte nicht gesendet werden – die Adresse bleibt unverändert."),
-                              "error")
-                    return redirect(url_for("main.profile"))
-            current_user.email = mail
         db.session.commit()
         flash(_("Benachrichtigungen gespeichert."), "success")
         return redirect(url_for("main.profile"))
@@ -395,6 +380,42 @@ def profile():
     return render_template("profile.html", history=history,
                            self_extend=get_bool("self_extend"), mail_on=get_bool("mail_enabled"),
                            max_ext=int(get_setting("max_extensions") or 0))
+
+
+def _apply_email(mail: str) -> bool:
+    """Neue E-Mail-Adresse eines lokalen Kontos übernehmen – mit denselben Regeln wie bei der Registrierung.
+
+    False: nicht übernommen (Fehler gemeldet oder Bestätigungslink verschickt) – der Aufrufer leitet nur weiter."""
+    from ..mailer import valid_email
+    if mail and not valid_email(mail):
+        db.session.rollback()
+        flash(_("Bitte eine gültige E-Mail-Adresse eingeben."), "error")
+        return False
+    changed = bool(mail) and mail.lower() != (current_user.email or "").lower()
+    if changed and User.query.filter(func.lower(User.email) == mail.lower(),
+                                     User.id != current_user.id).first() is not None:
+        db.session.rollback()
+        flash(_("Diese E-Mail-Adresse wird bereits von einem anderen Konto verwendet."), "error")
+        return False
+    if current_user.self_registered and changed:
+        from .register import _allowed_domain, needs_verification, send_email_change
+        if not _allowed_domain(mail):
+            # gleiche Regel wie bei der Registrierung
+            db.session.rollback()
+            flash(_("Diese E-Mail-Adresse ist für dein Konto nicht erlaubt."), "error")
+            return False
+        if needs_verification():
+            # wie bei der Registrierung: erst nach Bestätigung über die neue Adresse (übrige Änderungen gelten sofort)
+            db.session.commit()
+            if send_email_change(current_user._get_current_object(), mail):
+                flash(_("Wir haben einen Bestätigungslink an {email} geschickt. Die neue Adresse gilt, "
+                        "sobald du ihn öffnest.", email=mail), "info")
+            else:
+                flash(_("Die Bestätigungsmail konnte nicht gesendet werden – die Adresse bleibt unverändert."),
+                      "error")
+            return False
+    current_user.email = mail
+    return True
 
 
 def _stay_signed_in(user: User):

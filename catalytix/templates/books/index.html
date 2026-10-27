@@ -45,20 +45,29 @@
   </div>
 </form>
 
+{% macro lend_link(book) -%}
+{%- if current_user.can_manage(book) and book.lendable and (book.available > 0 or book.held) -%}
+<a class="btn sm lend-link" href="{{ url_for('books.detail', book_id=book.id, verleihen=1, _anchor='verleihen') }}">{{ icon("loan") }} {{ _("Verleihen") }}</a>
+{%- endif -%}
+{%- endmacro %}
+
 {% if books %}
 <div data-view-target>
   <div class="books-grid view-grid">
     {% for book in books %}
+    <div class="book-item">
     <a class="book-card" href="{{ url_for('books.detail', book_id=book.id) }}">
       {{ cover(book) }}
       <div><div class="t">{{ book.title }}</div><div class="a">{{ book.authors or "–" }}</div></div>
       <div class="meta">{{ avail_badge(book) }}</div>
     </a>
+    {{ lend_link(book) }}
+    </div>
     {% endfor %}
   </div>
   <div class="card table-wrap view-list hide">
     <table>
-      <thead><tr><th>{{ _("Titel") }}</th><th>ISBN</th><th>{{ _("Gruppe") }}</th><th>{{ _("Standort") }}</th><th>{{ _("Status") }}</th></tr></thead>
+      <thead><tr><th>{{ _("Titel") }}</th><th>ISBN</th><th>{{ _("Gruppe") }}</th><th>{{ _("Standort") }}</th><th>{{ _("Status") }}</th>{% if current_user.is_librarian %}<th><span class="sr-only">{{ _("Aktionen") }}</span></th>{% endif %}</tr></thead>
       <tbody>
       {% for book in books %}
         <tr>
@@ -69,6 +78,7 @@
           <td>{{ group_badge(book.group) }}</td>
           <td>{{ book.location or "–" }}{% if book.signature %} <small>· {{ book.signature }}</small>{% endif %}</td>
           <td>{{ avail_badge(book) }}</td>
+          {% if current_user.is_librarian %}<td class="nowrap">{{ lend_link(book) }}</td>{% endif %}
         </tr>
       {% endfor %}
       </tbody>

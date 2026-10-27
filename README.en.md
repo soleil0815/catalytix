@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 2.19.0** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 2.20.0** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -8,10 +8,10 @@ Web-based library management with ISBN scanning, lending, groups and sign-in via
 
 - **Catalogue** – add books by hand or by ISBN: USB/Bluetooth barcode scanner, phone/laptop camera or typing. Metadata and covers are fetched automatically from the German National Library (DNB), Open Library and Google Books.
 - **Locations** – fixed list of shelves and rooms; picked from a list instead of typed when adding books.
-- **Quick capture** – scan one ISBN after another; accept new titles with one click, or add a copy to an existing title.
+- **Quick capture** – scan one ISBN after another; accept new titles with one click, or add a copy to an existing title. Adding an existing book again (same ISBN, same group) adds the copies to it instead of creating a second entry.
 - **Search as you type** – matching books (search box at the top) and people (circulation desk) appear while typing.
-- **Lending** – self-checkout, a circulation desk optimised for scanners, returns, renewals, overdue tracking, loan limits, optional **reservations** of books on loan with a queue and collection period.
-- **Groups** – each group has its own collection; members can only borrow books of their groups (plus "general" books).
+- **Lending** – self-checkout, lending straight from the catalogue, a circulation desk optimised for scanners, returns, renewals, overdue tracking, loan limits, optional **reservations** of books on loan with a queue and collection period.
+- **Groups** – each group has its own collection; members can only borrow books of their groups (plus "general" books). A group can be **reference only**: its books are in the catalogue but are neither lent out nor reserved.
 - **Roles** – reader, librarian, administrator. The local admin account always works.
 - **Self-registration** (optional, off by default) – with admin approval, e-mail verification and domain restrictions.
 - **Custom branding** – logo, login background image, colours and welcome texts.
@@ -35,7 +35,7 @@ curl -fsSLO https://raw.githubusercontent.com/soleil0815/catalytix/main/update.s
 ./update.sh --pull
 ```
 
-The script pulls the image, creates `docker-compose.yml`, `.env` and `.env.example` from the image, starts the container and shows the setup code. Later updates: `./update.sh --pull` (newest version) or `./update.sh --pull=2.19.0` (exactly this version, e.g. to go back).
+The script pulls the image, creates `docker-compose.yml`, `.env` and `.env.example` from the image, starts the container and shows the setup code. Later updates: `./update.sh --pull` (newest version) or `./update.sh --pull=2.20.0` (exactly this version, e.g. to go back).
 
 ### With Docker – build it yourself (zip package or git clone)
 
@@ -60,8 +60,8 @@ The `.env` file is not part of the update package. Additional services (e.g. a M
 
 ```bash
 ./update.sh --pull                   # get the newest version from GitHub (ready-made image, nothing is built)
-./update.sh --pull=2.19.0            # exactly this version from GitHub (stays on it until the next --pull)
-./update.sh catalytix-2.19.0.zip      # classic: install a package and build locally
+./update.sh --pull=2.20.0            # exactly this version from GitHub (stays on it until the next --pull)
+./update.sh catalytix-2.20.0.zip      # classic: install a package and build locally
 ./update.sh                          # rebuild the current version, or (in --pull mode) pull it again, and start
 ```
 
@@ -92,7 +92,7 @@ Requires Docker Compose – as `docker compose` (any version) or the older `dock
 - **Fix new versions:** `python3 tools/lock.py update` (needs Docker and internet) – always **within the foundation**: same Debian release, same Python series, every package within its major version (before 1.0: minor version; ranges in `requirements.in`). No limit for calendar versions such as the root certificates (`certifi`). New package versions are only taken once they are at least 7 days old (protection against freshly uploaded malicious releases). `python3 tools/lock.py check` verifies the locks.
 
 **Automatically on GitHub** (details under [GitHub](#github-building-the-image-and-publishing-versions)):
-- **Every Monday early – security update:** fix the newest versions within the foundation, rebuild without cache, run the tests in the finished image, scan with Trivy. Only if **everything** passes is the image published as `latest` and as **`<program version>-s<counter>`** (e.g. `2.19.0-s1`, `2.19.0-s2` – "same program, only new packages"; a new program version starts again at `s1`), with a CHANGELOG entry listing the changed packages. If nothing changed, nothing happens.
+- **Every Monday early – security update:** fix the newest versions within the foundation, rebuild without cache, run the tests in the finished image, scan with Trivy. Only if **everything** passes is the image published as `latest` and as **`<program version>-s<counter>`** (e.g. `2.20.0-s1`, `2.20.0-s2` – "same program, only new packages"; a new program version starts again at `s1`), with a CHANGELOG entry listing the changed packages. If nothing changed, nothing happens.
 - **Daily:** Trivy scans the published `latest` for vulnerabilities that became known after the release.
 - **Weekly:** check how long Debian 13 and Python 3.13 still get security updates. From 12 months before: a notice on the run; from 6 months: the run turns red. Nobody raises the foundation silently – it is a deliberate change (see below).
 
@@ -318,7 +318,7 @@ Technical details: TOTP according to RFC 6238 (secrets stored encrypted, codes c
 - Reminders and overdue notices run **once a day** from the configured hour. Several books of one reader go into **one** e-mail. The mail log prevents duplicates – even with several server processes.
 - **„Jetzt versenden“** (Send now) runs immediately. Alternatively via cron: `docker compose exec -T catalytix docker-entrypoint.sh flask --app wsgi send-reminders`
 - The **library address** (e.g. `https://library.school.org`) is needed for links in e-mails.
-- E-mail addresses come from the AD attribute `mail` for AD users and from user management for local users. Everyone can switch notifications off in their profile.
+- E-mail addresses come from the AD attribute `mail` for AD users and from user management for local users. Local (including self-registered) users change their display name and email address themselves under *Profile → My details*; for AD users these details come from AD. Everyone can switch notifications off in their profile.
 - Typical settings: Exchange/Microsoft 365 `smtp.office365.com:587 STARTTLS` · internal Postfix `mail.school.local:25 none` · Gmail `smtp.gmail.com:587 STARTTLS` with an app password.
 
 ## Barcode scanner and camera
@@ -480,7 +480,7 @@ For all workflows: actions pinned to commit SHAs, minimal permissions per job, n
 git init -b main
 git add -A
 git update-index --chmod=+x update.sh docker-entrypoint.sh   # executable, even if committed on Windows
-git commit -m "Catalytix 2.19.0"
+git commit -m "Catalytix 2.20.0"
 git remote add origin git@github.com:soleil0815/catalytix.git
 git push -u origin main
 ```

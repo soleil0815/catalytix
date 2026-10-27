@@ -415,6 +415,14 @@ def _save_group(group: Group):
     group.ldap_dn = form_str("ldap_dn", 500)
     from ..branding import clean_hex
     group.color = clean_hex(form_str("color", 16)) or "#2f6f62"
+    was_lendable = group.lendable is not False
+    group.lendable = not form_bool("not_lendable")
+    if group.id and was_lendable and not group.lendable:
+        from .. import reservations
+        n = reservations.cancel_for_group(group.id)
+        if n:
+            flash(_n("{n} offene Vormerkung für Bücher dieser Gruppe wurde gelöscht.",
+                     "{n} offene Vormerkungen für Bücher dieser Gruppe wurden gelöscht.", n), "info")
     ids = _ids(request.form.getlist("members"))
     group.users = User.query.filter(User.id.in_(ids)).all() if ids else []
     return None

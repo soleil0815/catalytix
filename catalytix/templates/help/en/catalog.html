@@ -5,6 +5,7 @@
   <li><b>Sort</b> by title, author, recently added or year of publication.</li>
   <li><b>View:</b> on the right, switch between <span class="ui">Tiles</span> with covers and a compact <span class="ui">List</span>. Your browser remembers the choice.</li>
   <li>Click a cover or title to open the <b>book page</b> with its location, shelf mark and number of available copies.</li>
+  {% if f.is_librarian %}<li>Under every available book you manage there is <span class="ui">Lend</span>: it opens the book page right at the <span class="ui">Lend to a user</span> form.</li>{% endif %}
   <li>Tags on the book page are clickable and show related books.</li>
 </ul>
 {% if current_user.is_global_manager %}

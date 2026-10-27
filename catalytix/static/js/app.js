@@ -494,7 +494,7 @@
       isbnInput.value = res.isbn;
       let html = "";
       if (res.existing && res.existing.length) {
-        html += `<div class="notice warn" style="margin-bottom:10px">${T("Bereits im Bestand: {books} – ggf. dort die Anzahl der Exemplare erhöhen.", { books: res.existing.map((b) =>
+        html += `<div class="notice warn" style="margin-bottom:10px">${T("Bereits im Bestand: {books} – speicherst du das Buch in derselben Gruppe, werden die Exemplare dort hinzugezählt.", { books: res.existing.map((b) =>
           `<a href="${esc(b.url)}"><b>${esc(b.title)}</b></a> (${esc(b.group)}, ${T("{n} Expl.", { n: esc(b.copies) })})`).join(", ") })}</div>`;
       }
       const d = res.data || {};

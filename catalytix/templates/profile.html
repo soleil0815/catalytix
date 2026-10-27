@@ -32,6 +32,21 @@
         {% if current_user.ldap_dn %}<dt>DN</dt><dd class="mono" style="font-size:12px">{{ current_user.ldap_dn }}</dd>{% endif %}
       </dl>
     </section>
+    {% if current_user.auth_source == "local" %}
+    <section class="card card-pad">
+      <h3 style="margin-bottom: 14px">{{ icon("user") }} {{ _("Meine Daten") }}</h3>
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="data">
+        <div class="field"><label>{{ _("Anzeigename") }}</label><input type="text" name="display_name" maxlength="200" value="{{ current_user.display_name or '' }}" autocomplete="name"></div>
+        <div class="field"><label>{{ _("E-Mail-Adresse") }}</label><input type="email" name="email" maxlength="200" value="{{ current_user.email or '' }}" autocomplete="email">
+          {% if current_user.self_registered %}<div class="hint">{{ _("Eine neue Adresse gilt erst, wenn du den Link in der Bestätigungsmail öffnest (falls die Bibliothek das verlangt).") }}</div>{% endif %}</div>
+        <button class="btn">{{ icon("check") }} {{ _("Speichern") }}</button>
+      </form>
+    </section>
+    {% else %}
+    <div class="notice">{{ icon("server") }}<div>{{ _("Name und E-Mail-Adresse kommen aus dem Active Directory und werden dort gepflegt.") }}</div></div>
+    {% endif %}
     <section class="card card-pad">
       <div class="actions" style="justify-content: space-between">
         <h3>{{ icon("globe") }} {{ _("Sprache") }}</h3>
@@ -53,9 +68,9 @@
       <form method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="action" value="notify">
-        {% if current_user.auth_source == "local" %}
-        <div class="field"><label>{{ _("E-Mail-Adresse") }}</label><input type="email" name="email" value="{{ current_user.email or '' }}"></div>
-        {% elif not current_user.email %}
+        {% if current_user.auth_source == "local" and not current_user.email %}
+        <div class="notice warn" style="margin-bottom: 12px">{{ _("Trag oben unter „Meine Daten“ eine E-Mail-Adresse ein, um Benachrichtigungen zu erhalten.") }}</div>
+        {% elif current_user.auth_source != "local" and not current_user.email %}
         <div class="notice warn" style="margin-bottom: 12px">{{ _("Im Active Directory ist für dich keine E-Mail-Adresse hinterlegt.") }}</div>
         {% endif %}
         <label class="check"><input type="checkbox" name="email_notifications" value="1" {{ 'checked' if current_user.email_notifications }}>

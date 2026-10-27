@@ -2,6 +2,30 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 2.20.0 – 27.10.2026
+**Neu**
+- **Präsenzbestand:** Gruppen haben die Option *Präsenzbestand – Bücher dieser Gruppe werden nicht verliehen*
+  (*Administration → Gruppen*). Die Bücher bleiben im Katalog (Hinweis „Präsenzbestand“), werden an der Ausleihtheke
+  aber nicht angeboten (weder in der Bestandssuche noch beim Scannen – dort mit klarer Meldung) und können weder
+  verliehen, selbst ausgeliehen noch vorgemerkt werden; geprüft zentral bei jeder Ausleihe. Beim Einschalten werden
+  offene Vormerkungen dieser Bücher beendet. Laufende Ausleihen werden normal zurückgegeben. Für AD-Personen wird
+  dafür kein Konto angelegt. Neue Spalte `groups.lendable` (wird beim Start automatisch ergänzt, bestehende Gruppen
+  bleiben ausleihbar).
+- **Verleihen aus dem Katalog:** Unter jedem freien Buch, das man verwaltet, steht *Verleihen* (Kachel- und
+  Listenansicht). Der Knopf öffnet die Buchseite beim Formular *An Benutzer verleihen*, der Cursor steht im Feld
+  *Benutzer*.
+- **Meine Daten im Profil:** Lokale und selbst registrierte Konten ändern Anzeigename und E-Mail-Adresse selbst –
+  unabhängig davon, ob E-Mails eingeschaltet sind, mit denselben Regeln wie bisher (gültige, freie Adresse; bei
+  Selbstregistrierung erlaubte Domain und ggf. Bestätigung über die neue Adresse). AD-Konten bleiben unverändert
+  schreibgeschützt; das Profil weist darauf hin, dass die Daten aus dem AD kommen.
+
+**Verbessert**
+- **Doppelt erfasst:** Wird beim Anlegen ein Buch mit einer ISBN gespeichert, die es in derselben Gruppe schon gibt,
+  werden die eingetragenen Exemplare beim vorhandenen Buch hinzugezählt (in SQL, gleichzeitige Erfassungen zählen
+  beide) statt einen zweiten Eintrag anzulegen; neue Exemplare gehen zuerst an die Vormerk-Warteschlange. In einer
+  anderen Gruppe entsteht weiterhin ein eigener Eintrag. Der Hinweis beim ISBN-Abruf sagt das jetzt.
+- Hilfe (Deutsch/Englisch), README und Neuigkeiten ergänzt; 20 neue Tests.
+
 ## 2.19.0 – 25.10.2026
 Bau und Auslieferung neu aufgestellt: alles fest, automatisch sicher und aktuell – ohne Versionssprünge.
 

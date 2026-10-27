@@ -291,6 +291,8 @@ def lend_to(book, person, due=None, note: str = "") -> tuple[bool, str, User | N
     wird das neue Konto wieder entfernt)."""
     from .views.loans import lend_book
     created = None
+    if not book.lendable:                     # Präsenzbestand: dafür kein Konto anlegen
+        return (*lend_book(book, person, due, note), None)
     if isinstance(person, Candidate):
         from .views.main import AccountMismatch
         try:

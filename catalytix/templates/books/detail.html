@@ -114,9 +114,9 @@
     {% for r in book.open_reservations %}
     <div class="list-row">
       <span class="avatar" style="width:30px;height:30px;font-size:11px">{{ r.user.initials }}</span>
-      <div class="grow"><b>{{ r.user.name }}</b><small>{{ _("vorgemerkt am {date}", date=r.created_at|de_day) }}</small></div>
-      {% if r.status == "ready" %}<span class="badge ok">{{ _("zurückgelegt bis {date}", date=r.hold_until|de_day) }}</span>
-      {% else %}<span class="badge">{{ _("wartet") }}</span>{% endif %}
+      <div class="grow"><b>{{ r.user.name }} <small class="muted" style="display:inline">{{ r.user.username }}</small></b><small>{{ _("vorgemerkt am {date}", date=r.created_at|de_day) }}</small>
+        <div class="row-badge">{% if r.status == "ready" %}<span class="badge ok">{{ _("zurückgelegt bis {date}", date=r.hold_until|de_day) }}</span>
+        {% else %}<span class="badge">{{ _("wartet") }}</span>{% endif %}</div></div>
       <form method="post" action="{{ url_for('loans.cancel_reservation', res_id=r.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="next" value="{{ request.path }}">

@@ -1,5 +1,7 @@
 # Shell helpers for the GitHub workflows – sourced with ". tools/ci.sh" (bash, set -e -o pipefail).
 # Every failure is reported as a readable annotation on the run ("::error title=…::…").
+# The workflows run with "shell: bash" (bash -eo pipefail); set here as well so that a pipe can never hide a failure.
+set -o pipefail
 
 fail() {   # fail "Title" "Message"
     echo "::error title=$1::$2"
@@ -51,9 +53,14 @@ prepare_builder() {   # prepare_builder [multi] – buildx builder; "multi" also
 
 # Tests in exactly the given image, with the given checkout mounted (the same code that is in the image)
 test_in_image() {   # test_in_image IMAGE SRC_DIR
+    local rc=0
     docker run --rm --user "$(id -u):$(id -g)" --entrypoint python -e CATALYTIX_DATA_DIR=/tmp/catalytix-test \
-        -v "$2:/src" -w /src/tests "$1" -m unittest discover -q 2>&1 | tee test-output.txt \
-        || { tail -n 40 test-output.txt; fail "Tests failed in the image" "See the log of this step – nothing is published."; }
+        -v "$2:/src" -w /src/tests "$1" -m unittest discover -q > test-output.txt 2>&1 || rc=$?
+    cat test-output.txt
+    if [ "$rc" != 0 ]; then
+        tail -n 40 test-output.txt
+        fail "Tests failed in the image" "See the log of this step – nothing is published."
+    fi
     { echo "### Tests in the image"; echo '```'; tail -n 3 test-output.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 }
 

@@ -162,7 +162,7 @@ class PullTests(unittest.TestCase):
         self.assertNotIn("docker tag", self.docker_log())
         self.assertIn("CATALYTIX_TAG=2.0.0\n", self.env())
         self.assertIn("CATALYTIX_PINNED=1\n", self.env())
-        self.assertIn("Pinned to version 2.0.0", out)
+        self.assertIn("Pinned to 2.0.0", out)
         self.log.unlink()
         self.run_update()                                                   # bleibt bei der festen Version
         self.assertIn(f"docker pull {IMG}:2.0.0", self.docker_log())
@@ -171,6 +171,22 @@ class PullTests(unittest.TestCase):
         self.assertIn(f"docker pull {IMG}:latest", self.docker_log())
         self.assertIn("CATALYTIX_TAG=latest\n", self.env())
         self.assertNotIn("\nCATALYTIX_PINNED=1", self.env())
+
+    def test_pull_security_update_tag_pins_exactly_that_image(self):
+        out = self.run_update("--pull=2.0.0-s3")
+        self.assertIn(f"docker pull {IMG}:2.0.0-s3", self.docker_log())
+        self.assertNotIn("docker tag", self.docker_log())              # das Release-Image 2.0.0 bleibt unverändert
+        self.assertIn("CATALYTIX_TAG=2.0.0-s3\n", self.env())
+        self.assertIn("CATALYTIX_PINNED=1\n", self.env())
+        self.assertIn("Pinned to 2.0.0-s3", out)
+        self.log.unlink()
+        self.run_update()                                                   # bleibt beim Sicherheitsupdate
+        self.assertIn(f"docker pull {IMG}:2.0.0-s3", self.docker_log())
+
+    def test_pull_rejects_malformed_tags(self):
+        for bad in ("2.0", "2.0.0-x1", "2.0.0-s", "latest-s1"):
+            out = self.run_update(f"--pull={bad}", ok=False)
+            self.assertIn("expects a version", out)
 
     def test_plain_update_in_pull_mode_pulls_latest(self):
         self.run_update("--pull")

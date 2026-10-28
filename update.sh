@@ -79,8 +79,8 @@ for arg in "$@"; do
 done
 
 [ "$PULL" = 0 ] || [ -z "$ZIP" ] || die "Either a zip package or --pull, not both."
-[ -z "$PULL_TAG" ] || [[ "$PULL_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$|^latest$ ]] \
-    || die "--pull=… expects a version like 2.20.0 (or latest)."
+[ -z "$PULL_TAG" ] || [[ "$PULL_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-s[0-9]+)?$|^latest$ ]] \
+    || die "--pull=… expects a version like 2.20.1, a security update like 2.20.1-s1 (or latest)."
 
 # Resolve the package path BEFORE changing into the program folder (also relative paths like ../x.zip)
 if [ -n "$ZIP" ]; then
@@ -456,16 +456,17 @@ ensure_env
 if [ "$PULL" = 1 ]; then
     VERSION="$NEW_VERSION"
     # Remember the image in .env. --pull follows "latest" (container managers that update images can then pull
-    # new versions themselves); --pull=X.Y.Z pins exactly that version until the next --pull.
-    [ "$PULL_TAG" = "$VERSION" ] || docker tag "${IMAGE}:${PULL_TAG}" "${IMAGE}:${VERSION}"
+    # new versions themselves); --pull=X.Y.Z (or a security update X.Y.Z-sN) pins exactly that image until the next
+    # --pull.
+    [ "$PULL_TAG" != latest ] || docker tag "${IMAGE}:${PULL_TAG}" "${IMAGE}:${VERSION}"
     env_set CATALYTIX_IMAGE "$IMAGE"
     if [ "$PULL_TAG" = latest ]; then
         env_set CATALYTIX_TAG latest
         env_unset CATALYTIX_PINNED
     else
-        env_set CATALYTIX_TAG "$VERSION"
+        env_set CATALYTIX_TAG "$PULL_TAG"     # X.Y.Z or a security update X.Y.Z-sN – exactly the image pulled
         env_set CATALYTIX_PINNED 1
-        warn "Pinned to version ${VERSION} – \"./update.sh --pull\" follows the newest version again."
+        warn "Pinned to ${PULL_TAG} – \"./update.sh --pull\" follows the newest version again."
     fi
 else
     VERSION="$(version_of .)"

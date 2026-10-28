@@ -17,9 +17,9 @@
   {% for r in my_reservations %}
   <div class="list-row">
     <div class="mini-cover">{{ cover(r.book) }}</div>
-    <div class="grow"><a href="{{ url_for('books.detail', book_id=r.book.id) }}" style="color: inherit"><b>{{ r.book.title }}</b></a><small>{{ r.book.authors }}</small></div>
-    {% if r.status == "ready" %}<span class="badge ok">{{ _("liegt bereit bis {date}", date=r.hold_until|de_day) }}</span>
-    {% else %}<span class="badge">{{ _("Platz {n}", n=positions[r.id]) }}</span>{% endif %}
+    <div class="grow"><a href="{{ url_for('books.detail', book_id=r.book.id) }}" style="color: inherit"><b>{{ r.book.title }}</b></a><small>{{ r.book.authors }}</small>
+      <div class="row-badge">{% if r.status == "ready" %}<span class="badge ok">{{ _("liegt bereit bis {date}", date=r.hold_until|de_day) }}</span>
+      {% else %}<span class="badge">{{ _("Platz {n}", n=positions[r.id]) }}</span>{% endif %}</div></div>
     <form method="post" action="{{ url_for('loans.cancel_reservation', res_id=r.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="next" value="{{ request.full_path }}">

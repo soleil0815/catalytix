@@ -266,7 +266,8 @@ class CiHelperTests(unittest.TestCase):
                 f.write_text(f"#!/bin/sh\nprintf '%s\\n' '{out}'\nexit {rc}\n")
                 f.chmod(0o755)
             env = dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}", GITHUB_REPOSITORY="o/r")
-            return subprocess.run(["bash", "-c", f"set -e -o pipefail; . tools/ci.sh; {script}"], cwd=ROOT,
+            # Wie GitHub ohne „shell: bash“ (nur -e, kein pipefail): ci.sh muss Fehler trotzdem erkennen
+            return subprocess.run(["bash", "-c", f"set -e; . tools/ci.sh; {script}"], cwd=ROOT,
                                   env=env, capture_output=True, text=True)
 
     def test_image_exists(self):
@@ -284,6 +285,26 @@ class CiHelperTests(unittest.TestCase):
         r = self.run_sh("release_exists 1.0.0 || echo missing", gh_out="gh: Server Error (HTTP 502)", gh_rc=1)
         self.assertNotIn("missing", r.stdout)
         self.assertIn("::error title=GitHub API not reachable", r.stdout)
+
+    def test_failing_tests_in_the_image_stop_the_run(self):
+        """Regression (Review 2.20.1): die Tests liefen durch „| tee“ – ohne pipefail ging ihr Fehler verloren."""
+        with tempfile.TemporaryDirectory() as tmp:
+            summary = Path(tmp) / "summary.md"
+            for rc, expect_fail in ((1, True), (0, False)):
+                f = Path(tmp) / "docker"
+                f.write_text(f"#!/bin/sh\necho 'FAILED (failures=1)'\nexit {rc}\n")
+                f.chmod(0o755)
+                env = dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}", GITHUB_STEP_SUMMARY=str(summary))
+                r = subprocess.run(["bash", "-e", "-c", f". '{ROOT / 'tools' / 'ci.sh'}'; test_in_image img /src; "
+                                    "echo after"], cwd=tmp, env=env, capture_output=True, text=True)
+                self.assertEqual(r.returncode != 0, expect_fail, r.stdout + r.stderr)
+                self.assertEqual("after" in r.stdout, not expect_fail)
+                if expect_fail:
+                    self.assertIn("::error title=Tests failed in the image", r.stdout)
+
+    def test_workflows_run_with_bash_pipefail(self):
+        for name in ("build.yml", "security-update.yml", "scan.yml", "foundation.yml"):
+            self.assertIn("defaults:\n  run:\n    shell: bash\n", workflow(name), name)
 
     def test_highest_release_is_by_number(self):
         r = self.run_sh("highest_release", gh_out="v2.18.4\nv2.19.0\nv2.9.0")

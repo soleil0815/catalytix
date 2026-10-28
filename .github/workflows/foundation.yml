@@ -10,6 +10,12 @@ on:
 
 permissions: {}
 
+# Explicit bash: GitHub then runs every step with "bash -eo pipefail" – without it a failing command in a pipe
+# (e.g. the tests piped into tee) would go unnoticed.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   foundation:
     name: Security support of Debian and Python

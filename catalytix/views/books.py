@@ -523,6 +523,7 @@ def create():
         elif (same := _same_book(book)) is not None:
             # Dasselbe Buch (ISBN) in derselben Gruppe gibt es schon: Exemplare dort hinzuzählen statt doppelt anlegen
             add = book.copies or 0
+            before = same.copies or 0
             if add:
                 total = func.coalesce(Book.copies, 0) + add       # in SQL: gleichzeitige Erfassungen zählen beide
                 db.session.execute(update(Book).where(Book.id == same.id)
@@ -532,9 +533,16 @@ def create():
             from .. import reservations
             reservations.promote(same.id)          # neue Exemplare gehen zuerst an die Warteschlange
             db.session.refresh(same)
-            flash(_n("„{title}“ ist bereits im Bestand – {n} Exemplar hinzugefügt, jetzt {copies}.",
-                     "„{title}“ ist bereits im Bestand – {n} Exemplare hinzugefügt, jetzt {copies}.",
-                     add, title=same.title, copies=same.copies), "success")
+            added = max(0, (same.copies or 0) - before)      # an der Höchstgrenze ggf. weniger als eingetragen
+            if added:
+                flash(_n("„{title}“ ist bereits im Bestand – {n} Exemplar hinzugefügt, jetzt {copies}. Die übrigen "
+                         "Angaben des Formulars wurden nicht übernommen.",
+                         "„{title}“ ist bereits im Bestand – {n} Exemplare hinzugefügt, jetzt {copies}. Die übrigen "
+                         "Angaben des Formulars wurden nicht übernommen.",
+                         added, title=same.title, copies=same.copies), "success")
+            else:
+                flash(_("„{title}“ ist bereits im Bestand ({copies} Exemplare) – es wurde nichts hinzugefügt.",
+                        title=same.title, copies=same.copies), "warning")
             if request.form.get("next_action") == "another":
                 return redirect(url_for("books.create"))
             return redirect(url_for("books.detail", book_id=same.id))

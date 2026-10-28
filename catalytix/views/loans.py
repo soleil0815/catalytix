@@ -66,6 +66,13 @@ def lend_book(book: Book, borrower: User, due: date | None = None, note: str = "
             if held and sum(active.values()) < copies:
                 return False, _("Das freie Exemplar ist für eine Vormerkung zurückgelegt.")
             return False, _("Kein Exemplar verfügbar.")
+        # Nicht an der Warteschlange vorbei: Ein gerade frei gewordenes Exemplar, das noch nicht zurückgelegt ist
+        # (z. B. Konto mit Vormerkung gelöscht), steht zuerst den Wartenden zu, die vor der Person stehen
+        ahead = reservations.waiting_ahead(book.id, borrower.id)
+        if ahead and copies - sum(active.values()) - held <= ahead:
+            db.session.rollback()
+            reservations.promote(book.id)        # Exemplar für die Wartenden zurücklegen und sie benachrichtigen
+            return False, _("Das freie Exemplar steht zuerst den Personen zu, die das Buch vorgemerkt haben.")
         if limit and count_active_loans(borrower.id) >= limit:
             db.session.rollback()
             return False, _("{name} hat bereits die maximale Anzahl von {limit} Ausleihen.", name=borrower.name, limit=limit)
@@ -99,7 +106,7 @@ def return_loan(loan: Loan) -> str:
         notify_return(loan)
         readied = reservations.promote(loan.book_id)
         if readied and current_user.can_manage(loan.book):
-            msg += " " + _("Bitte zurücklegen – vorgemerkt für {names}.", names=", ".join(r.user.name for r in readied))
+            msg += " " + _("Bitte zurücklegen – vorgemerkt für {names}.", names=", ".join(f"{r.user.name} ({r.user.username})" for r in readied))
     return msg
 
 
@@ -107,6 +114,8 @@ def return_loan(loan: Loan) -> str:
 @login_required
 def borrow(book_id):
     book = get_by_id(Book, book_id) or abort(404)
+    if not current_user.can_see(book, get_setting("catalog_visibility") == "all"):
+        abort(404)   # wie die Buchseite: unsichtbare Bücher verraten auch hier weder Titel noch Gruppe
     target_id = parse_id(request.form.get("user_id"))
     target_name = (request.form.get("benutzer") or "").strip()[:200]
     due = None

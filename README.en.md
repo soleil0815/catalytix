@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 2.20.0** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 2.20.1** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -35,7 +35,7 @@ curl -fsSLO https://raw.githubusercontent.com/soleil0815/catalytix/main/update.s
 ./update.sh --pull
 ```
 
-The script pulls the image, creates `docker-compose.yml`, `.env` and `.env.example` from the image, starts the container and shows the setup code. Later updates: `./update.sh --pull` (newest version) or `./update.sh --pull=2.20.0` (exactly this version, e.g. to go back).
+The script pulls the image, creates `docker-compose.yml`, `.env` and `.env.example` from the image, starts the container and shows the setup code. Later updates: `./update.sh --pull` (newest version) or `./update.sh --pull=2.20.1` (exactly this version, e.g. to go back).
 
 ### With Docker – build it yourself (zip package or git clone)
 
@@ -60,12 +60,12 @@ The `.env` file is not part of the update package. Additional services (e.g. a M
 
 ```bash
 ./update.sh --pull                   # get the newest version from GitHub (ready-made image, nothing is built)
-./update.sh --pull=2.20.0            # exactly this version from GitHub (stays on it until the next --pull)
-./update.sh catalytix-2.20.0.zip      # classic: install a package and build locally
+./update.sh --pull=2.20.1            # exactly this version from GitHub (stays on it until the next --pull)
+./update.sh catalytix-2.20.1.zip      # classic: install a package and build locally
 ./update.sh                          # rebuild the current version, or (in --pull mode) pull it again, and start
 ```
 
-**Two ways, switch freely:** `--pull` remembers the GitHub image in `.env` (`CATALYTIX_IMAGE`, `CATALYTIX_TAG=latest`) – the container then always follows the newest version. A container manager that updates images automatically can therefore pull new versions itself (the package on GitHub must be public for that; only `update.sh` takes the extra backup before the update, the regular backups keep running). `--pull=X.Y.Z` instead holds exactly one version until the next `./update.sh --pull`. The installation files (`docker-compose.yml`, `update.sh`, READMEs) come from the image, so they always match the version. Installing a zip package switches back to building locally automatically (the two entries are commented out in `.env`). Zip packages with checksums are available under *Releases* in the GitHub repository.
+**Two ways, switch freely:** `--pull` remembers the GitHub image in `.env` (`CATALYTIX_IMAGE`, `CATALYTIX_TAG=latest`) – the container then always follows the newest version. A container manager that updates images automatically can therefore pull new versions itself (the package on GitHub must be public for that; only `update.sh` takes the extra backup before the update, the regular backups keep running). `--pull=X.Y.Z` instead holds exactly one version until the next `./update.sh --pull` – a security update can be pinned or chosen as the way back the same way (`--pull=X.Y.Z-s2`); `X.Y.Z` alone is the original release image without the later package updates. The installation files (`docker-compose.yml`, `update.sh`, READMEs) come from the image, so they always match the version. Installing a zip package switches back to building locally automatically (the two entries are commented out in `.env`). Zip packages with checksums are available under *Releases* in the GitHub repository.
 
 The script
 1. checks a given package (unpacks it into a work folder next to the installation, shows old and new version, warns about an older one),
@@ -92,7 +92,7 @@ Requires Docker Compose – as `docker compose` (any version) or the older `dock
 - **Fix new versions:** `python3 tools/lock.py update` (needs Docker and internet) – always **within the foundation**: same Debian release, same Python series, every package within its major version (before 1.0: minor version; ranges in `requirements.in`). No limit for calendar versions such as the root certificates (`certifi`). New package versions are only taken once they are at least 7 days old (protection against freshly uploaded malicious releases). `python3 tools/lock.py check` verifies the locks.
 
 **Automatically on GitHub** (details under [GitHub](#github-building-the-image-and-publishing-versions)):
-- **Every Monday early – security update:** fix the newest versions within the foundation, rebuild without cache, run the tests in the finished image, scan with Trivy. Only if **everything** passes is the image published as `latest` and as **`<program version>-s<counter>`** (e.g. `2.20.0-s1`, `2.20.0-s2` – "same program, only new packages"; a new program version starts again at `s1`), with a CHANGELOG entry listing the changed packages. If nothing changed, nothing happens.
+- **Every Monday early – security update:** fix the newest versions within the foundation, rebuild without cache, run the tests in the finished image, scan with Trivy. Only if **everything** passes is the image published as `latest` and as **`<program version>-s<counter>`** (e.g. `2.20.1-s1`, `2.20.1-s2` – "same program, only new packages"; a new program version starts again at `s1`), with a CHANGELOG entry listing the changed packages. If nothing changed, nothing happens.
 - **Daily:** Trivy scans the published `latest` for vulnerabilities that became known after the release.
 - **Weekly:** check how long Debian 13 and Python 3.13 still get security updates. From 12 months before: a notice on the run; from 6 months: the run turns red. Nobody raises the foundation silently – it is a deliberate change (see below).
 
@@ -480,7 +480,7 @@ For all workflows: actions pinned to commit SHAs, minimal permissions per job, n
 git init -b main
 git add -A
 git update-index --chmod=+x update.sh docker-entrypoint.sh   # executable, even if committed on Windows
-git commit -m "Catalytix 2.20.0"
+git commit -m "Catalytix 2.20.1"
 git remote add origin git@github.com:soleil0815/catalytix.git
 git push -u origin main
 ```

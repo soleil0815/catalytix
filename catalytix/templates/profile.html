@@ -38,7 +38,7 @@
       <form method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="action" value="data">
-        <div class="field"><label>{{ _("Anzeigename") }}</label><input type="text" name="display_name" maxlength="200" value="{{ current_user.display_name or '' }}" autocomplete="name"></div>
+        <div class="field"><label>{{ _("Anzeigename") }}</label><input type="text" name="display_name" maxlength="200" required value="{{ current_user.display_name or '' }}" autocomplete="name"></div>
         <div class="field"><label>{{ _("E-Mail-Adresse") }}</label><input type="email" name="email" maxlength="200" value="{{ current_user.email or '' }}" autocomplete="email">
           {% if current_user.self_registered %}<div class="hint">{{ _("Eine neue Adresse gilt erst, wenn du den Link in der Bestätigungsmail öffnest (falls die Bibliothek das verlangt).") }}</div>{% endif %}</div>
         <button class="btn">{{ icon("check") }} {{ _("Speichern") }}</button>

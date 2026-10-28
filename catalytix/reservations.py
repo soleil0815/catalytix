@@ -126,6 +126,19 @@ def fulfil_on_loan(book_id: int, user_id: int) -> None:
         .values(status=RES_DONE, closed_at=datetime.now()).execution_options(synchronize_session=False))
 
 
+def waiting_ahead(book_id: int, user_id: int | None) -> int:
+    """Wie viele Wartende stehen vor dieser Person (alle, wenn sie nicht in der Warteschlange steht)?"""
+    if not enabled():
+        return 0
+    if db.session.query(Reservation.id).filter(Reservation.book_id == book_id, Reservation.user_id == user_id,
+                                               Reservation.status == RES_READY).first():
+        return 0                  # für die Person zurückgelegt – sie ist dran
+    waiting = [uid for (uid,) in db.session.query(Reservation.user_id).filter(
+        Reservation.book_id == book_id, Reservation.status == RES_WAITING)
+        .order_by(Reservation.created_at, Reservation.id)]
+    return waiting.index(user_id) if user_id in waiting else len(waiting)
+
+
 def held_by_others(book_id: int, user_id: int | None) -> int:
     q = db.session.query(func.count(Reservation.id)).filter(Reservation.book_id == book_id,
                                                             Reservation.status == RES_READY)
@@ -134,11 +147,33 @@ def held_by_others(book_id: int, user_id: int | None) -> int:
     return q.scalar() or 0
 
 
+def still_valid(res: Reservation) -> bool:
+    """Darf die Person das Buch (noch) bekommen? Gesperrt, nicht mehr in der Gruppe des Buchs oder Buch im
+    Präsenzbestand: dann blockiert die Vormerkung nur ein Exemplar, das sie nie abholen kann."""
+    return bool(res.user.active and res.book.lendable and res.user.can_borrow(res.book))
+
+
+def _drop_invalid(book_id: int) -> int:
+    """Offene Vormerkungen eines Buchs beenden, die nicht mehr gelten (Buch ist schon gesperrt, ohne Commit)."""
+    n = 0
+    for res in Reservation.query.filter(Reservation.book_id == book_id,
+                                        Reservation.status.in_((RES_WAITING, RES_READY))).all():
+        if not still_valid(res):
+            res.status, res.closed_at = RES_CANCELLED, datetime.now()
+            n += 1
+    if n:
+        db.session.flush()
+        log.info("Reservations: %d for book %s no longer valid (account, group or reference-only) – closed",
+                 n, book_id)
+    return n
+
+
 def promote(book_id: int) -> list[Reservation]:
     """Freie Exemplare an die Warteschlange vergeben (zurücklegen und benachrichtigen)."""
     if not enabled():
         return []
     _lock(book_id)
+    _drop_invalid(book_id)
     free = _free_copies(book_id)
     readied = []
     if free > 0:
@@ -148,9 +183,6 @@ def promote(book_id: int) -> list[Reservation]:
         for res in waiting:
             if len(readied) >= free:
                 break
-            if not res.user.active:          # gesperrte Person: Vormerkung entfällt
-                res.status, res.closed_at = RES_CANCELLED, datetime.now()
-                continue
             res.status, res.ready_at, res.hold_until = RES_READY, datetime.now(), until
             readied.append(res)
     db.session.commit()
@@ -166,6 +198,7 @@ def rebalance(book_id: int) -> None:
     """Nach einer Änderung der Exemplarzahl: zu viele Zurücklegungen (weniger Exemplare) wieder in die Warteschlange
     stellen – die zuletzt bereitgelegten zuerst, sie behalten ihren Platz –, sonst freie Exemplare vergeben."""
     _lock(book_id)
+    _drop_invalid(book_id)
     excess = -_free_copies(book_id)
     if excess > 0:
         ready = (Reservation.query.filter(Reservation.book_id == book_id, Reservation.status == RES_READY)
@@ -187,11 +220,36 @@ def expire_due(today: date | None = None) -> int:
         if _close(res, RES_EXPIRED):
             books.add(res.book_id)
     db.session.commit()
+    books |= revalidate()
     for book_id in books:
         promote(book_id)
     if books:
         log.info("Reservations: %d not collected in time – next in line notified", len(due))
     return len(books)
+
+
+def revalidate(user_ids=None) -> set[int]:
+    """Offene Vormerkungen prüfen, die nicht mehr gelten (Konto gesperrt, Gruppe verlassen – auch durch den
+    AD-Abgleich –, Buch verschoben oder Präsenzbestand) und die nächste Person nachrücken lassen.
+    Läuft im Hintergrund regelmäßig und sofort nach Änderungen durch Admins. Liefert die betroffenen Bücher."""
+    if not enabled():
+        return set()
+    q = Reservation.query.filter(Reservation.status.in_((RES_WAITING, RES_READY)))
+    if user_ids is not None:
+        ids = [i for i in user_ids if i]
+        if not ids:
+            return set()
+        q = q.filter(Reservation.user_id.in_(ids))
+    books = {res.book_id for res in q.all() if not still_valid(res)}
+    for book_id in books:
+        promote(book_id)          # beendet die ungültigen unter der Sperre und vergibt das Exemplar neu
+    return books
+
+
+def promote_after_delete(book_ids) -> None:
+    """Nach dem Löschen eines Kontos: seine zurückgelegten Exemplare an die Nächsten vergeben."""
+    for book_id in set(book_ids):
+        promote(book_id)
 
 
 def cancel_for_group(group_id: int) -> int:

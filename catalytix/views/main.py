@@ -345,7 +345,11 @@ def profile():
         # Eigene Daten ändern – nur lokale (registrierte/angelegte) Konten; AD-Konten kommen aus dem Verzeichnis
         if current_user.auth_source != "local":
             abort(400)
-        current_user.display_name = form_str("display_name", 200)
+        name = form_str("display_name", 200)
+        if not name:
+            flash(_("Bitte einen Namen angeben."), "error")
+            return redirect(url_for("main.profile"))
+        current_user.display_name = name
         if _apply_email(form_str("email", 200)):
             db.session.commit()
             flash(_("Deine Daten wurden gespeichert."), "success")

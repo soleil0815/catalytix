@@ -204,6 +204,8 @@ def user_edit(user_id):
             db.session.rollback()
         else:
             db.session.commit()
+            from .. import reservations
+            reservations.revalidate([user.id])   # gesperrt oder Gruppe entfernt: Vormerkungen freigeben
             flash(_("Benutzer gespeichert."), "success")
             return redirect(url_for("admin.users"))
     from .. import lockout, twofa
@@ -241,8 +243,10 @@ def user_reject(user_id):
     else:
         from ..retention import delete_user
         name = user.name
-        delete_user(user)
+        books = delete_user(user)
         db.session.commit()
+        from .. import reservations
+        reservations.promote_after_delete(books)
         flash(_("Registrierung von {name} abgelehnt und gelöscht.", name=name), "success")
     return redirect(url_for("admin.users", status="neu"))
 
@@ -285,9 +289,12 @@ def user_delete(user_id):
         flash(_("Der letzte Administrator kann nicht gelöscht werden."), "error")
     else:
         from ..retention import delete_user
-        delete_user(user)   # abgeschlossene Ausleihen nur noch gezählt – Statistik bleibt erhalten
+        name = user.username
+        books = delete_user(user)   # abgeschlossene Ausleihen nur noch gezählt – Statistik bleibt erhalten
         db.session.commit()
-        flash(_("Benutzer {name} gelöscht.", name=user.username), "success")
+        from .. import reservations
+        reservations.promote_after_delete(books)   # für das Konto zurückgelegte Exemplare: die Nächsten sind dran
+        flash(_("Benutzer {name} gelöscht.", name=name), "success")
     return redirect(url_for("admin.users"))
 
 
@@ -456,6 +463,8 @@ def group_edit(group_id):
             db.session.rollback()
         else:
             db.session.commit()
+            from .. import reservations
+            reservations.revalidate()   # Mitglieder entfernt: deren Vormerkungen auf Bücher der Gruppe freigeben
             flash(_("Gruppe gespeichert."), "success")
             return redirect(url_for("admin.groups"))
     return render_template("admin/group_form.html", group=group,

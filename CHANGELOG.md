@@ -2,6 +2,37 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 2.20.1 – 28.10.2026
+Code-Review der Änderungen seit 2.17.1 (drei unabhängige Prüfer: Ausleih- und Vormerklogik, Sicherheit und Rechte,
+Betrieb/CI/Oberfläche) – keine kritischen Befunde, alle bestätigten behoben, jeder mit Test.
+
+**Wichtig**
+- **GitHub: Veröffentlichung nur nach bestandenen Tests.** Die Tests im Image liefen durch `| tee`; GitHub führt
+  Schritte ohne ausdrückliche Shell ohne `pipefail` aus, dadurch ging ein Fehler der Tests verloren und ein Release
+  bzw. Sicherheitsupdate wäre trotzdem veröffentlicht worden (passiert ist das nicht – alle Läufe hatten bestandene
+  Tests). Alle Workflows laufen jetzt mit `shell: bash` (`bash -eo pipefail`), `tools/ci.sh` setzt `pipefail` selbst
+  und wertet den Rückgabewert der Tests direkt aus; ein Selbsttest prüft das unter `bash -e`.
+- **Vormerkungen, die nicht mehr gelten, blockieren kein Exemplar mehr.** Beendet werden sie jetzt, wenn das Konto
+  gesperrt oder gelöscht wird, die Person nicht mehr in der Gruppe des Buchs ist (auch durch den AD-Abgleich) oder
+  das Buch – auch einzeln beim Bearbeiten – in den Präsenzbestand kommt. Ein dafür zurückgelegtes Exemplar geht
+  sofort an die Nächste in der Warteschlange: nach Admin-Änderungen sofort, sonst beim regelmäßigen Hintergrundlauf.
+  Vorher blieb es bis zu 7 Tage zurückgelegt; beim Löschen eines Kontos rückte niemand nach.
+- **Kein Vordrängeln:** Ein frei gewordenes, noch nicht zurückgelegtes Exemplar kann niemand an der Warteschlange
+  vorbei ausleihen – es wird sofort für die Erste zurückgelegt.
+
+**Weitere Korrekturen**
+- Ausleihen über die Adresse `/buecher/<id>/ausleihen` prüft zuerst, ob man das Buch sehen darf (sonst „nicht
+  gefunden“). Vorher nannte die Meldung Titel und Gruppe von Präsenzbestand-Büchern, die im Katalog unsichtbar sind.
+- Handy: Die Vormerk-Listen auf der Buchseite und unter *Meine Vormerkungen* waren bei 360 px unlesbar (Name/Titel
+  auf ein Zeichen gequetscht); der Status steht jetzt unter dem Namen. Verwalter sehen dort und bei der Rückgabe
+  („Bitte zurücklegen – vorgemerkt für …“) zusätzlich den Benutzernamen.
+- Doppelte ISBN beim Anlegen: Die Meldung nennt die tatsächlich hinzugefügten Exemplare (an der Höchstgrenze
+  weniger) und sagt, dass die übrigen Angaben des Formulars nicht übernommen wurden; bei 0 Exemplaren ein Hinweis.
+- Profil: Der Anzeigename darf nicht leer sein.
+- `update.sh --pull=X.Y.Z-sN` hält ein Sicherheitsupdate fest (vorher abgelehnt); die `.env` merkt sich genau dieses
+  Image.
+- Hilfe: aktuelle Beschriftung der Sofort-Verleihen-Option an der Theke; Vormerkungen, Erfassen und Wartung ergänzt.
+
 ## 2.20.0 – 27.10.2026
 **Neu**
 - **Präsenzbestand:** Gruppen haben die Option *Präsenzbestand – Bücher dieser Gruppe werden nicht verliehen*

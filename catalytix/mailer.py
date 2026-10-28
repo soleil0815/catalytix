@@ -573,11 +573,14 @@ def cleanup_unverified(days: int = 7) -> int:
     stale = User.query.filter(User.self_registered.is_(True), User.email_verified.is_(False),
                               User.created_at < limit).all()
     from .retention import delete_user
+    books = []
     for u in stale:
         if not u.active_loans:
-            delete_user(u)   # auch mit abgeschlossenen Ausleihen (sonst IntegrityError)
+            books += delete_user(u)   # auch mit abgeschlossenen Ausleihen (sonst IntegrityError)
     if stale:
         db.session.commit()
+        from .reservations import promote_after_delete
+        promote_after_delete(books)
         log.info("%d unconfirmed registration(s) deleted", len(stale))
     return len(stale)
 

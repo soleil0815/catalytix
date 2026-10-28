@@ -2,6 +2,7 @@
 <p><b>Update mit <code>update.sh</code>:</b></p>
 <pre><code>./update.sh --pull                 # neueste Version von GitHub (fertiges Image)
 ./update.sh --pull=X.Y.Z           # genau diese Version von GitHub
+./update.sh --pull=X.Y.Z-s2        # genau dieses Sicherheitsupdate
 ./update.sh catalytix-X.Y.Z.zip    # klassisch: Paket einspielen und lokal bauen
 ./update.sh                        # aktuellen Stand neu bauen bzw. neu holen und starten</code></pre>
 <p>Mit <code>--pull</code> holt das Skript das von GitHub gebaute Image (<code>ghcr.io/soleil0815/catalytix</code>) samt passender <code>docker-compose.yml</code> und merkt es sich in der <code>.env</code>; ein Zip-Paket schaltet wieder auf lokales Bauen um.</p>

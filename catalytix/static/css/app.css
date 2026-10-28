@@ -298,6 +298,8 @@ td.actions-cell { text-align: right; white-space: nowrap; }
 .list-row .mini-cover { width: 38px; flex: none; }
 .list-row .grow { flex: 1; min-width: 0; }
 .list-row .grow b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-row .row-badge { margin-top: 5px; }
+.list-row .row-badge .badge { white-space: normal; }
 
 /* ------------------------------------------------------------ Scanner */
 .scan-box { position: relative; border-radius: 14px; overflow: hidden; background: #000; aspect-ratio: 4 / 3; max-height: 60vh; }

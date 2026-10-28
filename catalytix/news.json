@@ -1,5 +1,47 @@
 [
  {
+  "version": "2.20.1",
+  "date": "2026-10-28",
+  "items": [
+   {
+    "kind": "fixed",
+    "audience": "all",
+    "de": {
+     "title": "Vormerkungen: kein Exemplar bleibt mehr blockiert",
+     "text": "Vormerkungen, die nicht mehr gelten – Konto gesperrt oder gelöscht, nicht mehr in der Gruppe des Buchs, Buch im Präsenzbestand –, werden jetzt automatisch beendet, und ein dafür zurückgelegtes Exemplar geht sofort an die Nächste in der Warteschlange. Ein frei gewordenes Exemplar kann niemand mehr an der Warteschlange vorbei ausleihen."
+    },
+    "en": {
+     "title": "Reservations: no copy stays blocked any more",
+     "text": "Reservations that no longer apply – account locked or deleted, no longer in the book's group, book reference only – are now closed automatically, and a copy set aside for them goes straight to the next person in the queue. Nobody can borrow a freed copy past the queue any more."
+    }
+   },
+   {
+    "kind": "security",
+    "audience": "admin",
+    "de": {
+     "title": "Code-Review: Veröffentlichung nur nach bestandenen Tests",
+     "text": "Ein Code-Review hat gezeigt, dass GitHub bei fehlgeschlagenen Tests im Image trotzdem hätte veröffentlichen können (bisher ist das nie passiert). Das ist behoben und wird jetzt geprüft. Außerdem verraten Ausleih-Anfragen keine Titel von Büchern mehr, die man im Katalog nicht sehen darf."
+    },
+    "en": {
+     "title": "Code review: publishing only after passing tests",
+     "text": "A code review showed that GitHub could have published an image even though its tests failed (this never happened). This is fixed and now checked. In addition, borrow requests no longer reveal titles of books you are not allowed to see in the catalogue."
+    }
+   },
+   {
+    "kind": "improved",
+    "audience": "all",
+    "de": {
+     "title": "Kleinere Verbesserungen",
+     "text": "Vormerk-Listen sind auf dem Handy wieder lesbar, der Anzeigename im Profil darf nicht leer sein, und ein Sicherheitsupdate lässt sich mit update.sh gezielt festhalten (z. B. --pull=2.20.1-s1)."
+    },
+    "en": {
+     "title": "Smaller improvements",
+     "text": "Reservation lists are readable on phones again, the display name in the profile can no longer be empty, and a security update can be pinned with update.sh (e.g. --pull=2.20.1-s1)."
+    }
+   }
+  ]
+ },
+ {
   "version": "2.20.0",
   "date": "2026-10-27",
   "items": [

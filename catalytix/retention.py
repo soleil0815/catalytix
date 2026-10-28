@@ -48,10 +48,15 @@ def archive_loans(loan_ids: list[int]) -> int:
     return total
 
 
-def delete_user(user) -> None:
+def delete_user(user) -> list[int]:
     """Benutzer samt abgeschlossenen Ausleihen löschen (pro Buch nur gezählt, Statistik bleibt).
 
-    Der Aufrufer prüft vorher, dass keine Ausleihe mehr läuft; committet wird nicht."""
+    Der Aufrufer prüft vorher, dass keine Ausleihe mehr läuft; committet wird nicht. Liefert die Bücher, für die
+    das Konto offene Vormerkungen hatte – nach dem Commit reservations.promote_after_delete() aufrufen, damit ein
+    für das Konto zurückgelegtes Exemplar an die Nächsten in der Warteschlange geht."""
+    from .models import RES_READY, RES_WAITING, Reservation
+    books = [b for (b,) in db.session.query(Reservation.book_id).filter(
+        Reservation.user_id == user.id, Reservation.status.in_((RES_WAITING, RES_READY)))]
     ids = [i for (i,) in db.session.query(Loan.id).filter(Loan.user_id == user.id)]
     archive_loans(ids)
     db.session.query(Loan).filter(Loan.user_id == user.id).delete(synchronize_session=False)
@@ -60,6 +65,7 @@ def delete_user(user) -> None:
         db.session.expunge(obj)
     db.session.expire(user, ["loans"])
     db.session.delete(user)
+    return books
 
 
 def run_retention(now: datetime | None = None) -> dict:

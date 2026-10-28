@@ -67,6 +67,8 @@ class ReferenceOnlyTests(Base):
         self.assertTrue(Book(title="x", group=self.ga).lendable)
 
     def test_cannot_lend_at_detail_or_for_self(self):
+        set_setting("catalog_visibility", "all")    # Leser sieht das Buch (sonst: 404, siehe test_review_2201)
+        db.session.commit()
         self.c.post(f"/buecher/{self.lex.id}/ausleihen", data={"benutzer": "leser"})
         self.login("leser")
         self.c.post(f"/buecher/{self.lex.id}/ausleihen")

@@ -202,7 +202,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .field { margin-bottom: 16px; }
 .field .hint { font-size: 12.5px; color: var(--muted); margin-top: 5px; }
 .form-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0 16px; }
-.span-2 { grid-column: span 2; } .span-3 { grid-column: span 3; } .span-4 { grid-column: span 4; } .span-6 { grid-column: span 6; }
+.span-1 { grid-column: span 1; } .span-2 { grid-column: span 2; } .span-3 { grid-column: span 3; } .span-4 { grid-column: span 4; } .span-5 { grid-column: span 5; } .span-6 { grid-column: span 6; }
 .check { display: flex; align-items: flex-start; gap: 10px; font-weight: 500; color: var(--ink); font-size: 14.5px; margin-bottom: 12px; cursor: pointer; }
 .check input { width: 18px; height: 18px; accent-color: var(--accent); margin-top: 2px; flex: none; }
 .check small { display: block; font-weight: 400; }

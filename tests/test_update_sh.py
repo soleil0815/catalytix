@@ -504,6 +504,18 @@ class CleanupTests(Base):
         self.assertTrue((self.inst / "catalytix").exists())
 
 
+class LayoutTests(unittest.TestCase):
+    def test_every_grid_span_class_exists(self):
+        # Regression (3.0.0): .span-1/.span-5 fehlten – das Namensfeld im Gruppenformular war winzig
+        import glob
+        css = (ROOT / "catalytix" / "static" / "css" / "app.css").read_text()
+        used = set()
+        for f in glob.glob(str(ROOT / "catalytix" / "templates" / "**" / "*.html"), recursive=True):
+            used |= set(re.findall(r"\bspan-(\d)\b", Path(f).read_text()))
+        for n in sorted(used):
+            self.assertIn(f".span-{n} {{", css, f"span-{n}")
+
+
 class ScriptTests(unittest.TestCase):
     def test_posix_sh(self):
         text = (ROOT / "update.sh").read_text()

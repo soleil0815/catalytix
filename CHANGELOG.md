@@ -65,6 +65,12 @@ Skripts wird weiter verstanden; Images ohne Gesundheitscheck gelten nach 30 s oh
 mit eigenem Registry-Namen; Release-Image-Dateien werden nach dem Erzeugen probehalber geladen und geprüft;
 README: `chmod 600 .env`.
 
+**Handbücher** (`docs/Handbuch-Catalytix.pdf`, `docs/Manual-Catalytix.pdf`) auf Stand 3.0 gebracht (vorher 2.10), mit
+neuen Screenshots: Installation und Update nach dem neuen Weg, Version festlegen und zurückgehen, Umstieg, Vormerken,
+Verleihen aus dem Katalog, Präsenzbestand, Personen- und Bestandssuche an der Theke, Meine Daten, Neuigkeiten,
+AD-Abgleich. Dabei aufgefallen und behoben: Im Gruppenformular war das Namensfeld winzig (fehlende Rasterklassen
+`span-1`/`span-5`).
+
 Doku (README, Hilfe *Update und Wartung*, `.env.example`, Kommentare der `docker-compose.yml`) und Tests (nachgebautes
 `docker` unter dash: Update, Fehlstart mit Rückweg, Zurückgehen, ohne Internet, Aufräumen mit Verknüpfungen und Mounts;
 Datenbank älter/neuer als das Programm; Versionsprüfung der Compose-Datei; nur-von-Hand-Veröffentlichung) angepasst.

@@ -207,7 +207,15 @@ jobs:
               || fail "Image not available" "Could not pull $image:$VERSION for $arch."
             got="$(docker image inspect -f '{{.Architecture}}' "$image:$VERSION")"
             [ "$got" = "$arch" ] || fail "Wrong platform" "Expected $arch, got $got."
-            docker save "$image:$VERSION" | gzip -6 > "assets/catalytix-$VERSION-$arch.tar.gz"
+            file="assets/catalytix-$VERSION-$arch.tar.gz"
+            # --platform where Docker knows it (containerd image store: otherwise an index with missing platforms)
+            docker save --platform "linux/$arch" "$image:$VERSION" 2>/dev/null | gzip -6 > "$file" \
+              || docker save "$image:$VERSION" | gzip -6 > "$file"
+            docker image rm "$image:$VERSION" >/dev/null
+            # Check the file: it must load on its own and be exactly this version and platform
+            docker load -q -i "$file" >/dev/null || fail "Image file broken" "$file cannot be loaded."
+            v="$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.version"}} {{.Architecture}}' "$image:$VERSION")"
+            [ "$v" = "$VERSION $arch" ] || fail "Image file wrong" "$file contains $v instead of $VERSION $arch."
             docker image rm "$image:$VERSION" >/dev/null
           done
           docker logout ghcr.io >/dev/null

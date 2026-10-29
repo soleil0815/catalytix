@@ -220,13 +220,13 @@ def find_before(version: str, since: float | None = None) -> Path | None:
     """Neueste Sicherung, die beim Start von <version> angelegt wurde (Stand der Version davor).
     since: nur eine Sicherung, die ab diesem Zeitpunkt geschrieben wurde – eine ältere aus einem früheren,
     schon zurückgenommenen Versuch würde sonst alles seitdem Eingetragene überschreiben."""
-    for item in list_backups():
-        if item["before_version"] != version or item["path"].is_symlink():
-            continue
-        if since is not None and item["path"].stat().st_mtime < since - 2:
-            continue
-        return item["path"]
-    return None
+    found = [i["path"] for i in list_backups()
+             if i["before_version"] == version and not i["path"].is_symlink()
+             and (since is None or i["path"].stat().st_mtime >= since - 2)]
+    if not found:
+        return None
+    # Seit <since>: die ÄLTESTE – spätere Versuche hätten einen schon halb umgestellten Stand gesichert
+    return found[-1] if since is not None else found[0]
 
 
 def version_of_backup(path: Path) -> str | None:

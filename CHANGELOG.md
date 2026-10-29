@@ -52,6 +52,19 @@ Umstellung auf den Docker-Standard: Das Programm steckt komplett im Image. Auf d
 **Umstieg bestehender Installationen** (Schritt für Schritt in README und Hilfe): einmal das bisherige
 `./update.sh --pull`, danach `./update.sh --cleanup`.
 
+**Unabhängiger Review vor dem Merge – behoben, jeweils mit Test:** `--cleanup` arbeitet nur in einem Ordner mit
+alter Catalytix-Installation, löscht nur Einträge, die erkennbar zum Programm gehören (gleichnamige eigene Dateien
+bleiben), prüft jeden Eintrag direkt vor dem Löschen erneut und lehnt Namen mit Zeilenumbruch ab (ein solcher Name
+hätte `data` treffen können); Verknüpfungen in einem verlinkten Datenordner werden mit geschützt. Ein misslungenes
+Zurückgehen auf eine ältere Version spielt die Daten der neueren wieder ein. Bei einer Neustart-Schleife nach
+abgebrochener Migration wird nur einmal gesichert (vorher bei jedem Start), zurückgespielt wird die erste Sicherung des
+Laufs. Rückweg zu 2.x stellt die Datenbank mit dem neuen Image wieder her. Der Rückweg bleibt bei einem
+Sicherheitsupdate (`X.Y.Z-sN`) statt auf das ältere Release-Image zu wechseln. „Datenbank zu neu“ und eine
+fehlgeschlagene Sicherung lassen gunicorn anhalten statt Worker im Sekundentakt neu zu starten. `--pull[=X]` des alten
+Skripts wird weiter verstanden; Images ohne Gesundheitscheck gelten nach 30 s ohne Neustart als gestartet; `--load`
+mit eigenem Registry-Namen; Release-Image-Dateien werden nach dem Erzeugen probehalber geladen und geprüft;
+README: `chmod 600 .env`.
+
 Doku (README, Hilfe *Update und Wartung*, `.env.example`, Kommentare der `docker-compose.yml`) und Tests (nachgebautes
 `docker` unter dash: Update, Fehlstart mit Rückweg, Zurückgehen, ohne Internet, Aufräumen mit Verknüpfungen und Mounts;
 Datenbank älter/neuer als das Programm; Versionsprüfung der Compose-Datei; nur-von-Hand-Veröffentlichung) angepasst.

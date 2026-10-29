@@ -31,6 +31,7 @@ Catalytix steckt komplett im fertigen Image `ghcr.io/soleil0815/catalytix` (Inte
 mkdir -p /opt/catalytix && cd /opt/catalytix
 curl -fsSLO https://github.com/soleil0815/catalytix/releases/latest/download/docker-compose.yml
 curl -fsSL  https://github.com/soleil0815/catalytix/releases/latest/download/env.example -o .env
+chmod 600 .env                # kann später Passwörter enthalten (z. B. DATABASE_URL)
 docker compose up -d          # ältere Installationen (z. B. Synology): docker-compose up -d
 ```
 

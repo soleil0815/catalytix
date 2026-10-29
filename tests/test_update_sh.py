@@ -178,6 +178,24 @@ class UpdateTests(Base):
         self.run_update()
         self.assertIn("docker compose -p bib-prod up -d", self.docker_log())
 
+    def test_old_pull_spelling_still_works(self):
+        # Der Hinweis des alten Skripts lautet „./update.sh --pull=X.Y.Z“ (Review 3.0.0)
+        self.installed("3.0.0")
+        self.publish("3.0.1")
+        r = self.run_update("--pull=3.0.1")
+        self.assertEqual(r.returncode, 0, self.out)
+        self.assertIn("CATALYTIX_TAG=3.0.1", self.env())
+        r = self.run_update("--pull")
+        self.assertIn("CATALYTIX_TAG=latest", self.env())
+
+    def test_image_without_health_check(self):
+        self.installed("3.0.0")
+        self.publish("3.1.0")
+        self.state["health"]["3.1.0"] = "none"
+        r = self.run_update(env={"CATALYTIX_HEALTH_NOCHECK": "2"})
+        self.assertEqual(r.returncode, 0, self.out)
+        self.assertEqual(self.running_version(), "3.1.0")
+
     def test_old_docker_compose_v1(self):
         self.installed("3.0.0")
         self.state["compose_v2"] = False
@@ -221,12 +239,25 @@ class RollbackTests(Base):
         self.assertNotIn("restore-before", self.docker_log())
         self.assertIn("no input possible", self.out)
 
-    def test_previous_before_3_has_no_restore_command(self):
+    def test_previous_before_3_restores_with_the_new_image(self):
+        # 2.x kennt restore-before nicht – die Sicherung von 3.x spielt das neue Image zurück (Review 3.0.0)
         self.state["images"] = {f"{IMG}:latest": img("2.20.1")}
         self.state["container"]["image"] = "sha256:2.20.1"
         self.run_update("-y")
-        self.assertNotIn("restore-before", self.docker_log())
+        self.assertIn("RUN version=3.1.0 flask --app wsgi restore-before 3.1.0", self.docker_log())
         self.assertEqual(self.running_version(), "2.20.1")
+
+    def test_security_update_tag_is_kept_on_the_way_back(self):
+        self.state["images"][f"{IMG}:3.0.0-s2"] = self.state["images"][f"{IMG}:latest"]
+        self.state["images"][f"{IMG}:3.0.0-s10"] = self.state["images"][f"{IMG}:latest"]
+        self.run_update("-y")
+        self.assertIn("CATALYTIX_TAG=3.0.0-s10", self.env())          # nicht das ältere Release-Image 3.0.0
+        self.assertEqual(self.running_version(), "3.0.0")
+
+    def test_mysql_without_backup_is_reported(self):
+        self.state["run_rc"]["restore-before"] = 4
+        self.run_update("-y")
+        self.assertIn("restore your dump", self.out)
 
     def test_crash_loop_counts_as_failure(self):
         self.state["health"]["3.1.0"] = "exited"
@@ -256,6 +287,30 @@ class GoingBackTests(Base):
         self.assertIn("Restore your own dump", self.out)
         self.assertEqual(self.env(), "#CATALYTIX_PORT=9300\n")
         self.assertEqual(self.running_version(), "3.1.0")
+
+    def test_failed_downgrade_puts_the_newer_data_back(self):
+        # Regression (Review 3.0.0): 3.0.0 startet nicht → 3.1.0 muss wieder SEINE Daten bekommen
+        self.installed("3.1.0")
+        self.publish("3.0.0")
+        self.state["health"]["3.0.0"] = "unhealthy"
+        self.state["run_out"] = {"restore-for-version":
+                                 "Previous state backed up as catalytix-2026-10-29_030000-vor-wiederherstellung.db"}
+        r = self.run_update("-y", "--version=3.0.0")
+        self.assertNotEqual(r.returncode, 0)
+        log = self.docker_log()
+        self.assertIn("RUN version=3.1.0 flask --app wsgi restore-backup "
+                      "catalytix-2026-10-29_030000-vor-wiederherstellung.db --yes", log)
+        self.assertNotIn("restore-before", log)
+        self.assertEqual(self.running_version(), "3.1.0")
+        self.assertEqual(self.env(), "#CATALYTIX_PORT=9300\nCATALYTIX_TAG=3.1.0\n")
+
+    def test_going_back_keeps_the_newer_update_sh(self):
+        self.installed("3.1.0")
+        self.publish("3.0.0", update_sh="#!/bin/sh\n# old update.sh\n")
+        before = (self.inst / "update.sh").read_text()
+        r = self.run_update("-y", "--version=3.0.0")
+        self.assertEqual(r.returncode, 0, self.out)
+        self.assertEqual((self.inst / "update.sh").read_text(), before)
 
     def test_asks_before_going_back(self):
         self.installed("3.1.0")
@@ -294,6 +349,16 @@ class OfflineTests(Base):
         r = self.run_update("--load=release/" + f.name)          # relativ zum Aufrufort
         self.assertEqual(r.returncode, 0, self.out)
 
+    def test_load_with_own_registry_name(self):
+        self.installed("3.0.0", env="CATALYTIX_IMAGE=registry.firma.local/catalytix\n")
+        self.state["images"]["registry.firma.local/catalytix:latest"] = img("3.0.0")
+        f = self.image_file("3.1.0")
+        r = self.run_update("--load", str(f))
+        self.assertEqual(r.returncode, 0, self.out)
+        self.assertIn(f"docker tag {IMG}:3.1.0 registry.firma.local/catalytix:3.1.0", self.docker_log())
+        self.assertIn("[image=registry.firma.local/catalytix:3.1.0]", self.docker_log())
+        self.assertEqual(self.running_version(), "3.1.0")
+
     def test_wrong_checksum_changes_nothing(self):
         self.installed("3.0.0")
         f = self.image_file("3.1.0", good_sum=False)
@@ -317,10 +382,11 @@ class CleanupTests(Base):
         self.installed("3.0.0", env="SECRET=1\n")
         i = self.inst
         (i / "catalytix").mkdir()
-        (i / "catalytix" / "__init__.py").write_text("x")
-        for f in ("Dockerfile", "wsgi.py", "requirements.txt", "README.md", "catalytix-2.20.1.zip",
-                  "catalytix-2.20.1.zip.sha256", "docker-compose.override.yml", "docker-compose.yml.alt"):
-            (i / f).write_text("x")
+        (i / "catalytix" / "__init__.py").write_text('__version__ = "2.20.1"\n')
+        for f in ("Dockerfile", "wsgi.py", "README.md", "catalytix-2.20.1.zip", "catalytix-2.20.1.zip.sha256",
+                  "docker-compose.override.yml", "docker-compose.yml.alt"):
+            (i / f).write_text("# Catalytix\n")
+        (i / "requirements.txt").write_text("Flask==3.1.2\n")
         (i / ".catalytix-update.abc123").mkdir()
         (i / "data" / "backups").mkdir()
         (i / "data" / "backups" / "b.db").write_text("B")
@@ -384,6 +450,52 @@ class CleanupTests(Base):
         (self.inst / "data" / "backups").symlink_to(self.inst / "tests")
         self.run_update("--cleanup", "-y")
         self.assertTrue((self.inst / "tests" / "b.db").exists())
+
+    def test_file_name_with_line_break_cannot_reach_data(self):
+        (self.inst / "catalytix-\ndata\n.zip").write_text("x")             # Regression (Review 3.0.0)
+        r = self.run_update("--cleanup", "-y")
+        self.assertEqual(r.returncode, 0, self.out)
+        self.assertTrue((self.inst / "data" / "catalytix.db").exists())
+        self.assertTrue((self.inst / "catalytix-\ndata\n.zip").exists())
+        self.assertIn("unusual characters", self.out)
+
+    def test_refuses_in_a_folder_that_is_not_catalytix(self):
+        other = self.t / "home"
+        other.mkdir()
+        shutil.copy(ROOT / "update.sh", other / "update.sh")
+        for d in ("docs", "tools", "tests", "docker"):
+            (other / d).mkdir()
+            (other / d / "mine.txt").write_text("mine")
+        (other / "README.md").write_text("my notes")
+        self.inst = other
+        r = self.run_update("--cleanup", "-y")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("No old Catalytix installation", self.out)
+        for d in ("docs", "tools", "tests", "docker"):
+            self.assertTrue((other / d / "mine.txt").exists())
+
+    def test_own_files_with_known_names_are_kept(self):
+        (self.inst / "docs").mkdir()
+        (self.inst / "docs" / "mine.txt").write_text("mine")              # kein Handbuch – gehört dem Benutzer
+        (self.inst / "README.md").write_text("my notes")
+        r = self.run_update("--cleanup", "-y")
+        self.assertEqual(r.returncode, 0, self.out)
+        self.assertTrue((self.inst / "docs" / "mine.txt").exists())
+        self.assertTrue((self.inst / "README.md").exists())
+        self.assertIn("does not look like a Catalytix program file", self.out)
+
+    def test_linked_data_folder_with_link_inside(self):
+        ext = self.t / "ext"
+        shutil.move(str(self.inst / "data"), ext)
+        (self.inst / "data").symlink_to(ext)                                # data → /ext
+        (self.inst / "tools").mkdir()
+        (self.inst / "tools" / "lock.py").write_text("x")
+        (self.inst / "tools" / "backups").mkdir()
+        (self.inst / "tools" / "backups" / "b2.db").write_text("B")
+        shutil.rmtree(ext / "backups")
+        (ext / "backups").symlink_to(self.inst / "tools" / "backups")      # /ext/backups → tools/backups
+        self.run_update("--cleanup", "-y")
+        self.assertTrue((self.inst / "tools" / "backups" / "b2.db").exists())
 
     def test_git_checkout_is_left_alone(self):
         (self.inst / ".git").mkdir()

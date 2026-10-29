@@ -23,6 +23,7 @@ from . import __version__
 log = logging.getLogger(__name__)
 
 KEY = "db_version"
+BACKUP_KEY = "db_upgrade_backup"     # Version, für die die Sicherung vor dem Wechsel schon angelegt wurde
 SKIP_ENV = "CATALYTIX_SKIP_DB_CHECK"
 
 
@@ -31,18 +32,32 @@ def vtuple(v: str | None) -> tuple[int, int, int] | None:
     return tuple(int(x) for x in m.groups()) if m else None
 
 
-class DatabaseTooNew(SystemExit):
+class StartupRefused(RuntimeError):
+    """Start abgelehnt (keine SystemExit: gunicorn hält dann mit „Worker failed to boot“ an, statt die Worker im
+    Sekundentakt neu zu starten)."""
+
+
+class DatabaseTooNew(StartupRefused):
     """Die Datenbank stammt von einer neueren Programmversion."""
 
 
-def read_stamp(db) -> str | None:
+def read_stamp(db, key: str = KEY) -> str | None:
     """Gespeicherte Version (None: neue Datenbank oder Datenbank von vor 3.0.0)."""
     insp = inspect(db.engine)
     if not insp.has_table("settings"):
         return None
     with db.engine.connect() as conn:
-        row = conn.execute(text("SELECT value FROM settings WHERE " + _key_col(db) + " = :k"), {"k": KEY}).first()
+        row = conn.execute(text("SELECT value FROM settings WHERE " + _key_col(db) + " = :k"), {"k": key}).first()
     return (row[0] or None) if row else None
+
+
+def _write_setting(db, key: str, value: str) -> None:
+    """Vor den Migrationen: direkt in die Tabelle settings schreiben (das Modell ist noch nicht sicher passend)."""
+    col = _key_col(db)
+    with db.engine.begin() as conn:
+        done = conn.execute(text(f"UPDATE settings SET value = :v WHERE {col} = :k"), {"k": key, "v": value})
+        if not done.rowcount:
+            conn.execute(text(f"INSERT INTO settings ({col}, value) VALUES (:k, :v)"), {"k": key, "v": value})
 
 
 def _key_col(db) -> str:
@@ -58,10 +73,10 @@ def is_empty(db) -> bool:
 def too_new_message(stamp: str, current: str = __version__) -> str:
     return (f"The database was last used by Catalytix {stamp}, but this is version {current} – an older program "
             f"must not run on a newer database. Either start version {stamp} or newer again "
-            f"(CATALYTIX_TAG={stamp} in .env, then: docker compose up -d), or go back to {current} with the data "
-            f"from before the update: restore the backup \"catalytix-…-vor-{stamp}.db\" "
-            f"(see README, \"Going back to an earlier version\"; update.sh does this automatically when a new "
-            f"version fails to start). Nothing was changed.")
+            f"(CATALYTIX_TAG={stamp} in .env, then: docker compose up -d), or go back to {current} with a backup "
+            f"it can read (everything entered since is lost): ./update.sh --version={current} does that – or by "
+            f"hand with \"flask --app wsgi restore-for-version {current}\" (backups \"catalytix-…-vor-{stamp}.db\" "
+            f"and older; see README, \"Going back\"). Nothing was changed.")
 
 
 def prepare(db, current: str = __version__) -> str:
@@ -79,7 +94,16 @@ def prepare(db, current: str = __version__) -> str:
         raise DatabaseTooNew("Catalytix: " + too_new_message(stamp, current))
     if have is not None and have == want:
         return "same"
+    if read_stamp(db, BACKUP_KEY) == current:
+        # Ein früherer Startversuch dieser Version hat schon gesichert (z. B. Migration abgebrochen, Neustart-
+        # Schleife): nicht bei jedem Start erneut sichern – das füllte den Datenträger, und die erste Sicherung ist
+        # die vor dem Update
+        log.warning("Version change %s → %s: backup from the first start attempt is kept, no new one",
+                    stamp or "before 3.0.0", current)
+        return "upgrade"
     _backup_before(current, stamp)
+    if inspect(db.engine).has_table("settings"):
+        _write_setting(db, BACKUP_KEY, current)
     return "upgrade"
 
 
@@ -97,7 +121,7 @@ def _backup_before(current: str, stamp: str | None) -> None:
                f"the database is not changed without a backup. Free up space in the backup folder or fix its "
                f"permissions and start again.")
         log.error(msg)
-        raise SystemExit(msg) from exc
+        raise StartupRefused(msg) from exc
     log.info("Version change %s → %s: database backed up as %s", stamp or "before 3.0.0", current, path.name)
 
 
@@ -111,4 +135,7 @@ def stamp(db, current: str = __version__) -> None:
         row.value = current
     else:
         return
+    marker = db.session.get(Setting, BACKUP_KEY)
+    if marker is not None:
+        marker.value = ""
     db.session.commit()

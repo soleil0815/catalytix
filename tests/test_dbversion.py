@@ -89,16 +89,33 @@ class StartupTests(Base):
         self.assertEqual(len(self.backups_named("-vor-")), 1)
         self.assertEqual(stamp_of(self.backups / self.backups_named("-vor-")[0]), "2.99.0")
 
+    def test_restart_loop_does_not_fill_the_disk(self):
+        # Regression (Review 3.0.0): bricht die Migration ab, sicherte jeder Neustart erneut
+        self.app()
+        set_stamp(self.db, "2.99.0")
+        with mock.patch("catalytix._migrate_and_init", side_effect=RuntimeError("migration kaputt")):
+            for _ in range(3):
+                with self.assertRaises(RuntimeError):
+                    self.app()
+        self.assertEqual(len(self.backups_named("-vor-")), 1)
+        self.app()                                                    # repariert: läuft durch
+        self.assertEqual(len(self.backups_named("-vor-")), 1)
+        self.assertEqual(stamp_of(self.db), __version__)
+        set_stamp(self.db, "2.99.1")                                  # nächster Versionswechsel: wieder sichern
+        self.app()
+        self.assertEqual(len(self.backups_named("-vor-")), 2)
+
     def test_newer_database_refuses_to_start_and_changes_nothing(self):
         self.app()
         set_stamp(self.db, "99.0.0")
         before = self.db.read_bytes()
-        with self.assertRaises(SystemExit) as cm:
+        with self.assertRaises(dbversion.DatabaseTooNew) as cm:
             self.app()
         msg = str(cm.exception)
         self.assertIn("99.0.0", msg)
         self.assertIn(__version__, msg)
-        self.assertIn("vor-99.0.0", msg)                             # welche Sicherung zurückzuspielen ist
+        self.assertIn("vor-99.0.0", msg)                             # welche Sicherungen passen
+        self.assertIn(f"./update.sh --version={__version__}", msg)
         self.assertIn("CATALYTIX_TAG=99.0.0", msg)
         self.assertEqual(self.db.read_bytes(), before)
         self.assertEqual(self.backups_named(), [])
@@ -108,9 +125,10 @@ class StartupTests(Base):
         set_stamp(self.db, "2.99.0")
         from catalytix.backup import BackupError
         with mock.patch("catalytix.backup.create_backup", side_effect=BackupError("Platte voll")):
-            with self.assertRaises(SystemExit) as cm:
+            with self.assertRaises(dbversion.StartupRefused) as cm:
                 self.app()
         self.assertIn("not starting", str(cm.exception))
+        self.assertNotIsInstance(cm.exception, SystemExit)          # gunicorn soll anhalten, nicht neu starten
         self.assertEqual(stamp_of(self.db), "2.99.0")
 
     def test_other_databases_get_a_hint_instead_of_a_backup(self):
@@ -162,6 +180,25 @@ class RestoreCommandTests(Base):
             res = self.cli("restore-before", "3.1.0", "--since", str(int(time.time()) + 3600), "--yes")
         self.assertEqual(res.exit_code, 3, res.output)
         self.assertEqual(stamp_of(self.db), "3.1.0")                  # nichts überschrieben
+
+    def test_restore_before_takes_the_first_backup_of_this_run(self):
+        self.prepare_update()
+        from catalytix.backup import create_backup
+        from datetime import datetime, timedelta
+        with mock.patch.dict(os.environ, {dbversion.SKIP_ENV: "1"}):
+            app = self.app()
+            with app.app_context():                                   # späterer, halb umgestellter Versuch
+                p = create_backup("-vor-3.1.0", now=datetime.now() + timedelta(seconds=5), rotate_after=False)
+            res = self.cli("restore-before", "3.1.0", "--since", str(int(time.time()) - 60), "--yes")
+        self.assertNotIn(p.name, res.output)
+        self.assertEqual(stamp_of(self.db), "3.0.0")
+
+    def test_other_databases_exit_4(self):
+        self.prepare_update()
+        with mock.patch.dict(os.environ, {dbversion.SKIP_ENV: "1"}), \
+                mock.patch("catalytix.backup.supported", return_value=False):
+            res = self.cli("restore-before", "3.1.0", "--yes")
+        self.assertEqual(res.exit_code, 4, res.output)
 
     def test_restore_for_version_takes_newest_usable_backup(self):
         self.prepare_update()                                         # vor-3.1.0 enthält Stand 3.0.0

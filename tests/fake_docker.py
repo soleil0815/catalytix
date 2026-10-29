@@ -72,7 +72,7 @@ def compose(s, args, prog):
                 return 1
         health = s.get("health", {}).get(img["version"], "healthy")
         s["container"] = {"image": img["id"], "status": "exited" if health == "exited" else "running",
-                          "health": "" if health == "exited" else health, "restarts": 0,
+                          "health": "none" if health in ("exited", "none") else health, "restarts": 0,
                           "project": project or (s.get("container") or {}).get("project", "")}
         save(s)
         return 0
@@ -86,6 +86,9 @@ def compose(s, args, prog):
         flask = args[args.index("flask"):] if "flask" in args else args
         sub = flask[3] if len(flask) > 3 else ""
         log(f"RUN version={img['version'] if img else '?'} {' '.join(flask)}")
+        out = s.get("run_out", {}).get(sub)
+        if out:
+            print(out)
         return s.get("run_rc", {}).get(sub, 0)
     return 0
 
@@ -130,7 +133,10 @@ def main():
         img = image(s, ref)
         if img is None:
             return 1
-        if ".Id" in fmt:
+        if ".RepoTags" in fmt:
+            print("\n".join(r for r, i in s["images"].items() if i["id"] == img["id"] and ":" in r
+                            and not r.startswith("sha256:")))
+        elif ".Id" in fmt:
             print(img["id"])
         elif "image.version" in fmt:
             print(img["version"])

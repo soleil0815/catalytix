@@ -616,11 +616,15 @@ def create_app(test_config: dict | None = None) -> Flask:
     def restore_before_cmd(version, since, yes):
         """Restore the backup taken when VERSION first started (the state before that update) – server stopped!
 
-        Exit code 3 if there is no such backup (that version never changed the database)."""
+        Exit code 3 if there is no such backup (that version never changed the database), 4 with MySQL/PostgreSQL
+        (no automatic backups)."""
         from . import dbversion
-        from .backup import BackupError, english, find_before, restore_backup
+        from .backup import BackupError, english, find_before, restore_backup, supported
         if dbversion.vtuple(version) is None:
             raise click.ClickException("VERSION must look like 3.0.0")
+        if not supported():
+            click.echo("No automatic backups with this database (MySQL/PostgreSQL) – restore your own dump.")
+            raise SystemExit(4)
         src = find_before(version, since)
         if src is None:
             click.echo(f"No backup from before {version} found – the database was not changed by {version}.")
@@ -641,11 +645,14 @@ def create_app(test_config: dict | None = None) -> Flask:
     def restore_for_version_cmd(version, yes):
         """Going back to VERSION: restore the newest backup that VERSION can use (written by VERSION or older).
 
-        Exit code 3 if there is none. Server stopped!"""
+        Exit code 3 if there is none, 4 with MySQL/PostgreSQL. Server stopped!"""
         from . import dbversion
-        from .backup import BackupError, english, find_for_version, restore_backup
+        from .backup import BackupError, english, find_for_version, restore_backup, supported
         if dbversion.vtuple(version) is None:
             raise click.ClickException("VERSION must look like 3.0.0")
+        if not supported():
+            click.echo("No automatic backups with this database (MySQL/PostgreSQL) – restore your own dump.")
+            raise SystemExit(4)
         src = find_for_version(version)
         if src is None:
             click.echo(f"No backup that version {version} can use was found.")

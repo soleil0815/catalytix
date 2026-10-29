@@ -1,13 +1,19 @@
 # Catalytix – this file does not need to be edited.
-# Your own settings (port, time zone, database …) belong in the .env file
-# next to it (template: .env.example). .env is never overwritten by updates.
+#
+# Install:  put this file and .env (template: .env.example) into an empty folder, then:  docker compose up -d
+# Update:   with a container manager (Dockhand, Watchtower, …) or by hand:
+#           docker compose pull && docker compose up -d      (or ./update.sh – with automatic way back)
+# Your own settings (port, time zone, a fixed version …) belong in .env, which updates never touch.
+# Additions (e.g. a NAS share for backups) belong in docker-compose.override.yml.
+#
+# The program checks the version of this file (CATALYTIX_COMPOSE below). If a new version needs a newer file,
+# the log and the overview page for admins say so – update.sh then puts the new one in place.
 
 services:
   catalytix:
-    build: .
-    # Locally built (update.sh with a zip package) or pulled from GitHub (update.sh --pull, which sets
-    # CATALYTIX_IMAGE=ghcr.io/soleil0815/catalytix and CATALYTIX_TAG=latest in .env).
-    image: "${CATALYTIX_IMAGE:-catalytix}:${CATALYTIX_TAG:-2.20.1}"
+    # The finished image from GitHub. "latest" follows every new version; a fixed version (e.g. X.Y.Z or a security
+    # update X.Y.Z-s1) is set with CATALYTIX_TAG in .env.
+    image: "${CATALYTIX_IMAGE:-ghcr.io/soleil0815/catalytix}:${CATALYTIX_TAG:-latest}"
     container_name: catalytix
     restart: unless-stopped
     security_opt:
@@ -15,10 +21,10 @@ services:
     ports:
       - "${CATALYTIX_BIND:-0.0.0.0}:${CATALYTIX_PORT:-9300}:9300"   # CATALYTIX_BIND in .env, see README
     volumes:
-      - ./data:/data            # database, covers, keys, certificates
-    env_file: .env              # must exist (may be empty) – update.sh creates it if needed
+      - ./data:/data            # database, covers, keys, backups
+    env_file: .env              # must exist (may be empty): cp .env.example .env
     environment:
-      TZ: ${TZ:-Europe/Berlin}
+      CATALYTIX_COMPOSE: "2"    # version of THIS file – do not change
     logging:                    # limit the log (max. 3 × 10 MB)
       options:
         max-size: "10m"

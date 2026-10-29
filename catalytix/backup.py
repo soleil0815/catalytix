@@ -26,7 +26,9 @@ from .models import ROLE_ADMIN, User, db, get_bool, get_int, get_setting, set_se
 log = logging.getLogger(__name__)
 
 PREFIX = "catalytix-"
-NAME_RE = re.compile(r"^catalytix-(\d{4}-\d{2}-\d{2})_(\d{6})(-[a-z-]*[a-z])?(-\d+)?\.db$")
+NAME_RE = re.compile(r"^catalytix-(\d{4}-\d{2}-\d{2})_(\d{6})(-vor-\d+\.\d+\.\d+|-[a-z-]*[a-z])?(-\d+)?\.db$")
+UPDATE_KIND_RE = re.compile(r"^-vor-(\d+\.\d+\.\d+)$")   # automatisch beim Start einer neuen Version
+KEEP_UPDATE_BACKUPS = 3                                    # davon die neuesten behalten (eigene Zählung)
 PART_MAX_AGE = 3600   # unfertige *.part-Dateien erst nach 1 Stunde als Reste abgebrochener Läufe löschen
 KIND_LABELS = {"": "automatisch", "-manuell": "manuell", "-vor-wiederherstellung": "vor Wiederherstellung"}
 KEEP_MIN, KEEP_MAX = 1, 100
@@ -140,8 +142,10 @@ def list_backups() -> list[dict]:
         created = datetime.strptime(f"{m.group(1)}_{m.group(2)}", "%Y-%m-%d_%H%M%S")
         kind = m.group(3) or ""
         seq = int(m.group(4)[1:]) if m.group(4) else 0   # „-1“, „-2“ …: später in derselben Sekunde
+        upd = UPDATE_KIND_RE.match(kind)
         items.append({"name": p.name, "path": p, "size": p.stat().st_size, "created": created,
-                      "kind": KIND_LABELS.get(kind, "manuell"), "_seq": seq})
+                      "kind": "vor Update" if upd else KIND_LABELS.get(kind, "manuell"),
+                      "before_version": upd.group(1) if upd else None, "_seq": seq})
     items.sort(key=lambda x: (x["created"], x["_seq"]), reverse=True)
     return items
 
@@ -149,7 +153,11 @@ def list_backups() -> list[dict]:
 def rotate(keep: int | None = None) -> int:
     keep = keep_count() if keep is None else keep
     removed = 0
-    for item in list_backups()[keep:]:
+    items = list_backups()
+    # Sicherungen „vor Update auf X“ zählen extra: die täglichen verdrängen sie nicht (für den Weg zurück)
+    regular = [i for i in items if not i["before_version"]]
+    updates = [i for i in items if i["before_version"]]
+    for item in regular[keep:] + updates[KEEP_UPDATE_BACKUPS:]:
         try:
             item["path"].unlink()
             removed += 1
@@ -206,6 +214,45 @@ def restore_backup(name: str) -> Path:
         s.close()
         t.close()
     return safety
+
+
+def find_before(version: str, since: float | None = None) -> Path | None:
+    """Neueste Sicherung, die beim Start von <version> angelegt wurde (Stand der Version davor).
+    since: nur eine Sicherung, die ab diesem Zeitpunkt geschrieben wurde – eine ältere aus einem früheren,
+    schon zurückgenommenen Versuch würde sonst alles seitdem Eingetragene überschreiben."""
+    found = [i["path"] for i in list_backups()
+             if i["before_version"] == version and not i["path"].is_symlink()
+             and (since is None or i["path"].stat().st_mtime >= since - 2)]
+    if not found:
+        return None
+    # Seit <since>: die ÄLTESTE – spätere Versuche hätten einen schon halb umgestellten Stand gesichert
+    return found[-1] if since is not None else found[0]
+
+
+def version_of_backup(path: Path) -> str | None:
+    """Programmversion, die zuletzt in die gesicherte Datenbank geschrieben hat (None: vor 3.0.0 oder unlesbar)."""
+    try:
+        con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            row = con.execute('SELECT value FROM settings WHERE "key" = ?', ("db_version",)).fetchone()
+        finally:
+            con.close()
+    except sqlite3.Error:
+        return None
+    return row[0] if row else None
+
+
+def find_for_version(version: str) -> Path | None:
+    """Für den Weg zurück zu <version>: neueste Sicherung, die diese Version lesen kann (von ihr oder älter)."""
+    from .dbversion import vtuple
+    want = vtuple(version)
+    for item in list_backups():
+        if item["path"].is_symlink():
+            continue
+        have = vtuple(version_of_backup(item["path"]))
+        if have is None or have <= want:
+            return item["path"]
+    return None
 
 
 # ---------------------------------------------------------------- Zeitplan und Status

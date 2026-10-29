@@ -303,15 +303,8 @@ class TimezoneFallbackTest(TmpDir):
 # ------------------------------------------------------------------ 3./4./5. Skripte und Doku
 class ScriptsAndDocsTest(unittest.TestCase):
     def test_shell_syntax(self):
-        subprocess.run(["bash", "-n", str(ROOT / "update.sh")], check=True)
+        subprocess.run(["sh", "-n", str(ROOT / "update.sh")], check=True)   # POSIX sh (dash, NAS)
         subprocess.run(["sh", "-n", str(ROOT / "docker-entrypoint.sh")], check=True)
-
-    def test_update_script_never_deletes_before_copy_and_backs_up_via_entrypoint(self):
-        s = (ROOT / "update.sh").read_text()
-        self.assertNotIn("rm -rf ./catalytix", s)
-        self.assertIn('exec -T "$SERVICE" docker-entrypoint.sh flask --app wsgi backup', s)
-        self.assertLess(s.index("2. Backup"), s.index("3. Swap the files"))
-        self.assertNotIn("-cf - . |", s)
 
     def test_docs_use_entrypoint_for_exec(self):
         for p in ["README.md", "README.en.md", "catalytix/templates/help/de/maintenance.html",
@@ -332,91 +325,6 @@ class ScriptsAndDocsTest(unittest.TestCase):
         s = (ROOT / "docker-entrypoint.sh").read_text()
         self.assertIn("CATALYTIX_BACKUP_DIR", s)
 
-
-@unittest.skipUnless(shutil.which("bash") and shutil.which("unzip"), "braucht bash und unzip")
-class UpdateScriptRunTest(TmpDir):
-    """update.sh mit Fake-docker: normales Update und Fehler mitten im Austausch."""
-
-    def setUp(self):
-        super().setUp()
-        t = Path(self.tmp)
-        self.bin = t / "bin"
-        self.bin.mkdir()
-        self.log = t / "docker.log"
-        (self.bin / "docker").write_text(
-            '#!/bin/bash\necho "docker $*" >> "$DOCKER_LOG"\n'
-            'args="$*"; args="${args/compose -p catalytix-prod /compose }"\n'
-            'case "$args" in\n  "compose ps -q --status running catalytix") echo abc;;\n'
-            '  "compose ps -q catalytix") echo abc;;\n'
-            '  *com.docker.compose.project*) echo catalytix-prod;;\n'
-            '  "inspect -f {{.State.Status}} abc") echo running;;\n'
-            '  inspect*) echo healthy;;\nesac\nexit 0\n')
-        (self.bin / "docker").chmod(0o755)
-        # alte Installation
-        self.inst = t / "inst mit leer"
-        self._tree(self.inst, "1.0.0", extra="ALT")
-        shutil.copy(ROOT / "update.sh", self.inst / "update.sh")
-        (self.inst / "data").mkdir()
-        (self.inst / "data" / "catalytix.db").write_text("db")
-        (self.inst / ".env").write_text("X=1\n")
-        os.chmod(self.inst, 0o750)
-        # Paket 2.0.0 mit Oberordner
-        pkg = t / "pkg" / "catalytix"
-        self._tree(pkg, "2.0.0", extra="NEU")
-        shutil.copy(ROOT / "update.sh", pkg / "update.sh")
-        self.zip = t / "pakete" / "catalytix-2.0.0.zip"
-        self.zip.parent.mkdir()
-        with zipfile.ZipFile(self.zip, "w") as z:
-            for f in pkg.rglob("*"):
-                z.write(f, f.relative_to(pkg.parent))
-
-    @staticmethod
-    def _tree(d, version, extra):
-        (d / "catalytix").mkdir(parents=True)
-        (d / "catalytix" / "__init__.py").write_text(f'__version__ = "{version}"\n')
-        (d / "catalytix" / extra).write_text(extra)
-        for f in ("docker-compose.yml", "Dockerfile", "docker-entrypoint.sh", "wsgi.py", "requirements.txt"):
-            (d / f).write_text("x\n")
-
-    def run_update(self, extra_path=None):
-        env = dict(os.environ, PATH=f"{extra_path + ':' if extra_path else ''}{self.bin}:{os.environ['PATH']}",
-                   DOCKER_LOG=str(self.log))
-        # relative Paketangabe aus einem anderen Ordner, Aufruf mit „sh“
-        return subprocess.run(["sh", str(self.inst / "update.sh"), "-y", "../pakete/catalytix-2.0.0.zip"],
-                              cwd=self.zip.parent.parent / "pkg", env=env, capture_output=True, text=True)
-
-    def version(self):
-        return (self.inst / "catalytix" / "__init__.py").read_text()
-
-    def test_normal_update(self):
-        r = self.run_update()
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("2.0.0", self.version())
-        self.assertFalse((self.inst / "catalytix" / "ALT").exists())
-        self.assertTrue((self.inst / "catalytix" / "NEU").exists())
-        self.assertEqual((self.inst / "data" / "catalytix.db").read_text(), "db")
-        self.assertTrue((self.inst / ".env").exists())
-        self.assertEqual(os.stat(self.inst).st_mode & 0o777, 0o750)
-        self.assertEqual(list(self.inst.glob(".catalytix-update.*")), [])
-        log = self.log.read_text()
-        # Projektname des laufenden Containers wird übernommen (verlinkte Ordner, anderer Ordnername)
-        self.assertIn("compose -p catalytix-prod exec -T catalytix docker-entrypoint.sh flask --app wsgi backup", log)
-        self.assertIn("compose -p catalytix-prod up -d", log)
-
-    def test_failure_mid_swap_keeps_old_install(self):
-        stub = Path(self.tmp, "badmv")
-        stub.mkdir()
-        (stub / "mv").write_text(
-            '#!/bin/bash\nn=$(( $(cat "$MVCOUNT" 2>/dev/null || echo 0) + 1 )); echo $n > "$MVCOUNT"\n'
-            'if [ "$n" = 4 ]; then echo "mv: simulierter Fehler" >&2; exit 1; fi\nexec /bin/mv "$@"\n')
-        (stub / "mv").chmod(0o755)
-        before = sorted(str(p.relative_to(self.inst)) for p in self.inst.rglob("*"))
-        with mock.patch.dict(os.environ, {"MVCOUNT": str(Path(self.tmp, "mvcount"))}):
-            r = self.run_update(str(stub))
-        self.assertNotEqual(r.returncode, 0)
-        self.assertIn("restored", r.stdout + r.stderr)
-        self.assertIn("1.0.0", self.version())
-        self.assertEqual(sorted(str(p.relative_to(self.inst)) for p in self.inst.rglob("*")), before)
 
 
 @unittest.skipUnless(hasattr(os, "geteuid") and os.geteuid() == 0 and shutil.which("setpriv")

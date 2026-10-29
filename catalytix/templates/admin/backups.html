@@ -61,7 +61,7 @@
     {% for b in items %}
     <tr>
       <td class="nowrap">{{ b.created|de_date }}</td>
-      <td><span class="badge{{ ' accent' if b.kind != 'automatisch' }}">{{ _(b.kind) }}</span></td>
+      <td><span class="badge{{ ' accent' if b.kind != 'automatisch' }}">{{ _("vor Update auf {version}", version=b.before_version) if b.before_version else _(b.kind) }}</span></td>
       <td class="nowrap">{{ b.size|filesize }}</td>
       <td class="mono" style="font-size: 12.5px">{{ b.name }}</td>
       <td class="nowrap" style="text-align: right">

@@ -256,6 +256,27 @@ class WorkflowTests(unittest.TestCase):
             self.assertGreaterEqual(workflow(name).count("fail \""), 6, name)
 
 
+class PublishByHandTests(unittest.TestCase):
+    """3.0.0: Ein gemergter Pull Request veröffentlicht nichts – nur „Run workflow“ mit „publish“; kein ZIP mehr."""
+
+    def test_publish_only_by_hand(self):
+        wf = workflow("build.yml")
+        j = jobs(wf)
+        self.assertIn("publish:", wf.split("workflow_dispatch:")[1].split("permissions:")[0])
+        self.assertIn('[ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$PUBLISH" = true ]', j["check"])
+        self.assertIn("github.event_name == 'workflow_dispatch'", j["publish"])
+        self.assertIn("Not published yet", j["check"])
+
+    def test_release_without_zip_with_image_files(self):
+        rel = jobs(workflow("build.yml"))["release"]
+        self.assertNotIn(".zip", rel)
+        self.assertNotIn("git archive", rel)
+        for part in ("for arch in amd64 arm64", 'docker save "$image:$VERSION"', "SHA256SUMS",
+                     "cp update.sh docker-compose.yml .env.example assets/", "env.example"):
+            self.assertIn(part, rel)
+        self.assertIn("packages: read", rel)
+
+
 class CiHelperTests(unittest.TestCase):
     """tools/ci.sh mit nachgestelltem docker/gh: Fehler der Registry gelten nie als „nicht veröffentlicht“."""
 

@@ -2,6 +2,60 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 3.0.0 – 29.10.2026
+Umstellung auf den Docker-Standard: Das Programm steckt komplett im Image. Auf dem Server liegen nur noch
+`docker-compose.yml`, `.env` und die Daten – Updates wie bei anderen Containern.
+
+**Installation und Update**
+- Installation: `docker-compose.yml` und `env.example` (als `.env`) aus dem Release laden, `docker compose up -d`.
+  Kein Zip, kein Programmordner, nichts wird lokal gebaut.
+- Updates mit einer Container-Verwaltung (Dockhand, Watchtower, Tugtainer – Empfehlung: nachts), mit
+  `docker compose pull && docker compose up -d` oder mit `update.sh`.
+- **`docker-compose.yml` bleibt stabil:** Image `${CATALYTIX_IMAGE:-ghcr.io/soleil0815/catalytix}:${CATALYTIX_TAG:-latest}`,
+  kein `build:` mehr, keine Versionsnummer, die sich mit jedem Release ändert; Vorgaben (z. B. Zeitzone) stehen im
+  Image. Die Datei hat eine eigene Versionsnummer (`CATALYTIX_COMPOSE: "2"`). Ist sie zu alt, stehen ein Hinweis im
+  Protokoll und für Admins auf der Übersicht, was zu tun ist. Das Image bringt die passende Datei mit.
+- **`update.sh` neu** (POSIX-`sh`, läuft mit dash/BusyBox und auf einem NAS, mit `docker compose` oder
+  `docker-compose` ab 1.27):
+  - merkt sich das laufende Image als `previous`, holt die gewünschte Version (Standard `latest`;
+    `--version=X.Y.Z`, auch `X.Y.Z-sN`, wird in die `.env` geschrieben), startet und wartet auf den Gesundheitscheck;
+  - startet die neue Version nicht: Nachfrage (mit `-y` automatisch), Sicherung von vor dem Update zurückspielen (nur
+    eine aus diesem Lauf), vorige Version starten und vorerst bei ihr bleiben;
+  - ältere Version gewünscht: spielt vorher die neueste Sicherung zurück, die diese Version lesen kann;
+  - neuere `docker-compose.yml` im Image: ablegen, alte als `docker-compose.yml.alt` behalten;
+  - ohne Internet: `--load catalytix-X.Y.Z-amd64.tar.gz` (geprüft gegen `SHA256SUMS` bzw. `.sha256`);
+  - `--cleanup` für Installationen vor 3.0.0: zeigt die nicht mehr gebrauchten Programmdateien (feste Liste, alte
+    Zips, Arbeitsordner, lokal gebaute `catalytix:X.Y.Z`-Images), fragt und löscht nur diese – nie Daten,
+    Sicherungen, `.env`, Compose-Dateien oder eingebundene Ordner, auch nicht über Verknüpfungen (Pfade werden
+    vollständig aufgelöst, Mounts aller Container und Einhängepunkte des Hosts geschützt, Git-Ordner werden nicht
+    angefasst).
+  - Entfallen: Zip-Weg, lokales Bauen, Austausch von Programmdateien, `--pull`, `--no-cache`, `--prune`.
+
+**Datenbank**
+- Die Datenbank merkt sich die Programmversion (`settings.db_version`). Beim Start einer neuen Version wird sie vor
+  jeder Anpassung gesichert (`catalytix-…-vor-X.Y.Z.db`, „vor Update auf X.Y.Z“; die letzten drei bleiben zusätzlich
+  zu den täglichen erhalten). Schlägt diese Sicherung fehl, startet die Version nicht. Bei MySQL/PostgreSQL ein Hinweis
+  im Protokoll (selbst sichern).
+- Startet eine ältere Version auf einer neueren Datenbank, bricht sie mit klarer Meldung ab (welche Version, welche
+  Sicherung) und ändert nichts. Wirkt ab 3.0.0 – ältere Versionen kennen die Prüfung noch nicht.
+- Neue Befehle für den Weg zurück: `flask restore-before X.Y.Z [--since ZEIT]` und `flask restore-for-version X.Y.Z`
+  (mit `CATALYTIX_SKIP_DB_CHECK=1`, das Prüfung und Migrationen für diesen einen Aufruf auslässt).
+
+**Veröffentlichen und Release**
+- Ein gemergter Pull Request veröffentlicht nichts mehr. Veröffentlicht wird nur von Hand: *Actions → Build → Run
+  workflow* auf `main` mit **publish** – dann wie bisher beide Plattformen bauen, testen, prüfen, `:<version>` und
+  `latest`. Die wöchentlichen Sicherheitsupdates (`-sN`) laufen weiter automatisch.
+- Das Release enthält kein Zip mehr, sondern die Images als Dateien für den Weg ohne Internet
+  (`catalytix-X.Y.Z-amd64.tar.gz`, `-arm64.tar.gz`, genau die veröffentlichten), `SHA256SUMS`, `update.sh`,
+  `docker-compose.yml` und `env.example`.
+
+**Umstieg bestehender Installationen** (Schritt für Schritt in README und Hilfe): einmal das bisherige
+`./update.sh --pull`, danach `./update.sh --cleanup`.
+
+Doku (README, Hilfe *Update und Wartung*, `.env.example`, Kommentare der `docker-compose.yml`) und Tests (nachgebautes
+`docker` unter dash: Update, Fehlstart mit Rückweg, Zurückgehen, ohne Internet, Aufräumen mit Verknüpfungen und Mounts;
+Datenbank älter/neuer als das Programm; Versionsprüfung der Compose-Datei; nur-von-Hand-Veröffentlichung) angepasst.
+
 ## 2.20.1 – 28.10.2026
 Code-Review der Änderungen seit 2.17.1 (drei unabhängige Prüfer: Ausleih- und Vormerklogik, Sicherheit und Rechte,
 Betrieb/CI/Oberfläche) – keine kritischen Befunde, alle bestätigten behoben, jeder mit Test.

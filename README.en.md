@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 2.20.1** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.0.0** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -25,63 +25,96 @@ Web-based library management with ISBN scanning, lending, groups and sign-in via
 
 ## Quick start
 
-### With Docker – ready-made image from GitHub (easiest)
+Catalytix is completely inside the ready-made image `ghcr.io/soleil0815/catalytix` (Intel/AMD and ARM, e.g. Synology or Raspberry Pi). The server only holds **`docker-compose.yml`, `.env` and the data folder `./data`** – no program folder, nothing to unpack or build.
 
-GitHub builds the image `ghcr.io/soleil0815/catalytix` automatically for every new version (for Intel/AMD and ARM, e.g. Synology or Raspberry Pi). The server then only needs `update.sh`:
+### Installation
 
 ```bash
 mkdir -p /opt/catalytix && cd /opt/catalytix
-curl -fsSLO https://raw.githubusercontent.com/soleil0815/catalytix/main/update.sh && chmod +x update.sh
-./update.sh --pull
+curl -fsSLO https://github.com/soleil0815/catalytix/releases/latest/download/docker-compose.yml
+curl -fsSL  https://github.com/soleil0815/catalytix/releases/latest/download/env.example -o .env
+docker compose up -d          # older installations (e.g. Synology): docker-compose up -d
 ```
 
-The script pulls the image, creates `docker-compose.yml`, `.env` and `.env.example` from the image, starts the container and shows the setup code. Later updates: `./update.sh --pull` (newest version) or `./update.sh --pull=2.20.1` (exactly this version, e.g. to go back).
+Everything in `.env` is optional (port, time zone, database …) – without an entry the default applies. Then open `http://SERVER:9300` (e.g. `http://library.company.local:9300`). On the first visit you create the local administrator account; the page asks for the **setup code**. It is in the container log (`docker compose logs catalytix`) and can be shown any time with `docker compose exec catalytix docker-entrypoint.sh flask --app wsgi setup-code`. This way nobody who happens to reach the port can take over the setup.
 
-### With Docker – build it yourself (zip package or git clone)
+At start-up the container sets the permissions of `./data` itself and then runs as user `PUID:PGID` (default `1000:1000`) – not as root. Additions (e.g. a NAS share for backups or a MariaDB) go into your own `docker-compose.override.yml`, which is never touched.
+
+Optional, for updates by hand with an automatic way back: put `update.sh` into the same folder (`curl -fsSLO https://github.com/soleil0815/catalytix/releases/latest/download/update.sh && chmod +x update.sh`).
+
+### Updating
+
+**With a container manager** (Dockhand, Watchtower, Tugtainer …): let it update the container like any other. Recommendation: schedule updates **at night** (e.g. 3 am) – the library is unavailable for a moment while a new version starts.
+
+**By hand:**
 
 ```bash
-cp .env.example .env    # once – the file must exist (everything in it is optional)
-docker compose up -d --build      # older setups (e.g. Synology): docker-compose up -d --build
+docker compose pull && docker compose up -d
 ```
 
-Then open `http://SERVER:9300`. On first access you create the local administrator account – the page asks for the **setup code**. It is in the container log, `update.sh` shows it after installation, and you can fetch it at any time: `docker compose exec catalytix docker-entrypoint.sh flask --app wsgi setup-code`. That way nobody who happens to reach the port can take over the setup. All data lives in `./data`.
-
-On start-up the container fixes the permissions of `./data` itself and then runs as user `PUID:PGID` (default `1000:1000`) – not as root.
-
-**Your own settings belong in the file `.env`**, not in `docker-compose.yml`:
+**Or with `./update.sh`** – does the same, and in addition:
+- keeps the running image as `previous`,
+- waits until the new version reports healthy; **if it does not start**, it restores the backup from before the update and starts the previous version again (asks first, automatic with `-y`) – and stays on it for now, so a container manager does not install the failing version again right away,
+- puts a newer `docker-compose.yml` from the image in place (the old one is kept as `docker-compose.yml.alt`) and keeps `update.sh` and `.env.example` current.
 
 ```bash
-cp .env.example .env    # once, then adjust as needed (port, time zone, …)
+./update.sh                     # newest version (or the one fixed in .env)
+./update.sh --version=3.0.0     # exactly this version – also a security update like 3.0.0-s1
+./update.sh --version=latest    # follow every new version again
+./update.sh -y                  # no questions (e.g. from cron)
 ```
 
-The `.env` file is not part of the update package. Additional services (e.g. a MariaDB) go into your own `docker-compose.override.yml`, which updates never touch either.
+Runs with `/bin/sh` (also dash/BusyBox) and on a NAS; needs Docker Compose as `docker compose` or `docker-compose` 1.27 or newer. Without a terminal (cron, `ssh` without `-t`) and without `-y` it decides nothing by itself.
 
-### Updating and rebuilding: `update.sh`
+**What the program does itself at every version change:** before a new version changes the database, it backs it up (backup `catalytix-…-vor-<version>.db` under *Administration → Backup*; the last three are kept independently of the daily ones). If an **older** version starts on a database a newer one has already used, it stops with a clear message (which version or which backup) instead of running into follow-up errors. With MySQL/PostgreSQL, back up yourself before updates (`mysqldump`/`pg_dump`).
+
+If the `docker-compose.yml` on the server is too old for a new version, the log says so and administrators see a note on the overview – then run `./update.sh` once or replace the file with the one from the release.
+
+### Fixing a version and going back
+
+**Fixing:** set `CATALYTIX_TAG=3.0.0` in `.env` (or `./update.sh --version=3.0.0`) – it stays on this version, also with a container manager. `CATALYTIX_TAG=latest` (or no such line) follows every new version again.
+
+**Going back:** an older version needs the database from back then. `./update.sh --version=X.Y.Z` does both: it restores the newest backup this version can read and starts it (it asks first, because everything entered since is lost). By hand:
 
 ```bash
-./update.sh --pull                   # get the newest version from GitHub (ready-made image, nothing is built)
-./update.sh --pull=2.20.1            # exactly this version from GitHub (stays on it until the next --pull)
-./update.sh catalytix-2.20.1.zip      # classic: install a package and build locally
-./update.sh                          # rebuild the current version, or (in --pull mode) pull it again, and start
+docker compose stop catalytix
+docker compose run --rm -e CATALYTIX_SKIP_DB_CHECK=1 catalytix flask --app wsgi restore-for-version 3.0.0
+# set CATALYTIX_TAG=3.0.0 in .env
+docker compose up -d
 ```
 
-**Two ways, switch freely:** `--pull` remembers the GitHub image in `.env` (`CATALYTIX_IMAGE`, `CATALYTIX_TAG=latest`) – the container then always follows the newest version. A container manager that updates images automatically can therefore pull new versions itself (the package on GitHub must be public for that; only `update.sh` takes the extra backup before the update, the regular backups keep running). `--pull=X.Y.Z` instead holds exactly one version until the next `./update.sh --pull` – a security update can be pinned or chosen as the way back the same way (`--pull=X.Y.Z-s2`); `X.Y.Z` alone is the original release image without the later package updates. The installation files (`docker-compose.yml`, `update.sh`, READMEs) come from the image, so they always match the version. Installing a zip package switches back to building locally automatically (the two entries are commented out in `.env`). Zip packages with checksums are available under *Releases* in the GitHub repository.
+(`restore-for-version` still runs in the newer image here – it knows the command. `list-backups` shows all backups.)
 
-The script
-1. checks a given package (unpacks it into a work folder next to the installation, shows old and new version, warns about an older one),
-2. takes a **backup** (if the container is running) – before any file is replaced,
-3. then swaps the program files – `./data`, `instance`, `.env` and `docker-compose.override.yml` are left alone; the `catalytix/` and `tests/` folders are replaced completely. If anything goes wrong, the script restores the previous files (otherwise it names the folder where they are kept),
-4. builds the image `catalytix:VERSION` – if that fails, the old container keeps running unchanged,
-5. restarts the container and waits until it reports healthy; otherwise it prints the last log lines,
-6. **cleans up** (only after a successful update): older Catalytix images and `catalytix-X.Y.Z.zip` packages in the program folder and in the folder of the installed package – the current and the previous one are kept for the way back, as are newer ones –, work folders of aborted updates older than 7 days, and Python caches. Other files, symlinks and `./data` are never touched.
+### Without internet
 
-The package may live elsewhere (`./update.sh ~/Downloads/catalytix-X.Y.Z.zip`) and may be packed with or without a top-level folder; an incomplete installation (e.g. missing `catalytix` folder) can be repaired this way. Note: this protection applies from the first update run with the new `update.sh`.
+The release contains the images as files (`catalytix-X.Y.Z-amd64.tar.gz`, `-arm64` for ARM) with `SHA256SUMS`. Copy the file, `SHA256SUMS` and `update.sh` to the server, then:
 
-Options: `--pull[=VERSION]` (image from GitHub instead of building locally), `--no-backup`, `--no-cache` (build without Docker cache), `--prune` (thorough cleanup: also delete the previous image and package – only the current state remains), `--no-cleanup` (no cleanup), `-y` (no questions), `--help`. Without `--prune` the previous image and package are kept as a fallback. Without a terminal (cron, `ssh` without `-t`) the script aborts at every question – use `-y` there.
+```bash
+./update.sh --load catalytix-3.0.0-amd64.tar.gz     # checks the checksum, loads the image, starts it
+```
 
-**Going back to the previous version** if something is wrong after an update: keep the old zip and install it again with `./update.sh catalytix-OLD.zip` (the script warns about the older version). If the new version has already changed data, also restore the backup taken before the update (see [Backups](#backups) → restoring; it is the newest manual backup).
+Without `update.sh`: `sha256sum -c SHA256SUMS --ignore-missing`, `docker load -i catalytix-3.0.0-amd64.tar.gz`, set `CATALYTIX_TAG=3.0.0` in `.env`, `docker compose up -d`.
 
-Requires Docker Compose – as `docker compose` (any version) or the older `docker-compose` from 1.27 on (e.g. on a Synology; older 1.x versions cannot read a `docker-compose.yml` without a `version:` line) – and `unzip` for unpacking (alternatively `python3`). If `.env` is missing, the script creates it from the template; run as root or as a member of the `docker` group.
+### Moving installations from before 3.0.0
+
+Up to 2.20 the program files were on the server (zip package, built locally). From 3.0.0 everything is in the image. Once, in the existing program folder:
+
+1. Take a backup: *Administration → Backup → Back up now* (the program also backs up itself at the first start of 3.0.0).
+2. Switch to the image once with the **existing** script: `./update.sh --pull`. It gets 3.0.0, places the new `docker-compose.yml`, `.env.example` and the new `update.sh`, and starts it. (If your script does not know `--pull` yet – before 2.16 –, put the new `update.sh` from the release into the folder instead and run `./update.sh`; the old `docker-compose.yml` is then kept as `docker-compose.yml.alt`.)
+3. Remove the old program files: `./update.sh --cleanup`. It shows the list (only known program files such as `catalytix/`, `Dockerfile`, `wsgi.py`, old zip packages, work folders of aborted updates and locally built `catalytix:X.Y.Z` images), asks, and deletes only those. **Never** touched: `data/`, backups, `.env`, `docker-compose.yml` (with `.alt`/`.override`) and anything a container mounts – not even through links.
+
+Afterwards the folder only holds `docker-compose.yml`, `.env`, `.env.example`, `update.sh` and `data/`.
+
+### For developers: without Docker
+
+```bash
+python3.13 -m venv .venv && . .venv/bin/activate     # Windows: py -3.13 -m venv .venv; .venv\Scripts\activate
+pip install --no-deps -r requirements.txt
+export CATALYTIX_DATA_DIR=/var/lib/catalytix
+gunicorn -w 2 --threads 4 -b 0.0.0.0:9300 wsgi:app   # Windows: waitress-serve --listen=0.0.0.0:9300 wsgi:app
+```
+
+`python wsgi.py` is enough to try it out (`127.0.0.1:9300` only). Building the image yourself: `docker build -t catalytix-dev .`
 
 ### Pinned versions and automatic security updates
 
@@ -92,7 +125,7 @@ Requires Docker Compose – as `docker compose` (any version) or the older `dock
 - **Fix new versions:** `python3 tools/lock.py update` (needs Docker and internet) – always **within the foundation**: same Debian release, same Python series, every package within its major version (before 1.0: minor version; ranges in `requirements.in`). No limit for calendar versions such as the root certificates (`certifi`). New package versions are only taken once they are at least 7 days old (protection against freshly uploaded malicious releases). `python3 tools/lock.py check` verifies the locks.
 
 **Automatically on GitHub** (details under [GitHub](#github-building-the-image-and-publishing-versions)):
-- **Every Monday early – security update:** fix the newest versions within the foundation, rebuild without cache, run the tests in the finished image, scan with Trivy. Only if **everything** passes is the image published as `latest` and as **`<program version>-s<counter>`** (e.g. `2.20.1-s1`, `2.20.1-s2` – "same program, only new packages"; a new program version starts again at `s1`), with a CHANGELOG entry listing the changed packages. If nothing changed, nothing happens.
+- **Every Monday early – security update:** fix the newest versions within the foundation, rebuild without cache, run the tests in the finished image, scan with Trivy. Only if **everything** passes is the image published as `latest` and as **`<program version>-s<counter>`** (e.g. `3.0.0-s1`, `3.0.0-s2` – "same program, only new packages"; a new program version starts again at `s1`), with a CHANGELOG entry listing the changed packages. If nothing changed, nothing happens.
 - **Daily:** Trivy scans the published `latest` for vulnerabilities that became known after the release.
 - **Weekly:** check how long Debian 13 and Python 3.13 still get security updates. From 12 months before: a notice on the run; from 6 months: the run turns red. Nobody raises the foundation silently – it is a deliberate change (see below).
 
@@ -111,28 +144,7 @@ Requires Docker Compose – as `docker compose` (any version) or the older `dock
 
 **`.trivyignore`:** only checked, non-exploitable findings – each entry `ID exp:YYYY-MM-DD` (at most 6 months) with a comment line above it as the reason. After the expiry date the finding blocks again.
 
-**Built locally** (zip package, `update.sh`) gives the same image as on GitHub; the build needs access to Docker Hub, PyPI and snapshot.debian.org.
-
-### Without Docker (Linux)
-
-```bash
-python3.13 -m venv .venv          # tested with Python 3.13.16
-. .venv/bin/activate
-pip install --no-deps -r requirements.txt
-export CATALYTIX_DATA_DIR=/var/lib/catalytix
-gunicorn -w 2 --threads 4 -b 0.0.0.0:9300 wsgi:app
-```
-
-### Without Docker (Windows)
-
-```powershell
-py -3.13 -m venv .venv
-.venv\Scripts\activate
-pip install --no-deps -r requirements.txt
-waitress-serve --listen=0.0.0.0:9300 wsgi:app
-```
-
-For a quick try-out, `python wsgi.py` is enough (listens on `127.0.0.1:9300` only).
+**Built yourself** (`docker build .` from the repository) gives the same image as on GitHub; the build needs access to Docker Hub, PyPI and snapshot.debian.org.
 
 ---
 
@@ -347,7 +359,7 @@ Nothing else is required: Catalytix detects the reverse proxy automatically. For
 - Behind HTTPS set `CATALYTIX_SECURE_COOKIES=1` and enable HSTS in the proxy ("HSTS Enabled" in NPM).
 - Enter the **base address for e-mail links** (*Administration → E-mail*) – links in e-mails are only built from it, never from the request. Without it, self-registration with e-mail confirmation is blocked.
 - Set `PUID`/`PGID` to a dedicated service user (the default 1000 is usually the host's first real user – who then owns the database and key). Database, key and backups are readable for this user only.
-- **Verify update packages:** if `catalytix-X.Y.Z.zip.sha256` sits next to the zip, `update.sh` checks the package; otherwise it shows the checksum for comparison.
+- **Verify image files** (the way without internet): `update.sh --load` compares the file with `SHA256SUMS` from the release and only loads it if the checksum matches. Docker verifies images pulled from the registry itself.
 - If `CATALYTIX_BACKUP_DIR` is on a NAS, make the share writable for the library server only.
 
 When publishing to the internet (e.g. with Nginx Proxy Manager), enable *Force SSL* and *HSTS* and do not forward port 9300 on your router – only the proxy should be reachable from outside. The login page deliberately reveals nothing about the setup (no version number, no AD hint, identical error messages for unknown users, wrong passwords and locked accounts).
@@ -387,6 +399,7 @@ The privacy policy should list what Catalytix stores: name, username, e-mail add
 - **If a backup fails**, a warning sign appears on the *Datensicherung* menu entry and administrators get an e-mail (if e-mail sending is set up).
 - The **database** is backed up (books, users, loans, settings). Cover images, logo and `secret_key` are files in `./data` – take the whole folder with you when moving servers. Always restore a database **together with its `secret_key`**, otherwise 2FA and stored SMTP/AD passwords stop working (see [Security](#security)).
 - Important: backups on the same server protect against mistakes and broken updates, **not** against a disk failure. Copy the folder to another place regularly.
+- **Before every version change** the program backs up at start-up itself (`catalytix-…-vor-X.Y.Z.db`, "before update to X.Y.Z"). The last three of these are kept in addition to the daily ones – they are the way back (see [Fixing a version and going back](#fixing-a-version-and-going-back)).
 - SQLite only. With MySQL/MariaDB or PostgreSQL use `mysqldump` or `pg_dump`.
 
 **Restoring** (the current state is backed up automatically first):
@@ -466,8 +479,8 @@ The repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) c
 
 | Event | What GitHub does |
 |---|---|
-| Push to `main` (and pull requests) | check the locks, build the image **without cache**, run **all tests in the finished image**, **Trivy scan** (`build.yml`) |
-| … with a **new version number** | only if everything passed: image `ghcr.io/soleil0815/catalytix:<version>` (and `latest` if it is the highest version) for `linux/amd64` and `linux/arm64`, then the release `v<version>` with `catalytix-<version>.zip` and `.sha256` |
+| Pull request and push to `main` | check the locks, build the image **without cache**, run **all tests in the finished image**, **Trivy scan** (`build.yml`) – **nothing** is published |
+| *Actions → Build → Run workflow* on `main` with **publish** | only for a **new version number** and only if everything passed: image `ghcr.io/soleil0815/catalytix:<version>` (and `latest` if it is the highest version) for `linux/amd64` and `linux/arm64`, then the release `v<version>` with the image files for the way without internet, `SHA256SUMS`, `update.sh`, `docker-compose.yml` and `env.example` |
 | Mondays early (or by hand) | **Security update** (`security-update.yml`) – see [Pinned versions and automatic security updates](#pinned-versions-and-automatic-security-updates); publishes `<version>-s<counter>` and `latest` |
 | Daily | **Scan** of the published `latest` (`scan.yml`) |
 | Mondays | **Foundation check** (`foundation.yml`) |
@@ -480,14 +493,14 @@ For all workflows: actions pinned to commit SHAs, minimal permissions per job, n
 git init -b main
 git add -A
 git update-index --chmod=+x update.sh docker-entrypoint.sh   # executable, even if committed on Windows
-git commit -m "Catalytix 2.20.1"
+git commit -m "Catalytix 3.0.0"
 git remote add origin git@github.com:soleil0815/catalytix.git
 git push -u origin main
 ```
 
 Then wait for the run under *Actions*. **Make the package public once:** GitHub → profile → *Packages* → `catalytix` → *Package settings* → *Change visibility* → *Public*. Otherwise the servers first have to sign in with a token (scope `read:packages`): `docker login ghcr.io`.
 
-**Publishing a new version:** raise the version number in three places – `catalytix/__init__.py`, the label in `Dockerfile`, the default tag in `docker-compose.yml` (the workflow checks that they match) –, add to the CHANGELOG, add the notes for the interface to `catalytix/news.json` (a test checks that the current version is listed there), push. The release with the zip is created automatically, no tag needed. Servers fetch the new version with `./update.sh --pull`.
+**Publishing a new version:** raise the version number in `catalytix/__init__.py` and in the label in `Dockerfile` (the workflow checks that they match), add to the CHANGELOG, add the notes for the interface to `catalytix/news.json` (a test checks that the current version is listed there) – as a **pull request**. After merging: *Actions → Build → Run workflow* (branch `main`, tick **publish**). Only then are the image, `latest` and the release created; no tag needed. `docker-compose.yml` stays unchanged – only when something in it really has to change does `CATALYTIX_COMPOSE` go up (in the file, in the label `catalytix.compose` in `Dockerfile` and in `catalytix/composefile.py`).
 
 ## Tests
 
@@ -507,6 +520,8 @@ catalytix/
   mailer.py        SMTP sending, notifications, daily scheduler
   retention.py     Retention periods (delete old loans and mail log)
   backup.py        Automatic database backups (SQLite), keeping the last N
+  dbversion.py     Database version: backup before a version change, stop on a newer database
+  composefile.py   Version check of docker-compose.yml
   branding.py      Logo, background image, colours
   proxy.py         Automatic reverse-proxy and HTTPS detection
   netzone.py       Internal network or access from outside (for the 2FA rules)
@@ -519,6 +534,7 @@ catalytix/
   static/          CSS, JavaScript (no build step)
 docs/              Manuals (PDF, German and English)
 tests/             Automated tests
+docker-compose.yml, .env.example, update.sh   Files for the server (also in the image and in the release)
 ```
 
 ## License

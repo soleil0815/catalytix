@@ -27,7 +27,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "2.20.1"
+__version__ = "3.0.0"
 APP_NAME = "Catalytix"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Wo der Quellcode zu finden ist (AGPL § 13). Wer Catalytix verändert betreibt, trägt hier
@@ -234,6 +234,37 @@ def _sqlite_file(instance: Path) -> Path:
     return db_file
 
 
+def _migrate_and_init(app: Flask) -> None:
+    """Tabellen/Spalten nachziehen und einmalige Umstellungen – unter der Start-Sperre, im App-Kontext."""
+    db.create_all()
+    from .models import ensure_columns
+    for col in ensure_columns():
+        logging.getLogger(__name__).info("Database updated: column %s added", col)
+        if col == "users.group_bound":   # bestehende Konten mit Gruppen sind gruppengebunden
+            from sqlalchemy import text as _text
+            db.session.execute(_text("UPDATE users SET group_bound = :t WHERE id IN "
+                                     "(SELECT user_id FROM user_groups)"), {"t": True})
+            db.session.commit()
+    from .models import ensure_indexes; ensure_indexes()  # noqa: E702
+    _check_secret_key(app)
+    from . import setupcode
+    from .models import User as _User
+    if get_setting("setup_completed") != "1" and _User.query.first() is None:
+        setupcode.ensure()
+        setupcode.announce()
+    from .models import set_setting
+    if get_setting("library_name") == "CATALYTIX":  # alter Standardname (Programmname, bis 2.2)
+        set_setting("library_name", "Bibliothek")
+        db.session.commit()
+    from .models import encrypt_stored_secrets
+    if encrypt_stored_secrets():
+        logging.getLogger(__name__).info("Stored credentials (AD, SMTP) are now kept encrypted")
+    if get_setting("registration_privacy_url") and not get_setting("privacy_url"):  # bis 2.0
+        set_setting("privacy_url", get_setting("registration_privacy_url"))
+        set_setting("registration_privacy_url", "")
+        db.session.commit()
+
+
 def create_app(test_config: dict | None = None) -> Flask:
     data_dir = os.environ.get("CATALYTIX_DATA_DIR")
     app = Flask(__name__, instance_path=os.path.abspath(data_dir) if data_dir else None,
@@ -330,36 +361,18 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     # ---- Start-Schritte unter exklusiver Sperre (mehrere gunicorn-Worker starten gleichzeitig) ----
     with _startup_lock(instance), app.app_context():
-        db.create_all()
-        from .models import ensure_columns
-        for col in ensure_columns():
-            logging.getLogger(__name__).info("Database updated: column %s added", col)
-            if col == "users.group_bound":   # bestehende Konten mit Gruppen sind gruppengebunden
-                from sqlalchemy import text as _text
-                db.session.execute(_text("UPDATE users SET group_bound = :t WHERE id IN "
-                                         "(SELECT user_id FROM user_groups)"), {"t": True})
-                db.session.commit()
-        from .models import ensure_indexes; ensure_indexes()  # noqa: E702
-        _check_secret_key(app)
-        from . import setupcode
-        from .models import User as _User
-        if get_setting("setup_completed") != "1" and _User.query.first() is None:
-            setupcode.ensure()
-            setupcode.announce()
-        from .models import set_setting
-        if get_setting("library_name") == "CATALYTIX":  # alter Standardname (Programmname, bis 2.2)
-            set_setting("library_name", "Bibliothek")
-            db.session.commit()
-        from .models import encrypt_stored_secrets
-        if encrypt_stored_secrets():
-            logging.getLogger(__name__).info("Stored credentials (AD, SMTP) are now kept encrypted")
-        if get_setting("registration_privacy_url") and not get_setting("privacy_url"):  # bis 2.0
-            set_setting("privacy_url", get_setting("registration_privacy_url"))
-            set_setting("registration_privacy_url", "")
-            db.session.commit()
+        from . import dbversion
+        db_state = dbversion.prepare(db)     # neuere Datenbank: Abbruch; Versionswechsel: erst sichern
+        if db_state != "skip":               # „skip“: nur eine Sicherung zurückspielen – nichts migrieren
+            _migrate_and_init(app)
+            dbversion.stamp(db)
 
     # Hintergrund-Job für E-Mail-Erinnerungen (täglich zur eingestellten Uhrzeit)
-    if not app.config.get("TESTING") and os.environ.get("CATALYTIX_SCHEDULER", "1") == "1":
+    from . import composefile
+    if composefile.outdated() is not None:
+        log.warning(composefile.log_message(composefile.outdated()))
+    if (not app.config.get("TESTING") and os.environ.get("CATALYTIX_SCHEDULER", "1") == "1"
+            and db_state != "skip"):
         from .mailer import start_scheduler
         start_scheduler(app)
 
@@ -594,6 +607,58 @@ def create_app(test_config: dict | None = None) -> Flask:
         if safety:
             click.echo(f"Previous state backed up as {safety.name}")
         click.echo(f"{name} has been restored. Start the server again now.")
+
+    @app.cli.command("restore-before")
+    @click.argument("version")
+    @click.option("--since", type=int, default=None,
+                  help="Only a backup written at/after this Unix time (update.sh: start of the update)")
+    @click.option("--yes", is_flag=True, help="No confirmation")
+    def restore_before_cmd(version, since, yes):
+        """Restore the backup taken when VERSION first started (the state before that update) – server stopped!
+
+        Exit code 3 if there is no such backup (that version never changed the database)."""
+        from . import dbversion
+        from .backup import BackupError, english, find_before, restore_backup
+        if dbversion.vtuple(version) is None:
+            raise click.ClickException("VERSION must look like 3.0.0")
+        src = find_before(version, since)
+        if src is None:
+            click.echo(f"No backup from before {version} found – the database was not changed by {version}.")
+            raise SystemExit(3)
+        if not yes:
+            click.confirm(f"Replace the database with {src.name}? The server must be stopped for this.", abort=True)
+        try:
+            safety = restore_backup(src.name)
+        except BackupError as exc:
+            raise click.ClickException(english(str(exc)))
+        if safety:
+            click.echo(f"Previous state backed up as {safety.name}")
+        click.echo(f"{src.name} has been restored (state before {version}).")
+
+    @app.cli.command("restore-for-version")
+    @click.argument("version")
+    @click.option("--yes", is_flag=True, help="No confirmation")
+    def restore_for_version_cmd(version, yes):
+        """Going back to VERSION: restore the newest backup that VERSION can use (written by VERSION or older).
+
+        Exit code 3 if there is none. Server stopped!"""
+        from . import dbversion
+        from .backup import BackupError, english, find_for_version, restore_backup
+        if dbversion.vtuple(version) is None:
+            raise click.ClickException("VERSION must look like 3.0.0")
+        src = find_for_version(version)
+        if src is None:
+            click.echo(f"No backup that version {version} can use was found.")
+            raise SystemExit(3)
+        if not yes:
+            click.confirm(f"Replace the database with {src.name}? The server must be stopped for this.", abort=True)
+        try:
+            safety = restore_backup(src.name)
+        except BackupError as exc:
+            raise click.ClickException(english(str(exc)))
+        if safety:
+            click.echo(f"Previous state backed up as {safety.name}")
+        click.echo(f"{src.name} has been restored.")
 
     @app.cli.command("setup-code")
     def setup_code_cmd():

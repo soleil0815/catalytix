@@ -333,8 +333,11 @@ def dashboard():
         news_hint = {"version": version, "first": first, "more": len(pairs) - 1}
     from .. import reservations
     ready = reservations.ready_for(current_user) if reservations.enabled() else []
+    from .. import composefile
+    compose_old = composefile.outdated() if current_user.is_admin else None
     return render_template("dashboard.html", my_loans=my_loans, newest=newest, stats=stats,
-                           overdue=overdue, recent_loans=recent_loans, news_hint=news_hint, ready=ready)
+                           overdue=overdue, recent_loans=recent_loans, news_hint=news_hint, ready=ready,
+                           compose_old=compose_old, compose_min=composefile.COMPOSE_MIN)
 
 
 @bp.route("/profil", methods=["GET", "POST"])

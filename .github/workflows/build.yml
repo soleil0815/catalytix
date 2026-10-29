@@ -1,9 +1,12 @@
-# Program release: tests, container image (GitHub Container Registry) and release zip.
+# Program release: tests, container image (GitHub Container Registry) and the GitHub release.
 #
-# push to main / pull request → check the locks, build the image WITHOUT cache, run the tests IN the image, Trivy.
-# push to main with a NEW version (higher than every release) → publish job: build amd64 + arm64 once without
-#   cache, test (amd64) and scan (both) exactly these images, push them as :<version> (+ :sha-…), move :latest, then
-#   the GitHub release v<version> with catalytix-<version>.zip and .sha256. Published versions are never overwritten.
+# pull request / push to main → check the locks, build the image WITHOUT cache, run the tests IN the image, Trivy.
+#   Nothing is published – a merged pull request only gets checked.
+# Publishing ONLY by hand: Actions → Build → Run workflow (branch main) with "publish" ticked, and only for a NEW
+#   version (higher than every release). Then: build amd64 + arm64 once without cache, test (amd64) and scan (both)
+#   exactly these images, push them as :<version> (+ :sha-…), move :latest, and create the release v<version> with
+#   the image files for installing without internet (catalytix-<version>-amd64.tar.gz / -arm64.tar.gz), SHA256SUMS,
+#   update.sh, docker-compose.yml and .env.example. Published versions are never overwritten.
 #
 # Security: actions pinned to full commit SHAs, permissions: {} by default and minimal per job, no Git credentials
 # stored in the checkout, publishing only from main and never at the same time as another publishing job
@@ -16,6 +19,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish this version (image :<version> and :latest, GitHub release)"
+        type: boolean
+        default: false
 
 permissions: {}
 
@@ -47,15 +55,18 @@ jobs:
         id: version
         env:
           GH_TOKEN: ${{ github.token }}
+          PUBLISH: ${{ github.event.inputs.publish || 'false' }}
         run: |
           . tools/ci.sh
           python3 tools/lock.py check || fail "Locks incomplete" "See the 'lock check' lines in the log – run tools/lock.py update."
           python3 tools/trivy_scan.py check-ignore
           v=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' catalytix/__init__.py)
           grep -q "org.opencontainers.image.version=\"$v\"" Dockerfile || fail "Version mismatch" "Dockerfile label is not $v"
-          grep -q "CATALYTIX_TAG:-$v}" docker-compose.yml || fail "Version mismatch" "docker-compose.yml default tag is not $v"
+          cv="$(sed -n 's/^ *CATALYTIX_COMPOSE: *"\([0-9]*\)".*/\1/p' docker-compose.yml)"
+          grep -q "catalytix.compose=\"$cv\"" Dockerfile || fail "Compose version mismatch" "Dockerfile label catalytix.compose is not $cv"
           new=false
-          if [ "$GITHUB_EVENT_NAME" != pull_request ] && [ "$GITHUB_REF" = refs/heads/main ] && ! release_exists "$v"; then
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$PUBLISH" = true ] && [ "$GITHUB_REF" = refs/heads/main ] \
+             && ! release_exists "$v"; then
             highest="$(highest_release)"
             if [ -z "$highest" ] || python3 tools/security_update.py is-highest "$v" "$highest"; then
               new=true
@@ -63,9 +74,12 @@ jobs:
               echo "::warning title=Not published::Version $v is lower than the highest release $highest – nothing is published."
             fi
           fi
+          if [ "$new" = false ] && [ "$GITHUB_EVENT_NAME" = push ] && ! release_exists "$v"; then
+            echo "::notice title=Not published yet::Version $v is checked. Publish it with Actions → Build → Run workflow (main, tick publish)."
+          fi
           echo "version=$v" >> "$GITHUB_OUTPUT"
           echo "new=$new" >> "$GITHUB_OUTPUT"
-          echo "Version $v – new release: $new"
+          echo "Version $v – publish now: $new"
 
       - name: Prepare Docker
         run: . tools/ci.sh && prepare_builder
@@ -87,7 +101,7 @@ jobs:
   publish:
     name: Build, check and publish both platforms
     needs: check
-    if: needs.check.outputs.new == 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: needs.check.outputs.new == 'true' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     concurrency:
       group: publish
@@ -163,7 +177,7 @@ jobs:
         run: docker logout ghcr.io
 
   release:
-    name: Release zip
+    name: GitHub release (image files, update.sh, docker-compose.yml)
     needs: [check, publish]
     runs-on: ubuntu-24.04
     concurrency:
@@ -171,17 +185,36 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
+      packages: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Build catalytix-<version>.zip and its checksum
+      # Exactly the published images (pulled back from the registry), for installing without internet:
+      # docker load -i catalytix-<version>-<arch>.tar.gz  (or: ./update.sh --load <file>)
+      - name: Image files and checksums
         env:
           VERSION: ${{ needs.check.outputs.version }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git archive --format=zip --prefix=catalytix/ -o "catalytix-$VERSION.zip" HEAD
-          sha256sum "catalytix-$VERSION.zip" > "catalytix-$VERSION.zip.sha256"
+          . tools/ci.sh
+          docker_login
+          image="$(image_name)"
+          mkdir -p assets
+          for arch in amd64 arm64; do
+            docker pull -q --platform "linux/$arch" "$image:$VERSION" >/dev/null \
+              || fail "Image not available" "Could not pull $image:$VERSION for $arch."
+            got="$(docker image inspect -f '{{.Architecture}}' "$image:$VERSION")"
+            [ "$got" = "$arch" ] || fail "Wrong platform" "Expected $arch, got $got."
+            docker save "$image:$VERSION" | gzip -6 > "assets/catalytix-$VERSION-$arch.tar.gz"
+            docker image rm "$image:$VERSION" >/dev/null
+          done
+          docker logout ghcr.io >/dev/null
+          cp update.sh docker-compose.yml .env.example assets/
+          mv assets/.env.example assets/env.example     # release assets cannot start with a dot
+          (cd assets && sha256sum -- * > SHA256SUMS)
+          ls -l assets
 
       - name: Create the GitHub release
         env:
@@ -190,8 +223,17 @@ jobs:
         run: |
           . tools/ci.sh
           if release_exists "$VERSION"; then echo "Release v$VERSION exists already."; exit 0; fi
-          gh release create "v$VERSION" "catalytix-$VERSION.zip" "catalytix-$VERSION.zip.sha256" \
+          cat > notes.md <<EOF
+          Installation and updates: see README. In short:
+          - New: download docker-compose.yml and env.example (save it as .env), then \`docker compose up -d\`.
+          - Update: container manager (Dockhand, Watchtower …), \`docker compose pull && docker compose up -d\`, or \`./update.sh\` (with automatic way back).
+          - Without internet: \`./update.sh --load catalytix-$VERSION-amd64.tar.gz\` (arm64 for ARM), checked against SHA256SUMS.
+          - Installations from before 3.0.0: run your old \`./update.sh --pull\` once, then \`./update.sh --cleanup\`.
+
+          Changes: see CHANGELOG.md.
+          EOF
+          gh release create "v$VERSION" assets/* \
             --target "$GITHUB_SHA" \
             --title "Catalytix $VERSION" \
-            --notes "Update with the image built by GitHub: \`./update.sh --pull\` – or classically with this package: \`./update.sh catalytix-$VERSION.zip\` (put the .sha256 file next to it). Changes: see CHANGELOG.md." \
+            --notes-file notes.md \
             || fail "Release failed" "Could not create release v$VERSION."

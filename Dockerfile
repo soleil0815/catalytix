@@ -44,6 +44,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
     CATALYTIX_DATA_DIR=/data \
+    CATALYTIX_IN_CONTAINER=1 \
+    TZ=Europe/Berlin \
     HOME=/tmp \
     PUID=1000 \
     PGID=1000
@@ -74,9 +76,10 @@ RUN chmod 755 /usr/local/bin/docker-entrypoint.sh && mkdir -p /data
 VOLUME ["/data"]
 EXPOSE 9300
 
-# Installation files for "update.sh --pull": copied from the image into the program folder, so that
-# docker-compose.yml and update.sh always match the image version
-COPY docker-compose.yml .env.example update.sh README.md README.en.md CHANGELOG.md LICENSE /app/dist/
+# Files for the host, matching this image: update.sh places docker-compose.yml when the image brings a newer one
+# (the old one is kept as docker-compose.yml.alt), and keeps update.sh and .env.example current.
+# (Installations from before 3.0.0 get them with their old "update.sh --pull" once.)
+COPY docker-compose.yml .env.example update.sh /app/dist/
 
 # What is inside (compared by the weekly security update; listed in the change log when something changed)
 RUN { echo "base ${PYTHON_IMAGE}"; \
@@ -88,7 +91,8 @@ RUN { echo "base ${PYTHON_IMAGE}"; \
  && ! python -c "import pip" 2>/dev/null
 
 # Version label late: a new version number doesn't invalidate the cached dependency layers above
-LABEL org.opencontainers.image.version="2.20.1"
+LABEL org.opencontainers.image.version="3.0.0" \
+      catalytix.compose="2"
 # start-period: the entrypoint may first adjust owners/permissions in a large ./data
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s CMD python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:9300/login')" || exit 1
 ENTRYPOINT ["docker-entrypoint.sh"]

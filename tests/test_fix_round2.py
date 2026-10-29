@@ -162,7 +162,7 @@ class StartupTests(unittest.TestCase):
 class UpdateScriptTests(unittest.TestCase):
     def test_no_tty_without_yes_aborts_questions(self):
         text = (ROOT / "update.sh").read_text()
-        self.assertIn('[ -t 0 ] || {', text)
+        self.assertIn('if [ ! -t 0 ]; then', text)
         self.assertIn("com.docker.compose.project", text)
 
 

@@ -1,5 +1,35 @@
 [
  {
+  "version": "3.0.0",
+  "date": "2026-10-29",
+  "items": [
+   {
+    "kind": "new",
+    "audience": "admin",
+    "de": {
+     "title": "Installation und Updates wie bei anderen Docker-Programmen",
+     "text": "Das Programm steckt jetzt komplett im Image. Auf dem Server liegen nur noch docker-compose.yml, .env und der Datenordner. Updates gehen mit einer Container-Verwaltung wie Dockhand oder Watchtower, mit „docker compose pull && docker compose up -d“ oder mit update.sh, das bei einem Fehlstart automatisch zur vorigen Version zurückgeht. Bestehende Installationen: einmal das bisherige „./update.sh --pull“, danach „./update.sh --cleanup“ (siehe Hilfe → Update und Wartung)."
+    },
+    "en": {
+     "title": "Installation and updates like other Docker programs",
+     "text": "The program is now completely inside the image. The server only holds docker-compose.yml, .env and the data folder. Update with a container manager such as Dockhand or Watchtower, with \"docker compose pull && docker compose up -d\", or with update.sh, which goes back to the previous version automatically if the new one does not start. Existing installations: run the existing \"./update.sh --pull\" once, then \"./update.sh --cleanup\" (see Help → Updates and maintenance)."
+    }
+   },
+   {
+    "kind": "security",
+    "audience": "admin",
+    "de": {
+     "title": "Sicherung vor jedem Versionswechsel",
+     "text": "Bevor eine neue Version die Datenbank anpasst, sichert sie sie selbst („vor Update auf X.Y.Z“). Eine ältere Version startet nicht mehr auf einer Datenbank, die schon eine neuere benutzt hat, sondern nennt die Sicherung, die zurückzuspielen ist."
+    },
+    "en": {
+     "title": "Backup before every version change",
+     "text": "Before a new version changes the database, it backs it up itself (\"before update to X.Y.Z\"). An older version no longer starts on a database a newer one has already used; it names the backup to restore instead."
+    }
+   }
+  ]
+ },
+ {
   "version": "2.20.1",
   "date": "2026-10-28",
   "items": [

@@ -10,3 +10,4 @@ tests
 .github
 *.sha256
 .trivy
+docs/images

@@ -21,6 +21,16 @@ Web-based library management with ISBN scanning, lending, groups and sign-in via
 - **Automatic backups** – daily, the last 10 backups are kept (configurable).
 - Modern, responsive design with light and dark mode. Data stored in **SQLite** (default), optionally MySQL/MariaDB or PostgreSQL.
 
+
+<p align="center">
+  <img src="docs/images/katalog-en.webp" alt="Catalogue with book covers, filters and a Lend button under every available book" width="100%">
+</p>
+<p align="center">
+  <img src="docs/images/buch-en.webp" alt="Book page: all copies on loan, the book is reserved – position 1 in the queue" width="49%">
+  <img src="docs/images/theke-en.webp" alt="Circulation desk: person selected, scan the book and lend it" width="49%">
+</p>
+<p align="center"><sub>Catalogue · book page with a reservation · circulation desk (demo data)</sub></p>
+
 ---
 
 ## Quick start

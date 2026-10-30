@@ -19,6 +19,16 @@ Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung
 - **Automatische Datensicherung** – täglich, die letzten 10 Sicherungen werden aufbewahrt (einstellbar).
 - Modernes, responsives Design mit Hell-/Dunkelmodus. Daten in **SQLite** (Standard), optional MySQL/MariaDB oder PostgreSQL.
 
+
+<p align="center">
+  <img src="docs/images/katalog-de.webp" alt="Katalog mit Buchcovern, Filtern und dem Knopf „Verleihen“ unter jedem freien Buch" width="100%">
+</p>
+<p align="center">
+  <img src="docs/images/buch-de.webp" alt="Buchseite: alle Exemplare verliehen, das Buch ist vorgemerkt – Platz 1 in der Warteschlange" width="49%">
+  <img src="docs/images/theke-de.webp" alt="Ausleihtheke: Person gewählt, Buch scannen und verleihen" width="49%">
+</p>
+<p align="center"><sub>Katalog · Buchseite mit Vormerkung · Ausleihtheke (Demodaten)</sub></p>
+
 ---
 
 ## Schnellstart

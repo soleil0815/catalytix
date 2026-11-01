@@ -9,6 +9,10 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
   Platzhalter wie `{msg}` in übersetzten Texten kollidierten mit den Parameternamen der Übersetzungsfunktionen –
   die Parameter sind jetzt nur noch positionsgebunden, solche Platzhalter funktionieren überall.
 
+**Sicherheit**
+- pyasn1 0.6.4 → 0.6.5 (vier Sicherheitslücken der Stufe HIGH, von Trivy gemeldet; wird für die
+  AD-Anmeldung gebraucht). Bewusst vor Ablauf der 7-Tage-Wartezeit übernommen.
+
 **Qualität**
 - Gefunden durch die Typprüfung, ohne Auswirkung im Betrieb: Die Suche nach einer passenden Sicherung
   (`find_for_version`) prüft eine ungültige Versionsnummer jetzt selbst (bisher nur der Befehl davor),

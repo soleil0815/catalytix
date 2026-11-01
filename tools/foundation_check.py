@@ -15,7 +15,9 @@ import datetime as dt
 import json
 import sys
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import lock  # noqa: E402
@@ -25,13 +27,16 @@ DEBIAN_RELEASES = {"bookworm": "12", "trixie": "13", "forky": "14", "duke": "15"
 WARN_DAYS, FAIL_DAYS = 365, 182
 
 
-def fetch_json(url: str):
+def fetch_json(url: str) -> Any:
     req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "catalytix-foundation"})
     with urllib.request.urlopen(req, timeout=30) as res:   # noqa: S310 – fixed https host
         return json.loads(res.read().decode())
 
 
-def end_of_security_support(product: str, cycle: str, fetch=fetch_json) -> dt.date:
+Fetch = Callable[[str], Any]
+
+
+def end_of_security_support(product: str, cycle: str, fetch: Fetch = fetch_json) -> dt.date:
     """Date from endoflife.date (API v1, falling back to the older API)."""
     try:
         data = fetch(f"https://endoflife.date/api/v1/products/{product}/releases/{cycle}")
@@ -72,7 +77,7 @@ def evaluate(items: list[tuple[str, str, dt.date]], today: dt.date) -> tuple[int
     return code, lines
 
 
-def main(today: dt.date | None = None, fetch=fetch_json) -> int:
+def main(today: dt.date | None = None, fetch: Fetch = fetch_json) -> int:
     today = today or dt.date.today()
     items = []
     for label, product, cycle in foundation():

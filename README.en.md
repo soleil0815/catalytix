@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.0.0** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.0.1** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -517,6 +517,18 @@ Then wait for the run under *Actions*. **Make the package public once:** GitHub 
 
 ```bash
 python -m unittest discover -s tests -v
+```
+
+**Type checking (mypy):** introduced step by step. `mypy.ini` strictly checks the modules where errors do the most
+damage – currently `backup.py`, `netzone.py`, `proxy.py`, `models.py` (permission checks) and the build chain in
+`tools/`. This check must pass on every pull request. `mypy-report.ini` checks all modules and only lists the
+findings in the summary of the CI run, without failing it. Every audit and every version moves more modules into
+the strict list.
+
+```bash
+pip install --require-hashes --no-deps -r tools/mypy.lock    # pinned version with checksums (Python 3.13)
+python -m mypy                                  # strict modules – must report "Success"
+python -m mypy --config-file mypy-report.ini    # all modules, for information only
 ```
 
 ## Project layout

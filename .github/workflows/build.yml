@@ -81,6 +81,9 @@ jobs:
           echo "new=$new" >> "$GITHUB_OUTPUT"
           echo "Version $v – publish now: $new"
 
+      - name: Type check (mypy)
+        run: . tools/ci.sh && run_mypy
+
       - name: Prepare Docker
         run: . tools/ci.sh && prepare_builder
 

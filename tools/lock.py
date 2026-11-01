@@ -30,7 +30,9 @@ import subprocess
 import sys
 import tempfile
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any, TypedDict
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCKERFILE = ROOT / "Dockerfile"
@@ -50,7 +52,7 @@ LOCK_LINE_RE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*)==([^\s;\\]+)\s*(;[^\\#
 
 # ------------------------------------------------------------------ versions and limits
 
-def parse_version(v: str) -> tuple:
+def parse_version(v: str) -> tuple[int, ...]:
     nums = re.match(r"^(\d+(?:\.\d+)*)", v)
     if not nums:
         raise ValueError(f"unsupported version {v!r}")
@@ -67,7 +69,7 @@ def is_calendar_version(v: str, name: str = "") -> bool:
     return parse_version(v)[0] >= 2000 or name.lower() in CALENDAR_PACKAGES
 
 
-def upper_bound(v: str, name: str = "") -> tuple | None:
+def upper_bound(v: str, name: str = "") -> tuple[int, ...] | None:
     """Exclusive upper limit within the foundation: next major version; before 1.0 the next minor version."""
     if is_calendar_version(v, name):
         return None
@@ -98,10 +100,17 @@ def is_prerelease(v: str) -> bool:
 
 # ------------------------------------------------------------------ lock files
 
-def read_lock(path: Path = REQUIREMENTS) -> dict[str, dict]:
+class LockEntry(TypedDict):
+    name: str
+    version: str
+    marker: str
+    hashes: list[str]
+
+
+def read_lock(path: Path = REQUIREMENTS) -> dict[str, LockEntry]:
     """name (lower case) -> {"name", "version", "marker", "hashes"}"""
-    pkgs: dict[str, dict] = {}
-    current = None
+    pkgs: dict[str, LockEntry] = {}
+    current: LockEntry | None = None
     for raw in path.read_text(encoding="utf-8").splitlines():
         line = raw.split("#", 1)[0].rstrip()
         if not line.strip():
@@ -125,7 +134,7 @@ PIP_HEADER = [
 ]
 
 
-def write_lock(pkgs: dict[str, dict], path: Path = REQUIREMENTS) -> None:
+def write_lock(pkgs: dict[str, LockEntry], path: Path = REQUIREMENTS) -> None:
     lines = list(PIP_HEADER) if path == PIP_LOCK else [
         "# ------------------------------------------------------------------",
         "# Exactly pinned package versions (lock file) – written by tools/lock.py, do not edit by hand.",
@@ -152,7 +161,7 @@ def write_lock(pkgs: dict[str, dict], path: Path = REQUIREMENTS) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def read_dockerfile(text: str | None = None) -> dict:
+def read_dockerfile(text: str | None = None) -> dict[str, str]:
     text = text if text is not None else DOCKERFILE.read_text(encoding="utf-8")
     m = PYTHON_IMAGE_RE.search(text)
     s = SNAPSHOT_RE.search(text)
@@ -171,29 +180,31 @@ def write_dockerfile(image: str, snapshot: str) -> None:
 
 def requirements_in() -> dict[str, str]:
     """name (lower case) -> requirement line (with range and marker) from requirements.in"""
-    out = {}
+    out: dict[str, str] = {}
     for raw in REQUIREMENTS_IN.read_text(encoding="utf-8").splitlines():
         line = raw.split("#", 1)[0].strip()
         if line:
-            name = re.match(r"^([A-Za-z0-9][A-Za-z0-9._-]*)", line).group(1)
-            out[name.lower().replace("_", "-")] = line
+            m = re.match(r"^([A-Za-z0-9][A-Za-z0-9._-]*)", line)
+            if m is None:
+                raise SystemExit(f"lock: requirements.in: cannot read {line!r}")
+            out[m.group(1).lower().replace("_", "-")] = line
     return out
 
 
 # ------------------------------------------------------------------ network (replaceable in tests)
 
-def http_json(url: str, headers: dict | None = None, timeout: int = 30) -> tuple[dict, dict]:
+def http_json(url: str, headers: dict[str, str] | None = None, timeout: int = 30) -> tuple[Any, dict[str, str]]:
     req = urllib.request.Request(url, headers=headers or {})
     with urllib.request.urlopen(req, timeout=timeout) as res:   # noqa: S310 – fixed https hosts
         return json.loads(res.read().decode()), dict(res.headers)
 
 
-def pypi_release(name: str, version: str) -> dict:
+def pypi_release(name: str, version: str) -> Any:
     data, _ = http_json(f"{PYPI}/{name}/{version}/json")
     return data
 
 
-def pypi_project(name: str) -> dict:
+def pypi_project(name: str) -> Any:
     data, _ = http_json(f"{PYPI}/{name}/json")
     return data
 
@@ -225,7 +236,7 @@ def newest_on_pypi(name: str, current: str, cutoff: dt.datetime | None) -> str:
 
 def registry_token(repo: str) -> str:
     data, _ = http_json(f"https://auth.docker.io/token?service=registry.docker.io&scope=repository:{repo}:pull")
-    return data["token"]
+    return str(data["token"])
 
 
 MANIFEST_TYPES = ", ".join([
@@ -233,14 +244,14 @@ MANIFEST_TYPES = ", ".join([
     "application/vnd.oci.image.manifest.v1+json", "application/vnd.docker.distribution.manifest.v2+json"])
 
 
-def registry_manifest(repo: str, ref: str, token: str) -> tuple[dict, str]:
+def registry_manifest(repo: str, ref: str, token: str) -> tuple[Any, str]:
     data, headers = http_json(f"{REGISTRY}/v2/{repo}/manifests/{ref}",
                               {"Authorization": f"Bearer {token}", "Accept": MANIFEST_TYPES})
     digest = next((v for k, v in headers.items() if k.lower() == "docker-content-digest"), "")
     return data, digest
 
 
-def registry_blob(repo: str, digest: str, token: str) -> dict:
+def registry_blob(repo: str, digest: str, token: str) -> Any:
     data, _ = http_json(f"{REGISTRY}/v2/{repo}/blobs/{digest}", {"Authorization": f"Bearer {token}"})
     return data
 
@@ -291,11 +302,12 @@ def resolve_in_image(image: str, constraints: str, pip_version: str) -> dict[str
 
 # ------------------------------------------------------------------ update
 
-def plan_python(old: dict[str, dict], resolved: dict[str, str], cutoff, pip_old: str) -> tuple[dict, list, str]:
+def plan_python(old: dict[str, LockEntry], resolved: dict[str, str], cutoff: dt.datetime | None,
+                pip_old: str) -> tuple[dict[str, LockEntry], list[str], str]:
     """New lock content from the resolver result; entries for other platforms (markers that don't apply in the image,
     e.g. waitress on Windows) are raised within their limit on their own (they have no dependencies)."""
-    new: dict[str, dict] = {}
-    changes = []
+    new: dict[str, LockEntry] = {}
+    changes: list[str] = []
     for key, version in resolved.items():
         prev = old.get(key)
         if prev and not within(version, prev["version"], key):
@@ -323,7 +335,8 @@ def plan_python(old: dict[str, dict], resolved: dict[str, str], cutoff, pip_old:
     return new, changes, pip_new
 
 
-def constraints_for(old: dict[str, dict], cutoff, newest=None) -> str:
+def constraints_for(old: dict[str, LockEntry], cutoff: dt.datetime | None,
+                    newest: Callable[[str, str, dt.datetime | None], str] | None = None) -> str:
     """Limits for the resolver: every locked package stays within its foundation (never lower, never across) and
     may only move to a release older than the cool-down. The cool-down never excludes the version that is already
     locked (e.g. a security fix that was taken on purpose) – it only applies to newer ones."""
@@ -335,7 +348,7 @@ def constraints_for(old: dict[str, dict], cutoff, newest=None) -> str:
     return "\n".join(lines) + "\n"
 
 
-def update(cooldown_days: int = COOLDOWN_DAYS, report: Path | None = None, now: dt.datetime | None = None) -> list:
+def update(cooldown_days: int = COOLDOWN_DAYS, report: Path | None = None, now: dt.datetime | None = None) -> list[str]:
     now = now or dt.datetime.now(dt.timezone.utc)
     cutoff = now - dt.timedelta(days=cooldown_days) if cooldown_days > 0 else None
     docker = read_dockerfile()
@@ -360,7 +373,8 @@ def update(cooldown_days: int = COOLDOWN_DAYS, report: Path | None = None, now: 
     if pip_new != pip_old:
         changes.append(f"pip pip (build only): {pip_old} -> {pip_new}")
     if pip_new != pip_old or not pip_lock["pip"]["hashes"]:
-        pip_lock["pip"].update(version=pip_new, hashes=file_hashes("pip", pip_new))
+        pip_lock["pip"]["version"] = pip_new
+        pip_lock["pip"]["hashes"] = file_hashes("pip", pip_new)
 
     write_dockerfile(image, snapshot)
     write_lock(new)
@@ -421,7 +435,7 @@ def copy_locks(src: Path, dst: Path) -> None:
         (dst / name).write_text((src / name).read_text(encoding="utf-8"), encoding="utf-8")
 
 
-def main(argv=None) -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     up = sub.add_parser("update")

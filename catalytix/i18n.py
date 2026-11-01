@@ -129,17 +129,17 @@ def _lookup_ctx(ctx: str, msg: str) -> str:
     return cat.get(f"{msg}|{ctx}") or cat.get(msg) or msg
 
 
-def pgettext(ctx: str, msg: str, **kw) -> str:
+def pgettext(ctx: str, msg: str, /, **kw) -> str:
     """Gleiches deutsches Wort, verschiedene Bedeutung (z. B. „Benutzer“ als Spalte und als Seitentitel).
     Katalogschlüssel: "Benutzer|plural"."""
     return _fmt(_lookup_ctx(ctx, msg), kw)
 
 
-def gettext(msg: str, **kw) -> str:
+def gettext(msg: str, /, **kw) -> str:
     return _fmt(_lookup(msg), kw)
 
 
-def ngettext(singular: str, plural: str, n: int, **kw) -> str:
+def ngettext(singular: str, plural: str, n: int, /, **kw) -> str:
     kw.setdefault("n", n)
     return _fmt(_lookup(singular if n == 1 else plural), kw)
 
@@ -153,7 +153,7 @@ class LazyString:
 
     __slots__ = ("msg", "kw")
 
-    def __init__(self, msg: str, **kw):
+    def __init__(self, msg: str, /, **kw):
         self.msg = msg
         self.kw = kw
 
@@ -188,7 +188,7 @@ class LazyString:
         return getattr(str(self), name)
 
 
-def lazy_gettext(msg: str, **kw) -> LazyString:
+def lazy_gettext(msg: str, /, **kw) -> LazyString:
     return LazyString(msg, **kw)
 
 
@@ -197,7 +197,7 @@ _l = lazy_gettext
 
 # ---------------------------------------------------------------- Templates
 
-def template_gettext(msg: str, **kw) -> Markup:
+def template_gettext(msg: str, /, **kw) -> Markup:
     text = _lookup(msg)
     if not kw:
         return Markup(text)
@@ -207,12 +207,12 @@ def template_gettext(msg: str, **kw) -> Markup:
         return Markup(text)
 
 
-def template_pgettext(ctx: str, msg: str, **kw) -> Markup:
+def template_pgettext(ctx: str, msg: str, /, **kw) -> Markup:
     text = _lookup_ctx(ctx, msg)
     return Markup(text).format(**kw) if kw else Markup(text)
 
 
-def template_ngettext(singular: str, plural: str, n: int, **kw) -> Markup:
+def template_ngettext(singular: str, plural: str, n: int, /, **kw) -> Markup:
     kw.setdefault("n", n)
     return template_gettext(singular if n == 1 else plural, **kw)
 

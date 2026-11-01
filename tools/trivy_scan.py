@@ -22,7 +22,9 @@ import sys
 import tarfile
 import tempfile
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 LOCK = ROOT / "tools" / "trivy.lock"
@@ -44,7 +46,7 @@ def summary(text: str) -> None:
             f.write(text + "\n")
 
 
-def read_lock(path: Path = LOCK) -> dict:
+def read_lock(path: Path = LOCK) -> dict[str, str]:
     values = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -61,7 +63,7 @@ def read_lock(path: Path = LOCK) -> dict:
     return values
 
 
-def install(lock: dict | None = None, fetch=None) -> Path:
+def install(lock: dict[str, str] | None = None, fetch: Callable[[str, Path], object] | None = None) -> Path:
     lock = lock or read_lock()
     INSTALL_DIR.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
@@ -114,8 +116,11 @@ def check_ignore(path: Path = IGNORE, today: dt.date | None = None) -> list[str]
     return problems
 
 
-def findings(report: dict) -> list[tuple]:
-    rows = []
+Finding = tuple[str, str, str, str, str, str, str]   # severity, id, package, installed, fixed, path, title
+
+
+def findings(report: dict[str, Any]) -> list[Finding]:
+    rows: list[Finding] = []
     for res in report.get("Results") or []:
         for v in res.get("Vulnerabilities") or []:
             if v.get("Severity") in ("HIGH", "CRITICAL") and v.get("FixedVersion"):
@@ -155,7 +160,7 @@ def scan(image: str, binary: str | None = None, out: Path = Path("trivy.json")) 
     return 1
 
 
-def main(argv=None) -> int:
+def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if not argv:
         print(__doc__)

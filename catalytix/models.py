@@ -2,18 +2,27 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
+from typing import TYPE_CHECKING, Any
 
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event, func
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Mapped, backref, relationship
 from werkzeug.security import check_password_hash, generate_password_hash
+
+if TYPE_CHECKING:
+    from cryptography.fernet import Fernet
 
 db = SQLAlchemy()
 
+# Basisklasse aller Tabellen. Für mypy ist sie (noch) Any: Die Spalten sind im alten Stil db.Column(...) geschrieben;
+# erst mit Mapped[...]-Spalten kennt mypy ihre Typen. Die Beziehungen sind schon typisiert (Mapped[...] unten).
+Model: Any = db.Model
+
 
 @event.listens_for(Engine, "connect")
-def _sqlite_pragmas(dbapi_connection, _record):
+def _sqlite_pragmas(dbapi_connection: Any, _record: Any) -> None:
     """Fremdschlüssel und WAL für SQLite aktivieren."""
     if dbapi_connection.__class__.__module__.startswith("sqlite3"):
         cur = dbapi_connection.cursor()
@@ -42,7 +51,7 @@ user_groups = db.Table(
 )
 
 
-class Group(db.Model):
+class Group(Model):
     __tablename__ = "groups"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
@@ -54,10 +63,10 @@ class Group(db.Model):
     lendable = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
 
-    books = db.relationship("Book", back_populates="group")
-    users = db.relationship("User", secondary=user_groups, back_populates="groups")
+    books: Mapped[list[Book]] = relationship("Book", back_populates="group")
+    users: Mapped[list[User]] = relationship("User", secondary=user_groups, back_populates="groups")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Group {self.name}>"
 
 
@@ -66,7 +75,7 @@ def _app_version() -> str:
     return __version__
 
 
-class User(UserMixin, db.Model):
+class User(UserMixin, Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(120), unique=True, nullable=False, index=True)
@@ -103,13 +112,14 @@ class User(UserMixin, db.Model):
     # ausdrücklich, indem er das Konto ohne Gruppe speichert.
     group_bound = db.Column(db.Boolean, default=False, nullable=False)
 
-    groups = db.relationship("Group", secondary=user_groups, back_populates="users")
-    loans = db.relationship("Loan", back_populates="user", foreign_keys="Loan.user_id")
-    reservations = db.relationship("Reservation", back_populates="user", cascade="all, delete-orphan")
+    groups: Mapped[list[Group]] = relationship("Group", secondary=user_groups, back_populates="users")
+    loans: Mapped[list[Loan]] = relationship("Loan", back_populates="user", foreign_keys="Loan.user_id")
+    reservations: Mapped[list[Reservation]] = relationship("Reservation", back_populates="user",
+                                                              cascade="all, delete-orphan")
 
     # --- Flask-Login ---
     @property
-    def is_active(self):  # noqa: D401
+    def is_active(self) -> bool:  # noqa: D401
         return bool(self.active)
 
     def get_id(self) -> str:
@@ -117,11 +127,11 @@ class User(UserMixin, db.Model):
         # und Erinnerungs-Cookies dieses Kontos sofort ungültig.
         return f"{self.id}:{self.auth_epoch or 0}"
 
-    def end_all_sessions(self):
+    def end_all_sessions(self) -> None:
         self.auth_epoch = (self.auth_epoch or 0) + 1
 
     # --- Passwörter ---
-    def set_password(self, password: str):
+    def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
         if self.id is not None:   # bestehendes Konto: andere Geräte abmelden
             self.end_all_sessions()
@@ -132,7 +142,7 @@ class User(UserMixin, db.Model):
     # --- Rollen ---
     @property
     def is_admin(self) -> bool:
-        return self.role == ROLE_ADMIN
+        return bool(self.role == ROLE_ADMIN)
 
     @property
     def is_librarian(self) -> bool:
@@ -144,7 +154,7 @@ class User(UserMixin, db.Model):
 
     @property
     def name(self) -> str:
-        return self.display_name or self.username
+        return str(self.display_name or self.username)
 
     @property
     def initials(self) -> str:
@@ -180,11 +190,12 @@ class User(UserMixin, db.Model):
 
     def manageable_groups(self) -> list["Group"]:
         if self.is_global_manager:
-            return Group.query.order_by(Group.name).all()
+            groups: list[Group] = Group.query.order_by(Group.name).all()
+            return groups
         return sorted(self.groups, key=lambda g: g.name.lower())
 
     @property
-    def active_loans(self):
+    def active_loans(self) -> list[Loan]:
         return [l for l in self.loans if l.returned_at is None]
 
     @property
@@ -192,7 +203,7 @@ class User(UserMixin, db.Model):
         return bool(self.totp_enabled) or bool(self.webauthn_credentials)
 
 
-class Book(db.Model):
+class Book(Model):
     __tablename__ = "books"
     id = db.Column(db.Integer, primary_key=True)
     isbn = db.Column(db.String(20), index=True, default="")
@@ -219,18 +230,19 @@ class Book(db.Model):
     # Anzahl früherer Ausleihen, deren Einzeldaten nach Ablauf der Aufbewahrungsfrist gelöscht wurden
     archived_loans = db.Column(db.Integer, default=0, nullable=False)
 
-    group = db.relationship("Group", back_populates="books")
-    loans = db.relationship("Loan", back_populates="book", cascade="all, delete-orphan",
-                            order_by="Loan.loaned_at.desc()")
-    reservations = db.relationship("Reservation", back_populates="book", cascade="all, delete-orphan",
-                                   order_by="Reservation.created_at, Reservation.id")
+    group: Mapped[Group | None] = relationship("Group", back_populates="books")
+    loans: Mapped[list[Loan]] = relationship("Loan", back_populates="book", cascade="all, delete-orphan",
+                                                order_by="Loan.loaned_at.desc()")
+    reservations: Mapped[list[Reservation]] = relationship(
+        "Reservation", back_populates="book", cascade="all, delete-orphan",
+        order_by="Reservation.created_at, Reservation.id")
 
     @property
-    def active_loans(self):
+    def active_loans(self) -> list[Loan]:
         return [l for l in self.loans if l.returned_at is None]
 
     @property
-    def open_reservations(self):
+    def open_reservations(self) -> list[Reservation]:
         """Vormerkungen in der Warteschlange und bereitgelegte – in der Reihenfolge der Warteschlange."""
         return [r for r in self.reservations if r.status in (RES_WAITING, RES_READY)]
 
@@ -249,7 +261,7 @@ class Book(db.Model):
         """Frei für alle: Exemplare minus Ausleihen minus zurückgelegte."""
         return max(0, (self.copies or 0) - len(self.active_loans) - self.held)
 
-    def available_for(self, user) -> int:
+    def available_for(self, user: object) -> int:
         """Frei für diese Person – ein für sie zurückgelegtes Exemplar zählt mit."""
         mine = any(r.status == RES_READY and r.user_id == getattr(user, "id", None) for r in self.reservations)
         return self.available + (1 if mine else 0)
@@ -269,7 +281,7 @@ class Book(db.Model):
         return sum(ord(c) for c in (self.title or "x")) % 360
 
 
-class Loan(db.Model):
+class Loan(Model):
     __tablename__ = "loans"
     id = db.Column(db.Integer, primary_key=True)
     book_id = db.Column(db.Integer, db.ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True)
@@ -292,10 +304,10 @@ class Loan(db.Model):
                  postgresql_where=db.text("returned_at IS NULL")).ddl_if(dialect=("sqlite", "postgresql")),
     )
 
-    book = db.relationship("Book", back_populates="loans")
-    user = db.relationship("User", back_populates="loans", foreign_keys=[user_id])
-    issued_by = db.relationship("User", foreign_keys=[issued_by_id])
-    returned_by = db.relationship("User", foreign_keys=[returned_by_id])
+    book: Mapped[Book] = relationship("Book", back_populates="loans")
+    user: Mapped[User] = relationship("User", back_populates="loans", foreign_keys=[user_id])
+    issued_by: Mapped[User | None] = relationship("User", foreign_keys=[issued_by_id])
+    returned_by: Mapped[User | None] = relationship("User", foreign_keys=[returned_by_id])
 
     @property
     def is_active(self) -> bool:
@@ -307,10 +319,11 @@ class Loan(db.Model):
 
     @property
     def days_left(self) -> int:
-        return (self.due_at - date.today()).days
+        days: int = (self.due_at - date.today()).days
+        return days
 
 
-class WebAuthnCredential(db.Model):
+class WebAuthnCredential(Model):
     """Sicherheitsschlüssel (YubiKey & Co.) bzw. Passkey eines Benutzers."""
     __tablename__ = "webauthn_credentials"
     id = db.Column(db.Integer, primary_key=True)
@@ -323,10 +336,11 @@ class WebAuthnCredential(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     last_used_at = db.Column(db.DateTime)
 
-    user = db.relationship("User", backref=db.backref("webauthn_credentials", cascade="all, delete-orphan"))
+    user: Mapped[User] = relationship("User", backref=backref("webauthn_credentials",
+                                                                     cascade="all, delete-orphan"))
 
 
-class MailLog(db.Model):
+class MailLog(Model):
     """Protokoll aller versendeten (oder fehlgeschlagenen) E-Mails – dient auch dazu,
     Erinnerungen nicht doppelt zu verschicken."""
     __tablename__ = "mail_log"
@@ -341,7 +355,7 @@ class MailLog(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
 
 
-class Location(db.Model):
+class Location(Model):
     """Festgelegter Standort (Regal, Raum …) – zur Auswahl beim Erfassen, gegen Tippfehler."""
     __tablename__ = "locations"
     id = db.Column(db.Integer, primary_key=True)
@@ -350,7 +364,7 @@ class Location(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
 
 
-class LoginAttempt(db.Model):
+class LoginAttempt(Model):
     """Fehlgeschlagener Anmeldeversuch (für die zeitweise Sperre, siehe lockout.py)."""
     __tablename__ = "login_attempts"
     id = db.Column(db.Integer, primary_key=True)
@@ -361,7 +375,7 @@ class LoginAttempt(db.Model):
     internal = db.Column(db.Boolean, default=False)                 # aus dem internen Netz?
 
 
-class DirectoryPerson(db.Model):
+class DirectoryPerson(Model):
     """Zwischenspeicher der AD-Personen, die die Bibliothek nutzen dürfen – nur für die schnelle Suche beim Verleihen.
 
     Wird im Hintergrund abgeglichen (people.sync_directory). Im AD deaktivierte, gelöschte oder nicht mehr
@@ -385,7 +399,7 @@ class DirectoryPerson(db.Model):
 RES_WAITING, RES_READY, RES_DONE, RES_CANCELLED, RES_EXPIRED = "waiting", "ready", "done", "cancelled", "expired"
 
 
-class Reservation(db.Model):
+class Reservation(Model):
     """Vormerkung: Warteschlange je Buch. Wird ein Exemplar frei, ist es für die erste Person zurückgelegt
     (ready, bis hold_until); mit der Ausleihe an sie ist die Vormerkung erledigt (done)."""
     __tablename__ = "reservations"
@@ -398,15 +412,15 @@ class Reservation(db.Model):
     hold_until = db.Column(db.Date)          # bereitgelegt bis einschließlich diesem Tag
     closed_at = db.Column(db.DateTime)       # erledigt, storniert oder abgelaufen
 
-    book = db.relationship("Book", back_populates="reservations")
-    user = db.relationship("User", back_populates="reservations")
+    book: Mapped[Book] = relationship("Book", back_populates="reservations")
+    user: Mapped[User] = relationship("User", back_populates="reservations")
 
     @property
     def is_open(self) -> bool:
         return self.status in (RES_WAITING, RES_READY)
 
 
-class Setting(db.Model):
+class Setting(Model):
     __tablename__ = "settings"
     key = db.Column(db.String(100), primary_key=True)
     value = db.Column(db.Text, default="")
@@ -513,7 +527,7 @@ SECRET_SETTINGS = {"ldap_bind_password", "smtp_password"}
 _ENC = "enc:"
 
 
-def _secret_box():
+def _secret_box() -> Fernet:
     import base64
     import hashlib
     from cryptography.fernet import Fernet
@@ -526,7 +540,7 @@ def _decrypt_setting(key: str, value: str) -> str:
     if not value.startswith(_ENC):
         return value          # Altbestand – wird beim Start verschlüsselt
     try:
-        return _secret_box().decrypt(value[len(_ENC):].encode()).decode()
+        return str(_secret_box().decrypt(value[len(_ENC):].encode()).decode())
     except Exception:  # noqa: BLE001 – z. B. anderer Sitzungsschlüssel
         import logging
         logging.getLogger(__name__).warning("Stored secret %s not readable – please enter it again", key)
@@ -568,7 +582,7 @@ def get_int(key: str, fallback: int = 0) -> int:
         return fallback
 
 
-def set_setting(key: str, value) -> None:
+def set_setting(key: str, value: object) -> None:
     if isinstance(value, bool):
         value = "1" if value else "0"
     if key in SECRET_SETTINGS and value:
@@ -585,7 +599,7 @@ def default_due_date() -> date:
     return date.today() + timedelta(days=get_int("loan_days", 28))
 
 
-def visible_books_query(user: User):
+def visible_books_query(user: User) -> Any:
     """Query der Bücher, die ein Benutzer im Katalog sehen darf."""
     q = Book.query
     if user.is_global_manager or get_setting("catalog_visibility") == "all":
@@ -594,7 +608,7 @@ def visible_books_query(user: User):
     return q.filter((Book.group_id.is_(None)) | (Book.group_id.in_(ids or [-1])))
 
 
-def manageable_books_query(user: User):
+def manageable_books_query(user: User) -> Any:
     q = Book.query
     if user.is_global_manager:
         return q
@@ -602,7 +616,7 @@ def manageable_books_query(user: User):
     return q.filter((Book.group_id.is_(None)) | (Book.group_id.in_(ids or [-1])))
 
 
-def occupied_counts():
+def occupied_counts() -> Any:
     """Unterabfrage book_id → n: offene Ausleihen plus zurückgelegte Vormerkungen je Buch."""
     from sqlalchemy import literal, union_all
     loans = db.session.query(Loan.book_id.label("book_id"), literal(1).label("one")).filter(Loan.returned_at.is_(None))
@@ -620,11 +634,11 @@ def count_active_loans(user_id: int) -> int:
 
 
 @event.listens_for(User.groups, "append")
-def _mark_group_bound(user, _group, _initiator):
+def _mark_group_bound(user: User, _group: Group, _initiator: Any) -> None:
     user.group_bound = True
 
 
-def _add_column_ddl(table, col, dialect) -> list[str]:
+def _add_column_ddl(table: Any, col: Any, dialect: Any) -> list[str]:
     """SQL zum Nachrüsten einer Spalte (Bezeichner korrekt gequotet, z. B. `groups`/"key")."""
     from sqlalchemy import literal
 
@@ -687,7 +701,7 @@ def ensure_indexes() -> bool:
     return True
 
 
-def lendable_books():
+def lendable_books() -> Any:
     """SQL-Bedingung: Bücher ohne Gruppe oder in einer Gruppe, die verliehen wird (kein Präsenzbestand)."""
     from sqlalchemy import or_, select
     return or_(Book.group_id.is_(None),

@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.0.1",
+  "date": "2026-11-01",
+  "items": [
+   {
+    "kind": "fixed",
+    "audience": "admin",
+    "de": {
+     "title": "Active Directory: verständliche Meldung bei abgelehntem Dienstkonto",
+     "text": "Lehnte der Domänencontroller die Anmeldung des Dienstkontos ab – etwa weil dessen Kennwort abgelaufen ist –, brach der Vorgang mit einem internen Fehler ab. Jetzt erscheint wieder „Bind abgelehnt“ mit dem Grund vom Domänencontroller."
+    },
+    "en": {
+     "title": "Active Directory: clear message when the service account is rejected",
+     "text": "If the domain controller rejected the service account – for example because its password had expired – the process stopped with an internal error. Now \"Bind refused\" appears again, with the reason given by the domain controller."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.0.0",
   "date": "2026-10-29",
   "items": [

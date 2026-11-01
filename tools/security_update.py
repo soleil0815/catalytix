@@ -38,7 +38,10 @@ def parse(text: str) -> dict[tuple[str, str], str]:
     return out
 
 
-def diff(old: str, new: str) -> list[tuple[str, str, str, str]]:
+Change = tuple[str, str, str, str]   # (kind, name, old version, new version)
+
+
+def diff(old: str, new: str) -> list[Change]:
     """[(kind, name, old version or '', new version or '')] – sorted by kind and name."""
     a, b = parse(old), parse(new)
     changes = []
@@ -48,7 +51,7 @@ def diff(old: str, new: str) -> list[tuple[str, str, str, str]]:
     return changes
 
 
-def format_changes(changes) -> list[str]:
+def format_changes(changes: list[Change]) -> list[str]:
     lines = []
     for kind in KINDS:
         items = [c for c in changes if c[0] == kind]
@@ -73,7 +76,8 @@ def next_tag(version: str, text: str | None = None) -> str:
     return f"{version}-s{max(used, default=0) + 1}"
 
 
-def changelog_entry(tag: str, version: str, changes, today: dt.date | None = None, first: bool = False) -> str:
+def changelog_entry(tag: str, version: str, changes: list[Change], today: dt.date | None = None,
+                    first: bool = False) -> str:
     today = today or dt.date.today()
     head = [f"## {tag} – {today:%d.%m.%Y} (Sicherheitsupdate)",
             f"Gleiches Programm wie {version}, nur aktualisierte Pakete (wöchentliches Sicherheitsupdate, automatisch "
@@ -97,11 +101,14 @@ def insert_changelog(entry: str, text: str) -> str:
     return text[:i + 1] + entry + text[i + 1:]
 
 
-def vtuple(v: str) -> tuple:
-    return tuple(int(x) for x in re.match(r"^v?(\d+(?:\.\d+)*)", v).group(1).split("."))
+def vtuple(v: str) -> tuple[int, ...]:
+    m = re.match(r"^v?(\d+(?:\.\d+)*)", v)
+    if m is None:
+        raise ValueError(f"not a version number: {v!r}")
+    return tuple(int(x) for x in m.group(1).split("."))
 
 
-def main(argv=None) -> int:
+def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     cmd = argv[0] if argv else ""
     if cmd == "diff" and len(argv) == 3:

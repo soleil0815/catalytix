@@ -148,6 +148,12 @@ class StartupTests(Base):
         self.assertEqual(stamp_of(self.db), "99.0.0")
 
 
+# Unabhängig von der Programmversion: Datenbank von der laufenden Version (beim Start keine eigene Sicherung),
+# danach ein Update auf eine höhere Version.
+OLD = __version__
+NEW = f"{dbversion.vtuple(__version__)[0]}.{dbversion.vtuple(__version__)[1] + 1}.0"
+
+
 class RestoreCommandTests(Base):
     def cli(self, *args):
         app = create_app({"TESTING": True, "SECRET_KEY": "k", "SQLALCHEMY_DATABASE_URI": f"sqlite:///{self.db}"})
@@ -157,7 +163,7 @@ class RestoreCommandTests(Base):
             db.engine.dispose()
         return res
 
-    def prepare_update(self, old="3.0.0", new="3.1.0"):
+    def prepare_update(self, old=OLD, new=NEW):
         """Datenbank von <old>, beim Start von <new> gesichert, danach von <new> geändert."""
         self.app()
         set_stamp(self.db, old)
@@ -170,16 +176,16 @@ class RestoreCommandTests(Base):
     def test_restore_before_puts_back_the_backup_of_this_run(self):
         self.prepare_update()
         with mock.patch.dict(os.environ, {dbversion.SKIP_ENV: "1"}):
-            res = self.cli("restore-before", "3.1.0", "--since", str(int(time.time()) - 60), "--yes")
+            res = self.cli("restore-before", NEW, "--since", str(int(time.time()) - 60), "--yes")
         self.assertEqual(res.exit_code, 0, res.output)
-        self.assertEqual(stamp_of(self.db), "3.0.0")
+        self.assertEqual(stamp_of(self.db), OLD)
 
     def test_restore_before_ignores_older_attempts(self):
         self.prepare_update()
         with mock.patch.dict(os.environ, {dbversion.SKIP_ENV: "1"}):
-            res = self.cli("restore-before", "3.1.0", "--since", str(int(time.time()) + 3600), "--yes")
+            res = self.cli("restore-before", NEW, "--since", str(int(time.time()) + 3600), "--yes")
         self.assertEqual(res.exit_code, 3, res.output)
-        self.assertEqual(stamp_of(self.db), "3.1.0")                  # nichts überschrieben
+        self.assertEqual(stamp_of(self.db), NEW)    # nichts überschrieben
 
     def test_restore_before_takes_the_first_backup_of_this_run(self):
         self.prepare_update()
@@ -188,20 +194,20 @@ class RestoreCommandTests(Base):
         with mock.patch.dict(os.environ, {dbversion.SKIP_ENV: "1"}):
             app = self.app()
             with app.app_context():                                   # späterer, halb umgestellter Versuch
-                p = create_backup("-vor-3.1.0", now=datetime.now() + timedelta(seconds=5), rotate_after=False)
-            res = self.cli("restore-before", "3.1.0", "--since", str(int(time.time()) - 60), "--yes")
+                p = create_backup(f"-vor-{NEW}", now=datetime.now() + timedelta(seconds=5), rotate_after=False)
+            res = self.cli("restore-before", NEW, "--since", str(int(time.time()) - 60), "--yes")
         self.assertNotIn(p.name, res.output)
-        self.assertEqual(stamp_of(self.db), "3.0.0")
+        self.assertEqual(stamp_of(self.db), OLD)
 
     def test_other_databases_exit_4(self):
         self.prepare_update()
         with mock.patch.dict(os.environ, {dbversion.SKIP_ENV: "1"}), \
                 mock.patch("catalytix.backup.supported", return_value=False):
-            res = self.cli("restore-before", "3.1.0", "--yes")
+            res = self.cli("restore-before", NEW, "--yes")
         self.assertEqual(res.exit_code, 4, res.output)
 
     def test_restore_for_version_takes_newest_usable_backup(self):
-        self.prepare_update()                                         # vor-3.1.0 enthält Stand 3.0.0
+        self.prepare_update()                                         # vor-NEW enthält den Stand von OLD
         from catalytix.backup import create_backup
         with mock.patch.dict(os.environ, {dbversion.SKIP_ENV: "1"}):
             app = self.app()
@@ -209,10 +215,10 @@ class RestoreCommandTests(Base):
                 time.sleep(1.1)
                 create_backup("-manuell", rotate_after=False)         # später, aber von 3.1.0
         with mock.patch.dict(os.environ, {dbversion.SKIP_ENV: "1"}):
-            res = self.cli("restore-for-version", "3.0.0", "--yes")
+            res = self.cli("restore-for-version", OLD, "--yes")
         self.assertEqual(res.exit_code, 0, res.output)
-        self.assertIn("-vor-3.1.0", res.output)
-        self.assertEqual(stamp_of(self.db), "3.0.0")
+        self.assertIn(f"-vor-{NEW}", res.output)
+        self.assertEqual(stamp_of(self.db), OLD)
         with mock.patch.dict(os.environ, {dbversion.SKIP_ENV: "1"}):
             res = self.cli("restore-for-version", "1.0.0", "--yes")
         self.assertEqual(res.exit_code, 3, res.output)

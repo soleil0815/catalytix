@@ -17,6 +17,7 @@ import sqlite3
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from flask import current_app
 
@@ -74,7 +75,8 @@ def keep_count() -> int:
 def _integrity_ok(path: Path) -> bool:
     con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
     try:
-        return con.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        row = con.execute("PRAGMA integrity_check").fetchone()
+        return bool(row) and row[0] == "ok"
     finally:
         con.close()
 
@@ -123,17 +125,17 @@ def create_backup(kind: str = "", now: datetime | None = None, *, rotate_after: 
     return final
 
 
-def _unlink_siblings(path: Path):
+def _unlink_siblings(path: Path) -> None:
     for suffix in ("-wal", "-shm", "-journal"):
         path.with_name(path.name + suffix).unlink(missing_ok=True)
 
 
-def _unlink_part(path: Path):
+def _unlink_part(path: Path) -> None:
     path.unlink(missing_ok=True)
     _unlink_siblings(path)
 
 
-def list_backups() -> list[dict]:
+def list_backups() -> list[dict[str, Any]]:
     items = []
     for p in backup_dir().iterdir():
         m = NAME_RE.match(p.name)
@@ -192,7 +194,7 @@ def delete_backup(name: str) -> bool:
 
 # ---------------------------------------------------------------- Wiederherstellen (nur bei angehaltener App!)
 
-def restore_backup(name: str) -> Path:
+def restore_backup(name: str) -> Path | None:
     """Sicherung zurückspielen. Vorher wird der aktuelle Stand gesichert („vor Wiederherstellung“)."""
     src = find_backup(name)
     if src is None:
@@ -220,7 +222,7 @@ def find_before(version: str, since: float | None = None) -> Path | None:
     """Neueste Sicherung, die beim Start von <version> angelegt wurde (Stand der Version davor).
     since: nur eine Sicherung, die ab diesem Zeitpunkt geschrieben wurde – eine ältere aus einem früheren,
     schon zurückgenommenen Versuch würde sonst alles seitdem Eingetragene überschreiben."""
-    found = [i["path"] for i in list_backups()
+    found: list[Path] = [i["path"] for i in list_backups()
              if i["before_version"] == version and not i["path"].is_symlink()
              and (since is None or i["path"].stat().st_mtime >= since - 2)]
     if not found:
@@ -239,19 +241,22 @@ def version_of_backup(path: Path) -> str | None:
             con.close()
     except sqlite3.Error:
         return None
-    return row[0] if row else None
+    return str(row[0]) if row and row[0] is not None else None
 
 
 def find_for_version(version: str) -> Path | None:
     """Für den Weg zurück zu <version>: neueste Sicherung, die diese Version lesen kann (von ihr oder älter)."""
     from .dbversion import vtuple
     want = vtuple(version)
+    if want is None:          # keine gültige Versionsnummer → keine passende Sicherung
+        return None
     for item in list_backups():
         if item["path"].is_symlink():
             continue
         have = vtuple(version_of_backup(item["path"]))
         if have is None or have <= want:
-            return item["path"]
+            path: Path = item["path"]
+            return path
     return None
 
 
@@ -278,7 +283,7 @@ def english(msg: str) -> str:
         return display_message(msg)
 
 
-def _record(ok: bool, message: str, now: datetime):
+def _record(ok: bool, message: str, now: datetime) -> None:
     set_setting("backup_last_result", f"{now:%d.%m.%Y %H:%M}: {message}")
     if ok:
         set_setting("backup_last_ok", now.isoformat(timespec="seconds"))
@@ -327,7 +332,7 @@ def warning() -> str:
     return _("Die letzte Datensicherung ist fehlgeschlagen.")
 
 
-def _notify_admins(message: str):
+def _notify_admins(message: str) -> None:
     from .mailer import mail_active, render_mail, send_mail
     if not mail_active():
         return

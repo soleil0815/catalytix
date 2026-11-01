@@ -68,3 +68,49 @@ docker_login() {   # needs TOKEN in the environment
     echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin >/dev/null \
         || fail "Login failed" "Could not log in to ghcr.io."
 }
+
+# Type check (mypy) in the pinned base image (ARG PYTHON_IMAGE – Python 3.13 like the finished image). Everything is
+# installed with --require-hashes from the locks: pip (docker/pip.lock), the program's packages (requirements.txt)
+# and mypy (tools/mypy.lock). The checkout is mounted read-only.
+#   mypy.ini         strict modules – MUST pass, otherwise the run stops
+#   mypy-report.ini  all modules – only listed in the step summary, never fails
+run_mypy() {
+    local image out rc
+    image="$(sed -n 's/^ARG PYTHON_IMAGE=//p' Dockerfile)"
+    [ -n "$image" ] || fail "Type check failed" "No ARG PYTHON_IMAGE in the Dockerfile."
+    out="$(mktemp -d)"
+    chmod 777 "$out"
+    docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -e PIP_DISABLE_PIP_VERSION_CHECK=1 -e PIP_NO_CACHE_DIR=1 \
+        -v "$PWD:/src:ro" -v "$out:/out" -w /src --entrypoint sh "$image" -c '
+            set -e
+            python -m venv /tmp/venv
+            . /tmp/venv/bin/activate
+            pip install -q --require-hashes --no-deps -r docker/pip.lock
+            pip install -q --require-hashes --no-deps --only-binary=:all: -r requirements.txt
+            pip install -q --require-hashes --no-deps --only-binary=:all: -r tools/mypy.lock
+            python -m mypy --version > /out/version.txt
+            rc=0; python -m mypy --cache-dir /tmp/mypy-cache > /out/strict.txt 2>&1 || rc=$?
+            echo "$rc" > /out/strict.rc
+            python -m mypy --config-file mypy-report.ini --cache-dir /tmp/mypy-report > /out/report.txt 2>&1 || true
+        ' || fail "Type check failed" "mypy could not be installed in $image – see the log of this step."
+    rc="$(cat "$out/strict.rc")"
+    cat "$out/strict.txt"
+    {
+        echo "### Type check ($(cat "$out/version.txt"))"
+        echo "**Strict modules (mypy.ini):** $(tail -n 1 "$out/strict.txt")"
+        echo
+        echo "<details><summary>All modules (mypy-report.ini, for information only): $(tail -n 1 "$out/report.txt")</summary>"
+        echo
+        echo '```'
+        grep ': error:' "$out/report.txt" | head -n 300 || true
+        echo '```'
+        echo "</details>"
+    } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+    if [ "$rc" != 0 ]; then
+        grep ': error:' "$out/strict.txt" | head -n 50 | while IFS= read -r line; do
+            file="${line%%:*}"; rest="${line#*:}"; lineno="${rest%%:*}"
+            echo "::error file=$file,line=$lineno,title=mypy::${line#*error: }"
+        done
+        fail "Type check failed" "mypy found errors in the strictly checked modules (mypy.ini) – see the log of this step."
+    fi
+}

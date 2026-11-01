@@ -20,15 +20,19 @@ from .models import get_setting
 
 log = logging.getLogger(__name__)
 
+Network = ipaddress.IPv4Network | ipaddress.IPv6Network
+Address = ipaddress.IPv4Address | ipaddress.IPv6Address
+
 # Ohne 172.16.0.0/12: Dort legt Docker seine Netze an – sonst gälte z. B. jeder Zugriff, der über das
 # Docker-Gateway (172.17.0.1 …) ankommt, als intern. Wer sein LAN dort hat, trägt es ausdrücklich ein.
 DEFAULT_INTERNAL = "10.0.0.0/8\n192.168.0.0/16\nfc00::/7"
-LOOPBACK = [ipaddress.ip_network("127.0.0.0/8"), ipaddress.ip_network("::1/128")]
+LOOPBACK: list[Network] = [ipaddress.ip_network("127.0.0.0/8"), ipaddress.ip_network("::1/128")]
 
 
-def parse(text: str) -> tuple[list, list[str]]:
+def parse(text: str) -> tuple[list[Network], list[str]]:
     """Netze aus Text (eine pro Zeile, auch mit Komma); liefert (Netze, ungültige Einträge)."""
-    nets, bad = [], []
+    nets: list[Network] = []
+    bad: list[str] = []
     for part in (text or "").replace(",", "\n").replace(";", "\n").splitlines():
         part = part.split("#")[0].strip()
         if not part:
@@ -40,7 +44,7 @@ def parse(text: str) -> tuple[list, list[str]]:
     return nets, bad
 
 
-def internal_networks() -> list:
+def internal_networks() -> list[Network]:
     text = get_setting("internal_networks")
     nets, _ = parse(text if text.strip() else DEFAULT_INTERNAL)
     return nets
@@ -63,12 +67,13 @@ def via_proxy_without_client_ip() -> bool:
 
 HOST_RE = __import__("re").compile(r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}\.?$", 2)
 RESOLVE_TTL = 300          # Sekunden: DynDNS-Namen alle 5 Minuten neu auflösen
-_cache: dict[str, tuple[float, set]] = {}
+_cache: dict[str, tuple[float, set[str]]] = {}
 
 
 def parse_own(text: str) -> tuple[list[str], list[str]]:
     """Einträge für den eigenen Anschluss: IP-Adressen oder DNS-Namen; liefert (gültige, ungültige)."""
-    ok, bad = [], []
+    ok: list[str] = []
+    bad: list[str] = []
     for part in (text or "").replace(",", "\n").replace(";", "\n").splitlines():
         part = part.split("#")[0].strip().lower()
         if not part:
@@ -80,29 +85,29 @@ def parse_own(text: str) -> tuple[list[str], list[str]]:
     return ok, bad
 
 
-def _resolve(host: str, now: float) -> set:
+def _resolve(host: str, now: float) -> set[str]:
     import socket
     cached = _cache.get(host)
     if cached and now - cached[0] < RESOLVE_TTL:
         return cached[1]
     try:
-        ips = {info[4][0].split("%")[0] for info in socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)}
+        ips = {str(info[4][0]).split("%")[0] for info in socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)}
     except OSError as exc:
         log.warning("Own connection: %s cannot be resolved (%s)", host, exc)
         # letzte bekannte Adresse höchstens eine Stunde weiterverwenden
-        ips = cached[1] if cached and now - cached[0] < 3600 else set()
+        ips = cached[1] if cached and now - cached[0] < 3600 else set[str]()
         _cache[host] = (cached[0], ips) if cached and ips else (now, ips)
         return ips
     _cache[host] = (now, ips)
     return ips
 
 
-def own_public_ips() -> set:
+def own_public_ips() -> set[str]:
     """Aktuelle öffentliche Adresse(n) des eigenen Anschlusses (feste IP oder DynDNS-Name)."""
     import time
     entries, _ = parse_own(get_setting("own_public_hosts"))
     now = time.time()
-    ips = set()
+    ips: set[str] = set()
     for e in entries:
         try:
             ips.add(str(ipaddress.ip_address(e)))
@@ -113,12 +118,12 @@ def own_public_ips() -> set:
 
 # ---------------------------------------------------------------- Einstufung
 
-def _client_address():
+def _client_address() -> Address | None:
     try:
-        ip = ipaddress.ip_address(client_ip().split("%")[0])
+        ip: Address = ipaddress.ip_address(client_ip().split("%")[0])
     except ValueError:
         return None
-    if ip.version == 6 and ip.ipv4_mapped:
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
         ip = ip.ipv4_mapped
     return ip
 
@@ -141,7 +146,7 @@ def is_internal() -> bool:
     return classify() != "extern"
 
 
-def describe() -> dict:
+def describe() -> dict[str, object]:
     """Für die Einstellungsseite: wie wird die aktuelle Verbindung eingestuft?"""
     zone = classify()
     return {"ip": client_ip() or _("unbekannt"), "internal": zone != "extern", "zone": zone,

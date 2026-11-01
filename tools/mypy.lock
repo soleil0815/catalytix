@@ -1,0 +1,18 @@
+# mypy (type checker) for the CI run – only used by tools/ci.sh run_mypy, never part of the image.
+# Installed with --require-hashes --no-deps --only-binary=:all: into the pinned base image (PYTHON_IMAGE in the
+# Dockerfile, Python 3.13). typing_extensions comes from requirements.txt. Hashes: wheels for cp313 / abi3 / any on
+# linux x86_64 and aarch64 (GitHub runner, Apple Silicon/ARM machines).
+mypy==2.4.1 \
+    --hash=sha256:680ba5d9f0e3fe0c746b3d14df15f2a718e4bc308a1145616a1ea691ce7c354b \
+    --hash=sha256:1fb70621535c22fd4b1a0450d37ed1d6c5eb39656a1cebfb189084c12de54ba7 \
+    --hash=sha256:1784648d6ec8c2b5465e3f26241b845a0b3cb4e56c993c64abe16989e7698999
+mypy-extensions==1.1.0 \
+    --hash=sha256:1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505
+pathspec==1.1.1 \
+    --hash=sha256:a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189
+librt==0.16.0 \
+    --hash=sha256:7e510b7770bee609617a3374a96548eb114cae048023e3f049ee449e7ff2db32 \
+    --hash=sha256:17bac7f7a16b328fff77e440287693eb017abde913595b5827ebccbc21ecd8a6
+ast-serialize==0.13.1 \
+    --hash=sha256:9f99786e0d62082a5b121b3437f3167562133711df22128de1e9886f57f0b226 \
+    --hash=sha256:77a6201b69ce42e919f2fd9a559138d5410b5d8afff7c3a6b1f500b0481ff7d8

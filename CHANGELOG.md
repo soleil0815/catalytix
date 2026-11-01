@@ -2,6 +2,27 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 3.0.1 – 01.11.2026
+**Behoben**
+- Active Directory: Lehnte der Domänencontroller die Anmeldung des Dienstkontos ab (z. B. abgelaufenes Kennwort),
+  brach die Anmeldung mit einem internen Fehler ab, statt „Bind abgelehnt (…)“ mit dem Grund zu zeigen. Ursache:
+  Platzhalter wie `{msg}` in übersetzten Texten kollidierten mit den Parameternamen der Übersetzungsfunktionen –
+  die Parameter sind jetzt nur noch positionsgebunden, solche Platzhalter funktionieren überall.
+
+**Sicherheit**
+- pyasn1 0.6.4 → 0.6.5 (vier Sicherheitslücken der Stufe HIGH, von Trivy gemeldet; wird für die
+  AD-Anmeldung gebraucht). Bewusst vor Ablauf der 7-Tage-Wartezeit übernommen.
+
+**Qualität**
+- Gefunden durch die Typprüfung, ohne Auswirkung im Betrieb: Die Suche nach einer passenden Sicherung
+  (`find_for_version`) prüft eine ungültige Versionsnummer jetzt selbst (bisher nur der Befehl davor),
+  `tools/lock.py` und `tools/security_update.py` melden unlesbare Einträge mit klarer Meldung statt Programmfehler.
+- Typprüfung mit mypy, Schritt für Schritt: `backup.py`, `netzone.py`, `proxy.py`, `models.py` (Rechteprüfung) und
+  die Build-Kette `tools/` werden streng geprüft – das muss bei jedem Pull Request bestehen. Alle übrigen Module
+  werden geprüft und nur aufgelistet (61 Funde, vorher 119). mypy läuft im festgelegten Basis-Image (Python 3.13),
+  installiert mit Prüfsummen aus `tools/mypy.lock`.
+- Datenbank-Beziehungen in `models.py` sind typisiert (`Mapped[...]`).
+
 ## 3.0.0 – 29.10.2026
 Umstellung auf den Docker-Standard: Das Programm steckt komplett im Image. Auf dem Server liegen nur noch
 `docker-compose.yml`, `.env` und die Daten – Updates wie bei anderen Containern.

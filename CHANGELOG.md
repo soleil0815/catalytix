@@ -2,6 +2,13 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 3.0.1-s1 – 02.11.2026 (Sicherheitsupdate)
+Gleiches Programm wie 3.0.1, nur aktualisierte Pakete (wöchentliches Sicherheitsupdate, automatisch gebaut, getestet und mit Trivy geprüft):
+- Basis-Image: `python:3.13.17-slim-trixie@sha256:d98cc29d3266e535dd9da1099688d9cb3ca4753813571e071763d17725460962 → python:3.13.18-slim-trixie@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1`
+- Python: `3.13.17 → 3.13.18`
+- Debian-Pakete: `tzdata 2026e-0+deb13u1 → 2026f-0+deb13u1`
+- Python-Pakete: `certifi 2026.10.19 → 2026.10.23`, `pycparser 3.11 → 3.12`, `sqlalchemy 2.1.5 → 2.1.6`, `wtforms 3.2.2 → 3.3.1`
+
 ## 3.0.1 – 01.11.2026
 **Behoben**
 - Active Directory: Lehnte der Domänencontroller die Anmeldung des Dienstkontos ab (z. B. abgelaufenes Kennwort),

@@ -6,10 +6,10 @@
 #   pip itself from docker/pip.lock. pip is removed from the finished image.
 # The weekly security update on GitHub sets newer values here – always INSIDE the foundation. Raising the
 # foundation (Debian 14, Python 3.14, new major versions) is a deliberate change.
-ARG PYTHON_IMAGE=python:3.13.17-slim-trixie@sha256:d98cc29d3266e535dd9da1099688d9cb3ca4753813571e071763d17725460962
+ARG PYTHON_IMAGE=python:3.13.18-slim-trixie@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1
 FROM ${PYTHON_IMAGE}
 ARG PYTHON_IMAGE
-ARG DEBIAN_SNAPSHOT=20261024T000000Z
+ARG DEBIAN_SNAPSHOT=20261101T000000Z
 
 LABEL org.opencontainers.image.title="Catalytix" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later" \

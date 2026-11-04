@@ -1,6 +1,6 @@
-"""Selbsttests für Bau und Auslieferung: feste Versionen, Grenzen des Unterbaus, Workflows, Trivy-Ablauf.
+"""Self-tests for build and delivery: pinned versions, limits of the foundation, workflows, Trivy flow.
 
-Ohne PyYAML (ist keine Abhängigkeit des Programms) – die Workflows werden als Text geprüft.
+Without PyYAML (not a dependency of the program) – the workflows are checked as text.
 """
 import datetime as dt
 import json
@@ -43,7 +43,7 @@ class VersionLimitTests(unittest.TestCase):
     def test_major_version_limit(self):
         self.assertTrue(lock.within("3.9.0", "3.1.3"))
         self.assertFalse(lock.within("4.0.0", "3.1.3"))
-        self.assertFalse(lock.within("3.1.2", "3.1.3"))          # nie zurück
+        self.assertFalse(lock.within("3.1.2", "3.1.3"))          # never back
         self.assertEqual(lock.bound_spec("Flask", "3.1.3"), "Flask>=3.1.3,<4")
 
     def test_before_1_0_minor_limit(self):
@@ -66,7 +66,7 @@ class VersionLimitTests(unittest.TestCase):
     def test_cooldown_never_excludes_the_locked_version(self):
         now = dt.datetime(2026, 10, 25, tzinfo=dt.timezone.utc)
         pypi = {"releases": {
-            "2026.10.19": [{"upload_time_iso_8601": "2026-10-19T10:00:00Z"}],   # 6 Tage – zu jung
+            "2026.10.19": [{"upload_time_iso_8601": "2026-10-19T10:00:00Z"}],   # 6 days – too young
             "2026.7.22": [{"upload_time_iso_8601": "2026-07-22T10:00:00Z"}]}}
         with mock.patch.object(lock, "pypi_project", return_value=pypi):
             self.assertEqual(lock.newest_on_pypi("certifi", "2026.10.19", now - dt.timedelta(days=7)), "2026.10.19")
@@ -83,7 +83,7 @@ class VersionLimitTests(unittest.TestCase):
         old = {"gunicorn": {"name": "gunicorn", "version": "26.2.0", "marker": 'sys_platform != "win32"', "hashes": []},
                "certifi": {"name": "certifi", "version": "2026.10.19", "marker": "", "hashes": []}}
         text = lock.constraints_for(old, None, newest=lambda n, v, c: v)
-        self.assertIn("gunicorn>=26.2.0,<=26.2.0", text)        # auch gunicorn bekommt die Wartezeit
+        self.assertIn("gunicorn>=26.2.0,<=26.2.0", text)        # gunicorn gets the cool-down too
         self.assertIn("certifi>=2026.10.19,<=2026.10.19", text)
 
     def test_pip_has_no_upper_limit(self):
@@ -129,10 +129,10 @@ class LockFileTests(unittest.TestCase):
         text = (ROOT / "Dockerfile").read_text()
         self.assertIn("snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}", text)
         self.assertIn('[ "$VERSION_CODENAME" = trixie ]', text)
-        self.assertIn("full-upgrade", text)                       # auch die Pakete des Basis-Images, nichts zurückgehalten
+        self.assertIn("full-upgrade", text)                       # also the base image's packages, nothing held back
         self.assertIn("Packages left out of the upgrade", text)
         self.assertIn("--require-hashes", text)
-        self.assertIn("python -m pip uninstall -y pip", text)     # Paketmanager nicht im fertigen Image
+        self.assertIn("python -m pip uninstall -y pip", text)     # package manager not in the finished image
         self.assertIn('! python -c "import pip"', text)
 
     def test_every_package_pinned_with_hash(self):
@@ -156,12 +156,12 @@ class LockFileTests(unittest.TestCase):
             df = (ROOT / "Dockerfile").read_text()
             Path(a, "Dockerfile").write_text(df)
             Path(b, "Dockerfile").write_text(lock.SNAPSHOT_RE.sub("ARG DEBIAN_SNAPSHOT=20990101T000000Z", df))
-            self.assertEqual(lock.main(["same-build", a, b]), 0)        # nur Lock-Werte verschieden
+            self.assertEqual(lock.main(["same-build", a, b]), 0)        # only lock values differ
             lock.copy_locks(Path(b), Path(a))
             self.assertIn("ARG DEBIAN_SNAPSHOT=20990101T000000Z", Path(a, "Dockerfile").read_text())
             Path(b, "requirements.in").write_text("Flask>=3.1,<4\nneu>=1,<2\n")
-            with mock.patch("sys.stdout"):     # die Fehlermeldung nicht als echte Anmerkung am GitHub-Lauf ausgeben
-                self.assertEqual(lock.main(["same-build", a, b]), 1)    # unveröffentlichte Bau-Änderung
+            with mock.patch("sys.stdout"):     # do not output the error message as a real annotation on the GitHub run
+                self.assertEqual(lock.main(["same-build", a, b]), 1)    # unpublished build change
 
 
 class WorkflowTests(unittest.TestCase):
@@ -190,7 +190,7 @@ class WorkflowTests(unittest.TestCase):
                 self.assertIn("permissions:", block, f"{name}/{job}")
                 self.assertNotIn("write-all", block)
         self.assertNotIn("pull_request_target", "".join(self.all_workflows().values()))
-        # Schreibrechte nur dort, wo veröffentlicht wird
+        # write permissions only where publishing happens
         self.assertNotIn(": write", jobs(workflow("build.yml"))["check"])
         self.assertNotIn("contents: write", jobs(workflow("security-update.yml"))["update"])
         self.assertNotIn("packages: write", jobs(workflow("security-update.yml"))["record"])
@@ -198,11 +198,11 @@ class WorkflowTests(unittest.TestCase):
             self.assertNotIn(": write", workflow(name), name)
 
     def test_schedules(self):
-        self.assertRegex(workflow("security-update.yml"), r'cron: "\d+ [0-6] \* \* 1"')      # montags früh
-        self.assertRegex(workflow("scan.yml"), r'cron: "\d+ \d+ \* \* \*"')                  # täglich
-        self.assertRegex(workflow("foundation.yml"), r'cron: "\d+ \d+ \* \* 1"')             # wöchentlich
+        self.assertRegex(workflow("security-update.yml"), r'cron: "\d+ [0-6] \* \* 1"')      # Monday morning
+        self.assertRegex(workflow("scan.yml"), r'cron: "\d+ \d+ \* \* \*"')                  # daily
+        self.assertRegex(workflow("foundation.yml"), r'cron: "\d+ \d+ \* \* 1"')             # weekly
         for name in ("security-update.yml", "scan.yml", "foundation.yml"):
-            self.assertIn("workflow_dispatch:", workflow(name), name)                        # von Hand startbar
+            self.assertIn("workflow_dispatch:", workflow(name), name)                        # can be started manually
 
     def test_publishing_jobs_never_concurrent_and_only_from_main(self):
         publishing = [("build.yml", "publish"), ("build.yml", "release"), ("security-update.yml", "update"),
@@ -227,7 +227,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions), order)
         self.assertIn("needs: check", publish)
         self.assertIn("is-highest", check)
-        self.assertIn("is-highest", publish)                 # :latest nur für die höchste Version
+        self.assertIn("is-highest", publish)                 # :latest only for the highest version
         self.assertIn("needs: [check, publish]", wf["release"])
 
     def test_security_update_order(self):
@@ -240,11 +240,11 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions), order)
         for step in ("Run the tests", "Security scan", "Push the security update"):
             block = upd[upd.index(step):]
-            self.assertIn("if: steps.compare.outputs.changed == 'true'", block[:300], step)   # sonst nichts tun
-        self.assertIn("while image_exists", upd)                                              # nie überschreiben
+            self.assertIn("if: steps.compare.outputs.changed == 'true'", block[:300], step)   # otherwise do nothing
+        self.assertIn("while image_exists", upd)                                              # never overwrite
         rec = wf["record"]
         self.assertIn("if: needs.update.outputs.changed == 'true'", rec)
-        self.assertLess(rec.index("commits/main"), rec.index("changelog"))                   # main nicht bewegt
+        self.assertLess(rec.index("commits/main"), rec.index("changelog"))                   # main not moved
         self.assertLess(rec.index("changelog"), rec.index("git push"))
         self.assertIn("needs: [update, record]", wf["promote"])
         self.assertIn("is-highest", wf["promote"])
@@ -257,7 +257,7 @@ class WorkflowTests(unittest.TestCase):
 
 
 class PublishByHandTests(unittest.TestCase):
-    """3.0.0: Ein gemergter Pull Request veröffentlicht nichts – nur „Run workflow“ mit „publish“; kein ZIP mehr."""
+    """3.0.0: A merged pull request publishes nothing – only "Run workflow" with "publish"; no ZIP any more."""
 
     def test_publish_only_by_hand(self):
         wf = workflow("build.yml")
@@ -278,7 +278,7 @@ class PublishByHandTests(unittest.TestCase):
 
 
 class CiHelperTests(unittest.TestCase):
-    """tools/ci.sh mit nachgestelltem docker/gh: Fehler der Registry gelten nie als „nicht veröffentlicht“."""
+    """tools/ci.sh with fake docker/gh: registry errors never count as "not published"."""
 
     def run_sh(self, script, docker_out="", docker_rc=0, gh_out="", gh_rc=0):
         with tempfile.TemporaryDirectory() as tmp:
@@ -287,7 +287,7 @@ class CiHelperTests(unittest.TestCase):
                 f.write_text(f"#!/bin/sh\nprintf '%s\\n' '{out}'\nexit {rc}\n")
                 f.chmod(0o755)
             env = dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}", GITHUB_REPOSITORY="o/r")
-            # Wie GitHub ohne „shell: bash“ (nur -e, kein pipefail): ci.sh muss Fehler trotzdem erkennen
+            # Like GitHub without "shell: bash" (only -e, no pipefail): ci.sh must still detect errors
             return subprocess.run(["bash", "-c", f"set -e; . tools/ci.sh; {script}"], cwd=ROOT,
                                   env=env, capture_output=True, text=True)
 
@@ -308,7 +308,7 @@ class CiHelperTests(unittest.TestCase):
         self.assertIn("::error title=GitHub API not reachable", r.stdout)
 
     def test_failing_tests_in_the_image_stop_the_run(self):
-        """Regression (Review 2.20.1): die Tests liefen durch „| tee“ – ohne pipefail ging ihr Fehler verloren."""
+        """Regression (Review 2.20.1): the tests ran through "| tee" – without pipefail their failure was lost."""
         with tempfile.TemporaryDirectory() as tmp:
             summary = Path(tmp) / "summary.md"
             for rc, expect_fail in ((1, True), (0, False)):
@@ -333,7 +333,7 @@ class CiHelperTests(unittest.TestCase):
 
 
 class FakeTrivy:
-    """Steht für Trivy: schreibt einen vorbereiteten JSON-Bericht und merkt sich die Argumente."""
+    """Stands in for Trivy: writes a prepared JSON report and records the arguments."""
 
     def __init__(self, tmp: Path, report: dict, rc: int = 0):
         self.args = tmp / "args.txt"
@@ -430,7 +430,7 @@ class TrivyFlowTests(unittest.TestCase):
             self.assertIn("more than 6 months", " ".join(trivy_scan.check_ignore(f, today)))
             f.write_text("# Grund\nCVE-2026-1 exp:2026-10-01\n")
             self.assertIn("expired", " ".join(trivy_scan.check_ignore(f, today)))
-        self.assertEqual(trivy_scan.check_ignore(), [])          # die echte Datei ist gültig
+        self.assertEqual(trivy_scan.check_ignore(), [])          # the real file is valid
 
 
 class SecurityUpdateTests(unittest.TestCase):
@@ -461,7 +461,7 @@ class SecurityUpdateTests(unittest.TestCase):
         log = "# Änderungen\n\n## 2.18.3-s2 – 02.11.2026 (Sicherheitsupdate)\n\n## 2.18.3-s1 – 26.10.2026\n\n" \
               "## 2.18.3 – 24.10.2026\n## 2.18.2-s1 – 20.10.2026\n"
         self.assertEqual(security_update.next_tag("2.18.3", log), "2.18.3-s3")
-        self.assertEqual(security_update.next_tag("2.19.0", log), "2.19.0-s1")   # neue Version: Zähler neu
+        self.assertEqual(security_update.next_tag("2.19.0", log), "2.19.0-s1")   # new version: counter restarts
 
     def test_changelog_entry_on_top(self):
         entry = security_update.changelog_entry("2.18.3-s1", "2.18.3", security_update.diff(self.OLD, self.NEW),
@@ -477,6 +477,37 @@ class SecurityUpdateTests(unittest.TestCase):
                                                 dt.date(2026, 10, 26), first=True)
         self.assertIn("Erster Stand mit vollständiger Paketliste (2 Debian-Pakete, 3 Python-Pakete", entry)
         self.assertNotIn("libssl3t64", entry)
+
+    def test_english_changelog_entry(self):
+        entry = security_update.changelog_entry("2.18.3-s1", "2.18.3", security_update.diff(self.OLD, self.NEW),
+                                                dt.date(2026, 10, 26), lang="en")
+        self.assertTrue(entry.startswith("## 2.18.3-s1 – 2026-10-26 (security update)\n"))
+        self.assertIn("Same program as 2.18.3", entry)
+        self.assertIn("Debian packages: `libssl3t64 3.5.1-1 → 3.5.1-1+deb13u1`", entry)
+        self.assertIn("`new new 1.0`", entry)
+        first = security_update.changelog_entry("2.19.0-s1", "2.19.0", security_update.diff("", self.NEW),
+                                                dt.date(2026, 10, 26), first=True, lang="en")
+        self.assertIn("First state with a complete package list (2 Debian packages, 3 Python packages", first)
+
+    def test_changelog_command_writes_both_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            (d / "old").write_text(self.OLD)
+            (d / "new").write_text(self.NEW)
+            de, en = d / "CHANGELOG.md", d / "CHANGELOG.en.md"
+            de.write_text("# Änderungen\n\n## 2.18.3 – 24.10.2026\n")
+            en.write_text("# Catalytix changes\n\n## 2.18.3 – 2026-10-24\n")
+            with mock.patch.object(security_update, "CHANGELOG", de), \
+                    mock.patch.object(security_update, "CHANGELOG_EN", en):
+                self.assertEqual(security_update.main(["changelog", "2.18.3-s1", "2.18.3", str(d / "old"),
+                                                       str(d / "new")]), 0)
+            self.assertIn("(Sicherheitsupdate)", de.read_text())
+            self.assertIn("(security update)", en.read_text())
+            self.assertLess(en.read_text().index("2.18.3-s1"), en.read_text().index("## 2.18.3 –"))
+
+    def test_workflow_commits_both_changelogs(self):
+        wf = (ROOT / ".github" / "workflows" / "security-update.yml").read_text(encoding="utf-8")
+        self.assertIn("CHANGELOG.md CHANGELOG.en.md", wf)
 
     def test_highest_ignores_security_tags(self):
         with mock.patch("sys.stdin") as stdin, mock.patch("sys.stdout") as stdout:

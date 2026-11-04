@@ -1,11 +1,11 @@
-"""Catalytix – Bibliotheksverwaltung.
+"""Catalytix – library management.
 
-Copyright (C) 2026 Die Catalytix-Autoren
+Copyright (C) 2026 The Catalytix authors
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-Dieses Programm ist freie Software: Sie können es unter den Bedingungen der GNU Affero General
-Public License, Version 3 oder (nach Ihrer Wahl) jeder späteren Version, weitergeben und/oder
-verändern. Es wird OHNE JEDE GEWÄHRLEISTUNG bereitgestellt. Details: Datei LICENSE.
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU
+Affero General Public License, version 3 or (at your option) any later version. It is provided
+WITHOUT ANY WARRANTY. Details: file LICENSE.
 """
 from __future__ import annotations
 
@@ -30,8 +30,8 @@ from .i18n import gettext as _
 __version__ = "3.0.1"
 APP_NAME = "Catalytix"
 LICENSE_NAME = "GNU AGPL v3 oder später"
-# Wo der Quellcode zu finden ist (AGPL § 13). Wer Catalytix verändert betreibt, trägt hier
-# bzw. in CATALYTIX_SOURCE_URL die Adresse des eigenen, veränderten Quellcodes ein.
+# Where the source code can be found (AGPL § 13). Anyone running a modified Catalytix enters the
+# address of their own modified source code here or in CATALYTIX_SOURCE_URL.
 DEFAULT_SOURCE_URL = ""
 AUTHOR_URL = "https://helfi.space"
 
@@ -45,7 +45,7 @@ CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';
        "form-action 'self'; frame-ancestors 'self'")
 
 log = logging.getLogger(__name__)
-LDAP_RECHECK_SECONDS = 4 * 3600   # AD-Konten laufender Sitzungen alle 4 Stunden nachprüfen
+LDAP_RECHECK_SECONDS = 4 * 3600   # re-check AD accounts of active sessions every 4 hours
 
 login_manager = LoginManager()
 csrf = CSRFProtect()
@@ -54,25 +54,25 @@ csrf = CSRFProtect()
 def _engine_options(url: str) -> dict:
     opts = {"pool_pre_ping": True}
     if url.startswith(("mysql", "mariadb")):
-        # Standard bei MySQL ist REPEATABLE READ: Nach dem Warten auf die Buch-Sperre sähe eine Ausleihe den
-        # alten Stand und könnte das letzte Exemplar ein zweites Mal verleihen.
+        # MySQL defaults to REPEATABLE READ: after waiting for the book lock, a loan would see the
+        # old state and could lend out the last copy a second time.
         opts["isolation_level"] = "READ COMMITTED"
     return opts
 
 
 def _secret_key(instance: Path) -> str:
-    """Sitzungs- und Verschlüsselungsschlüssel: CATALYTIX_SECRET_KEY oder <Datenordner>/secret_key.
+    """Session and encryption key: CATALYTIX_SECRET_KEY or <data folder>/secret_key.
 
-    Die Datei wird atomar angelegt (O_EXCL): Starten mehrere Worker gleichzeitig, erzeugt genau einer
-    den Schlüssel, die anderen lesen ihn. Ein leerer Schlüssel wird nie verwendet."""
+    The file is created atomically (O_EXCL): if several workers start at the same time, exactly one
+    creates the key and the others read it. An empty key is never used."""
     key = os.environ.get("CATALYTIX_SECRET_KEY", "")
     if key.strip():
-        return key   # unverändert wie bis 2.9 (Leerzeichen gehören zum Schlüssel)
+        return key   # unchanged, as up to 2.9 (whitespace is part of the key)
     f = instance / "secret_key"
     try:
         fd = os.open(f, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     except FileExistsError:
-        for _ in range(50):           # ein anderer Worker schreibt gerade – kurz warten
+        for _ in range(50):           # another worker is writing it right now – wait briefly
             key = f.read_text().strip()
             if key:
                 return key
@@ -91,9 +91,9 @@ def _secret_key(instance: Path) -> str:
 
 @contextmanager
 def _startup_lock(instance: Path):
-    """Exklusive Sperre auf <Datenordner>/.startup.lock für die Start-Schritte (Schlüssel, Tabellen,
-    Spalten, Migrationen). gunicorn startet mehrere Worker gleichzeitig – ohne Sperre würden sie
-    dieselben Tabellen/Spalten parallel anlegen und mit „table already exists“ abbrechen."""
+    """Exclusive lock on <data folder>/.startup.lock for the startup steps (key, tables,
+    columns, migrations). gunicorn starts several workers at the same time – without the lock they would
+    create the same tables/columns in parallel and abort with "table already exists"."""
     try:
         fh = open(instance / ".startup.lock", "a+b")
     except OSError as exc:
@@ -110,7 +110,7 @@ def _startup_lock(instance: Path):
             try:
                 fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
                 unlock = lambda: fcntl.flock(fh.fileno(), fcntl.LOCK_UN)  # noqa: E731
-            except OSError as exc:    # z. B. NFS ohne Sperren (ENOLCK)
+            except OSError as exc:    # e.g. NFS without locking (ENOLCK)
                 log.warning("Startup lock not possible (%s) – continuing without it", exc)
         else:
             try:
@@ -129,7 +129,7 @@ def _startup_lock(instance: Path):
                 def unlock():
                     fh.seek(0)
                     msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
-            except Exception as exc:  # noqa: BLE001 – Sperre ist eine Absicherung, kein Muss
+            except Exception as exc:  # noqa: BLE001 – the lock is a safeguard, not a requirement
                 log.warning("Startup lock not possible (%s) – continuing without it", exc)
         yield
     finally:
@@ -149,10 +149,10 @@ def _key_fingerprint(key: str) -> str:
 
 
 def _check_secret_key(app: Flask) -> None:
-    """Passt der Schlüssel zur Datenbank? Mit einem anderen Schlüssel wären 2FA-Geheimnisse und die
-    gespeicherten SMTP-/AD-Passwörter nicht mehr lesbar. Beim ersten Start wird ein Prüfwert (HMAC einer
-    Konstante, nicht der Schlüssel) gespeichert; passt er später nicht, startet Catalytix nicht –
-    außer mit CATALYTIX_ACCEPT_NEW_KEY=1 (dann gilt der neue Schlüssel)."""
+    """Does the key match the database? With a different key, 2FA secrets and the stored SMTP/AD
+    passwords would no longer be readable. On first start a check value (HMAC of a constant, not the
+    key) is stored; if it does not match later, Catalytix does not start –
+    unless CATALYTIX_ACCEPT_NEW_KEY=1 is set (then the new key applies)."""
     from .models import set_setting
     expected = _key_fingerprint(app.config["SECRET_KEY"])
     stored = get_setting(KEY_CHECK_SETTING)
@@ -174,9 +174,9 @@ def _check_secret_key(app: Flask) -> None:
 
 
 def _ensure_timezone(environ=None, zoneinfo_dirs=None, tzdata_root=None, tzset=None) -> str | None:
-    """TZ (z. B. Europe/Berlin) wirkt nur, wenn das System die Zeitzonendatei hat (/usr/share/zoneinfo).
-    Fehlt sie, wird – falls installiert – die Datei aus dem Python-Paket „tzdata“ verwendet; sonst
-    eine deutliche Warnung (Uhrzeiten wären dann UTC). Gibt den verwendeten TZ-Wert zurück."""
+    """TZ (e.g. Europe/Berlin) only takes effect if the system has the time zone file (/usr/share/zoneinfo).
+    If it is missing, the file from the Python package "tzdata" is used (if installed); otherwise a
+    clear warning is logged (times would then be UTC). Returns the TZ value that is used."""
     environ = os.environ if environ is None else environ
     tzset = tzset or getattr(time, "tzset", None)
     raw = (environ.get("TZ") or "").strip()
@@ -184,7 +184,7 @@ def _ensure_timezone(environ=None, zoneinfo_dirs=None, tzdata_root=None, tzset=N
     if not name or tzset is None:
         return None
     if ".." in name.split("/"):
-        pass                          # ungültig – unten Warnung
+        pass                          # invalid – warning below
     elif os.path.isabs(name):
         if os.path.exists(name):
             return raw
@@ -195,12 +195,12 @@ def _ensure_timezone(environ=None, zoneinfo_dirs=None, tzdata_root=None, tzset=N
         if any(os.path.isfile(os.path.join(d, name)) for d in zoneinfo_dirs):
             return raw
         if "," in name or re.match(r"^(<[^>]+>|[A-Za-z]{3,})[+-]?\d", name):
-            return raw                # POSIX-Angabe wie CET-1CEST,M3.5.0,M10.5.0/3 – braucht keine Datei
+            return raw                # POSIX spec like CET-1CEST,M3.5.0,M10.5.0/3 – needs no file
         if tzdata_root is None:
             try:
                 from importlib.resources import files
                 tzdata_root = str(files("tzdata") / "zoneinfo")
-            except Exception:  # noqa: BLE001 – Paket tzdata nicht installiert
+            except Exception:  # noqa: BLE001 – package tzdata not installed
                 tzdata_root = None
         candidate = os.path.join(tzdata_root, *name.split("/")) if tzdata_root else None
         if candidate and os.path.isfile(candidate):
@@ -209,7 +209,7 @@ def _ensure_timezone(environ=None, zoneinfo_dirs=None, tzdata_root=None, tzset=N
             log.info("Time zone %s loaded from the Python package tzdata", name)
             return environ["TZ"]
     if name.upper() in ("UTC", "GMT", "ETC/UTC", "ETC/GMT", "UTC0", "GMT0"):
-        return raw                    # ohne Datei ohnehin UTC
+        return raw                    # UTC anyway without a file
     log.warning("Time zone TZ=%s not found – times in UTC. Check in the container: "
                 "\"ls /usr/share/zoneinfo/%s\"; spelling like Europe/Berlin.", raw, name)
     return None
@@ -219,10 +219,10 @@ DB_FILE = "catalytix.db"
 
 
 def _sqlite_file(instance: Path) -> Path:
-    """Standard-Datenbank im Datenverzeichnis.
+    """Default database in the data directory.
 
-    Schutz vor einem „leeren Neustart“: Fehlt catalytix.db, liegt aber eine andere Datenbankdatei im
-    Datenverzeichnis, startet das Programm nicht, statt still eine neue, leere Bibliothek anzulegen."""
+    Protection against an "empty restart": if catalytix.db is missing but another database file exists in
+    the data directory, the program does not start instead of silently creating a new, empty library."""
     db_file = instance / DB_FILE
     if not db_file.exists():
         others = sorted(p.name for p in instance.glob("*.db") if p.is_file() and p.stat().st_size > 0)
@@ -235,12 +235,12 @@ def _sqlite_file(instance: Path) -> Path:
 
 
 def _migrate_and_init(app: Flask) -> None:
-    """Tabellen/Spalten nachziehen und einmalige Umstellungen – unter der Start-Sperre, im App-Kontext."""
+    """Add missing tables/columns and run one-time conversions – under the startup lock, in the app context."""
     db.create_all()
     from .models import ensure_columns
     for col in ensure_columns():
         logging.getLogger(__name__).info("Database updated: column %s added", col)
-        if col == "users.group_bound":   # bestehende Konten mit Gruppen sind gruppengebunden
+        if col == "users.group_bound":   # existing accounts with groups are group-bound
             from sqlalchemy import text as _text
             db.session.execute(_text("UPDATE users SET group_bound = :t WHERE id IN "
                                      "(SELECT user_id FROM user_groups)"), {"t": True})
@@ -253,13 +253,13 @@ def _migrate_and_init(app: Flask) -> None:
         setupcode.ensure()
         setupcode.announce()
     from .models import set_setting
-    if get_setting("library_name") == "CATALYTIX":  # alter Standardname (Programmname, bis 2.2)
+    if get_setting("library_name") == "CATALYTIX":  # old default name (program name, up to 2.2)
         set_setting("library_name", "Bibliothek")
         db.session.commit()
     from .models import encrypt_stored_secrets
     if encrypt_stored_secrets():
         logging.getLogger(__name__).info("Stored credentials (AD, SMTP) are now kept encrypted")
-    if get_setting("registration_privacy_url") and not get_setting("privacy_url"):  # bis 2.0
+    if get_setting("registration_privacy_url") and not get_setting("privacy_url"):  # up to 2.0
         set_setting("privacy_url", get_setting("registration_privacy_url"))
         set_setting("registration_privacy_url", "")
         db.session.commit()
@@ -273,7 +273,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     try:
         instance.mkdir(parents=True, exist_ok=True)
         (instance / "covers").mkdir(exist_ok=True)
-        probe = instance / f".write-test-{os.getpid()}"   # je Prozess eigene Datei (Worker starten gleichzeitig)
+        probe = instance / f".write-test-{os.getpid()}"   # separate file per process (workers start at the same time)
         probe.write_text("ok")
         probe.unlink(missing_ok=True)
     except PermissionError as exc:
@@ -282,7 +282,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             f"Please fix the permissions, e.g. on the host: sudo chown -R {os.getuid()}:{os.getgid()} <data folder>"
         ) from exc
 
-    with _startup_lock(instance):     # siehe _startup_lock: Worker starten gleichzeitig
+    with _startup_lock(instance):     # see _startup_lock: workers start at the same time
         secret_key = _secret_key(instance)
     app.config.update(
         SECRET_KEY=secret_key,
@@ -303,7 +303,7 @@ def create_app(test_config: dict | None = None) -> Flask:
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     _ensure_timezone()
 
-    # Reverse-Proxy und HTTPS werden automatisch erkannt (siehe proxy.py)
+    # Reverse proxy and HTTPS are detected automatically (see proxy.py)
     from .proxy import install as install_proxy_support
     install_proxy_support(app, os.environ)
 
@@ -320,7 +320,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     def _unauthorized():
         from flask import jsonify
         if request.path.startswith("/api/"):
-            # Abfragen aus app.js: klare Antwort statt Umleitung auf die Anmeldeseite (HTML)
+            # Requests from app.js: a clear answer instead of a redirect to the login page (HTML)
             msg = _gettext("Deine Sitzung ist abgelaufen – bitte die Seite neu laden und erneut anmelden.")  # noqa: E501
             return jsonify(ok=False, error=msg), 401
         from flask_login.utils import login_url
@@ -335,7 +335,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         user = db.session.get(User, int(uid))
         if user is None or not user.active:
             return None
-        # Sitzung aus einer älteren „Generation“ (Passwort geändert, überall abgemeldet …) -> ungültig
+        # Session from an older "generation" (password changed, signed out everywhere …) -> invalid
         if str(user.auth_epoch or 0) != (epoch or "0"):
             return None
         return user
@@ -359,15 +359,15 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.register_blueprint(help_bp)
     app.jinja_env.globals["help_url_for"] = help_url
 
-    # ---- Start-Schritte unter exklusiver Sperre (mehrere gunicorn-Worker starten gleichzeitig) ----
+    # ---- Startup steps under an exclusive lock (several gunicorn workers start at the same time) ----
     with _startup_lock(instance), app.app_context():
         from . import dbversion
-        db_state = dbversion.prepare(db)     # neuere Datenbank: Abbruch; Versionswechsel: erst sichern
-        if db_state != "skip":               # „skip“: nur eine Sicherung zurückspielen – nichts migrieren
+        db_state = dbversion.prepare(db)     # newer database: abort; version change: back up first
+        if db_state != "skip":               # "skip": only restoring a backup – migrate nothing
             _migrate_and_init(app)
             dbversion.stamp(db)
 
-    # Hintergrund-Job für E-Mail-Erinnerungen (täglich zur eingestellten Uhrzeit)
+    # Background job for email reminders (daily at the configured time)
     from . import composefile
     if composefile.outdated() is not None:
         log.warning(composefile.log_message(composefile.outdated()))
@@ -376,15 +376,15 @@ def create_app(test_config: dict | None = None) -> Flask:
         from .mailer import start_scheduler
         start_scheduler(app)
 
-    # ------------------------------------------------------------ Ersteinrichtung
+    # ------------------------------------------------------------ First-time setup
     @app.before_request
     def require_setup():
         if request.endpoint in ("main.setup", "main.set_language", "static", "main.branding_file") or request.endpoint is None:
             return None
         if not app.config.get("_setup_done"):
             if User.query.filter_by(role=ROLE_ADMIN).first() is None:
-                # Einmal eingerichtet → nie wieder zur Web-Einrichtung (siehe main.setup)
-                # Nur eine wirklich leere Datenbank darf über das Web eingerichtet werden
+                # Once set up → never back to the web setup (see main.setup)
+                # Only a truly empty database may be set up via the web
                 if get_setting("setup_completed") != "1" and User.query.first() is None:
                     return redirect(url_for("main.setup"))
             elif get_setting("setup_completed") != "1":
@@ -393,16 +393,16 @@ def create_app(test_config: dict | None = None) -> Flask:
                 try:
                     _set("setup_completed", "1")
                     db.session.commit()
-                except IntegrityError:   # anderer Prozess war schneller
+                except IntegrityError:   # another process was faster
                     db.session.rollback()
             app.config["_setup_done"] = True
         return None
 
-    # ------------------------------------------------------------ LDAP-Sitzungen nachprüfen
+    # ------------------------------------------------------------ Re-check LDAP sessions
     @app.before_request
     def recheck_ldap_session():
-        """Wer im AD gesperrt, gelöscht oder aus der berechtigten Gruppe entfernt wurde, soll nicht
-        mit einer alten Sitzung (oder „Angemeldet bleiben“) weiterarbeiten können."""
+        """Anyone disabled or deleted in AD, or removed from the authorized group, must not be able to
+        keep working with an old session (or via "remember me")."""
         if request.endpoint in (None, "static", "main.branding_file") or not current_user.is_authenticated:
             return None
         if current_user.auth_source != "ldap":
@@ -413,28 +413,28 @@ def create_app(test_config: dict | None = None) -> Flask:
         if now - int(session.get("ldap_ok_at") or 0) < LDAP_RECHECK_SECONDS:
             return None
         if not ldap_enabled() or not get_setting("ldap_bind_dn"):
-            session["ldap_ok_at"] = now    # ohne Dienstkonto nicht prüfbar
+            session["ldap_ok_at"] = now    # cannot be checked without a service account
             return None
         try:
             info = Directory().check_account(current_user.username)
         except LDAPError as exc:
             log.warning("LDAP re-check for %s not possible: %s", current_user.username, exc)
-            session["ldap_ok_at"] = now - LDAP_RECHECK_SECONDS + 600   # in 10 Minuten erneut
+            session["ldap_ok_at"] = now - LDAP_RECHECK_SECONDS + 600   # retry in 10 minutes
             return None
-        except Exception:  # noqa: BLE001 – ein AD-Problem darf niemanden aussperren
+        except Exception:  # noqa: BLE001 – an AD problem must not lock anyone out
             log.exception("LDAP re-check failed")
             session["ldap_ok_at"] = now - LDAP_RECHECK_SECONDS + 600
             return None
         from .views.main import same_person
         if info is not None and not same_person(current_user, info):
-            # Der Name gehört im AD inzwischen einer anderen Person (z. B. umbenannt und neu vergeben):
-            # diese Sitzung nicht weiterführen und das Konto nicht mit fremden Daten überschreiben
+            # In AD the name now belongs to a different person (e.g. renamed and reassigned):
+            # do not continue this session and do not overwrite the account with someone else's data
             log.warning("LDAP account %s: the name now belongs to a different person in AD – session ended",
                         current_user.username)
             info = None
         if info is None or info.role is None:
             log.info("LDAP account %s no longer entitled – session ended", current_user.username)
-            session.clear()     # zuerst – logout_user() merkt sich darin, dass das Merk-Cookie gelöscht wird
+            session.clear()     # first – logout_user() records in it that the remember cookie is to be deleted
             logout_user()
             flash(_("Deine Anmeldung ist abgelaufen. Bitte melde dich erneut an."), "info")
             return redirect(url_for("main.login"))
@@ -444,7 +444,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         session["ldap_ok_at"] = now
         return None
 
-    # ------------------------------------------------------------ Template-Helfer
+    # ------------------------------------------------------------ Template helpers
     from .branding import context as brand_context
     from .branding import library_name as brand_library_name
 
@@ -462,7 +462,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             "imprint_url": get_setting("imprint_url"),
             "retention_months": get_int_setting("retention_months"),
             "privacy_url": get_setting("privacy_url"),
-            # Cache-Schlüssel für CSS/JS ohne Versionsnummer (nicht öffentlich erkennbar)
+            # Cache key for CSS/JS without the version number (not publicly identifiable)
             "asset_rev": _ASSET_REV,
             "ldap_on": get_bool("ldap_enabled"),
             "brand": brand_context(),
@@ -474,14 +474,14 @@ def create_app(test_config: dict | None = None) -> Flask:
         if has_request_context() and current_user.is_authenticated:
             from .news import has_unseen
             ctx["news_unseen"] = has_unseen(current_user)
-        # Außerhalb einer Anfrage (z. B. Mail-Versand im Hintergrund) gibt es keinen Benutzer
+        # Outside a request (e.g. sending mail in the background) there is no user
         if has_request_context() and current_user.is_authenticated and current_user.is_admin:
             ctx["pending_registrations"] = User.query.filter_by(pending_approval=True, email_verified=True).count()
             from .backup import warning as backup_warning
             ctx["backup_warning"] = backup_warning()
         if has_request_context() and current_user.is_authenticated and current_user.is_librarian:
             from .models import Book, manageable_books_query
-            ctx["overdue_count"] = Loan.query.filter(      # nur der Bestand, den die Person verwaltet
+            ctx["overdue_count"] = Loan.query.filter(      # only the holdings this person manages
                 Loan.returned_at.is_(None), Loan.due_at < date.today(),
                 Loan.book_id.in_(manageable_books_query(current_user).with_entities(Book.id))).count()
         return ctx
@@ -500,12 +500,12 @@ def create_app(test_config: dict | None = None) -> Flask:
         resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
         resp.headers.setdefault("Referrer-Policy", "same-origin")
         resp.headers.setdefault("Permissions-Policy", "camera=(self)")
-        # Strenge Content-Security-Policy: kein eingebettetes oder fremdes JavaScript, keine fremden Quellen.
-        # (Für SVG-Logos setzt die jeweilige Route eine noch strengere eigene Richtlinie.)
+        # Strict Content-Security-Policy: no inline or third-party JavaScript, no external sources.
+        # (For SVG logos the respective route sets an even stricter policy of its own.)
         resp.headers.setdefault("Content-Security-Policy", CSP)
         return resp
 
-    # ------------------------------------------------------------ Fehlerseiten
+    # ------------------------------------------------------------ Error pages
     @app.errorhandler(403)
     def forbidden(_e):
         return render_template("error.html", code=403, title=_("Kein Zugriff"),
@@ -513,7 +513,7 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     @app.errorhandler(OverflowError)
     def too_large_number(_e):
-        # z. B. /admin/benutzer/99999999999999999999 – zu große Zahl für die Datenbank
+        # e.g. /admin/benutzer/99999999999999999999 – number too large for the database
         db.session.rollback()
         return not_found(None)
 
@@ -541,7 +541,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         user.set_password(password)
         user.auth_source = "local"
         user.active = True
-        user.ldap_gone_at = None   # nicht mehr vom AD-Abgleich verwaltet
+        user.ldap_gone_at = None   # no longer managed by the AD sync
         db.session.commit()
         click.echo(f"Password set for {username}.")
 

@@ -1,4 +1,4 @@
-"""Festgelegte Standorte: Auswahl statt Freitext, Umbenennen, Tippfehler zusammenführen."""
+"""Fixed locations: selection instead of free text, renaming, merging typos."""
 import os
 import sys
 import tempfile
@@ -60,9 +60,9 @@ class LocationTests(unittest.TestCase):
         self.assertEqual(sorted(names), ["Lehrer zimmer", "Regal 10", "Regal 2"])
         html = self.c.get("/buecher/neu").get_data(as_text=True)
         self.assertIn('<select name="location">', html)
-        self.assertLess(html.index(">Regal 2<"), html.index(">Regal 10<"))   # natürliche Sortierung
+        self.assertLess(html.index(">Regal 2<"), html.index(">Regal 10<"))   # natural sort order
         self.c.post("/buecher/neu", data={"title": "Faust", "location": "REGAL 2"})
-        self.assertEqual(Book.query.one().location, "Regal 2")                 # Schreibweise angeglichen
+        self.assertEqual(Book.query.one().location, "Regal 2")                 # spelling aligned
 
     def test_typo_is_rejected(self):
         self.login("bib")
@@ -129,7 +129,7 @@ class LocationTests(unittest.TestCase):
         self.assertEqual(sorted(b.location for b in Book.query), ["Keller", "Regal B3", "Regal B3", "Regal B3"])
         html = self.c.get("/standorte").get_data(as_text=True)
         self.assertIn("Keller", html)
-        self.assertNotIn('value="Regl B3"', html)   # nicht mehr in der Liste der offenen Einträge
+        self.assertNotIn('value="Regl B3"', html)   # no longer in the list of open entries
 
     def test_suggestions_for_variants_and_typos(self):
         db.session.add_all([Location(name="Regal A1"), Location(name="Regal A2"),
@@ -139,12 +139,12 @@ class LocationTests(unittest.TestCase):
         self.login("bib")
         html = self.c.get("/standorte").get_data(as_text=True)
         a1, a2 = Location.query.filter_by(name="Regal A1").one(), Location.query.filter_by(name="Regal A2").one()
-        self.assertIn("regal a2", html)                          # Groß/Klein-Variante wird angezeigt …
+        self.assertIn("regal a2", html)                          # upper/lower case variant is shown …
         self.assertIn("Andere Schreibweise von", html)
-        self.assertIn(f'<option value="{a2.id}" selected>', html)   # … mit passendem Vorschlag
+        self.assertIn(f'<option value="{a2.id}" selected>', html)   # … with a matching suggestion
         self.assertIn("Tippfehler? Ähnlich wie", html)
         self.assertIn(f'<option value="{a1.id}" selected>', html)
-        self.assertIn('<option value="__neu__" selected>', html)    # „Keller“: kein Vorschlag
+        self.assertIn('<option value="__neu__" selected>', html)    # "Keller": no suggestion
 
     def test_group_librarian_cannot_change_other_groups_books(self):
         db.session.add_all([Book(title="Eigenes", location="Regl 1", group_id=self.g1.id),

@@ -1,4 +1,4 @@
-"""Anmeldung, Ersteinrichtung, Übersicht, Profil."""
+"""Login, initial setup, overview, profile."""
 from __future__ import annotations
 
 import logging
@@ -18,27 +18,27 @@ from . import form_str, safe_next
 bp = Blueprint("main", __name__)
 log = logging.getLogger(__name__)
 
-# Einfacher Schutz gegen Passwort-Raten: 8 Fehlversuche pro Benutzer/IP -> 5 Minuten Sperre
-# Schutz gegen Passwort-Raten: siehe lockout.py (Sperre in der Datenbank)
+# Simple protection against password guessing: 8 failed attempts per user/IP -> 5 minute lockout
+# Protection against password guessing: see lockout.py (lockout stored in the database)
 
 
 class AccountMismatch(Exception):
-    """Das Konto gehört laut fester AD-Kennung einer anderen Person – nicht überschreiben."""
+    """According to the immutable AD ID the account belongs to another person – do not overwrite."""
 
 
 def same_person(user: User, info) -> bool:
-    """Gehört das Konto zu dieser AD-Person? Ohne gespeicherte Kennung (ältere Konten, OpenLDAP) zählt der Name."""
+    """Does the account belong to this AD person? Without a stored ID (older accounts, OpenLDAP) the name counts."""
     return not (user.ldap_guid and info.guid and user.ldap_guid != info.guid)
 
 
 def account_for(info, directory=None) -> User | None:
-    """Konto zu einer AD-Person – über die feste AD-Kennung (findet es auch nach einer Umbenennung im AD), sonst
-    über den Benutzernamen.
+    """Account for an AD person – via the immutable AD ID (finds it even after a rename in AD), otherwise
+    via the username.
 
-    Gehört ein gleichnamiges AD-Konto einer anderen Person, wird im AD nachgesehen: Wurde sie nur umbenannt, zieht
-    ihr Konto auf den neuen Namen um; gibt es sie nicht mehr, wird es unter einem Ersatznamen stillgelegt. Erst dann
-    ist der Name frei – niemand übernimmt fremde Ausleihen. Ist das nicht klärbar (AD nicht erreichbar, neuer Name
-    der bisherigen Person schon vergeben), wird AccountMismatch ausgelöst – es wird dann nichts angelegt."""
+    If an AD account with the same name belongs to another person, AD is consulted: if that person was only
+    renamed, their account moves to the new name; if they no longer exist, it is retired under a substitute name.
+    Only then is the name free – nobody takes over someone else's loans. If this cannot be resolved (AD not
+    reachable, new name of the previous person already taken), AccountMismatch is raised – nothing is created."""
     if info.guid:
         user = User.query.filter_by(ldap_guid=info.guid).first()
         if user is not None:
@@ -46,7 +46,7 @@ def account_for(info, directory=None) -> User | None:
     user = User.query.filter(func.lower(User.username) == (info.username or "").lower()).first()
     if user is None or user.auth_source != "ldap" or same_person(user, info):
         return user
-    # gleicher Name, andere Person
+    # same name, different person
     from ..ldap_auth import Directory, LDAPError
     directory = directory or Directory()
     try:
@@ -55,11 +55,11 @@ def account_for(info, directory=None) -> User | None:
         log.warning("Account %s: previous owner cannot be checked in AD (%s) – nothing changed", user.username, exc)
         raise AccountMismatch(user.username) from exc
     if other is not None and other.username:
-        # Die bisherige Person gibt es noch, nur unter anderem Namen: ihr Konto zieht um
+        # The previous person still exists, just under another name: their account moves
         sync_ldap_user(other, user, active_check=False)
         db.session.flush()
         if user.username.lower() == (info.username or "").lower():
-            # Neuer Name noch belegt – von einem stillgelegten Konto einer ausgeschiedenen Person? Dann freigeben.
+            # New name still taken – by a retired account of a person who has left? Then release it.
             blocker = User.query.filter(func.lower(User.username) == other.username.lower(),
                                         User.id != user.id).first()
             if (blocker is not None and blocker.auth_source == "ldap" and not blocker.active
@@ -73,15 +73,15 @@ def account_for(info, directory=None) -> User | None:
                     sync_ldap_user(other, user, active_check=False)
                     db.session.flush()
         if user.username.lower() == (info.username or "").lower():
-            raise AccountMismatch(user.username)   # Umzug nicht möglich – Name bleibt belegt
+            raise AccountMismatch(user.username)   # move not possible – name stays taken
         return None
     retire_account(user)
     return None
 
 
 def retire_account(user: User) -> None:
-    """AD-Konto einer ausgeschiedenen Person stilllegen und den Namen freigeben (Ausleihen bleiben erhalten).
-    Ein von Hand gesperrtes Konto bleibt von Hand gesperrt (wird später nicht automatisch freigegeben)."""
+    """Retire the AD account of a person who has left and release the name (loans are preserved).
+    A manually locked account stays manually locked (it is not automatically re-enabled later)."""
     from datetime import datetime
     old = user.username
     suffix = f"~{user.id}"
@@ -103,8 +103,8 @@ def retire_account(user: User) -> None:
 
 def sync_ldap_user(info, existing: User | None, ldap_groups: list | None = None, rename: bool = True,
                    active_check: bool = True, group_sync: bool | None = None) -> User:
-    """AD-Daten in ein Konto übernehmen. active_check=False: nur Name/Angaben nachziehen (Person existiert, ist aber
-    evtl. nicht mehr berechtigt) – Rolle, Gruppen und Sperre bleiben dann unberührt."""
+    """Apply AD data to an account. active_check=False: only update name/details (person exists but may no
+    longer be authorized) – role, groups and lock status then remain untouched."""
     user = existing
     if user is not None and not same_person(user, info):
         raise AccountMismatch(user.username)
@@ -113,7 +113,7 @@ def sync_ldap_user(info, existing: User | None, ldap_groups: list | None = None,
         db.session.add(user)
     elif (rename and user.auth_source == "ldap" and info.username
           and user.username.lower() != info.username.lower()):
-        # im AD umbenannt: Konto (mit allen Ausleihen) zieht mit, sofern der neue Name frei ist
+        # renamed in AD: account (with all loans) follows, provided the new name is free
         taken = User.query.filter(func.lower(User.username) == info.username.lower(), User.id != user.id).first()
         if taken is None:
             log.info("AD account renamed: %s → %s", user.username, info.username)
@@ -127,12 +127,12 @@ def sync_ldap_user(info, existing: User | None, ldap_groups: list | None = None,
     user.email = info.email
     user.ldap_dn = info.dn
     if info.guid and not user.ldap_guid:
-        user.ldap_guid = info.guid          # nie eine andere Kennung überschreiben (siehe same_person)
+        user.ldap_guid = info.guid          # never overwrite a different ID (see same_person)
     if not active_check:
         return user
     user.role = info.role
     if user.ldap_gone_at is not None and info.role is not None:
-        # vom Abgleich gesperrt, im AD aber wieder aktiv und berechtigt → wieder freigeben
+        # locked by the sync, but active and authorized in AD again → re-enable
         user.active = True
         user.ldap_gone_at = None
     if get_bool("ldap_group_sync") if group_sync is None else group_sync:
@@ -166,7 +166,7 @@ def login():
     if request.method == "POST":
         username = form_str("username", 200)
         password = request.form.get("password") or ""
-        # Sperrschlüssel aus dem normalisierten Namen: „DOMÄNE\\anna“ und „anna@x“ zählen wie „anna“
+        # Lockout key from the normalized name: "DOMAIN\\anna" and "anna@x" count as "anna"
         key = f"{lockout.norm(username)}|{request.remote_addr}"
         from .. import netzone
         if (lockout.throttled(key) or lockout.user_throttled(username, internal=netzone.is_internal())
@@ -177,30 +177,30 @@ def login():
         user = User.query.filter(func.lower(User.username) == username.lower()).first()
         error = _("Benutzername oder Passwort ist falsch.")
         ok_user = None
-        mismatch = False      # Passwort stimmte, aber das Konto ist nicht klärbar – kein Fehlversuch
+        mismatch = False      # password was correct, but the account cannot be resolved – not a failed attempt
 
         if user is not None and user.auth_source == "local":
             if user.check_password(password):
                 ok_user = user
         elif not ldap_enabled():
-            # Gleich lange rechnen wie bei einem echten Konto – sonst verrät die Antwortzeit,
-            # ob es den Benutzernamen gibt.
+            # Spend as long computing as for a real account – otherwise the response time reveals
+            # whether the username exists.
             _dummy_password_check(password)
         elif ldap_enabled() and username and password:
             try:
                 info = authenticate(username, password)
                 if info.role is None:
-                    # Bewusst dieselbe Meldung wie bei falschem Passwort: von außen soll nicht
-                    # erkennbar sein, ob ein Konto existiert oder das Passwort stimmte.
+                    # Deliberately the same message as for a wrong password: from outside it must not
+                    # be discernible whether an account exists or the password was correct.
                     log.info("LDAP sign-in %s refused: no rule matches (%s)", username, info.dn)
                 else:
                     if user is None or user.auth_source == "ldap":
-                        # über die feste AD-Kennung: auch nach einer Umbenennung im AD dasselbe Konto
+                        # via the immutable AD ID: same account even after a rename in AD
                         user = account_for(info)
                         db.session.commit()
                     if user is not None and user.auth_source != "ldap":
-                        # Ein lokales Konto wird nie per AD-Anmeldung übernommen (z. B. „DOMÄNE\\kasse“
-                        # für das lokale Konto „kasse“) – gleiche Meldung wie bei falschem Passwort.
+                        # A local account is never taken over via AD login (e.g. "DOMAIN\\kasse"
+                        # for the local account "kasse") – same message as for a wrong password.
                         log.warning("AD sign-in as %s refused: local account %s with the same name "
                                     "is never taken over", username, user.username)
                     else:
@@ -214,12 +214,12 @@ def login():
                 error = _("Anmeldung derzeit nicht möglich. Bitte versuche es später erneut.")
             except LDAPError as exc:
                 log.warning("LDAP sign-in %s failed: %s", username, exc)
-            except Exception:  # noqa: BLE001 – niemals Details an den Client geben
+            except Exception:  # noqa: BLE001 – never give details to the client
                 log.exception("Unexpected error during LDAP sign-in")
                 error = _("Anmeldung derzeit nicht möglich. Bitte versuche es später erneut.")
 
-        # Selbst registrierte Konten: Passwort stimmt, aber noch nicht bestätigt/freigegeben.
-        # Diese Hinweise sieht nur, wer das richtige Passwort kennt.
+        # Self-registered accounts: password is correct, but not yet confirmed/approved.
+        # Only someone who knows the correct password sees these notices.
         if ok_user is not None and ok_user.self_registered and not ok_user.email_verified:
             session["resend_uid"] = ok_user.id
             return render_template("login.html", username=username, unverified=True), 403
@@ -240,8 +240,8 @@ def login():
         lockout.clear(key)
         if ok_user.auth_source == "ldap":
             import time
-            session["ldap_ok_at"] = int(time.time())   # gerade gegen das AD geprüft
-        from .security import start_login  # zweiter Faktor, falls eingerichtet
+            session["ldap_ok_at"] = int(time.time())   # just verified against AD
+        from .security import start_login  # second factor, if set up
         return start_login(ok_user, bool(request.form.get("remember")), request.args.get("next"))
     return render_template("login.html")
 
@@ -262,8 +262,8 @@ def setup():
     if User.query.filter_by(role=ROLE_ADMIN).first() is not None:
         return redirect(url_for("main.login"))
     if get_setting("setup_completed") == "1" or User.query.first() is not None:
-        # Einmal eingerichtet: Auch ohne Administrator (z. B. versehentlich gelöscht) darf hier niemand
-        # über das Web ein neues Admin-Konto anlegen.
+        # Once set up: even without an administrator (e.g. accidentally deleted) nobody may create
+        # a new admin account here via the web.
         return render_template(
             "error.html", code=403, title=_("Einrichtung bereits abgeschlossen"),
             text=_("Es gibt kein Administratorkonto mehr. Lege auf dem Server eines an: "
@@ -327,7 +327,7 @@ def dashboard():
     fresh = news.unseen(current_user, get_locale())
     news_hint = None
     if fresh:
-        # Ein Sicherheitsupdate geht immer vor – auch wenn es aus einer älteren, noch nicht gesehenen Version stammt
+        # A security update always takes precedence – even if it comes from an older, not yet seen version
         pairs = [(e["version"], i) for e in fresh for i in e["items"]]
         version, first = next(((v, i) for v, i in pairs if i["kind"] == "security"), pairs[0])
         news_hint = {"version": version, "first": first, "more": len(pairs) - 1}
@@ -345,7 +345,7 @@ def dashboard():
 def profile():
     action = request.form.get("action") if request.method == "POST" else None
     if action == "data":
-        # Eigene Daten ändern – nur lokale (registrierte/angelegte) Konten; AD-Konten kommen aus dem Verzeichnis
+        # Change own data – local (registered/created) accounts only; AD accounts come from the directory
         if current_user.auth_source != "local":
             abort(400)
         name = form_str("display_name", 200)
@@ -377,9 +377,9 @@ def profile():
         elif new != request.form.get("new2"):
             flash(_("Die neuen Passwörter stimmen nicht überein."), "error")
         else:
-            current_user.set_password(new)   # meldet alle anderen Geräte ab …
+            current_user.set_password(new)   # signs out all other devices …
             db.session.commit()
-            _stay_signed_in(current_user._get_current_object())      # … dieses Gerät bleibt angemeldet
+            _stay_signed_in(current_user._get_current_object())      # … this device stays signed in
             flash(_("Passwort geändert. Andere Geräte wurden abgemeldet."), "success")
             return redirect(url_for("main.profile"))
     history = (Loan.query.filter_by(user_id=current_user.id)
@@ -390,9 +390,9 @@ def profile():
 
 
 def _apply_email(mail: str) -> bool:
-    """Neue E-Mail-Adresse eines lokalen Kontos übernehmen – mit denselben Regeln wie bei der Registrierung.
+    """Apply a new email address for a local account – with the same rules as for registration.
 
-    False: nicht übernommen (Fehler gemeldet oder Bestätigungslink verschickt) – der Aufrufer leitet nur weiter."""
+    False: not applied (error reported or confirmation link sent) – the caller only redirects."""
     from ..mailer import valid_email
     if mail and not valid_email(mail):
         db.session.rollback()
@@ -407,12 +407,12 @@ def _apply_email(mail: str) -> bool:
     if current_user.self_registered and changed:
         from .register import _allowed_domain, needs_verification, send_email_change
         if not _allowed_domain(mail):
-            # gleiche Regel wie bei der Registrierung
+            # same rule as for registration
             db.session.rollback()
             flash(_("Diese E-Mail-Adresse ist für dein Konto nicht erlaubt."), "error")
             return False
         if needs_verification():
-            # wie bei der Registrierung: erst nach Bestätigung über die neue Adresse (übrige Änderungen gelten sofort)
+            # as with registration: only after confirmation via the new address (other changes apply immediately)
             db.session.commit()
             if send_email_change(current_user._get_current_object(), mail):
                 flash(_("Wir haben einen Bestätigungslink an {email} geschickt. Die neue Adresse gilt, "
@@ -426,7 +426,7 @@ def _apply_email(mail: str) -> bool:
 
 
 def _stay_signed_in(user: User):
-    """Nach einem Wechsel der Sitzungs-Generation das aktuelle Gerät angemeldet lassen."""
+    """Keep the current device signed in after a session generation change."""
     remembered = bool(request.cookies.get("remember_token"))
     mfa_skipped = session.get("mfa_skipped")
     login_user(user, remember=remembered and not mfa_skipped)
@@ -446,7 +446,7 @@ def logout_everywhere():
 
 @bp.route("/branding/<path:filename>")
 def branding_file(filename):
-    """Logo, Favicon und Hintergrundbild – öffentlich, da auch auf der Anmeldeseite sichtbar."""
+    """Logo, favicon and background image – public, since they are also shown on the login page."""
     from flask import current_app, send_from_directory
     from werkzeug.utils import secure_filename
 
@@ -456,13 +456,13 @@ def branding_file(filename):
         abort(404)
     resp = send_from_directory(brand_dir(), name, max_age=60 * 60 * 24 * 365)
     if name.endswith(".svg"):
-        # SVG darf nie Skripte ausführen – auch nicht, wenn es direkt aufgerufen wird
+        # SVG must never execute scripts – not even when requested directly
         resp.headers["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; img-src data:"
         resp.headers["Content-Type"] = "image/svg+xml"
     return resp
 
 
-# ---------------------------------------------------------------- Über / Lizenz (AGPL § 13)
+# ---------------------------------------------------------------- About / license (AGPL § 13)
 
 def _license_file():
     from pathlib import Path
@@ -475,14 +475,14 @@ def _license_file():
 
 @bp.route("/sprache/<code>", methods=["POST"])
 def set_language(code):
-    """Sprache wechseln – angemeldet dauerhaft im Profil, sonst für diese Sitzung."""
+    """Switch language – stored in the profile when signed in, otherwise for this session."""
     from ..i18n import normalize
     lang = normalize(code)
     if lang is None:
         abort(404)
     session["lang"] = lang
     from flask import g
-    g.pop("_catalytix_locale", None)   # Meldungen dieser Anfrage schon in der neuen Sprache
+    g.pop("_catalytix_locale", None)   # messages of this request already in the new language
     if current_user.is_authenticated:
         current_user.language = lang
         db.session.commit()

@@ -1,4 +1,4 @@
-/* Catalytix – Frontend-Logik (ohne Build-Schritt, ohne Abhängigkeiten). */
+/* Catalytix – frontend logic (no build step, no dependencies). */
 (function () {
   "use strict";
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -6,9 +6,9 @@
   const CSRF = ($('meta[name="csrf-token"]') || {}).content || "";
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignorieren */ } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
   };
-  /* Übersetzung: T(<deutscher Text>, {name: wert}) – die Texte kommen vom Server (#i18n-strings). */
+  /* Translation: T(<German text>, {name: value}) – the texts come from the server (#i18n-strings). */
   const I18N = (() => {
     const el = document.getElementById("i18n-strings");
     try { return el ? JSON.parse(el.textContent) : {}; } catch (e) { return {}; }
@@ -18,7 +18,7 @@
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => (
     { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  /* ------------------------------------------------------------ Grundfunktionen */
+  /* ------------------------------------------------------------ Basics */
   $$("[data-theme-toggle]").forEach((btn) => btn.addEventListener("click", () => {
     const root = document.documentElement;
     const dark = root.dataset.theme ? root.dataset.theme === "dark"
@@ -35,7 +35,7 @@
     if (document.body.classList.contains("nav-open") && !e.target.closest(".sidebar")) {
       document.body.classList.remove("nav-open");
     }
-    // Benutzermenü schließen, wenn daneben getippt wird
+    // Close the user menu when tapping outside it
     $$(".user-menu[open]").forEach((m) => { if (!m.contains(e.target)) m.removeAttribute("open"); });
   });
 
@@ -44,7 +44,7 @@
     if (msg && !window.confirm(msg)) e.preventDefault();
   }, true);
 
-  // Kleine Helfer statt eingebetteter on…-Attribute (erlaubt eine strenge Content-Security-Policy)
+  // Small helpers instead of inline on…-attributes (allows a strict Content-Security-Policy)
   document.addEventListener("submit", (e) => {
     if (e.target.hasAttribute && e.target.hasAttribute("data-no-submit")) e.preventDefault();
   }, true);
@@ -59,8 +59,8 @@
   $$("[data-enter-clicks-next]").forEach((el) => el.addEventListener("keydown", (e) => {
     if (e.key === "Enter") { e.preventDefault(); if (el.nextElementSibling) el.nextElementSibling.click(); }
   }));
-  // Auswahllisten: Mausauswahl sendet sofort; mit der Tastatur erst Enter oder Verlassen des Feldes – sonst lädt jede
-  // Pfeiltaste die Seite neu und man erreicht die weiteren Einträge nie
+  // Select lists: mouse selection submits immediately; with the keyboard only on Enter or leaving the field – otherwise
+  // every arrow key reloads the page and the further entries can never be reached
   $$("[data-autosubmit]").forEach((el) => {
     let keyed = false, start = el.value;
     const submit = () => { if (el.form && el.value !== start) { start = el.value; el.form.submit(); } };
@@ -70,7 +70,7 @@
     el.addEventListener("change", () => { if (!keyed) submit(); });
     el.addEventListener("blur", () => { if (keyed) { keyed = false; submit(); } });
   });
-  // Bilder, die nicht laden (z. B. Cover), ausblenden
+  // Hide images that fail to load (e.g. covers)
   document.addEventListener("error", (e) => {
     if (e.target.tagName === "IMG" && e.target.hasAttribute("data-hide-broken")) e.target.remove();
   }, true);
@@ -82,12 +82,12 @@
   }
 
   $$(".flash").forEach((el) => {
-    if (el.classList.contains("error")) return;   // Fehler bleiben stehen, bis sie geschlossen werden
+    if (el.classList.contains("error")) return;   // errors stay until they are closed
     const ms = 6000;
     setTimeout(() => { el.style.transition = "opacity .4s"; el.style.opacity = "0"; setTimeout(() => el.remove(), 400); }, ms);
   });
 
-  // Kachel-/Listenansicht im Katalog
+  // Tile/list view in the catalog
   const viewTarget = $("[data-view-target]");
   if (viewTarget) {
     const apply = (v) => {
@@ -101,7 +101,7 @@
     $$("[data-view]").forEach((b) => b.closest(".seg") && b.closest(".seg").classList.add("hide"));
   }
 
-  // Listen filtern (z. B. Gruppenmitglieder)
+  // Filter lists (e.g. group members)
   $$("[data-filter-list]").forEach((input) => {
     const list = $(input.dataset.filterList);
     input.addEventListener("input", () => {
@@ -110,7 +110,7 @@
     });
   });
 
-  // Vorlagen für den Verzeichnisdienst
+  // Presets for the directory service
   const PRESETS = {
     ad: { ldap_user_attr: "sAMAccountName", ldap_user_filter: "(&(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))", nested: true },
     samba: { ldap_user_attr: "sAMAccountName", ldap_user_filter: "(&(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))", nested: true },
@@ -125,7 +125,7 @@
     $$("[data-ldap-preset]").forEach((b) => b.classList.toggle("on", b === btn));
   }));
 
-  // AD-Gruppe per Klick in die passende Rollenliste übernehmen
+  // Add an AD group to the matching role list with a click
   $$("[data-add-rule]").forEach((btn) => btn.addEventListener("click", () => {
     const box = $(`[data-rule-box="${btn.dataset.addRule}"]`);
     if (!box) return;
@@ -139,7 +139,7 @@
     setTimeout(() => { box.style.boxShadow = ""; }, 700);
   }));
 
-  // SMTP: Standard-Port passend zur Verschlüsselung setzen
+  // SMTP: set the default port matching the encryption
   const secSel = $("[data-smtp-security]"), portIn = $("[data-smtp-port]");
   if (secSel && portIn) {
     const defaults = { starttls: "587", ssl: "465", none: "25" };
@@ -148,7 +148,7 @@
     });
   }
 
-  /* ------------------------------------------------------------ Erscheinungsbild: Live-Vorschau */
+  /* ------------------------------------------------------------ Appearance: live preview */
   const brandForm = $("[data-branding-form]");
   if (brandForm) {
     const root = document.documentElement.style;
@@ -211,7 +211,7 @@
     }));
   }
 
-  /* ------------------------------------------------------------ Sicherheitsschlüssel (WebAuthn) */
+  /* ------------------------------------------------------------ Security keys (WebAuthn) */
   const b64u = {
     dec(str) {
       const s = str.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((str.length + 3) % 4);
@@ -329,7 +329,7 @@
     return false;
   }
 
-  // Fremde Coverbilder nie direkt laden – immer über den eigenen Server (Datenschutz)
+  // Never load third-party cover images directly – always via our own server (privacy)
   function coverProxy(url) {
     if (!url || url.startsWith("/")) return url;
     return "/covers/vorschau?u=" + encodeURIComponent(url);
@@ -342,20 +342,20 @@
       ...opts,
     });
     let data = {};
-    try { data = await res.json(); } catch (e) { /* kein JSON */ }
+    try { data = await res.json(); } catch (e) { /* not JSON */ }
     if (res.status === 401 || res.redirected || (res.ok && typeof data.ok === "undefined" && !Object.keys(data).length)) {
-      // Sitzung abgelaufen: der Server leitet zur Anmeldung um (HTML statt JSON)
+      // Session expired: the server redirects to the login (HTML instead of JSON)
       return { ok: false, results: [], error: T("Deine Sitzung ist abgelaufen – bitte die Seite neu laden und erneut anmelden.") };
     }
     if (!res.ok && !data.error) data.error = T("Fehler {status}", { status: res.status });
     return data;
   }
 
-  /* ------------------------------------------------------------ Kamera-Scanner */
+  /* ------------------------------------------------------------ Camera scanner */
   const dialog = $("#scanner-dialog");
   let stream = null, stopLoop = null;
 
-  let scanRun = 0;   // jede Öffnung bekommt eine Nummer – Schließen macht laufende Starts ungültig
+  let scanRun = 0;   // each opening gets a number – closing invalidates starts in progress
   function closeScanner() {
     scanRun++;
     if (stopLoop) { stopLoop(); stopLoop = null; }
@@ -363,7 +363,7 @@
     if (dialog && dialog.open) dialog.close();
   }
 
-  // Bildquelle -> Code; eingebauter BarcodeDetector (Chrome, Edge, Android) oder eigene Erkennung
+  // image source -> code; built-in BarcodeDetector (Chrome, Edge, Android) or our own detection
   async function makeDetector() {
     if ("BarcodeDetector" in window) {
       try {
@@ -375,7 +375,7 @@
             return codes.length ? codes[0].rawValue : null;
           };
         }
-      } catch (e) { /* weiter mit eigener Erkennung */ }
+      } catch (e) { /* fall back to our own detection */ }
     }
     if (!window.CatalytixEAN13) return null;
     const canvas = document.createElement("canvas");
@@ -417,7 +417,7 @@
       if (!detect) { status.textContent = T("Barcode-Erkennung ist in diesem Browser nicht verfügbar."); return; }
       const media = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
-      if (stale()) { media.getTracks().forEach((t) => t.stop()); return; }   // inzwischen geschlossen: Kamera aus
+      if (stale()) { media.getTracks().forEach((t) => t.stop()); return; }   // closed in the meantime: camera off
       if (stream) stream.getTracks().forEach((t) => t.stop());
       stream = media;
       video.srcObject = stream;
@@ -429,10 +429,10 @@
         if (!active || done || stale()) return;
         try {
           const code = await detect(video);
-          // erst übernehmen, wenn zwei Bilder nacheinander denselben Code liefern
+          // only accept once two consecutive frames yield the same code
           if (code && code === last) found(code);
           last = code || last;
-        } catch (e) { /* Bild noch nicht bereit */ }
+        } catch (e) { /* frame not ready yet */ }
         if (active && !done) setTimeout(tick, 120);
       };
       tick();
@@ -460,7 +460,7 @@
     });
   }));
 
-  /* ------------------------------------------------------------ Buchformular: ISBN-Abruf */
+  /* ------------------------------------------------------------ Book form: ISBN lookup */
   const bookForm = $("[data-book-form]");
   if (bookForm) {
     const isbnInput = $("[data-isbn-input]", bookForm);
@@ -489,7 +489,7 @@
       }
       statusBox.innerHTML = '<div class="notice"><span class="spinner"></span> ' + T("Suche in den Katalogen …") + "</div>";
       const res = await api(`/api/isbn/${isbn}`);
-      if (seq !== lookupSeq) return;   // inzwischen eine andere ISBN gesucht
+      if (seq !== lookupSeq) return;   // another ISBN was looked up in the meantime
       if (!res.ok) { statusBox.innerHTML = `<div class="notice danger">${esc(res.error)}</div>`; return; }
       isbnInput.value = res.isbn;
       let html = "";
@@ -519,11 +519,11 @@
     isbnInput.addEventListener("isbn:scanned", lookup);
     const coverUrl = $("[data-cover-url]", bookForm);
     if (coverUrl) coverUrl.addEventListener("change", () => showCover(coverUrl.value));
-    // Mit ?isbn=… geöffnet (z. B. aus der Schnellerfassung): direkt abrufen
+    // Opened with ?isbn=… (e.g. from quick entry): look it up right away
     if (isbnInput.value && !bookForm.elements.title.value) lookup();
   }
 
-  /* ------------------------------------------------------------ Schnellerfassung */
+  /* ------------------------------------------------------------ Quick entry */
   const quickForm = $("[data-quick-form]");
   if (quickForm) {
     const input = $("[data-quick-input]");
@@ -540,7 +540,7 @@
     groupSel.value = store.get("quickGroup") || "";
     groupSel.addEventListener("change", () => store.set("quickGroup", groupSel.value));
     locInput.value = store.get("quickLocation") || "";
-    if (locInput.tagName === "SELECT" && locInput.selectedIndex < 0) locInput.value = "";  // Standort nicht mehr in der Liste
+    if (locInput.tagName === "SELECT" && locInput.selectedIndex < 0) locInput.value = "";  // location no longer in the list
     ["input", "change"].forEach((ev) => locInput.addEventListener(ev, () => store.set("quickLocation", locInput.value)));
 
     const log = (cls, text, url) => {
@@ -585,7 +585,7 @@
       }
       resultBox.innerHTML = '<div class="card-body"><span class="spinner"></span> ' + T("Suche {isbn} …", { isbn: esc(isbn) }) + "</div>";
       const res = await api(`/api/isbn/${isbn}`);
-      if (seq !== quickSeq) return;   // inzwischen die nächste ISBN gescannt – deren Ergebnis zählt
+      if (seq !== quickSeq) return;   // next ISBN scanned in the meantime – its result counts
       if (!res.ok) { resultBox.innerHTML = `<div class="card-body"><div class="notice danger">${esc(res.error)}</div></div>`; reset(); return; }
       const d = res.data || {};
       const existing = (res.existing || []).filter((b) => b.manageable);
@@ -632,7 +632,7 @@
     });
   }
 
-  /* ------------------------------------------------------------ Hilfe */
+  /* ------------------------------------------------------------ Help */
   const helpBox = $("[data-help-topics]");
   if (helpBox) {
     const topics = $$("[data-help-topic]", helpBox);
@@ -660,10 +660,10 @@
     });
   }
 
-  /* ------------------------------------------------------------ Vorschlagslisten (Suche oben, Personen, Bestand) */
-  // Gemeinsame Logik: tippen → Server fragen → Liste; Pfeiltasten, Enter, Klick; veraltete Antworten werden verworfen.
-  // followUp: zweite, langsamere Abfrage (Active Directory) – die schnellen Treffer stehen schon vorher da.
-  // onChoose: statt den Wert ins Feld zu schreiben etwas anderes tun (z. B. das Buch öffnen).
+  /* ------------------------------------------------------------ Suggestion lists (top search, people, collection) */
+  // Shared logic: type → ask server → list; arrow keys, Enter, click; stale responses are discarded.
+  // followUp: second, slower query (Active Directory) – the fast matches are shown before it.
+  // onChoose: do something else instead of writing the value into the field (e.g. open the book).
   const suggest = (input, { url, minLength = 2, render, emptyText, valueOf, submit, preselect = () => true,
                             followUp = null, onChoose = null, footer = null }) => {
     const box = input.closest(".user-search") || input.parentElement;
@@ -677,8 +677,8 @@
     let items = [], active = -1, timer = null, seq = 0, ctrl = null, moved = false;
     const close = () => { list.hidden = true; input.setAttribute("aria-expanded", "false"); active = -1;
       input.removeAttribute("aria-activedescendant"); };
-    // Laufende Abfragen verwerfen (gewählt oder Feld verlassen) – eine späte AD-Antwort darf die Liste nicht wieder
-    // öffnen und mit vorgewählter Zeile eine andere Person unterschieben
+    // Discard running queries (chosen or field left) – a late AD response must not reopen the list
+    // and slip in a different person via a preselected row
     const cancel = () => { seq++; clearTimeout(timer); if (ctrl) ctrl.abort(); };
     const choose = (i) => {
       const it = items[i]; if (!it) return;
@@ -704,8 +704,8 @@
       else if (footer && items.length) rows.push(`<li class="empty">${esc(footer(data))}</li>`);
       list.innerHTML = rows.join("");
       list.hidden = false; input.setAttribute("aria-expanded", "true");
-      // Nach dem Nachladen bleibt eine mit den Pfeiltasten gewählte Zeile gewählt.
-      // Sonst Vorauswahl nur, wenn sie eindeutig ist – andernfalls übernimmt Enter den getippten Text.
+      // After reloading, a row selected with the arrow keys stays selected.
+      // Otherwise preselect only if unambiguous – else Enter takes the typed text.
       const kept = keep === null ? -1 : items.findIndex((it) => valueOf(it) === keep);
       if (kept >= 0) active = kept;
       else { moved = false; active = items.length && preselect(items) ? 0 : -1; }
@@ -718,7 +718,7 @@
     };
     input.addEventListener("input", () => {
       clearTimeout(timer);
-      // Alte Treffer sofort verwerfen: Enter während einer laufenden Suche nimmt den getippten Text, nie einen alten Treffer
+      // Discard old matches immediately: Enter during a running search takes the typed text, never an old match
       items = []; active = -1; moved = false; const my = ++seq;
       if (ctrl) ctrl.abort();
       const q = input.value.trim();
@@ -753,7 +753,7 @@
 
   const initials = (name) => (name || "").split(/[\s.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   $$("[data-user-search]").forEach((input) => suggest(input, {
-    // Erst die bekannten Personen (sofort), dann zusätzlich das Active Directory
+    // First the known people (immediately), then additionally Active Directory
     url: (q) => `/api/personen?q=${encodeURIComponent(q)}&verzeichnis=0`,
     followUp: (q, data) => data.directory_pending ? `/api/personen?q=${encodeURIComponent(q)}` : null,
     emptyText: T("Niemand gefunden."),
@@ -771,7 +771,7 @@
     emptyText: T("Kein Buch gefunden."),
     valueOf: (it) => "#" + it.id,
     submit: true,
-    // Buchfeld: nur ein genauer Signatur-/ISBN-Treffer ist vorausgewählt; sonst sendet Enter den getippten Text
+    // Book field: only an exact call number/ISBN match is preselected; otherwise Enter submits the typed text
     preselect: (items) => items[0].exact === true && !(items[1] && items[1].exact),
     render: (it) => {
       const meta = [it.authors, it.signature && T("Signatur {s}", {s: it.signature}), it.location].filter(Boolean).map(esc).join(" · ");
@@ -785,7 +785,7 @@
     },
   }));
 
-  // Suchfeld oben: Vorschläge aus dem Katalog; Auswahl öffnet das Buch, Enter ohne Auswahl zeigt alle Treffer
+  // Top search field: suggestions from the catalog; choosing opens the book, Enter without a choice shows all matches
   $$("[data-catalog-search]").forEach((input) => suggest(input, {
     url: (q) => `/api/katalog?q=${encodeURIComponent(q)}`,
     emptyText: T("Kein Buch gefunden – Enter sucht im ganzen Katalog."),

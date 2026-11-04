@@ -1,14 +1,14 @@
-"""E-Mail-Versand per SMTP und automatische Benachrichtigungen.
+"""Sending e-mail via SMTP and automatic notifications.
 
-Benachrichtigungen
-  * loan     – Bestätigung bei Ausleihe
-  * return   – Bestätigung bei Rückgabe
-  * reminder – Erinnerung X Tage vor Fälligkeit (einmal pro Ausleihe)
-  * overdue  – Mahnung bei Überfälligkeit, Wiederholung alle N Tage, höchstens M-mal
-  * digest   – tägliche Übersicht überfälliger Ausleihen an Verwalter
-  * manual   – von einem Verwalter von Hand ausgelöst
-Erinnerungen werden pro Benutzer zu einer Mail zusammengefasst. Das Protokoll (MailLog)
-verhindert doppelten Versand – auch wenn mehrere Server-Prozesse laufen.
+Notifications
+  * loan     – confirmation on checkout
+  * return   – confirmation on return
+  * reminder – reminder X days before the due date (once per loan)
+  * overdue  – overdue notice, repeated every N days, at most M times
+  * digest   – daily overview of overdue loans for librarians
+  * manual   – triggered manually by a librarian
+Reminders are combined into one mail per user. The log (MailLog)
+prevents duplicate sending – even when several server processes are running.
 """
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def _library_name() -> str:
     return library_name()
 
 
-# ---------------------------------------------------------------- Versand
+# ---------------------------------------------------------------- Sending
 
 @dataclass
 class SmtpConfig:
@@ -120,7 +120,7 @@ def _decode(v):
 
 
 def _one_line(value: str) -> str:
-    """Kopfzeilen dürfen keine Zeilenumbrüche enthalten (z. B. aus einem Buchtitel)."""
+    """Headers must not contain line breaks (e.g. from a book title)."""
     return " ".join(str(value or "").split())
 
 
@@ -146,7 +146,7 @@ def build_message(cfg: SmtpConfig, to: str, subject: str, text: str, html: str |
 
 
 class SharedSmtp:
-    """Eine SMTP-Verbindung für einen Sammelversand, die sich nach einer Trennung einmal neu verbindet."""
+    """One SMTP connection for a batch send that reconnects once after being disconnected."""
 
     def __init__(self, cfg: SmtpConfig):
         self.cfg = cfg
@@ -174,10 +174,10 @@ class SharedSmtp:
 def send_mail(to: str, subject: str, text: str, html: str | None = None, *, kind: str,
               loan_ids: list[int] | None = None, user_id: int | None = None,
               cfg: SmtpConfig | None = None, smtp: "smtplib.SMTP | SharedSmtp | None" = None) -> tuple[bool, str]:
-    """Versendet eine Mail und protokolliert sie (eine Protokollzeile je Ausleihe).
+    """Sends a mail and logs it (one log line per loan).
 
-    smtp: eine offene Verbindung oder SharedSmtp (Sammelversand) – SharedSmtp verbindet sich neu, wenn der Server
-    die Verbindung unterwegs getrennt hat (Nachrichtenlimit je Verbindung, Leerlauf-Zeitlimit)."""
+    smtp: an open connection or SharedSmtp (batch send) – SharedSmtp reconnects if the server
+    dropped the connection along the way (message limit per connection, idle timeout)."""
     cfg = cfg or SmtpConfig.from_settings()
     error = ""
     try:
@@ -201,7 +201,7 @@ def send_mail(to: str, subject: str, text: str, html: str | None = None, *, kind
                     pass
     except MailError as exc:
         error = str(exc)
-    except ValueError as exc:   # ungültige Kopfzeile o. Ä. – nie die Anfrage abbrechen lassen
+    except ValueError as exc:   # invalid header or similar – never let the request fail
         error = _("Ungültige Nachricht: {error}", error=exc)
     except (OSError, smtplib.SMTPException) as exc:
         error = f"{exc.__class__.__name__}: {_decode(getattr(exc, 'smtp_error', exc))}"
@@ -215,13 +215,13 @@ def send_mail(to: str, subject: str, text: str, html: str | None = None, *, kind
     return not error, error
 
 
-# ---------------------------------------------------------------- Inhalte
+# ---------------------------------------------------------------- Content
 
 def _ctx(**extra) -> dict:
     from .branding import mail_colors
     base = (get_setting("app_base_url") or "").rstrip("/")
     logo = get_setting("brand_logo")
-    # Logo nur als PNG (SVG zeigen viele Mailprogramme nicht an) und nur mit bekannter Adresse
+    # logo only as PNG (many mail clients don't display SVG) and only with a known address
     logo_url = f"{base}/branding/{logo}" if base and logo and not logo.endswith(".svg") else ""
     return {"library_name": _library_name(), "base_url": base,
             "mail_logo_url": logo_url, "mail_logo_plate": get_setting("brand_logo_plate") == "1",
@@ -232,15 +232,15 @@ def _ctx(**extra) -> dict:
 
 
 def render_mail(template: str, **ctx) -> tuple[str, str, str]:
-    """Liefert (Betreff, Text, HTML) aus templates/mail/<template>.txt/.html.
+    """Returns (subject, text, HTML) from templates/mail/<template>.txt/.html.
 
-    Die erste Zeile der .txt-Vorlage ist der Betreff."""
+    The first line of the .txt template is the subject."""
     from .i18n import force_locale, user_language
     lang = ctx.pop("lang", None) or (user_language(ctx["user"]) if ctx.get("user") is not None else None)
-    if not lang:   # ohne Empfänger (z. B. Testmail): Sprache der laufenden Anfrage
+    if not lang:   # without a recipient (e.g. test mail): language of the current request
         from .i18n import get_locale
         lang = get_locale()
-    with force_locale(lang):   # in der Sprache des Empfängers
+    with force_locale(lang):   # in the recipient's language
         c = _ctx(**ctx)
         raw = render_template(f"mail/{template}.txt", **c).strip("\n")
         subject, _sep, body = raw.partition("\n")
@@ -252,7 +252,7 @@ EMAIL_RE = __import__("re").compile(r"^[^@\s,;<>\"']+@[^@\s,;<>\"']+\.[^@\s,;<>\
 
 
 def valid_email(addr: str) -> bool:
-    """Genau eine einfache Adresse – keine Kommas/Leerzeichen (sonst mehrere Empfänger möglich)."""
+    """Exactly one simple address – no commas/spaces (otherwise multiple recipients would be possible)."""
     return bool(addr) and len(addr) <= 254 and bool(EMAIL_RE.match(addr))
 
 
@@ -265,7 +265,7 @@ def can_notify(user: User | None) -> bool:
 
 
 def _send_async(fn, *args):
-    """Mail im Hintergrund senden, damit Ausleihe/Rückgabe nicht auf den SMTP-Server warten."""
+    """Send mail in the background so checkout/return don't wait for the SMTP server."""
     app = current_app._get_current_object()
     if app.config.get("MAIL_SYNC") or app.config.get("TESTING"):
         fn(*args)
@@ -309,7 +309,7 @@ def _reservation_mail(res_id: int):
 
 
 def notify_reservation_ready(res) -> None:
-    """Vorgemerktes Buch liegt bereit – immer, wenn E-Mail eingerichtet ist (sonst sieht man es in der App)."""
+    """Reserved book is ready for pickup – always when e-mail is set up (otherwise it's visible in the app)."""
     if mail_active() and can_notify(res.user):
         _send_async(_reservation_mail, res.id)
 
@@ -324,10 +324,10 @@ def send_manual_reminder(loan: Loan) -> tuple[bool, str]:
     return send_mail(loan.user.email, subject, text, html, kind="manual", loan_ids=[loan.id], user_id=loan.user_id)
 
 
-# ---------------------------------------------------------------- Tägliche Erinnerungen
+# ---------------------------------------------------------------- Daily reminders
 
 def _sent_logs(loan_ids: list[int]) -> dict[tuple[int, str], list[datetime]]:
-    """Versandzeitpunkte von Erinnerungen und Mahnungen je (Ausleihe, Art) – in wenigen Abfragen."""
+    """Send times of reminders and overdue notices per (loan, kind) – in a few queries."""
     sent: dict[tuple[int, str], list[datetime]] = {}
     for start in range(0, len(loan_ids), 500):
         chunk = loan_ids[start:start + 500]
@@ -340,10 +340,10 @@ def _sent_logs(loan_ids: list[int]) -> dict[tuple[int, str], list[datetime]]:
 
 
 def collect_due(today: date | None = None) -> dict[int, dict]:
-    """Ermittelt je Benutzer, welche Ausleihen erinnert bzw. gemahnt werden müssen.
+    """Determines per user which loans need a reminder or an overdue notice.
 
-    Nach einer Verlängerung (Loan.due_changed_at) zählen frühere Erinnerungen und Mahnungen nicht mehr –
-    für die neue Frist wird wieder erinnert und gegebenenfalls gemahnt."""
+    After a renewal (Loan.due_changed_at), earlier reminders and overdue notices no longer count –
+    for the new due date, reminders and, if needed, overdue notices are sent again."""
     from sqlalchemy.orm import joinedload
     today = today or date.today()
     per_user: dict[int, dict] = {}
@@ -375,19 +375,19 @@ def collect_due(today: date | None = None) -> dict[int, dict]:
     return {uid: b for uid, b in per_user.items() if b["due_soon"] or b["overdue"]}
 
 
-RUN_LOCK_MINUTES = 30   # ein Versandlauf gilt höchstens so lange als „läuft“ (abgestürzter Prozess)
+RUN_LOCK_MINUTES = 30   # a send run counts as "running" for at most this long (crashed process)
 
 
 def _claim_run() -> str | None:
-    """Sperre für einen Versandlauf – „Jetzt senden“ und der tägliche Lauf in einem anderen Prozess dürfen sich nicht
-    überschneiden (sonst gehen Erinnerungen doppelt raus). Liefert das Kennzeichen zum Freigeben oder None."""
+    """Lock for a send run – "Send now" and the daily run in another process must not
+    overlap (otherwise reminders go out twice). Returns the token for releasing it, or None."""
     from datetime import timedelta
     key = "mail_running"
     if db.session.get(Setting, key) is None:
         try:
             db.session.add(Setting(key=key, value=""))
             db.session.commit()
-        except Exception:  # noqa: BLE001 – anderer Prozess war schneller
+        except Exception:  # noqa: BLE001 – another process was faster
             db.session.rollback()
     now = datetime.now()
     stale = (now - timedelta(minutes=RUN_LOCK_MINUTES)).isoformat(timespec="seconds")
@@ -405,7 +405,7 @@ def _release_run(token: str) -> None:
 
 
 def run_notifications(today: date | None = None) -> dict:
-    """Versendet Erinnerungen, Mahnungen und die Verwalter-Übersicht. Liefert eine Statistik."""
+    """Sends reminders, overdue notices and the librarian digest. Returns statistics."""
     stats = {"sent": 0, "errors": 0, "loans": 0, "digest": 0}
     if not mail_active():
         stats["skipped"] = "inactive"
@@ -441,7 +441,7 @@ def _run_notifications(stats: dict, today: date | None) -> dict:
                 ok_r, _err = send_mail(user.email, subject, text, html, kind="reminder", cfg=cfg, smtp=smtp,
                                     loan_ids=[l.id for l in bucket["due_soon"]], user_id=user.id)
             if bucket["overdue"]:
-                if bucket["due_soon"]:  # gleiche Mail, nur zusätzlich protokollieren
+                if bucket["due_soon"]:  # same mail, just log it additionally
                     for l in bucket["overdue"]:
                         db.session.add(MailLog(kind="overdue", to_addr=user.email, subject=subject,
                                                status="sent" if ok_r else "error", loan_id=l.id, user_id=user.id))
@@ -459,7 +459,7 @@ def _run_notifications(stats: dict, today: date | None) -> dict:
     finally:
         smtp.quit()
     if smtp.reconnect_failed and stats["errors"]:
-        # Server unterwegs nicht mehr erreichbar: den Tag freigeben, damit ein späterer Lauf den Rest nachholt
+        # server became unreachable along the way: release the day so a later run catches up on the rest
         stats["error"] = _("Verbindung zum Mailserver während des Versands verloren.")
     return stats
 
@@ -480,22 +480,22 @@ def _send_digests(cfg, smtp, today) -> int:
             continue
         if MailLog.query.filter(MailLog.kind == "digest", MailLog.user_id == m.id, MailLog.status == "sent",
                                 MailLog.created_at >= day_start).first():
-            continue   # heute schon verschickt (z. B. „Jetzt versenden“ oder send-reminders zusätzlich)
+            continue   # already sent today (e.g. "Send now" or send-reminders in addition)
         subject, text, html = render_mail("digest", user=m, loans=mine)
         ok, _err = send_mail(m.email, subject, text, html, kind="digest", cfg=cfg, smtp=smtp, user_id=m.id)
         sent += 1 if ok else 0
     return sent
 
 
-# ---------------------------------------------------------------- Zeitplan
+# ---------------------------------------------------------------- Schedule
 
 def _claim_today(today_str: str, key: str = "mail_last_run") -> bool:
-    """Atomar „heute laufe ich“ beanspruchen – verhindert Doppelläufe bei mehreren Prozessen."""
+    """Atomically claim "I'm running today" – prevents duplicate runs with multiple processes."""
     if db.session.get(Setting, key) is None:
         try:
             db.session.add(Setting(key=key, value=""))
             db.session.commit()
-        except Exception:  # noqa: BLE001 – anderer Prozess war schneller
+        except Exception:  # noqa: BLE001 – another process was faster
             db.session.rollback()
     res = db.session.execute(update(Setting).where(Setting.key == key, Setting.value != today_str)
                              .values(value=today_str))
@@ -503,7 +503,7 @@ def _claim_today(today_str: str, key: str = "mail_last_run") -> bool:
     return res.rowcount == 1
 
 
-RETRY_MINUTES = 15   # nach einem Verbindungsfehler frühestens so viel später erneut versuchen
+RETRY_MINUTES = 15   # after a connection error, retry no sooner than this much later
 
 
 def run_scheduled(now: datetime | None = None) -> dict | None:
@@ -521,7 +521,7 @@ def run_scheduled(now: datetime | None = None) -> dict | None:
         return None
     stats = run_notifications(now.date())
     if stats.get("error"):
-        # SMTP nicht erreichbar o. Ä.: Tag wieder freigeben, damit ein späterer Durchlauf nachholt
+        # SMTP unreachable or similar: release the day again so a later run catches up
         db.session.execute(update(Setting).where(Setting.key == "mail_last_run", Setting.value == today_str)
                            .values(value=previous or ""))
         set_setting("mail_retry_after", (now + timedelta(minutes=RETRY_MINUTES)).isoformat(timespec="seconds"))
@@ -534,7 +534,7 @@ def run_scheduled(now: datetime | None = None) -> dict | None:
 
 
 def stats_record(when: datetime, stats: dict, manual: bool = False) -> str:
-    """Ergebnis eines Laufs sprachneutral speichern (Anzeige in der Sprache des Betrachters)."""
+    """Store the result of a run language-neutrally (displayed in the viewer's language)."""
     import json
     return json.dumps({"at": when.isoformat(timespec="minutes"), "manual": manual, "stats": stats})
 
@@ -546,7 +546,7 @@ def last_result_text(raw: str) -> str:
         rec = json.loads(raw)
         at = datetime.fromisoformat(rec["at"])
     except (ValueError, TypeError, KeyError):
-        return raw or ""   # ältere Einträge (fertiger deutscher Text)
+        return raw or ""   # older entries (finished German text)
     label = format_datetime(at) + (" " + _("(manuell)") if rec.get("manual") else "")
     return f"{label}: {format_stats(rec.get('stats') or {})}"
 
@@ -567,7 +567,7 @@ def format_stats(stats: dict) -> str:
 
 
 def cleanup_unverified(days: int = 7) -> int:
-    """Selbst registrierte Konten, deren E-Mail nach X Tagen nicht bestätigt wurde, löschen."""
+    """Delete self-registered accounts whose e-mail was not confirmed after X days."""
     from datetime import timedelta
     limit = datetime.now() - timedelta(days=days)
     stale = User.query.filter(User.self_registered.is_(True), User.email_verified.is_(False),
@@ -576,7 +576,7 @@ def cleanup_unverified(days: int = 7) -> int:
     books = []
     for u in stale:
         if not u.active_loans:
-            books += delete_user(u)   # auch mit abgeschlossenen Ausleihen (sonst IntegrityError)
+            books += delete_user(u)   # also with completed loans (otherwise IntegrityError)
     if stale:
         db.session.commit()
         from .reservations import promote_after_delete
@@ -604,11 +604,11 @@ def start_scheduler(app, interval: int = 300):
                     from .lockout import cleanup as cleanup_lockouts
                     cleanup_unverified()
                     cleanup_lockouts()
-                    run_backup_daily()      # zuerst sichern, dann aufräumen
+                    run_backup_daily()      # back up first, then clean up
                     run_retention_daily()
                     from .reservations import enabled as reservations_on, expire_due
                     if reservations_on():
-                        expire_due()        # nicht abgeholte Vormerkungen: die nächste Person ist dran
+                        expire_due()        # uncollected reservations: it's the next person's turn
                     run_scheduled()
             except Exception:  # noqa: BLE001
                 log.exception("Error in the reminder schedule")
@@ -617,7 +617,7 @@ def start_scheduler(app, interval: int = 300):
     threading.Thread(target=loop, name="catalytix-mail", daemon=True).start()
 
     def directory_loop():
-        # Eigener Thread: ein langsames AD hält die Erinnerungen nicht auf
+        # separate thread: a slow AD doesn't hold up the reminders
         time.sleep(30)
         while True:
             try:

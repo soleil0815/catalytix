@@ -1,4 +1,4 @@
-"""Sicherheits- und Logikprüfungen aus der Überprüfung (Version 2.8.0)."""
+"""Security and logic checks from the review (version 2.8.0)."""
 import io
 import os
 import re
@@ -30,8 +30,8 @@ class Base(unittest.TestCase):
         self.ctx = self.app.app_context()
         self.ctx.push()
         db.create_all()
-        # Der Test hält einen App-Kontext offen; Flask nutzt ihn für jede Anfrage mit – samt „g“.
-        # Damit kein Benutzer von einer Anfrage zur nächsten (oder zwischen Clients) hängen bleibt:
+        # The test keeps an app context open; Flask shares it with every request – including "g".
+        # So that no user sticks around from one request to the next (or between clients):
         from flask import g
 
         def _fresh_user():
@@ -282,7 +282,7 @@ class LdapRecheckTests(Base):
             s["_fresh"] = True
 
     def directory(self, **kw):
-        """Verzeichnis ersetzen; liefert den Mock von check_account."""
+        """Replace the directory; returns the mock of check_account."""
         patcher = mock.patch("catalytix.ldap_auth.Directory")
         cls = patcher.start()
         self.addCleanup(patcher.stop)

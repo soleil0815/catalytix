@@ -1,4 +1,4 @@
-"""Datenmodell von Catalytix."""
+"""Catalytix data model."""
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
@@ -16,14 +16,14 @@ if TYPE_CHECKING:
 
 db = SQLAlchemy()
 
-# Basisklasse aller Tabellen. Für mypy ist sie (noch) Any: Die Spalten sind im alten Stil db.Column(...) geschrieben;
-# erst mit Mapped[...]-Spalten kennt mypy ihre Typen. Die Beziehungen sind schon typisiert (Mapped[...] unten).
+# Base class of all tables. For mypy it is (still) Any: the columns are written in the old db.Column(...) style;
+# only with Mapped[...] columns does mypy know their types. The relationships are already typed (Mapped[...] below).
 Model: Any = db.Model
 
 
 @event.listens_for(Engine, "connect")
 def _sqlite_pragmas(dbapi_connection: Any, _record: Any) -> None:
-    """Fremdschlüssel und WAL für SQLite aktivieren."""
+    """Enable foreign keys and WAL for SQLite."""
     if dbapi_connection.__class__.__module__.startswith("sqlite3"):
         cur = dbapi_connection.cursor()
         cur.execute("PRAGMA foreign_keys=ON")
@@ -31,7 +31,7 @@ def _sqlite_pragmas(dbapi_connection: Any, _record: Any) -> None:
         cur.close()
 
 
-MIN_PASSWORD_LENGTH = 10   # für alle neuen Passwörter (Einrichtung, Profil, Verwaltung, Registrierung)
+MIN_PASSWORD_LENGTH = 10   # for all new passwords (setup, profile, administration, registration)
 
 ROLE_READER = "reader"
 ROLE_LIBRARIAN = "librarian"
@@ -56,10 +56,10 @@ class Group(Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
     description = db.Column(db.String(500), default="")
-    # Optional: DN einer AD-Gruppe – Mitglieder werden beim Login automatisch zugeordnet
+    # Optional: DN of an AD group – members are assigned automatically at login
     ldap_dn = db.Column(db.String(500), default="")
     color = db.Column(db.String(16), default="#2f6f62")
-    # False = Präsenzbestand: Bücher der Gruppe werden nicht verliehen und nicht vorgemerkt
+    # False = "Präsenzbestand" (German UI term: reference-only stock): the group's books are not lent or reserved
     lendable = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
 
@@ -84,32 +84,32 @@ class User(UserMixin, Model):
     password_hash = db.Column(db.String(256))
     auth_source = db.Column(db.String(10), default="local")  # local | ldap
     ldap_dn = db.Column(db.String(500), default="")
-    ldap_guid = db.Column(db.String(64), default="", index=True)   # feste AD-Kennung (Umbenennungen erkennen)
-    ldap_gone_at = db.Column(db.DateTime)   # vom AD-Abgleich gesperrt (im AD deaktiviert/gelöscht/nicht berechtigt)
+    ldap_guid = db.Column(db.String(64), default="", index=True)   # fixed AD identifier (detect renames)
+    ldap_gone_at = db.Column(db.DateTime)   # disabled by the AD sync (disabled/deleted/not authorized in AD)
     role = db.Column(db.String(20), default=ROLE_READER, nullable=False)
     active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
     last_login = db.Column(db.DateTime)
     email_notifications = db.Column(db.Boolean, default=True, nullable=False)
-    # Selbstregistrierung
+    # Self-registration
     self_registered = db.Column(db.Boolean, default=False, nullable=False)
     email_verified = db.Column(db.Boolean, default=True, nullable=False)
     pending_approval = db.Column(db.Boolean, default=False, nullable=False)
-    # Zwei-Faktor-Anmeldung
-    totp_secret = db.Column(db.Text, default="")          # verschlüsselt (Fernet, Schlüssel aus SECRET_KEY)
+    # Two-factor login
+    totp_secret = db.Column(db.Text, default="")          # encrypted (Fernet, key derived from SECRET_KEY)
     totp_enabled = db.Column(db.Boolean, default=False, nullable=False)
-    totp_last_step = db.Column(db.Integer, default=0, nullable=False)  # gegen Wiederverwendung eines Codes
-    recovery_codes = db.Column(db.Text, default="")       # JSON-Liste gehashter Einmal-Codes
-    # Wird erhöht, um alle bestehenden Sitzungen und „Angemeldet bleiben“-Cookies ungültig zu machen
+    totp_last_step = db.Column(db.Integer, default=0, nullable=False)  # against reuse of a code
+    recovery_codes = db.Column(db.Text, default="")       # JSON list of hashed one-time codes
+    # Incremented to invalidate all existing sessions and "Remember me" cookies
     auth_epoch = db.Column(db.Integer, default=0, nullable=False)
-    # Sprache der Oberfläche und der E-Mails ("" = Browser bzw. Standardsprache)
+    # Language of the UI and e-mails ("" = browser or default language)
     language = db.Column(db.String(5), default="", nullable=False)
-    # Bis zu welcher Version die Neuigkeiten gesehen wurden; neue Konten starten beim aktuellen Stand.
-    # Bestehende Konten bekommen beim Nachrüsten NULL (siehe news.py) – deshalb ein Callable als Standardwert.
+    # Up to which version the news has been seen; new accounts start at the current state.
+    # Existing accounts get NULL when the column is added (see news.py) – hence a callable as the default.
     news_seen = db.Column(db.String(20), default=lambda: _app_version())
-    # War das Konto schon einer Gruppe zugeordnet? Dann macht das Wegfallen der letzten Gruppe (Gruppe gelöscht,
-    # im AD entfernt) aus einem Gruppen-Verwalter keinen Verwalter des gesamten Bestands. Nur ein Admin kann das
-    # ausdrücklich, indem er das Konto ohne Gruppe speichert.
+    # Was the account already assigned to a group? Then losing the last group (group deleted,
+    # removed in AD) doesn't turn a group librarian into a librarian of the entire collection. Only an admin can do
+    # that explicitly, by saving the account without a group.
     group_bound = db.Column(db.Boolean, default=False, nullable=False)
 
     groups: Mapped[list[Group]] = relationship("Group", secondary=user_groups, back_populates="users")
@@ -123,23 +123,23 @@ class User(UserMixin, Model):
         return bool(self.active)
 
     def get_id(self) -> str:
-        # Die Kennung enthält die „Sitzungs-Generation“: erhöht man sie, sind alle alten Sitzungen
-        # und Erinnerungs-Cookies dieses Kontos sofort ungültig.
+        # The ID contains the "session generation": incrementing it immediately invalidates all old sessions
+        # and remember-me cookies of this account.
         return f"{self.id}:{self.auth_epoch or 0}"
 
     def end_all_sessions(self) -> None:
         self.auth_epoch = (self.auth_epoch or 0) + 1
 
-    # --- Passwörter ---
+    # --- Passwords ---
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
-        if self.id is not None:   # bestehendes Konto: andere Geräte abmelden
+        if self.id is not None:   # existing account: log out other devices
             self.end_all_sessions()
 
     def check_password(self, password: str) -> bool:
         return bool(self.password_hash) and check_password_hash(self.password_hash, password)
 
-    # --- Rollen ---
+    # --- Roles ---
     @property
     def is_admin(self) -> bool:
         return bool(self.role == ROLE_ADMIN)
@@ -167,7 +167,7 @@ class User(UserMixin, Model):
 
     @property
     def is_global_manager(self) -> bool:
-        """Admins und Verwalter ohne Gruppenzuordnung verwalten den gesamten Bestand."""
+        """Admins and librarians without a group assignment manage the entire collection."""
         return self.is_admin or (self.role == ROLE_LIBRARIAN and not self.groups and not self.group_bound)
 
     def can_see(self, book: "Book", catalog_all: bool = False) -> bool:
@@ -176,7 +176,7 @@ class User(UserMixin, Model):
         return book.group_id in self.group_ids
 
     def can_borrow(self, book: "Book") -> bool:
-        """Leser dürfen nur Bücher ihrer Gruppen (oder allgemeine Bücher) ausleihen."""
+        """Readers may only borrow books of their groups (or general books)."""
         if book.group_id is None or self.is_global_manager:
             return True
         return book.group_id in self.group_ids
@@ -218,8 +218,8 @@ class Book(Model):
     category = db.Column(db.String(200), default="")
     tags = db.Column(db.String(500), default="")
     description = db.Column(db.Text, default="")
-    location = db.Column(db.String(200), default="")  # Standort / Regal
-    signature = db.Column(db.String(100), default="")  # Signatur / Inventarnummer
+    location = db.Column(db.String(200), default="")  # location / shelf
+    signature = db.Column(db.String(100), default="")  # call number / inventory number
     cover_url = db.Column(db.String(1000), default="")
     cover_file = db.Column(db.String(200), default="")
     copies = db.Column(db.Integer, default=1, nullable=False)
@@ -227,7 +227,7 @@ class Book(Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
-    # Anzahl früherer Ausleihen, deren Einzeldaten nach Ablauf der Aufbewahrungsfrist gelöscht wurden
+    # Number of earlier loans whose individual data was deleted after the retention period expired
     archived_loans = db.Column(db.Integer, default=0, nullable=False)
 
     group: Mapped[Group | None] = relationship("Group", back_populates="books")
@@ -243,26 +243,26 @@ class Book(Model):
 
     @property
     def open_reservations(self) -> list[Reservation]:
-        """Vormerkungen in der Warteschlange und bereitgelegte – in der Reihenfolge der Warteschlange."""
+        """Reservations in the queue and those on hold – in queue order."""
         return [r for r in self.reservations if r.status in (RES_WAITING, RES_READY)]
 
     @property
     def held(self) -> int:
-        """Exemplare, die für eine Vormerkung zurückgelegt sind."""
+        """Copies held for a reservation."""
         return sum(1 for r in self.reservations if r.status == RES_READY)
 
     @property
     def lendable(self) -> bool:
-        """False, wenn das Buch zu einer Gruppe ohne Verleih gehört (Präsenzbestand)."""
+        """False if the book belongs to a group without lending ("Präsenzbestand", German UI term: reference-only)."""
         return not (self.group and self.group.lendable is False)
 
     @property
     def available(self) -> int:
-        """Frei für alle: Exemplare minus Ausleihen minus zurückgelegte."""
+        """Available for everyone: copies minus loans minus held copies."""
         return max(0, (self.copies or 0) - len(self.active_loans) - self.held)
 
     def available_for(self, user: object) -> int:
-        """Frei für diese Person – ein für sie zurückgelegtes Exemplar zählt mit."""
+        """Available for this person – a copy held for them counts as available."""
         mine = any(r.status == RES_READY and r.user_id == getattr(user, "id", None) for r in self.reservations)
         return self.available + (1 if mine else 0)
 
@@ -272,7 +272,7 @@ class Book(Model):
         if self.cover_file:
             return url_for("books.cover", filename=self.cover_file)
         if self.cover_url and self.id:
-            # nie direkt vom Fremdserver – der eigene Server lädt das Bild einmal und speichert es
+            # never directly from the external server – our own server downloads the image once and stores it
             return url_for("books.cover_remote", book_id=self.id)
         return ""
 
@@ -292,12 +292,12 @@ class Loan(Model):
     due_at = db.Column(db.Date, nullable=False)
     returned_at = db.Column(db.DateTime)
     extensions = db.Column(db.Integer, default=0, nullable=False)
-    # Zeitpunkt der letzten Änderung der Frist (Verlängerung): Erinnerungen und Mahnungen davor zählen nicht mehr
+    # Time of the last due-date change (renewal): reminders and overdue notices before it no longer count
     due_changed_at = db.Column(db.DateTime)
     note = db.Column(db.String(500), default="")
 
-    # Höchstens eine offene Ausleihe je Buch und Person (Schutz vor gleichzeitigen Anfragen).
-    # Teil-Indizes gibt es nur in SQLite und PostgreSQL; MySQL/MariaDB verlässt sich auf die Zeilensperre.
+    # At most one open loan per book and person (protection against concurrent requests).
+    # Partial indexes exist only in SQLite and PostgreSQL; MySQL/MariaDB relies on the row lock.
     __table_args__ = (
         db.Index("uq_loans_active_book_user", "book_id", "user_id", unique=True,
                  sqlite_where=db.text("returned_at IS NULL"),
@@ -324,12 +324,12 @@ class Loan(Model):
 
 
 class WebAuthnCredential(Model):
-    """Sicherheitsschlüssel (YubiKey & Co.) bzw. Passkey eines Benutzers."""
+    """A user's security key (YubiKey & co.) or passkey."""
     __tablename__ = "webauthn_credentials"
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     name = db.Column(db.String(100), default="Sicherheitsschlüssel")
-    rp_id = db.Column(db.String(253), nullable=False)          # Domain, für die der Schlüssel gilt
+    rp_id = db.Column(db.String(253), nullable=False)          # domain the key is valid for
     credential_id = db.Column(db.String(1400), nullable=False, index=True)  # websafe-base64
     credential_data = db.Column(db.Text, nullable=False)       # AttestedCredentialData (base64)
     sign_count = db.Column(db.Integer, default=0, nullable=False)
@@ -341,8 +341,8 @@ class WebAuthnCredential(Model):
 
 
 class MailLog(Model):
-    """Protokoll aller versendeten (oder fehlgeschlagenen) E-Mails – dient auch dazu,
-    Erinnerungen nicht doppelt zu verschicken."""
+    """Log of all sent (or failed) e-mails – also used to avoid
+    sending reminders twice."""
     __tablename__ = "mail_log"
     id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, index=True)
@@ -356,7 +356,7 @@ class MailLog(Model):
 
 
 class Location(Model):
-    """Festgelegter Standort (Regal, Raum …) – zur Auswahl beim Erfassen, gegen Tippfehler."""
+    """Predefined location (shelf, room …) – for selection when cataloging, against typos."""
     __tablename__ = "locations"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False, unique=True)
@@ -365,34 +365,34 @@ class Location(Model):
 
 
 class LoginAttempt(Model):
-    """Fehlgeschlagener Anmeldeversuch (für die zeitweise Sperre, siehe lockout.py)."""
+    """Failed login attempt (for the temporary lockout, see lockout.py)."""
     __tablename__ = "login_attempts"
     id = db.Column(db.Integer, primary_key=True)
-    key = db.Column(db.String(300), nullable=False, index=True)       # z. B. "anna|203.0.113.5" oder "2fa|anna|…"
+    key = db.Column(db.String(300), nullable=False, index=True)       # e.g. "anna|203.0.113.5" or "2fa|anna|…"
     username = db.Column(db.String(200), nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, index=True)
-    ip = db.Column(db.String(64), default="", index=True)          # Adresse (Bremse je Adresse über alle Konten)
-    internal = db.Column(db.Boolean, default=False)                 # aus dem internen Netz?
+    ip = db.Column(db.String(64), default="", index=True)          # address (throttle per address across all accounts)
+    internal = db.Column(db.Boolean, default=False)                 # from the internal network?
 
 
 class DirectoryPerson(Model):
-    """Zwischenspeicher der AD-Personen, die die Bibliothek nutzen dürfen – nur für die schnelle Suche beim Verleihen.
+    """Cache of AD people allowed to use the library – only for fast searching when lending.
 
-    Wird im Hintergrund abgeglichen (people.sync_directory). Im AD deaktivierte, gelöschte oder nicht mehr
-    berechtigte Personen fliegen dabei heraus. Verliehen wird nie aufgrund dieses Eintrags: dafür fragt
-    Catalytix das AD immer frisch."""
+    Synced in the background (people.sync_directory). People disabled, deleted or no longer
+    authorized in AD are removed in the process. Lending never relies on this entry: for that,
+    Catalytix always queries AD fresh."""
     __tablename__ = "directory_people"
     id = db.Column(db.Integer, primary_key=True)
-    username_key = db.Column(db.String(200), nullable=False, unique=True)   # Benutzername in Kleinbuchstaben
+    username_key = db.Column(db.String(200), nullable=False, unique=True)   # username in lowercase
     username = db.Column(db.String(200), nullable=False)
     guid = db.Column(db.String(64), default="")
     display_name = db.Column(db.String(300), default="")
     email = db.Column(db.String(300), default="")
     dn = db.Column(db.String(1000), default="")
     role = db.Column(db.String(20), default="")
-    groups = db.Column(db.Text, default="")          # Gruppen-DNs, eine pro Zeile
-    group_key = db.Column(db.String(64), default="")  # Prüfsumme der direkten Gruppen – unverändert = nicht neu auflösen
-    resolved_at = db.Column(db.DateTime)             # letzte vollständige (verschachtelte) Gruppenauflösung
+    groups = db.Column(db.Text, default="")          # group DNs, one per line
+    group_key = db.Column(db.String(64), default="")  # checksum of direct groups – unchanged = don't re-resolve
+    resolved_at = db.Column(db.DateTime)             # last full (nested) group resolution
     synced_at = db.Column(db.DateTime, default=datetime.now)
 
 
@@ -400,8 +400,8 @@ RES_WAITING, RES_READY, RES_DONE, RES_CANCELLED, RES_EXPIRED = "waiting", "ready
 
 
 class Reservation(Model):
-    """Vormerkung: Warteschlange je Buch. Wird ein Exemplar frei, ist es für die erste Person zurückgelegt
-    (ready, bis hold_until); mit der Ausleihe an sie ist die Vormerkung erledigt (done)."""
+    """Reservation: queue per book. When a copy becomes available, it is held for the first person
+    (ready, until hold_until); once it is lent to them, the reservation is done (done)."""
     __tablename__ = "reservations"
     id = db.Column(db.Integer, primary_key=True)
     book_id = db.Column(db.Integer, db.ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True)
@@ -409,8 +409,8 @@ class Reservation(Model):
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
     status = db.Column(db.String(12), default=RES_WAITING, nullable=False, index=True)
     ready_at = db.Column(db.DateTime)
-    hold_until = db.Column(db.Date)          # bereitgelegt bis einschließlich diesem Tag
-    closed_at = db.Column(db.DateTime)       # erledigt, storniert oder abgelaufen
+    hold_until = db.Column(db.Date)          # held up to and including this day
+    closed_at = db.Column(db.DateTime)       # done, cancelled or expired
 
     book: Mapped[Book] = relationship("Book", back_populates="reservations")
     user: Mapped[User] = relationship("User", back_populates="reservations")
@@ -428,7 +428,7 @@ class Setting(Model):
 
 DEFAULT_SETTINGS = {
     "library_name": "Bibliothek",
-    "default_language": "de",   # Sprache für Besucher ohne eigene Wahl und für E-Mails
+    "default_language": "de",   # language for visitors without their own choice and for e-mails
     "loan_days": "28",
     "extension_days": "14",
     "max_extensions": "2",
@@ -436,9 +436,9 @@ DEFAULT_SETTINGS = {
     "self_checkout": "1",
     "self_return": "0",
     "self_extend": "1",
-    "reservations_enabled": "0",      # Vormerken (Reservieren) verliehener Bücher
-    "reservation_hold_days": "7",     # so lange liegt ein frei gewordenes Exemplar für die Person bereit
-    "reservation_max": "5",           # offene Vormerkungen je Person (0 = unbegrenzt)
+    "reservations_enabled": "0",      # reserving books that are on loan
+    "reservation_hold_days": "7",     # how long a copy that became available is held for the person
+    "reservation_max": "5",           # open reservations per person (0 = unlimited)
     "catalog_visibility": "groups",  # groups | all
     "isbn_sources": "dnb,openlibrary,google",
     "cache_covers": "1",
@@ -448,7 +448,7 @@ DEFAULT_SETTINGS = {
     "ldap_security": "none",  # none | starttls | ldaps
     "ldap_verify_cert": "1",
     "ldap_ca_file": "",
-    "ldap_tls_certs": "",       # vom DC abgerufene und bestätigte Zertifikate (PEM)
+    "ldap_tls_certs": "",       # certificates fetched from the DC and confirmed (PEM)
     "ldap_check_hostname": "1",
     "ldap_bind_dn": "",
     "ldap_bind_password": "",
@@ -462,9 +462,9 @@ DEFAULT_SETTINGS = {
     "ldap_nested_groups": "1",
     "ldap_group_sync": "1",
     "ldap_timeout": "8",
-    "ldap_cache_enabled": "1",  # AD-Personen für die Suche zwischenspeichern (Abgleich im Hintergrund)
-    "ldap_cache_hours": "1",    # Abgleich alle X Stunden
-    # E-Mail (SMTP)
+    "ldap_cache_enabled": "1",  # cache AD people for search (synced in the background)
+    "ldap_cache_hours": "1",    # sync every X hours
+    # E-mail (SMTP)
     "mail_enabled": "0",
     "smtp_host": "",
     "smtp_port": "587",
@@ -485,28 +485,28 @@ DEFAULT_SETTINGS = {
     "mail_overdue_max": "3",
     "mail_digest": "0",
     "mail_hour": "7",
-    "backup_enabled": "1",     # tägliche Datensicherung (nur SQLite)
-    "backup_keep": "10",       # Anzahl aufbewahrter Sicherungen
-    "backup_hour": "2",        # ab dieser Uhrzeit
-    "retention_months": "12",  # abgeschlossene Ausleihen und Mail-Protokoll nach X Monaten löschen; 0 = nie
-    "mfa_internal": "same",    # Zwei-Faktor im internen Netz: same | optional | skip
-    "internal_networks": "",   # leer = private Netze (10/8, 172.16/12, 192.168/16, fc00::/7)
-    "own_public_hosts": "",    # eigener Anschluss: feste IP oder DynDNS-Name, gilt ebenfalls als intern
+    "backup_enabled": "1",     # daily backup (SQLite only)
+    "backup_keep": "10",       # number of backups kept
+    "backup_hour": "2",        # from this hour on
+    "retention_months": "12",  # delete completed loans and mail log after X months; 0 = never
+    "mfa_internal": "same",    # two-factor on the internal network: same | optional | skip
+    "internal_networks": "",   # empty = private networks (10/8, 172.16/12, 192.168/16, fc00::/7)
+    "own_public_hosts": "",    # own connection: static IP or DynDNS name, also counts as internal
     "mail_footer": "",
     "mail_last_run": "",
     "mail_last_result": "",
-    # Zwei-Faktor-Anmeldung: optional | admins | librarians | all
+    # Two-factor login: optional | admins | librarians | all
     "mfa_policy": "optional",
-    # Selbstregistrierung: off | approval | open
+    # Self-registration: off | approval | open
     "registration_mode": "off",
     "registration_verify_email": "1",
     "registration_domains": "",
     "registration_group_id": "",
-    "registration_privacy_url": "",  # bis 2.0; wird in privacy_url übernommen
+    "registration_privacy_url": "",  # up to 2.0; carried over into privacy_url
     "imprint_url": "",
     "privacy_url": "",
     "registration_notify_admins": "1",
-    # Erscheinungsbild
+    # Appearance
     "brand_logo": "",
     "brand_favicon": "",
     "brand_bg": "",
@@ -522,7 +522,7 @@ DEFAULT_SETTINGS = {
 }
 
 
-# Zugangsdaten, die nur verschlüsselt in der Datenbank (und damit in Sicherungen) stehen
+# Credentials that are stored only encrypted in the database (and thus in backups)
 SECRET_SETTINGS = {"ldap_bind_password", "smtp_password"}
 _ENC = "enc:"
 
@@ -538,17 +538,17 @@ def _secret_box() -> Fernet:
 
 def _decrypt_setting(key: str, value: str) -> str:
     if not value.startswith(_ENC):
-        return value          # Altbestand – wird beim Start verschlüsselt
+        return value          # legacy data – encrypted at startup
     try:
         return str(_secret_box().decrypt(value[len(_ENC):].encode()).decode())
-    except Exception:  # noqa: BLE001 – z. B. anderer Sitzungsschlüssel
+    except Exception:  # noqa: BLE001 – e.g. a different session key
         import logging
         logging.getLogger(__name__).warning("Stored secret %s not readable – please enter it again", key)
         return ""
 
 
 def encrypt_stored_secrets() -> int:
-    """Noch im Klartext gespeicherte Zugangsdaten verschlüsseln (einmalig nach dem Update)."""
+    """Encrypt credentials still stored in plain text (once after the update)."""
     n = 0
     for key in SECRET_SETTINGS:
         row = db.session.get(Setting, key)
@@ -600,7 +600,7 @@ def default_due_date() -> date:
 
 
 def visible_books_query(user: User) -> Any:
-    """Query der Bücher, die ein Benutzer im Katalog sehen darf."""
+    """Query of the books a user may see in the catalog."""
     q = Book.query
     if user.is_global_manager or get_setting("catalog_visibility") == "all":
         return q
@@ -617,7 +617,7 @@ def manageable_books_query(user: User) -> Any:
 
 
 def occupied_counts() -> Any:
-    """Unterabfrage book_id → n: offene Ausleihen plus zurückgelegte Vormerkungen je Buch."""
+    """Subquery book_id → n: open loans plus held reservations per book."""
     from sqlalchemy import literal, union_all
     loans = db.session.query(Loan.book_id.label("book_id"), literal(1).label("one")).filter(Loan.returned_at.is_(None))
     held = db.session.query(Reservation.book_id.label("book_id"), literal(1).label("one")).filter(
@@ -639,7 +639,7 @@ def _mark_group_bound(user: User, _group: Group, _initiator: Any) -> None:
 
 
 def _add_column_ddl(table: Any, col: Any, dialect: Any) -> list[str]:
-    """SQL zum Nachrüsten einer Spalte (Bezeichner korrekt gequotet, z. B. `groups`/"key")."""
+    """SQL for adding a column (identifiers correctly quoted, e.g. `groups`/"key")."""
     from sqlalchemy import literal
 
     prep = dialect.identifier_preparer
@@ -651,7 +651,7 @@ def _add_column_ddl(table: Any, col: Any, dialect: Any) -> list[str]:
         return [ddl]
     lit = literal(default, col.type).compile(dialect=dialect, compile_kwargs={"literal_binds": True})
     if dialect.name in ("mysql", "mariadb") and any(t in coltype.upper() for t in ("TEXT", "BLOB", "JSON")):
-        # MySQL erlaubt für TEXT/BLOB keinen DEFAULT-Wert: Spalte ohne anlegen, Bestand danach füllen
+        # MySQL allows no DEFAULT value for TEXT/BLOB: create the column without one, then fill existing rows
         return [ddl, f"UPDATE {tname} SET {cname} = {lit}"]
     ddl += f" DEFAULT {lit}"
     if not col.nullable:
@@ -663,20 +663,20 @@ ACTIVE_LOAN_INDEX = ("CREATE UNIQUE INDEX IF NOT EXISTS uq_loans_active_book_use
                      "ON loans (book_id, user_id) WHERE returned_at IS NULL")
 
 
-LATE_INDEXES = {"ix_users_ldap_guid", "ix_login_attempts_ip"}   # Indizes neuer Spalten, die bestehende Datenbanken beim Start bekommen
+LATE_INDEXES = {"ix_users_ldap_guid", "ix_login_attempts_ip"}   # indexes of new columns, added to existing DBs at start
 
 
 def ensure_indexes() -> bool:
-    """Indizes nachziehen, die db.create_all() bei bestehenden Tabellen nicht anlegt.
+    """Add indexes that db.create_all() does not create for existing tables.
 
-    Liefert False, wenn der Index wegen vorhandener doppelter offener Ausleihen nicht angelegt werden
-    konnte – dann bleibt es bei einer Warnung im Protokoll, der Start läuft weiter."""
+    Returns False if the index could not be created because of existing duplicate open loans
+    – then a warning in the log is all that happens, and startup continues."""
     import logging
 
     from sqlalchemy import inspect, text
 
     insp = inspect(db.engine)
-    # Indizes auf Spalten, die erst per ensure_columns dazukamen (gezielt – keine alten Indizes beim Start nachbauen)
+    # Indexes on columns only added via ensure_columns (targeted – don't rebuild old indexes at startup)
     for table in db.metadata.sorted_tables:
         if not insp.has_table(table.name):
             continue
@@ -686,7 +686,7 @@ def ensure_indexes() -> bool:
                 continue
             try:
                 index.create(db.engine)
-            except Exception as exc:  # noqa: BLE001 – z. B. gleichzeitig von einem anderen Prozess angelegt
+            except Exception as exc:  # noqa: BLE001 – e.g. created at the same time by another process
                 logging.getLogger(__name__).debug("Index %s not created: %s", index.name, exc)
 
     if db.engine.dialect.name not in ("sqlite", "postgresql") or not insp.has_table("loans"):
@@ -694,7 +694,7 @@ def ensure_indexes() -> bool:
     try:
         with db.engine.begin() as conn:
             conn.execute(text(ACTIVE_LOAN_INDEX))
-    except Exception as exc:  # noqa: BLE001 – z. B. IntegrityError bei Altdaten
+    except Exception as exc:  # noqa: BLE001 – e.g. IntegrityError with legacy data
         logging.getLogger(__name__).warning(
             "Unique index for open loans not created (duplicate open loans present?): %s", exc)
         return False
@@ -702,19 +702,19 @@ def ensure_indexes() -> bool:
 
 
 def lendable_books() -> Any:
-    """SQL-Bedingung: Bücher ohne Gruppe oder in einer Gruppe, die verliehen wird (kein Präsenzbestand)."""
+    """SQL condition: books without a group or in a group that lends (not reference-only stock)."""
     from sqlalchemy import or_, select
     return or_(Book.group_id.is_(None),
                ~Book.group_id.in_(select(Group.id).where(Group.lendable.is_(False))))
 
 
 def ensure_columns() -> list[str]:
-    """Einfache Schema-Aktualisierung: fehlende Spalten bestehender Tabellen ergänzen.
+    """Simple schema update: add missing columns to existing tables.
 
-    db.create_all() legt nur neue Tabellen an. Kommen in einer neuen Version Spalten hinzu,
-    werden sie hier per ALTER TABLE nachgezogen (SQLite, MySQL/MariaDB, PostgreSQL).
-    Jede Spalte in eigener Transaktion; hat ein anderer Prozess sie gerade angelegt
-    („duplicate column“), wird das übersprungen."""
+    db.create_all() only creates new tables. If a new version adds columns,
+    they are added here via ALTER TABLE (SQLite, MySQL/MariaDB, PostgreSQL).
+    Each column in its own transaction; if another process has just created it
+    ("duplicate column"), it is skipped."""
     import logging
     from sqlalchemy import inspect, text
     from sqlalchemy.exc import DBAPIError

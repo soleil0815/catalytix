@@ -1,5 +1,5 @@
-"""3.0.0: Datenbank-Version beim Start (Sicherung vor dem Versionswechsel, Abbruch bei neuerer Datenbank),
-Zurückspielen für update.sh (restore-before / restore-for-version) und Versionsprüfung der docker-compose.yml."""
+"""3.0.0: database version at start-up (backup before the version change, abort on a newer database),
+restore for update.sh (restore-before / restore-for-version) and version check of docker-compose.yml."""
 import os
 import re
 import shutil
@@ -74,23 +74,23 @@ class StartupTests(Base):
 
     def test_database_from_before_3_is_backed_up_first(self):
         self.app()
-        set_stamp(self.db, None)                     # wie eine Datenbank von 2.x
+        set_stamp(self.db, None)                     # like a database from 2.x
         self.app()
         names = self.backups_named(rf"-vor-{re.escape(__version__)}\.db$")
         self.assertEqual(len(names), 1, self.backups_named())
-        self.assertIsNone(stamp_of(self.backups / names[0]))       # Stand VOR der Umstellung
+        self.assertIsNone(stamp_of(self.backups / names[0]))       # state BEFORE the migration
         self.assertEqual(stamp_of(self.db), __version__)
 
     def test_older_version_backed_up_once(self):
         self.app()
         set_stamp(self.db, "2.99.0")
         self.app()
-        self.app()                                   # gleicher Stand: keine weitere Sicherung
+        self.app()                                   # same state: no further backup
         self.assertEqual(len(self.backups_named("-vor-")), 1)
         self.assertEqual(stamp_of(self.backups / self.backups_named("-vor-")[0]), "2.99.0")
 
     def test_restart_loop_does_not_fill_the_disk(self):
-        # Regression (Review 3.0.0): bricht die Migration ab, sicherte jeder Neustart erneut
+        # Regression (Review 3.0.0): if the migration aborted, every restart made another backup
         self.app()
         set_stamp(self.db, "2.99.0")
         with mock.patch("catalytix._migrate_and_init", side_effect=RuntimeError("migration kaputt")):
@@ -98,10 +98,10 @@ class StartupTests(Base):
                 with self.assertRaises(RuntimeError):
                     self.app()
         self.assertEqual(len(self.backups_named("-vor-")), 1)
-        self.app()                                                    # repariert: läuft durch
+        self.app()                                                    # fixed: runs through
         self.assertEqual(len(self.backups_named("-vor-")), 1)
         self.assertEqual(stamp_of(self.db), __version__)
-        set_stamp(self.db, "2.99.1")                                  # nächster Versionswechsel: wieder sichern
+        set_stamp(self.db, "2.99.1")                                  # next version change: back up again
         self.app()
         self.assertEqual(len(self.backups_named("-vor-")), 2)
 
@@ -114,7 +114,7 @@ class StartupTests(Base):
         msg = str(cm.exception)
         self.assertIn("99.0.0", msg)
         self.assertIn(__version__, msg)
-        self.assertIn("vor-99.0.0", msg)                             # welche Sicherungen passen
+        self.assertIn("vor-99.0.0", msg)                             # which backups match
         self.assertIn(f"./update.sh --version={__version__}", msg)
         self.assertIn("CATALYTIX_TAG=99.0.0", msg)
         self.assertEqual(self.db.read_bytes(), before)
@@ -128,7 +128,7 @@ class StartupTests(Base):
             with self.assertRaises(dbversion.StartupRefused) as cm:
                 self.app()
         self.assertIn("not starting", str(cm.exception))
-        self.assertNotIsInstance(cm.exception, SystemExit)          # gunicorn soll anhalten, nicht neu starten
+        self.assertNotIsInstance(cm.exception, SystemExit)          # gunicorn should stop, not restart
         self.assertEqual(stamp_of(self.db), "2.99.0")
 
     def test_other_databases_get_a_hint_instead_of_a_backup(self):
@@ -148,8 +148,8 @@ class StartupTests(Base):
         self.assertEqual(stamp_of(self.db), "99.0.0")
 
 
-# Unabhängig von der Programmversion: Datenbank von der laufenden Version (beim Start keine eigene Sicherung),
-# danach ein Update auf eine höhere Version.
+# Independent of the program version: database from the running version (no backup of its own at start-up),
+# then an update to a higher version.
 OLD = __version__
 NEW = f"{dbversion.vtuple(__version__)[0]}.{dbversion.vtuple(__version__)[1] + 1}.0"
 
@@ -164,7 +164,7 @@ class RestoreCommandTests(Base):
         return res
 
     def prepare_update(self, old=OLD, new=NEW):
-        """Datenbank von <old>, beim Start von <new> gesichert, danach von <new> geändert."""
+        """Database from <old>, backed up when <new> starts, then changed by <new>."""
         self.app()
         set_stamp(self.db, old)
         from catalytix.backup import create_backup
@@ -185,7 +185,7 @@ class RestoreCommandTests(Base):
         with mock.patch.dict(os.environ, {dbversion.SKIP_ENV: "1"}):
             res = self.cli("restore-before", NEW, "--since", str(int(time.time()) + 3600), "--yes")
         self.assertEqual(res.exit_code, 3, res.output)
-        self.assertEqual(stamp_of(self.db), NEW)    # nichts überschrieben
+        self.assertEqual(stamp_of(self.db), NEW)    # nothing overwritten
 
     def test_restore_before_takes_the_first_backup_of_this_run(self):
         self.prepare_update()
@@ -193,7 +193,7 @@ class RestoreCommandTests(Base):
         from datetime import datetime, timedelta
         with mock.patch.dict(os.environ, {dbversion.SKIP_ENV: "1"}):
             app = self.app()
-            with app.app_context():                                   # späterer, halb umgestellter Versuch
+            with app.app_context():                                   # later, half-migrated attempt
                 p = create_backup(f"-vor-{NEW}", now=datetime.now() + timedelta(seconds=5), rotate_after=False)
             res = self.cli("restore-before", NEW, "--since", str(int(time.time()) - 60), "--yes")
         self.assertNotIn(p.name, res.output)
@@ -207,13 +207,13 @@ class RestoreCommandTests(Base):
         self.assertEqual(res.exit_code, 4, res.output)
 
     def test_restore_for_version_takes_newest_usable_backup(self):
-        self.prepare_update()                                         # vor-NEW enthält den Stand von OLD
+        self.prepare_update()                                         # before-NEW contains the state of OLD
         from catalytix.backup import create_backup
         with mock.patch.dict(os.environ, {dbversion.SKIP_ENV: "1"}):
             app = self.app()
             with app.app_context():
                 time.sleep(1.1)
-                create_backup("-manuell", rotate_after=False)         # später, aber von 3.1.0
+                create_backup("-manuell", rotate_after=False)         # later, but from 3.1.0
         with mock.patch.dict(os.environ, {dbversion.SKIP_ENV: "1"}):
             res = self.cli("restore-for-version", OLD, "--yes")
         self.assertEqual(res.exit_code, 0, res.output)
@@ -235,7 +235,7 @@ class RestoreCommandTests(Base):
                 create_backup("", now=t + timedelta(hours=1, minutes=i), rotate_after=False)
             rotate(keep=2)
             kinds = [(b["kind"], b["before_version"]) for b in list_backups()]
-        self.assertEqual(sum(1 for k, v in kinds if v), 3)            # die neuesten 3 „vor Update“
+        self.assertEqual(sum(1 for k, v in kinds if v), 3)            # the newest 3 "before update"
         self.assertEqual(sum(1 for k, v in kinds if not v), 2)
         self.assertIn(("vor Update", "3.3.0"), kinds)
 
@@ -249,7 +249,7 @@ class ComposeFileTests(unittest.TestCase):
     def test_versions(self):
         with mock.patch.dict(os.environ, {"CATALYTIX_IN_CONTAINER": "1"}):
             os.environ.pop("CATALYTIX_COMPOSE", None)
-            self.assertEqual(composefile.outdated(), 0)                # alte Datei ohne Angabe
+            self.assertEqual(composefile.outdated(), 0)                # old file without the entry
             os.environ["CATALYTIX_COMPOSE"] = str(composefile.COMPOSE_MIN - 1)
             self.assertEqual(composefile.outdated(), composefile.COMPOSE_MIN - 1)
             os.environ["CATALYTIX_COMPOSE"] = str(composefile.COMPOSE_MIN)
@@ -268,8 +268,8 @@ class ComposeFileTests(unittest.TestCase):
         compose = (ROOT / "docker-compose.yml").read_text()
         self.assertNotIn("build:", compose)
         self.assertIn('image: "${CATALYTIX_IMAGE:-ghcr.io/soleil0815/catalytix}:${CATALYTIX_TAG:-latest}"', compose)
-        self.assertNotIn(__version__, compose)                          # ändert sich nicht mit jeder Version
-        self.assertNotIn("version:", compose)                           # auch docker-compose 1.27+ liest sie
+        self.assertNotIn(__version__, compose)                          # does not change with every version
+        self.assertNotIn("version:", compose)                           # docker-compose 1.27+ reads it too
 
     def test_image_brings_only_host_files(self):
         df = (ROOT / "Dockerfile").read_text()

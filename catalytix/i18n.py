@@ -1,17 +1,17 @@
-"""Mehrsprachigkeit (Deutsch / Englisch) ohne zusätzliche Abhängigkeiten.
+"""Multilingual support (German / English) without additional dependencies.
 
-Grundsätze
-- Der deutsche Text ist zugleich der Schlüssel: ``_("Buch erfassen")``. Fehlt eine Übersetzung,
-  erscheint der deutsche Text – nichts geht kaputt.
-- Platzhalter in geschweiften Klammern: ``_("{n} Bücher angepasst", n=3)``.
-- Einzahl/Mehrzahl: ``_n("{n} Buch", "{n} Bücher", n)``.
-- In Templates liefert ``_`` sicheres Markup: Der (von uns geschriebene) Text darf einfache
-  Auszeichnungen wie <b> enthalten, eingesetzte Werte werden immer maskiert.
-- Für Texte, die beim Import entstehen (z. B. Rollennamen), gibt es ``_l`` (wird erst bei der
-  Ausgabe übersetzt).
+Principles
+- The German text is also the key: ``_("Buch erfassen")``. If a translation is missing,
+  the German text is shown – nothing breaks.
+- Placeholders in curly braces: ``_("{n} Bücher angepasst", n=3)``.
+- Singular/plural: ``_n("{n} Buch", "{n} Bücher", n)``.
+- In templates ``_`` returns safe markup: the text (written by us) may contain simple
+  markup such as <b>; inserted values are always escaped.
+- For texts created at import time (e.g. role names) there is ``_l`` (translated only when
+  rendered).
 
-Sprache einer Anfrage: Wahl des Benutzers (Profil) → Wahl auf der Anmeldeseite (Sitzung) →
-Browser-Sprache → Standardsprache aus den Einstellungen → Deutsch.
+Language of a request: the user's choice (profile) → choice on the login page (session) →
+browser language → default language from the settings → German.
 """
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ def catalog(lang: str) -> dict[str, str]:
             _catalogs[lang] = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
         except (OSError, ValueError):
             _catalogs[lang] = {}
-        # Nur für die Entwicklung: zusätzliche Katalogteile aus einem Ordner einmischen
+        # Development only: merge in additional catalog parts from a folder
         import os
         extra = os.environ.get("CATALYTIX_I18N_PARTS")
         if extra and lang == "en":
@@ -58,7 +58,7 @@ def default_language() -> str:
     try:
         from .models import get_setting
         return normalize(get_setting("default_language")) or DEFAULT
-    except Exception:  # noqa: BLE001 – z. B. ohne App-Kontext
+    except Exception:  # noqa: BLE001 – e.g. without an app context
         return DEFAULT
 
 
@@ -92,7 +92,7 @@ def get_locale() -> str:
 
 
 def user_language(user) -> str:
-    """Sprache für E-Mails an einen Benutzer (ohne laufende Anfrage)."""
+    """Language for emails to a user (outside of a request)."""
     return normalize(getattr(user, "language", "")) or default_language()
 
 
@@ -130,8 +130,8 @@ def _lookup_ctx(ctx: str, msg: str) -> str:
 
 
 def pgettext(ctx: str, msg: str, /, **kw) -> str:
-    """Gleiches deutsches Wort, verschiedene Bedeutung (z. B. „Benutzer“ als Spalte und als Seitentitel).
-    Katalogschlüssel: "Benutzer|plural"."""
+    """Same German word, different meaning (e.g. "Benutzer" as a column and as a page title).
+    Catalog key: "Benutzer|plural"."""
     return _fmt(_lookup_ctx(ctx, msg), kw)
 
 
@@ -149,7 +149,7 @@ _n = ngettext
 
 
 class LazyString:
-    """Wird erst bei der Ausgabe übersetzt (für Texte auf Modulebene)."""
+    """Translated only when rendered (for module-level texts)."""
 
     __slots__ = ("msg", "kw")
 
@@ -169,7 +169,7 @@ class LazyString:
     def __eq__(self, other):
         return str(self) == str(other)
 
-    def __hash__(self):   # passend zu __eq__ (vergleicht den übersetzten Text)
+    def __hash__(self):   # consistent with __eq__ (compares the translated text)
         return hash(str(self))
 
     def __len__(self):
@@ -238,7 +238,7 @@ def format_datetime(value) -> str:
 
 
 def js_strings() -> dict[str, str]:
-    """Übersetzungen für app.js (nur die dort genutzten Texte)."""
+    """Translations for app.js (only the texts used there)."""
     lang = get_locale()
     if lang == DEFAULT:
         return {}
@@ -246,7 +246,7 @@ def js_strings() -> dict[str, str]:
     return {k: cat[k] for k in JS_MESSAGES if k in cat}
 
 
-# Texte, die app.js anzeigt – app.js ruft T("…") mit genau diesen deutschen Texten auf.
+# Texts shown by app.js – app.js calls T("…") with exactly these German texts.
 JS_MESSAGES: list[str] = []
 
 
@@ -261,7 +261,7 @@ def _collect_js_messages():
 
 
 def _reset_locale_on_login(sender, user=None, **_kw):
-    """Nach login_user: Sprache neu bestimmen (die des Benutzers), nicht die vorher zwischengespeicherte."""
+    """After login_user: determine the language again (the user's), not the previously cached one."""
     from flask import g, has_app_context
     if has_app_context():
         g.pop("_catalytix_locale", None)

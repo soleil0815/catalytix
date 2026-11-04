@@ -1,4 +1,4 @@
-"""Tests der automatischen Reverse-Proxy- und HTTPS-Erkennung."""
+"""Tests of the automatic reverse proxy and HTTPS detection."""
 import os
 import sys
 import tempfile
@@ -32,8 +32,8 @@ class ProxyTests(unittest.TestCase):
     def test_default_trusts_private_proxy(self):
         c = make_app({})
         r = c.get("/", headers=FWD, environ_base={"REMOTE_ADDR": "172.18.0.5"})
-        # X-Forwarded-Host wird bewusst nicht übernommen (sonst ließen sich Links in E-Mails umbiegen);
-        # Reverse-Proxys wie NPM, Caddy und Traefik reichen den Host-Header ohnehin unverändert durch.
+        # X-Forwarded-Host is deliberately not used (otherwise links in e-mails could be redirected);
+        # reverse proxies like NPM, Caddy and Traefik pass the Host header through unchanged anyway.
         self.assertEqual(r.json, {"ip": "203.0.113.7", "scheme": "https", "host": "localhost"})
         self.assertIn("Secure", r.headers["Set-Cookie"])
 
@@ -48,7 +48,7 @@ class ProxyTests(unittest.TestCase):
         c = make_app({})
         r = c.get("/", environ_base={"REMOTE_ADDR": "192.168.0.50"})
         self.assertEqual(r.json["scheme"], "http")
-        self.assertNotIn("Secure", r.headers["Set-Cookie"])   # Login per http://IP:9300 geht weiter
+        self.assertNotIn("Secure", r.headers["Set-Cookie"])   # login via http://IP:9300 still works
 
     def test_only_last_forwarded_hop_is_used(self):
         c = make_app({})

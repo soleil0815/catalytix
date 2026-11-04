@@ -1,8 +1,8 @@
-"""Personen für die Ausleihe finden – lokal und (optional) im Active Directory.
+"""Finding people for lending – locally and (optionally) in Active Directory.
 
-Wer im AD steht und laut Rollenregeln die Bibliothek nutzen darf, sich aber noch nie angemeldet hat, wird in
-der Suche angezeigt. Angelegt wird das Konto erst, wenn tatsächlich ein Buch an diese Person geht – und
-auch dann nur als AD-Konto ohne Passwort: Anmelden kann sich die Person weiterhin nur mit ihrem AD-Passwort.
+Anyone who is in AD and may use the library according to the role rules, but has never logged in, is shown in
+the search. The account is created only when a book actually goes to this person – and
+even then only as an AD account without a password: the person can still log in only with their AD password.
 """
 from __future__ import annotations
 
@@ -18,9 +18,9 @@ from .models import Group, Loan, User, db, get_bool, get_setting
 
 log = logging.getLogger(__name__)
 LIMIT = 10
-DIRECTORY_MIN_CHARS = 3        # das Verzeichnis erst ab 3 Zeichen fragen (schont das AD)
-CACHE_SECONDS = 60             # gleiche Suche innerhalb einer Minute nicht erneut im AD
-OUTAGE_PAUSE = 60              # nach einem Verzeichnisfehler eine Minute nur lokal suchen
+DIRECTORY_MIN_CHARS = 3        # only query the directory from 3 characters on (spares the AD)
+CACHE_SECONDS = 60             # don't query AD again for the same search within a minute
+OUTAGE_PAUSE = 60              # after a directory error, search only locally for one minute
 
 _cache: dict[str, tuple[float, list]] = {}
 _outage_until = 0.0
@@ -28,7 +28,7 @@ _lock = threading.Lock()
 
 
 def _directory_search(q: str) -> list:
-    """Verzeichnissuche mit kurzem Zwischenspeicher und Pause nach Ausfällen (pro Server-Prozess)."""
+    """Directory search with a short cache and a pause after failures (per server process)."""
     global _outage_until
     from .ldap_auth import Directory, LDAPError
     key = q.lower()
@@ -65,7 +65,7 @@ def _local_matches(q: str) -> list[User]:
 
 
 def _library_groups(info) -> list[str]:
-    """In welche Bibliotheksgruppen käme diese Person (nur bei eingeschalteter Gruppen-Übernahme)?"""
+    """Which library groups would this person get (only with group import enabled)?"""
     if not get_bool("ldap_group_sync"):
         return []
     from .ldap_auth import normalize_dn, rule_matches
@@ -75,10 +75,10 @@ def _library_groups(info) -> list[str]:
 
 
 def search(q: str, directory: bool = True) -> dict:
-    """Ergebnis für die Suchliste: lokale Konten und noch nicht angemeldete AD-Personen.
+    """Result for the search list: local accounts and AD people who have not logged in yet.
 
-    directory=False: nur lokale Konten (sofort). Die Seite fragt das Verzeichnis danach getrennt,
-    damit bekannte Personen nicht auf das Active Directory warten."""
+    directory=False: local accounts only (immediately). The page then queries the directory separately,
+    so known people don't have to wait for Active Directory."""
     q = (q or "").strip()[:100]
     result = {"results": [], "directory": directory_available(), "directory_error": "",
               "directory_pending": False}
@@ -91,7 +91,7 @@ def search(q: str, directory: bool = True) -> dict:
     global_manager = current_user.is_global_manager
 
     def row(u: User) -> dict:
-        # Gruppen-Verwalter sehen nur ihre Gruppen und Ausleihen ihres Bestands (wie an der Theke)
+        # group librarians only see their groups and loans of their collection (as at the desk)
         q_loans = db.session.query(func.count(Loan.id)).join(Book).filter(Loan.user_id == u.id,
                                                                           Loan.returned_at.is_(None))
         if not global_manager:
@@ -105,7 +105,7 @@ def search(q: str, directory: bool = True) -> dict:
     result["results"] = [row(u) for u in local]
 
     def add_people(people) -> int:
-        """AD-Personen anhängen (ohne Doppelte); bekannte Konten erscheinen als Konto. Liefert die Zahl neuer."""
+        """Append AD people (without duplicates); known accounts appear as accounts. Returns the number of new ones."""
         known = {u.username.lower(): u for u in User.query.filter(
             func.lower(User.username).in_([p.username.lower() for p in people] or [""]))}
         new = 0
@@ -114,7 +114,7 @@ def search(q: str, directory: bool = True) -> dict:
             if name in shown:
                 continue
             shown.add(name)
-            if name in known:     # hat schon ein Konto, passte lokal aber nicht (z. B. neue E-Mail im AD)
+            if name in known:     # already has an account but didn't match locally (e.g. new e-mail in AD)
                 if known[name].active:
                     result["results"].append(row(known[name]))
                 continue
@@ -129,14 +129,14 @@ def search(q: str, directory: bool = True) -> dict:
         return result
     cache_hits = 0
     if cache_ready():
-        # Aus dem Zwischenspeicher: sofort, ohne das AD zu fragen
+        # from the cache: immediately, without querying AD
         rows = _cache_matches(q)
         cache_hits = len(rows)
         add_people([_info_from_row(r) for r in rows][:LIMIT])
     if len(q) < DIRECTORY_MIN_CHARS or cache_hits:
         return result
     if not directory:
-        # Live-Suche im AD danach getrennt – mit Cache nur, wenn er niemanden kennt (z. B. Neuzugang seit dem Abgleich)
+        # live AD search separately afterwards – with cache only if it knows no one (e.g. newcomer since the sync)
         result["directory_pending"] = True
         return result
     from .ldap_auth import LDAPError
@@ -146,7 +146,7 @@ def search(q: str, directory: bool = True) -> dict:
         log.warning("Directory person search failed: %s", exc)
         result["directory_error"] = _("Das Verzeichnis ist gerade nicht erreichbar – es werden nur bekannte Benutzer angezeigt.")
         people = []
-    except Exception:  # noqa: BLE001 – Verzeichnisfehler dürfen die Suche nicht abbrechen
+    except Exception:  # noqa: BLE001 – directory errors must not abort the search
         log.exception("Directory person search failed")
         result["directory_error"] = _("Das Verzeichnis ist gerade nicht erreichbar – es werden nur bekannte Benutzer angezeigt.")
         people = []
@@ -155,7 +155,7 @@ def search(q: str, directory: bool = True) -> dict:
 
 
 class Candidate:
-    """Noch nicht angelegte AD-Person – sieht für die Theke aus wie ein Benutzer."""
+    """AD person without an account yet – looks like a user to the desk."""
 
     def __init__(self, info):
         self.info = info
@@ -166,7 +166,7 @@ class Candidate:
         self.is_candidate = True
 
     def can_borrow(self, book) -> bool:
-        """Wie User.can_borrow – mit den Gruppen, die die Person beim Anlegen bekäme."""
+        """Like User.can_borrow – with the groups the person would get on creation."""
         if book.group_id is None or self.info.role == "admin":
             return True
         if self.info.role == "librarian" and not self.group_names:
@@ -183,16 +183,16 @@ _found: dict[str, tuple[float, object]] = {}
 
 
 def find(username: str, cached: bool = False) -> User | Candidate | None:
-    """Genau diese Person: lokales Konto oder (falls es keines gibt) berechtigte AD-Person.
+    """Exactly this person: local account or (if there is none) an authorized AD person.
 
-    cached=True: AD-Ergebnis bis zu einer Minute wiederverwenden (für Vorschlagslisten, die bei jedem Tastendruck
-    fragen). Für das eigentliche Verleihen wird immer frisch gefragt."""
+    cached=True: reuse the AD result for up to a minute (for suggestion lists that query on every
+    keystroke). For the actual lending, AD is always queried fresh."""
     username = (username or "").strip()
     if not username:
         return None
     user = User.query.filter(func.lower(User.username) == username.lower()).first()
     if user is not None and user.ldap_gone_at is not None and not cached and directory_available():
-        # vom Abgleich gesperrt – vielleicht inzwischen wieder im AD (oder der Name gehört jetzt jemand anderem)
+        # disabled by the sync – maybe back in AD by now (or the name now belongs to someone else)
         if _recheck_gone(user) == "retired":
             user = None
     if user is not None or not directory_available():
@@ -228,10 +228,10 @@ _rechecked: dict[int, float] = {}
 
 
 def _recheck_gone(user: User) -> str:
-    """Vom Abgleich gesperrtes Konto an der Theke frisch prüfen (höchstens einmal pro Minute und Konto)."""
+    """Re-check an account disabled by the sync fresh at the desk (at most once per minute and account)."""
     global _outage_until
     if user.auth_source != "ldap":
-        return ""   # inzwischen lokales Konto (z. B. Passwort per Kommandozeile gesetzt) – nie zurück zum AD machen
+        return ""   # meanwhile a local account (e.g. password set via command line) – never turn it back into AD
     from .ldap_auth import Directory, LDAPError
     from .views.main import AccountMismatch, account_for, same_person, sync_ldap_user
     now = time.monotonic()
@@ -251,7 +251,7 @@ def _recheck_gone(user: User) -> str:
     if info is None or info.role is None:
         return ""
     if not same_person(user, info):
-        # Der Name gehört inzwischen einer anderen Person: bisherige Person umziehen lassen oder stilllegen
+        # the name now belongs to another person: move the previous person or retire their account
         try:
             freed = account_for(info) is None
             db.session.commit()
@@ -266,19 +266,19 @@ def _recheck_gone(user: User) -> str:
 
 
 def provision(candidate: Candidate) -> User:
-    """AD-Person als Konto anlegen (beim ersten Verleihen). Ein lokales Konto gleichen Namens wird nie verändert."""
+    """Create an AD person as an account (on first lending). A local account of the same name is never changed."""
     from .views.main import account_for, sync_ldap_user
-    existing = account_for(candidate.info)        # kann AccountMismatch auslösen (lend_to fängt das ab)
+    existing = account_for(candidate.info)        # may raise AccountMismatch (lend_to catches it)
     db.session.commit()
     if existing is not None:
         if existing.auth_source == "ldap" and existing.username.lower() != candidate.username.lower():
-            sync_ldap_user(candidate.info, existing)     # im AD umbenannt: Konto zieht mit
+            sync_ldap_user(candidate.info, existing)     # renamed in AD: the account follows
             db.session.commit()
         return existing
     try:
         user = sync_ldap_user(candidate.info, None)
         db.session.commit()
-    except IntegrityError:            # gleichzeitig von jemand anderem angelegt (Theke oder erste Anmeldung)
+    except IntegrityError:            # created by someone else at the same time (desk or first login)
         db.session.rollback()
         return User.query.filter(func.lower(User.username) == candidate.username.lower()).one()
     log.info("AD account %s created when lending (role %s)", user.username, user.role)
@@ -287,11 +287,11 @@ def provision(candidate: Candidate) -> User:
 
 
 def lend_to(book, person, due=None, note: str = "") -> tuple[bool, str, User | None]:
-    """Verleihen an ein vorhandenes Konto oder eine AD-Person (wird dafür angelegt; scheitert die Ausleihe,
-    wird das neue Konto wieder entfernt)."""
+    """Lend to an existing account or an AD person (created for this; if the loan fails,
+    the new account is removed again)."""
     from .views.loans import lend_book
     created = None
-    if not book.lendable:                     # Präsenzbestand: dafür kein Konto anlegen
+    if not book.lendable:                     # "Präsenzbestand" (UI term: reference-only stock): no account
         return (*lend_book(book, person, due, note), None)
     if isinstance(person, Candidate):
         from .views.main import AccountMismatch
@@ -305,7 +305,7 @@ def lend_to(book, person, due=None, note: str = "") -> tuple[bool, str, User | N
         created = person if getattr(person, "_created_now", False) else None
     ok, msg = lend_book(book, person, due, note)
     if not ok and created is not None:
-        # Wieder entfernen – aber nur, wenn das Konto inzwischen weder benutzt noch angemeldet wurde
+        # remove again – but only if the account has neither been used nor logged in meanwhile
         db.session.rollback()
         from sqlalchemy import delete, exists
         db.session.execute(delete(User).where(User.id == created.id, User.last_login.is_(None),
@@ -317,19 +317,19 @@ def lend_to(book, person, due=None, note: str = "") -> tuple[bool, str, User | N
     return ok, msg, person
 
 
-# ---------------------------------------------------------------- Such-Cache: AD-Personen im Hintergrund abgleichen
+# ---------------------------------------------------------------- Search cache: sync AD people in the background
 
-FULL_RESOLVE_HOURS = 24        # verschachtelte Gruppen spätestens nach einem Tag neu auflösen
-RUN_LOCK_MINUTES = 30          # ohne Lebenszeichen gilt ein Abgleich nach dieser Zeit als abgebrochen
-RETRY_MINUTES = 15             # nach einem Fehler frühestens so viel später erneut versuchen
+FULL_RESOLVE_HOURS = 24        # re-resolve nested groups after one day at the latest
+RUN_LOCK_MINUTES = 30          # without a heartbeat, a sync counts as aborted after this time
+RETRY_MINUTES = 15             # after an error, retry no sooner than this much later
 CACHE_HOURS = (1, 2, 4, 6, 12, 24)
-CACHE_MAX_AGE_HOURS = 48       # älterer Cache (AD lange nicht erreichbar) wird nicht mehr benutzt
-ACCOUNT_BRAKE_SHARE = 0.3      # mehr als 30 % der AD-Konten auf einmal sperren/umbenennen? → lieber gar nicht
+CACHE_MAX_AGE_HOURS = 48       # an older cache (AD unreachable for a long time) is no longer used
+ACCOUNT_BRAKE_SHARE = 0.3      # disable/rename more than 30 % of the AD accounts at once? → better not at all
 ACCOUNT_BRAKE_MIN = 5
 
 
 class _LockLost(Exception):
-    """Ein anderer Prozess hat den Abgleich übernommen (dieser galt als abgebrochen)."""
+    """Another process has taken over the sync (this one was considered aborted)."""
 
 
 def cache_enabled() -> bool:
@@ -337,7 +337,7 @@ def cache_enabled() -> bool:
 
 
 def cache_ready() -> bool:
-    """Cache benutzen? Nur wenn eingeschaltet, mindestens einmal erfolgreich abgeglichen und nicht veraltet."""
+    """Use the cache? Only if enabled, synced successfully at least once and not stale."""
     from datetime import datetime, timedelta
     if not cache_enabled():
         return False
@@ -349,7 +349,7 @@ def cache_ready() -> bool:
 
 
 def _claim(key: str, new: str, free_when) -> bool:
-    """Setting atomar von einem „freien“ Wert auf new setzen (mehrere Server-Prozesse)."""
+    """Atomically set a setting from a "free" value to new (multiple server processes)."""
     from sqlalchemy import update
     from .models import Setting
     if db.session.get(Setting, key) is None:
@@ -370,7 +370,7 @@ def _token() -> str:
 
 
 def _acquire_run() -> str:
-    """Abgleich-Sperre holen. Liefert das Kennzeichen (für Lebenszeichen und Freigabe) oder "" wenn belegt."""
+    """Acquire the sync lock. Returns the token (for heartbeat and release) or "" if taken."""
     from datetime import datetime, timedelta
     stale = (datetime.now() - timedelta(minutes=RUN_LOCK_MINUTES)).isoformat(timespec="seconds")
     token = _token()
@@ -379,7 +379,7 @@ def _acquire_run() -> str:
 
 
 def _heartbeat(token: str) -> str:
-    """Lebenszeichen: Sperre auffrischen – nur wenn sie noch uns gehört."""
+    """Heartbeat: refresh the lock – only if it still belongs to us."""
     from sqlalchemy import update
     from .models import Setting
     new = _token()
@@ -414,8 +414,8 @@ def clear_cache() -> int:
 
 
 def sync_directory(manual: bool = False) -> dict:
-    """AD-Personen abgleichen: neue aufnehmen, geänderte aktualisieren, deaktivierte, gelöschte und nicht mehr
-    berechtigte entfernen, bestehende AD-Konten nachziehen. Bei einem Fehler bleibt alles unverändert."""
+    """Sync AD people: add new ones, update changed ones, remove disabled, deleted and no longer
+    authorized ones, update existing AD accounts. On an error, everything stays unchanged."""
     import json
     from datetime import datetime, timedelta
     from .ldap_auth import Directory, LDAPError
@@ -432,8 +432,8 @@ def sync_directory(manual: bool = False) -> dict:
         return stats
     state = {"token": token}
     try:
-        # Bisherigen Stand als einfache Werte merken und die Lese-Transaktion beenden: Während der (evtl.
-        # minutenlangen) AD-Abfrage darf die Datenbank nicht blockiert sein.
+        # Remember the previous state as plain values and end the read transaction: during the (possibly
+        # minutes-long) AD query the database must not be blocked.
         limit = started - timedelta(hours=FULL_RESOLVE_HOURS)
         known = {(p.dn or "").lower(): (p.group_key, p.resolved_at, p.groups)
                  for p in DirectoryPerson.query.with_entities(DirectoryPerson.dn, DirectoryPerson.group_key,
@@ -453,17 +453,17 @@ def sync_directory(manual: bool = False) -> dict:
             people = Directory().scan_people(reuse, progress=progress)
         except _LockLost:
             raise
-        except Exception as exc:  # noqa: BLE001 – Ausfall: alles behalten, Fehler anzeigen
+        except Exception as exc:  # noqa: BLE001 – failure: keep everything, show the error
             if not isinstance(exc, LDAPError):
                 log.exception("AD sync failed")
             stats["error"] = str(exc) or exc.__class__.__name__
             return stats
         state["token"] = _heartbeat(state["token"])
-        if not directory_available():         # AD-Anbindung während des Laufs abgeschaltet: nichts ändern
+        if not directory_available():         # AD connection disabled during the run: change nothing
             stats["skipped"] = True
             return stats
         uncertain = list(getattr(people, "uncertain", []))
-        with_cache = cache_enabled()          # Cache aus: nur die bestehenden Konten nachziehen, nichts speichern
+        with_cache = cache_enabled()          # cache off: only update the existing accounts, store nothing
         if with_cache:
             stats.update(_store_cache(people, uncertain, started))
             db.session.commit()
@@ -476,7 +476,7 @@ def sync_directory(manual: bool = False) -> dict:
             set_setting("dircache_ok_at", started.isoformat(timespec="seconds"))
         db.session.commit()
         if not cache_enabled() and (get_setting("dircache_ok_at") or _cache_rows()):
-            clear_cache()                     # während des Laufs abgeschaltet
+            clear_cache()                     # disabled during the run
         with _lock:
             _cache.clear()
             _found.clear()
@@ -511,7 +511,7 @@ def sync_directory(manual: bool = False) -> dict:
 
 
 def _store_cache(people, uncertain, started) -> dict:
-    """Cache-Tabelle auf den Stand des Abgleichs bringen; nur Geändertes schreiben."""
+    """Bring the cache table up to the state of the sync; write only what changed."""
     from .models import DirectoryPerson
     unsure_names = {n for n, _g in uncertain if n}
     unsure_guids = {g for _n, g in uncertain if g}
@@ -539,20 +539,20 @@ def _store_cache(people, uncertain, started) -> dict:
             row.resolved_at = started
     gone = [k for k, row in old.items()
             if k not in seen and k not in unsure_names and not (row.guid and row.guid in unsure_guids)]
-    for k in gone:            # im AD deaktiviert, gelöscht oder nicht mehr berechtigt
+    for k in gone:            # disabled, deleted or no longer authorized in AD
         db.session.delete(old[k])
     return {"added": added, "changed": changed, "removed": len(gone)}
 
 
 def _sync_accounts(people, uncertain, started) -> dict:
-    """Bestehende AD-Konten nachziehen: Name, E-Mail, Rolle, Gruppen, Umbenennungen – auch bei Personen, die sich
-    nie anmelden (an der Theke angelegt). Im AD deaktivierte, gelöschte oder nicht mehr berechtigte Konten
-    werden gesperrt (nicht gelöscht – daran hängen Ausleihen) und wieder freigegeben, sobald sie zurück sind.
+    """Update existing AD accounts: name, e-mail, role, groups, renames – also for people who
+    never log in (created at the desk). Accounts disabled, deleted or no longer authorized in AD
+    are locked (not deleted – loans depend on them) and unlocked again as soon as they are back.
 
-    Reihenfolge (unabhängig von der Reihenfolge im AD):
-    1. Konten ausgeschiedener Personen, deren Name jetzt jemand anderes trägt, stilllegen (Name wird frei).
-    2. Konten über die feste AD-Kennung zuordnen (auch nach Umbenennung).
-    3. Übrige über den Namen zuordnen – nur, wenn das Konto keine andere Kennung trägt."""
+    Order (independent of the order in AD):
+    1. Retire accounts of departed people whose name is now held by someone else (frees the name).
+    2. Match accounts via the fixed AD identifier (also after a rename).
+    3. Match the rest by name – only if the account doesn't carry a different identifier."""
     from sqlalchemy.orm import selectinload
     from .views.main import retire_account, same_person, sync_ldap_user
 
@@ -563,7 +563,7 @@ def _sync_accounts(people, uncertain, started) -> dict:
     unsure_guids = {g for _n, g in uncertain if g}
     every = [info for info, _key, _fresh in people]
     infos, names = [], set()
-    for info in every:                         # doppelte Benutzernamen im AD: für die Namenszuordnung zählt der erste
+    for info in every:                         # duplicate usernames in AD: the first one counts for name matching
         if info.username.lower() not in names:
             names.add(info.username.lower())
             infos.append(info)
@@ -576,8 +576,8 @@ def _sync_accounts(people, uncertain, started) -> dict:
         return (u.username, u.display_name, u.email, u.role, u.active, tuple(sorted(g.id for g in u.groups)))
 
     matched = set()
-    # 1. Konten ausgeschiedener Personen, deren Name jetzt jemand anderes trägt – erst vormerken: sie zählen mit
-    #    zur Sicherheitsbremse (z. B. Domänen-Migration mit lauter neuen Kennungen) und werden erst danach stillgelegt
+    # 1. Accounts of departed people whose name is now held by someone else – only mark them first: they count
+    #    toward the safety brake (e.g. domain migration with all-new identifiers) and are retired only afterwards
     to_retire = [u for u in accounts if u.ldap_guid and u.ldap_guid not in scan_guids and not unsure(u)
                  and u.username.lower() in names]
     matched.update(u.id for u in to_retire)
@@ -587,7 +587,7 @@ def _sync_accounts(people, uncertain, started) -> dict:
         if i.guid and i.guid in by_guid and i.guid not in seen_guids:
             seen_guids.add(i.guid)
             pairs.append((by_guid[i.guid], i))
-    # Bremse: sehr viele Umbenennungen auf einmal (z. B. anderes Anmeldeattribut eingestellt) → nicht umbenennen
+    # brake: very many renames at once (e.g. a different login attribute configured) → don't rename
     renames = sum(1 for u, i in pairs if u.username.lower() != i.username.lower())
     allow_rename = not (renames > ACCOUNT_BRAKE_MIN and renames > ACCOUNT_BRAKE_SHARE * max(1, len(accounts)))
     updated, renamed, reactivated = 0, 0, 0
@@ -603,13 +603,13 @@ def _sync_accounts(people, uncertain, started) -> dict:
             renamed += before[0] != after[0]
             reactivated += was_gone and u.active
 
-    # 2. über die feste Kennung
+    # 2. via the fixed identifier
     done_infos = set()
     for u, info in pairs:
         apply(u, info)
         done_infos.add(id(info))
     db.session.flush()
-    # 3. über den Namen (Konten ohne Kennung, z. B. ältere Konten oder OpenLDAP ohne entryUUID)
+    # 3. by name (accounts without an identifier, e.g. older accounts or OpenLDAP without entryUUID)
     by_name = {u.username.lower(): u for u in accounts if u.id not in matched}
     for info in infos:
         if id(info) in done_infos:
@@ -640,10 +640,10 @@ def _sync_accounts(people, uncertain, started) -> dict:
     for u in gone:
         u.active = False
         u.ldap_gone_at = started
-        u.auth_epoch = (u.auth_epoch or 0) + 1     # laufende Sitzungen beenden
+        u.auth_epoch = (u.auth_epoch or 0) + 1     # end running sessions
         log.info("AD account %s locked: disabled, deleted or no longer entitled in AD", u.username)
     if to_retire and allow_rename:
-        # Umbenennungen, die bisher am Namen eines jetzt stillgelegten Kontos scheiterten, gleich nachholen
+        # renames that previously failed on the name of a now-retired account: catch up right away
         db.session.flush()
         for u, info in pairs:
             if u.username.lower() != info.username.lower():
@@ -656,18 +656,18 @@ def _sync_accounts(people, uncertain, started) -> dict:
 
 
 def run_scheduled_sync(now=None) -> dict | None:
-    """Vom Hintergrund-Planer aufgerufen: einmal je Zeitfenster (alle ldap_cache_hours Stunden)."""
+    """Called by the background scheduler: once per time window (every ldap_cache_hours hours)."""
     from datetime import datetime, timedelta
     from .models import set_setting
     now = now or datetime.now()
     if not cache_enabled() and (get_setting("dircache_ok_at") or _cache_rows()):
-        clear_cache()         # abgeschaltet oder AD aus: zwischengespeicherte Personen nicht aufbewahren
+        clear_cache()         # disabled or AD off: don't keep cached people
     if not directory_available():
         return None
     retry_after = get_setting("dircache_retry_after") or ""
     if retry_after and retry_after > now.isoformat(timespec="seconds"):
         return None
-    # Ohne Cache werden die Gruppen jedes Mal komplett neu aufgelöst – dann nur einmal täglich (schont das AD)
+    # without a cache the groups are fully re-resolved every time – then only once a day (spares the AD)
     hours = get_int_safe("ldap_cache_hours", 1) if cache_enabled() else 24
     slot = f"{now.date().isoformat()}T{(now.hour // hours) * hours:02d}|{hours}"
     previous = get_setting("dircache_slot") or ""
@@ -675,7 +675,7 @@ def run_scheduled_sync(now=None) -> dict | None:
         return None
     stats = sync_directory()
     if stats.get("error") or stats.get("busy"):
-        # Fehler oder belegt: Zeitfenster wieder freigeben – nach RETRY_MINUTES erneut versuchen
+        # error or taken: release the time window again – retry after RETRY_MINUTES
         from sqlalchemy import update
         from .models import Setting
         db.session.execute(update(Setting).where(Setting.key == "dircache_slot", Setting.value == slot)
@@ -702,12 +702,12 @@ def get_int_safe(key: str, default: int) -> int:
 
 
 def start_sync_async(app) -> bool:
-    """„Jetzt abgleichen“: im Hintergrund starten, die Seite wartet nicht. False, wenn schon einer läuft."""
+    """"Sync now": start in the background, the page doesn't wait. False if one is already running."""
     if is_running():
         return False
 
     def work():
-        with app.app_context():      # die Datenbank-Sitzung endet mit dem Kontext
+        with app.app_context():      # the database session ends with the context
             try:
                 sync_directory(manual=True)
             except Exception:  # noqa: BLE001
@@ -740,7 +740,7 @@ def _info_from_row(p):
 
 
 def result_text(res: dict) -> str:
-    """Letztes Abgleich-Ergebnis in der Sprache des Betrachters."""
+    """Last sync result in the viewer's language."""
     from datetime import datetime
     from .i18n import _n, format_datetime
     if not res or not res.get("at"):

@@ -1,5 +1,5 @@
-"""2.20.0: Präsenzbestand (Gruppe ohne Verleih), Verleihen aus dem Bestand, doppelte ISBN zählt Exemplare hinzu,
-eigene Daten für lokale Konten."""
+"""2.20.0: reference-only stock (group without lending), lending from stock, duplicate ISBN adds copies,
+own data for local accounts."""
 import os
 import sys
 import tempfile
@@ -67,7 +67,7 @@ class ReferenceOnlyTests(Base):
         self.assertTrue(Book(title="x", group=self.ga).lendable)
 
     def test_cannot_lend_at_detail_or_for_self(self):
-        set_setting("catalog_visibility", "all")    # Leser sieht das Buch (sonst: 404, siehe test_review_2201)
+        set_setting("catalog_visibility", "all")    # reader sees the book (otherwise: 404, see test_review_2201)
         db.session.commit()
         self.c.post(f"/buecher/{self.lex.id}/ausleihen", data={"benutzer": "leser"})
         self.login("leser")
@@ -87,7 +87,7 @@ class ReferenceOnlyTests(Base):
         self.assertEqual(res, [])
         res = self.c.get("/api/bestand?q=REF-1&modus=ausleihe").get_json()["results"]
         self.assertEqual(res, [])
-        # Scan an der Theke: klare Meldung, kein Angebot, keine Ausleihe
+        # scan at the desk: clear message, no offer, no loan
         html = self.c.post("/theke", data={"modus": "ausleihe", "benutzer": "leser", "code": "REF-1", "auto": "1"},
                            follow_redirects=True).get_data(as_text=True)
         self.assertIn("Präsenzbestand", html)
@@ -107,7 +107,7 @@ class ReferenceOnlyTests(Base):
         self.assertIsNotNone(db.session.get(Loan, loan.id).returned_at)
 
     def test_no_reservations(self):
-        self.lex.group = self.ga          # erst ausleihbar und verliehen …
+        self.lex.group = self.ga          # first borrowable and lent …
         User.query.filter_by(username="leser").one().groups = [self.ga]
         db.session.commit()
         for u in ("bib", "chef"):
@@ -117,7 +117,7 @@ class ReferenceOnlyTests(Base):
         self.login("leser")
         self.c.post(f"/buecher/{self.lex.id}/vormerken")
         self.assertEqual(Reservation.query.filter_by(status="waiting").count(), 1)
-        # … dann Präsenzbestand: Vormerkung wird beendet, neue sind nicht möglich
+        # … then reference-only: the reservation is ended, new ones are not possible
         self.login("chef")
         leser_id = User.query.filter_by(username="leser").one().id
         self.c.post(f"/admin/gruppen/{self.ga.id}", data={"name": "A", "not_lendable": "1", "members": [str(leser_id)]})
@@ -153,7 +153,7 @@ class CatalogLendTests(Base):
     def test_lend_link_for_managers_only(self):
         html = self.page("/buecher")
         self.assertIn(f"/buecher/{self.faust.id}?verleihen=1#verleihen", html)
-        self.assertNotIn(f"/buecher/{self.lex.id}?verleihen=1", html)        # Präsenzbestand
+        self.assertNotIn(f"/buecher/{self.lex.id}?verleihen=1", html)        # reference-only stock
         self.login("leser")
         self.assertNotIn("verleihen=1", self.page("/buecher"))
 
@@ -186,7 +186,7 @@ class DuplicateIsbnTests(Base):
 
     def test_other_group_creates_new(self):
         self.form(group_id=str(self.ga.id))
-        self.assertEqual(Book.query.filter_by(isbn=ISBN).count(), 2)     # Lexikon (Präsenz) + neu in A
+        self.assertEqual(Book.query.filter_by(isbn=ISBN).count(), 2)     # encyclopedia (reference-only) + new in A
 
     def test_without_isbn_creates_new(self):
         self.form(isbn="")
@@ -221,7 +221,7 @@ class ProfileTests(Base):
         self.assertEqual((u.display_name, u.email), ("Leser", "leser@schule.de"))
 
     def test_ad_user_is_read_only(self):
-        self.login("ad")                  # lokal angemeldet, dann wie ein AD-Konto behandelt
+        self.login("ad")                  # logged in locally, then treated like an AD account
         User.query.filter_by(username="ad").one().auth_source = "ldap"
         db.session.commit()
         html = self.page("/profil")

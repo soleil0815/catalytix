@@ -1,7 +1,7 @@
-"""Standorte festlegen – Verwalter und Administratoren.
+"""Define locations – librarians and administrators.
 
-Ist mindestens ein Standort festgelegt, wird er beim Erfassen aus einer Liste gewählt statt getippt.
-Bücher speichern den Standort weiterhin als Text; Umbenennen ändert ihn bei allen betroffenen Büchern mit.
+If at least one location is defined, it is picked from a list when adding books instead of typed.
+Books still store the location as text; renaming also updates it in all affected books.
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ MAX_LEN = 200
 
 
 def _natural(name: str):
-    """„Regal 2“ vor „Regal 10“."""
+    """"Regal 2" before "Regal 10"."""
     return [int(t) if t.isascii() and t.isdecimal() else t.lower() for t in re.split(r"([0-9]+)", name or "")]
 
 
@@ -37,7 +37,7 @@ def active() -> bool:
 
 
 def canonical(value: str) -> str | None:
-    """Passenden festgelegten Standort liefern (Groß-/Kleinschreibung egal), sonst None."""
+    """Return the matching defined location (case-insensitive), otherwise None."""
     value = (value or "").strip()
     if not value:
         return ""
@@ -46,10 +46,10 @@ def canonical(value: str) -> str | None:
 
 
 def check(value: str, previous: str = "") -> tuple[str, str | None]:
-    """Standort für ein Buch prüfen. Liefert (Wert, Fehlermeldung oder None).
+    """Validate a book's location. Returns (value, error message or None).
 
-    Ohne festgelegte Standorte ist jeder Text erlaubt. Mit Liste nur deren Einträge – ein bereits
-    gespeicherter, (noch) nicht gelisteter Wert darf unverändert bleiben."""
+    Without defined locations any text is allowed. With a list only its entries – an already
+    stored value that is not (yet) listed may remain unchanged."""
     value = (value or "").strip()[:MAX_LEN]
     if not active():
         return value, None
@@ -62,7 +62,7 @@ def check(value: str, previous: str = "") -> tuple[str, str | None]:
 
 
 def _usage() -> dict[str, int]:
-    """Bücher je Standort – für Gruppen-Verwalter nur ihr eigener Bestand."""
+    """Books per location – for group librarians only their own collection."""
     ids = manageable_books_query(current_user).with_entities(Book.id)
     rows = (db.session.query(Book.location, func.count(Book.id))
             .filter(Book.location.isnot(None), Book.location != "", Book.id.in_(ids))
@@ -71,7 +71,7 @@ def _usage() -> dict[str, int]:
 
 
 def _can_change_all(location: str) -> bool:
-    """Darf der Benutzer alle Bücher mit diesem Standort ändern? (Gruppen-Verwalter nur eigene)"""
+    """May the user change all books with this location? (group librarians only their own)"""
     total = Book.query.filter(Book.location == location).count()
     mine = manageable_books_query(current_user).filter(Book.location == location).count()
     return total == mine
@@ -98,7 +98,7 @@ def index():
     for value, n in sorted(usage.items(), key=lambda x: _natural(x[0])):
         if value in exact:
             continue
-        # Vorschlag: gleiche Schreibweise bis auf Groß/Klein/Leerzeichen, sonst ähnlichster Name (Tippfehler)
+        # Suggestion: same spelling except case/whitespace, otherwise the most similar name (typo)
         hit = by_norm.get(_norm(value))
         if hit is None:
             close = difflib.get_close_matches(_norm(value), list(by_norm), n=1, cutoff=0.75)
@@ -182,8 +182,8 @@ def delete(loc_id):
 @bp.route("/standorte/bestand", methods=["POST"])
 @librarian_required
 def adopt():
-    """Im Bestand vorhandenen, nicht festgelegten Wert übernehmen oder durch einen Standort ersetzen."""
-    old = (request.form.get("value") or "")[:MAX_LEN]   # bewusst nicht kürzen: auch „Regal 1 “ mit Leerzeichen ist ein Tippfehler
+    """Adopt a value present in the collection but not defined, or replace it with a location."""
+    old = (request.form.get("value") or "")[:MAX_LEN]   # deliberately not stripped: "Regal 1 " with a space is also a typo
     target = request.form.get("target", "")
     count = Book.query.filter(Book.location == old).count() if old else 0
     if not old or not count:

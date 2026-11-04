@@ -1,11 +1,11 @@
-"""Tests der Gruppenauflösung (verschachtelte Gruppen, primäre Gruppe, OpenLDAP).
+"""Tests of group resolution (nested groups, primary group, OpenLDAP).
 
-Simuliert ein Verzeichnis mit den Eigenheiten von Active Directory / Samba AD:
-  * memberOf enthält nur direkte Mitgliedschaften – NICHT die primäre Gruppe
-  * die primäre Gruppe (Domänen-Benutzer) steht nicht in deren member-Attribut,
-    sondern nur über primaryGroupID am Benutzer
-  * LDAP_MATCHING_RULE_IN_CHAIN liefert transitive Mitgliedschaften (über member)
-  * tokenGroups (am Benutzer, Scope BASE) enthält alle Sicherheitsgruppen inkl. primärer
+Simulates a directory with the quirks of Active Directory / Samba AD:
+  * memberOf contains only direct memberships – NOT the primary group
+  * the primary group (Domain Users) is not in its member attribute,
+    but only via primaryGroupID on the user
+  * LDAP_MATCHING_RULE_IN_CHAIN returns transitive memberships (via member)
+  * tokenGroups (on the user, scope BASE) contains all security groups incl. the primary one
 """
 import os
 import re
@@ -25,7 +25,7 @@ DOMAIN_SID = bytes([1, 4, 0, 0, 0, 0, 0, 5]) + (21).to_bytes(4, "little") + (111
 
 def sid(rid):
     s = bytearray(DOMAIN_SID)
-    s[1] = 5  # 5 Unterautoritäten
+    s[1] = 5  # 5 sub-authorities
     return bytes(s) + rid.to_bytes(4, "little")
 
 
@@ -34,7 +34,7 @@ def unescape_filter_value(v):
 
 
 class FakeDirectory:
-    """Sehr kleiner LDAP-Nachbau – nur die Filter, die CATALYTIX verwendet."""
+    """Very small LDAP fake – only the filters CATALYTIX uses."""
 
     def __init__(self, entries, in_chain=True, token_groups=True, member_of=True):
         self.entries = entries  # dn -> dict
@@ -133,12 +133,12 @@ def ad_entries():
     return {
         LENA: {"objectSid": sid(1101), "primaryGroupID": 513},
         MAX: {"objectSid": sid(1102), "primaryGroupID": 513},
-        G["dombenutzer"]: {"objectSid": sid(513), "member": []},          # primäre Gruppe: member leer!
+        G["dombenutzer"]: {"objectSid": sid(513), "member": []},          # primary group: member empty!
         G["lehrer"]: {"objectSid": sid(2001), "member": [LENA]},
-        G["verwalter"]: {"objectSid": sid(2002), "member": [G["lehrer"]]},   # verschachtelt: Lehrer
-        G["leser"]: {"objectSid": sid(2003), "member": [G["dombenutzer"]]},  # verschachtelt über primäre Gruppe
+        G["verwalter"]: {"objectSid": sid(2002), "member": [G["lehrer"]]},   # nested: teachers
+        G["leser"]: {"objectSid": sid(2003), "member": [G["dombenutzer"]]},  # nested via the primary group
         G["admins"]: {"objectSid": sid(2004), "member": []},
-        G["ring1"]: {"objectSid": sid(2005), "member": [MAX, G["ring2"]]},   # Zirkelbezug
+        G["ring1"]: {"objectSid": sid(2005), "member": [MAX, G["ring2"]]},   # circular reference
         G["ring2"]: {"objectSid": sid(2006), "member": [G["ring1"]]},
     }
 
@@ -171,7 +171,7 @@ class NestedGroupTests(unittest.TestCase):
         })
 
     def test_groups_outside_user_ou_are_found(self):
-        # Basis-DN ist die Benutzer-OU, Gruppen liegen in OU=Gruppen und CN=Users
+        # base DN is the user OU, groups are in OU=Gruppen and CN=Users
         fake = FakeDirectory(ad_entries())
         found = make_dir(base_dn="OU=Benutzer,DC=schule,DC=local").user_groups(fake, LENA, "lena",
                                                                               fake.user_entry(LENA))
@@ -187,7 +187,7 @@ class NestedGroupTests(unittest.TestCase):
         fake = FakeDirectory(ad_entries(), token_groups=False)
         found = names(make_dir().user_groups(fake, LENA, "lena", fake.user_entry(LENA)))
         self.assertEqual(found.get("Bibliothek-Verwalter"), "verschachtelt")
-        self.assertEqual(found.get("Bibliothek-Leser"), "verschachtelt")  # über die primäre Gruppe
+        self.assertEqual(found.get("Bibliothek-Leser"), "verschachtelt")  # via the primary group
 
     def test_nested_disabled_only_direct_and_primary(self):
         fake = FakeDirectory(ad_entries())
@@ -206,7 +206,7 @@ class NestedGroupTests(unittest.TestCase):
         lena = list(d.user_groups(fake, LENA, "lena", fake.user_entry(LENA)))
         self.assertEqual(ldap_auth.resolve_role(LENA, lena, d.cfg), ("librarian", "Bibliothek-Verwalter"))
         mx = list(d.user_groups(fake, MAX, "max", fake.user_entry(MAX)))
-        # Max ist nur über die primäre Gruppe Domänen-Benutzer -> Bibliothek-Leser drin
+        # Max is only in Bibliothek-Leser via the primary group Domänen-Benutzer
         self.assertEqual(ldap_auth.resolve_role(MAX, mx, d.cfg)[0], "reader")
 
     def test_primary_group_as_rule(self):
@@ -233,7 +233,7 @@ class NestedGroupTests(unittest.TestCase):
 class AuthenticateEndToEndTests(unittest.TestCase):
     def test_authenticate_resolves_nested_role(self):
         from unittest import mock
-        fake = FakeDirectory(ad_entries(), in_chain=False)  # z. B. ältere Samba-Version
+        fake = FakeDirectory(ad_entries(), in_chain=False)  # e.g. older Samba version
         d = make_dir()
         with mock.patch.object(d, "connect", return_value=fake), \
              mock.patch.object(d, "find_user", return_value=fake.user_entry(LENA)):

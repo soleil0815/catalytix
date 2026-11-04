@@ -1,4 +1,4 @@
-"""Zwei-Faktor je nach Netz (intern/extern) und Entsperren durch Admins."""
+"""Two-factor depending on the network (internal/external) and unlocking by admins."""
 import os
 import sys
 import tempfile
@@ -12,7 +12,7 @@ from catalytix.models import User, db, get_setting, set_setting  # noqa: E402
 
 LAN = "192.168.1.20"
 INTERNET = "203.0.113.9"
-PROXY = "172.18.0.5"     # Reverse-Proxy im Docker-Netz
+PROXY = "172.18.0.5"     # reverse proxy in the Docker network
 
 
 class Base(unittest.TestCase):
@@ -97,7 +97,7 @@ class ZoneTests(Base):
         self.assertFalse(self.zone(INTERNET, xff=LAN)["internal"])
 
     def test_spoofed_header_through_proxy_is_ignored(self):
-        # Angreifer schickt "X-Forwarded-For: 192.168.1.20", der Proxy hängt die echte Adresse an
+        # attacker sends "X-Forwarded-For: 192.168.1.20", the proxy appends the real address
         self.assertFalse(self.zone(PROXY, xff=f"{LAN}, {INTERNET}", proto="https")["internal"])
 
     def test_custom_networks(self):
@@ -108,7 +108,7 @@ class ZoneTests(Base):
 
 
 class OwnConnectionTests(ZoneTests):
-    """Interne Rechner über die öffentliche Domain: der Router gibt sie als eigene öffentliche IP aus."""
+    """Internal machines via the public domain: the router presents them as its own public IP."""
     OWN = "80.151.220.89"
 
     def setUp(self):
@@ -133,12 +133,12 @@ class OwnConnectionTests(ZoneTests):
         with mock.patch("socket.getaddrinfo", return_value=self.addrinfo(self.OWN)) as gai:
             self.assertTrue(self.zone(PROXY, xff=self.OWN, proto="https")["internal"])
             self.assertTrue(self.zone(PROXY, xff=self.OWN, proto="https")["internal"])
-            self.assertEqual(gai.call_count, 1)          # zwischengespeichert
+            self.assertEqual(gai.call_count, 1)          # cached
         new_ip = "80.151.7.7"
         with mock.patch("socket.getaddrinfo", return_value=self.addrinfo(new_ip)), \
                 mock.patch("time.time", return_value=time.time() + netzone.RESOLVE_TTL + 1):
             self.assertTrue(self.zone(PROXY, xff=new_ip, proto="https")["internal"])
-            self.assertFalse(self.zone(PROXY, xff=self.OWN, proto="https")["internal"])   # alte IP gilt nicht mehr
+            self.assertFalse(self.zone(PROXY, xff=self.OWN, proto="https")["internal"])   # old IP no longer valid
 
     def test_dns_failure_keeps_last_address_for_a_while(self):
         import time
@@ -153,7 +153,7 @@ class OwnConnectionTests(ZoneTests):
             self.assertTrue(self.zone(self.OWN)["internal"])
         netzone._cache.clear()
         with mock.patch("socket.getaddrinfo", side_effect=OSError("kein DNS")):
-            self.assertFalse(self.zone(self.OWN)["internal"])     # nie aufgelöst -> extern
+            self.assertFalse(self.zone(self.OWN)["internal"])     # never resolved -> external
 
     def test_login_from_own_connection_skips_second_factor(self):
         self.configure(policy="all", internal="skip", networks="192.168.2.0/24")
@@ -201,13 +201,13 @@ class InternalSkipTests(Base):
         r = self.get("/buecher", INTERNET)
         self.assertEqual(r.status_code, 302)
         self.assertIn("/login", r.headers["Location"])
-        self.assertIn("/login", self.get("/", LAN).headers.get("Location", ""))   # wirklich abgemeldet
+        self.assertIn("/login", self.get("/", LAN).headers.get("Location", ""))   # really logged out
 
     def test_no_remember_cookie_when_second_factor_skipped(self):
         self.configure(internal="skip")
         r = self.login("anna", LAN, remember=True)
         self.assertNotIn("remember_token", " ".join(r.headers.getlist("Set-Cookie")))
-        r = self.login("ben", LAN, remember=True)  # Pflicht laut Richtlinie, aber noch keine 2FA
+        r = self.login("ben", LAN, remember=True)  # required by policy, but no 2FA yet
         self.assertNotIn("remember_token", " ".join(r.headers.getlist("Set-Cookie")))
 
     def test_required_setup_only_from_outside(self):
@@ -232,7 +232,7 @@ class InternalOptionalAndSameTests(Base):
     def test_optional_still_asks_if_set_up(self):
         self.configure(internal="optional")
         self.assertIn("/login/2fa", self.login("anna", LAN).headers["Location"])
-        r = self.login("ben", LAN)     # Pflicht, aber intern nicht erzwungen
+        r = self.login("ben", LAN)     # required, but not enforced internally
         self.assertNotIn("sicherheit", r.headers["Location"])
 
     def test_same_as_outside(self):

@@ -1,4 +1,4 @@
-"""Tests für das Abrufen und Prüfen der DC-Zertifikate."""
+"""Tests for fetching and verifying the DC certificates."""
 import datetime as dt
 import os
 import socket
@@ -53,7 +53,7 @@ def make_pki(tmp):
 
 
 class TLSServer:
-    """Minimaler LDAPS-Ersatz: TLS-Handshake, danach Verbindung schließen."""
+    """Minimal LDAPS stand-in: TLS handshake, then close the connection."""
 
     def __init__(self, cert, key):
         self.ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -138,12 +138,12 @@ class CertTests(unittest.TestCase):
                        connect_timeout=5)
             Connection(s).open(read_server_info=False)
 
-        open_with(T.to_pem([self.ca]))           # Stamm-CA
-        open_with(T.to_pem([self.leaf]))         # Server-Zertifikat direkt
+        open_with(T.to_pem([self.ca]))           # root CA
+        open_with(T.to_pem([self.leaf]))         # server certificate directly
         with self.assertRaises(LDAPException):
-            open_with("")                        # unbekannte CA
+            open_with("")                        # unknown CA
         with self.assertRaises(LDAPException):
-            open_with(T.to_pem([self.ca]), host="127.0.0.1")  # IP nicht im Zertifikat
+            open_with(T.to_pem([self.ca]), host="127.0.0.1")  # IP not in the certificate
         open_with(T.to_pem([self.ca]), host="127.0.0.1", check=False)
 
     def test_pem_roundtrip_and_describe(self):

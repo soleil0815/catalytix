@@ -1,4 +1,4 @@
-"""Ausleihe, Rückgabe, Verlängerung und Ausleihtheke."""
+"""Checkout, return, renewal and circulation desk."""
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
@@ -26,11 +26,11 @@ def _back(default: str):
 
 
 def lock_book(book_id: int) -> None:
-    """Schreibsperre für dieses Buch bis zum Ende der Transaktion holen – vor jeder Prüfung.
+    """Acquire a write lock on this book until the end of the transaction – before any check.
 
-    Die leere Änderung (Wert auf sich selbst setzen) startet bei SQLite die Schreibtransaktion
-    (RESERVED-Sperre: gleichzeitige Ausleihen warten aufeinander) und sperrt bei MySQL/PostgreSQL
-    die Buchzeile; SELECT … FOR UPDATE sichert das dort zusätzlich ab (SQLite ignoriert es)."""
+    The no-op update (setting a value to itself) starts the write transaction in SQLite
+    (RESERVED lock: concurrent checkouts wait for each other) and locks the book row in
+    MySQL/PostgreSQL; SELECT … FOR UPDATE additionally secures this there (SQLite ignores it)."""
     db.session.execute(update(Book).where(Book.id == book_id).values(updated_at=Book.updated_at)
                        .execution_options(synchronize_session=False))
     if db.session.get_bind().dialect.name != "sqlite":
@@ -38,7 +38,7 @@ def lock_book(book_id: int) -> None:
 
 
 def lend_book(book: Book, borrower: User, due: date | None = None, note: str = "") -> tuple[bool, str]:
-    """Zentrale Ausleihlogik inkl. aller Prüfungen."""
+    """Central checkout logic including all checks."""
     if not book.lendable:
         return False, _("„{title}“ gehört zum Präsenzbestand (Gruppe „{group}“) und wird nicht verliehen.",
                         title=book.title, group=book.group.name)
@@ -51,27 +51,27 @@ def lend_book(book: Book, borrower: User, due: date | None = None, note: str = "
     try:
         lock_book(book.id)
         if limit and db.session.get_bind().dialect.name != "sqlite":
-            # Höchstzahl je Person: auch parallele Ausleihen verschiedener Bücher für dieselbe Person serialisieren
+            # Per-person limit: also serialize concurrent loans of different books for the same person
             db.session.query(User.id).filter(User.id == borrower.id).with_for_update().first()
-        # Ab hier frisch aus der Datenbank zählen – parallele Anfragen warten bis zum Commit.
+        # From here on count fresh from the database – concurrent requests wait until the commit.
         copies = db.session.query(Book.copies).filter(Book.id == book.id).scalar() or 0
         active = dict(db.session.query(Loan.user_id, func.count(Loan.id))
                       .filter(Loan.book_id == book.id, Loan.returned_at.is_(None)).group_by(Loan.user_id).all())
         if borrower.id in active:
             db.session.rollback()
             return False, _("{name} hat dieses Buch bereits ausgeliehen.", name=borrower.name)
-        held = reservations.held_by_others(book.id, borrower.id)   # für Vormerkungen anderer zurückgelegt
+        held = reservations.held_by_others(book.id, borrower.id)   # held for other people's reservations
         if sum(active.values()) + held >= copies:
             db.session.rollback()
             if held and sum(active.values()) < copies:
                 return False, _("Das freie Exemplar ist für eine Vormerkung zurückgelegt.")
             return False, _("Kein Exemplar verfügbar.")
-        # Nicht an der Warteschlange vorbei: Ein gerade frei gewordenes Exemplar, das noch nicht zurückgelegt ist
-        # (z. B. Konto mit Vormerkung gelöscht), steht zuerst den Wartenden zu, die vor der Person stehen
+        # Don't skip the queue: a copy that just became free and is not yet held
+        # (e.g. account with a reservation deleted) goes first to those waiting ahead of the person
         ahead = reservations.waiting_ahead(book.id, borrower.id)
         if ahead and copies - sum(active.values()) - held <= ahead:
             db.session.rollback()
-            reservations.promote(book.id)        # Exemplar für die Wartenden zurücklegen und sie benachrichtigen
+            reservations.promote(book.id)        # hold the copy for those waiting and notify them
             return False, _("Das freie Exemplar steht zuerst den Personen zu, die das Buch vorgemerkt haben.")
         if limit and count_active_loans(borrower.id) >= limit:
             db.session.rollback()
@@ -79,12 +79,12 @@ def lend_book(book: Book, borrower: User, due: date | None = None, note: str = "
         loan = Loan(book_id=book.id, user_id=borrower.id, issued_by_id=current_user.id,
                     due_at=due or default_due_date(), note=note[:500])
         db.session.add(loan)
-        reservations.fulfil_on_loan(book.id, borrower.id)   # eigene Vormerkung ist damit erledigt
+        reservations.fulfil_on_loan(book.id, borrower.id)   # own reservation is thereby fulfilled
         db.session.commit()
-    except IntegrityError:   # eindeutiger Index: dieselbe Person hat das Buch gerade eben schon bekommen
+    except IntegrityError:   # unique index: the same person has just received the book
         db.session.rollback()
         return False, _("{name} hat dieses Buch bereits ausgeliehen.", name=borrower.name)
-    except OperationalError:  # z. B. Datenbank zu lange gesperrt
+    except OperationalError:  # e.g. database locked for too long
         db.session.rollback()
         return False, _("Die Datenbank ist gerade beschäftigt. Bitte versuch es gleich noch einmal.")
     notify_loan(loan)
@@ -93,8 +93,8 @@ def lend_book(book: Book, borrower: User, due: date | None = None, note: str = "
 
 
 def return_loan(loan: Loan) -> str:
-    # Nur zurücknehmen, wenn die Ausleihe noch offen ist – zwei gleichzeitige Rückgaben (Doppelklick, zwei Theken)
-    # dürfen weder den Zeitpunkt überschreiben noch zwei Bestätigungen verschicken.
+    # Only check in if the loan is still open – two simultaneous returns (double click, two desks)
+    # must neither overwrite the timestamp nor send two confirmations.
     res = db.session.execute(
         update(Loan).where(Loan.id == loan.id, Loan.returned_at.is_(None))
         .values(returned_at=datetime.now(), returned_by_id=current_user.id)
@@ -115,7 +115,7 @@ def return_loan(loan: Loan) -> str:
 def borrow(book_id):
     book = get_by_id(Book, book_id) or abort(404)
     if not current_user.can_see(book, get_setting("catalog_visibility") == "all"):
-        abort(404)   # wie die Buchseite: unsichtbare Bücher verraten auch hier weder Titel noch Gruppe
+        abort(404)   # like the book page: invisible books reveal neither title nor group here either
     target_id = parse_id(request.form.get("user_id"))
     target_name = (request.form.get("benutzer") or "").strip()[:200]
     due = None
@@ -183,7 +183,7 @@ def extend(loan_id):
             break
         old_ext = loan.extensions
         new_due = max(loan.due_at, date.today()) + timedelta(days=days)
-        # Nur übernehmen, wenn in der Zwischenzeit niemand sonst verlängert oder zurückgegeben hat
+        # Only apply if nobody else has renewed or returned it in the meantime
         res = db.session.execute(
             update(Loan).where(Loan.id == loan.id, Loan.returned_at.is_(None), Loan.extensions == old_ext)
             .values(extensions=Loan.extensions + 1, due_at=new_due, due_changed_at=datetime.now()).execution_options(synchronize_session=False))
@@ -191,7 +191,7 @@ def extend(loan_id):
         if res.rowcount == 1:
             flash(_("Verlängert bis {date}.", date=format_day(new_due)), "success")
             break
-        db.session.refresh(loan)   # parallele Änderung – mit dem neuen Stand noch einmal prüfen
+        db.session.refresh(loan)   # concurrent change – check again against the new state
     return _back(url_for("loans.index"))
 
 
@@ -278,23 +278,23 @@ def index():
                            max_ext=get_int("max_extensions", 2))
 
 
-# ---------------------------------------------------------------- Ausleihtheke
+# ---------------------------------------------------------------- Circulation desk
 
 def _like_escape(text: str) -> str:
-    """% und _ in Suchbegriffen wörtlich nehmen."""
+    """Treat % and _ in search terms literally."""
     return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 def _find_books(code: str, exact_only: bool = False):
-    """Bücher zu einem Code. exact_only: nur Signatur, ISBN oder „#Nummer“ – für die Automatik an der Theke, die
-    nie auf einen ungefähren Treffer hin verleihen oder zurücknehmen soll."""
+    """Books for a code. exact_only: only call number, ISBN or "#number" – for the desk automation, which
+    must never lend or check in based on an approximate match."""
     code = (code or "").strip()
     if not code:
         return []
     base = manageable_books_query(current_user)
-    # Reihenfolge: Signatur (genau, ohne Groß/Klein) → ISBN → „#12“ als interne Buch-Nummer → Titel → Autor usw.
-    # Reine Ziffern sind oft Signaturen oder Inventarnummern und werden nie als Buch-Nummer gedeutet.
-    # SQLite kennt bei lower() nur A–Z – deshalb zusätzlich der genaue Vergleich (z. B. „Ü-12“)
+    # Order: call number (exact, case-insensitive) → ISBN → "#12" as internal book number → title → author etc.
+    # Pure digits are often call numbers or inventory numbers and are never interpreted as a book number.
+    # SQLite's lower() only handles A–Z – hence the additional exact comparison (e.g. "Ü-12")
     found = base.filter(or_(Book.signature == code, func.lower(Book.signature) == code.lower())).limit(20).all()
     if found:
         return found
@@ -311,7 +311,7 @@ def _find_books(code: str, exact_only: bool = False):
         return []
     like = f"%{_like_escape(code)}%"
     found = base.filter(Book.title.ilike(like, escape="\\")).order_by(Book.title).limit(20).all()
-    if not found:   # auch Autor, Untertitel und Schlagwörter
+    if not found:   # also author, subtitle and tags
         found = base.filter(or_(Book.authors.ilike(like, escape="\\"), Book.subtitle.ilike(like, escape="\\"),
                                 Book.tags.ilike(like, escape="\\"))).order_by(Book.title).limit(20).all()
     return found
@@ -323,7 +323,7 @@ def desk():
     mode = request.values.get("modus", "ausleihe")
     code = (request.values.get("code") or "").strip()
     user_q = (request.values.get("benutzer") or "").strip()[:200]
-    borrower = None      # User oder people.Candidate (AD-Person, noch nicht angelegt)
+    borrower = None      # User or people.Candidate (AD person, not yet created)
     if user_q:
         borrower = people.find(user_q)
         if borrower is None:
@@ -355,7 +355,7 @@ def desk():
 
     if code:
         books = _find_books(code)
-        if mode == "ausleihe":   # Präsenzbestand wird an der Theke gar nicht erst zum Verleihen angeboten
+        if mode == "ausleihe":   # Reference-only items are not even offered for lending at the desk
             present = [b for b in books if not b.lendable]
             books = [b for b in books if b.lendable]
             if present and not books:
@@ -378,7 +378,7 @@ def desk():
         if not books and not code_flashed:
             flash(_("Kein Buch zu „{code}“ gefunden.", code=code), "error")
 
-    # Gruppen-Verwalter sehen nur Ausleihen und Gruppen, die sie selbst verwalten
+    # Group librarians only see loans and groups they manage themselves
     managed = {g.id for g in current_user.manageable_groups()}
     managed_names = {g.name for g in current_user.manageable_groups()}
     if isinstance(borrower, people.Candidate):
@@ -387,7 +387,7 @@ def desk():
     else:
         borrower_loans = [l for l in borrower.active_loans if current_user.can_manage(l.book)] if borrower else []
         borrower_groups = [g.name for g in borrower.groups if g.id in managed] if borrower else []
-    borrower_ready = []    # für die Person zurückgelegte Vormerkungen – direkt hier verleihen
+    borrower_ready = []    # reservations held for the person – lend directly here
     if borrower is not None and not isinstance(borrower, people.Candidate) and reservations.enabled():
         borrower_ready = [r for r in reservations.ready_for(borrower) if current_user.can_manage(r.book)]
     return render_template("loans/desk.html", mode=mode, code=code, books=books, loans=loans,
@@ -401,7 +401,7 @@ def desk():
 @bp.route("/api/personen")
 @librarian_required
 def api_people():
-    """Personensuche für Theke und „An Benutzer verleihen“ – lokal und im Active Directory."""
+    """Person search for the desk and "Lend to user" – local and in Active Directory."""
     from flask import jsonify
     return jsonify(people.search(request.args.get("q", ""), directory=request.args.get("verzeichnis") != "0"))
 
@@ -409,7 +409,7 @@ def api_people():
 @bp.route("/api/bestand")
 @librarian_required
 def api_stock():
-    """Bestandssuche an der Theke: Titel, Autor, ISBN, Signatur, Schlagwort – nur der eigene Bestand."""
+    """Collection search at the desk: title, author, ISBN, call number, tag – own collection only."""
     from flask import jsonify
     q = (request.args.get("q") or "").strip()[:100]
     mode = request.args.get("modus", "ausleihe")
@@ -419,7 +419,7 @@ def api_stock():
     clean = isbnlib.clean_isbn(q)
     isbn13 = isbnlib.to_isbn13(clean) if len(clean) in (10, 13) else None
     from ..models import occupied_counts
-    on_loan = occupied_counts()          # Ausleihen plus für Vormerkungen zurückgelegte Exemplare
+    on_loan = occupied_counts()          # loans plus copies held for reservations
     conds = [Book.title.ilike(like, escape="\\"), Book.subtitle.ilike(like, escape="\\"),
              Book.authors.ilike(like, escape="\\"), Book.tags.ilike(like, escape="\\"),
              Book.signature.ilike(like, escape="\\"), Book.isbn.ilike(like, escape="\\")]
@@ -428,17 +428,17 @@ def api_stock():
     base = (manageable_books_query(current_user)
             .outerjoin(on_loan, on_loan.c.book_id == Book.id)
             .add_columns(func.coalesce(on_loan.c.n, 0)))
-    if mode != "rueckgabe":   # Präsenzbestand wird zum Verleihen gar nicht erst angeboten
+    if mode != "rueckgabe":   # Reference-only items are not even offered for lending
         base = base.filter(lendable_books())
-    # Genaue Treffer (Signatur, ISBN) zuerst und unabhängig von der Begrenzung holen – sonst fiele z. B. die
-    # Signatur „77“ bei vielen Teiltreffern aus der Liste
+    # Fetch exact matches (call number, ISBN) first and regardless of the limit – otherwise e.g. call number
+    # "77" would drop off the list with many partial matches
     exact_conds = [Book.signature == q, func.lower(Book.signature) == q.lower()]
     if isbn13:
         exact_conds.append(Book.isbn == isbn13)
     exact_rows = base.filter(or_(*exact_conds)).order_by(Book.title).limit(12).all()
     exact_ids = {b.id for b, _n in exact_rows}
     rows = base.filter(or_(*conds)).filter(~Book.id.in_(exact_ids or {0})).order_by(Book.title).limit(60).all()
-    # An der Theke mit gewählter Person: Bücher, die sie nicht ausleihen darf oder schon hat, nach hinten
+    # At the desk with a selected person: books they may not borrow or already have go to the end
     name = (request.args.get("benutzer") or "").strip()[:200]
     borrower = people.find(name, cached=True) if name and mode != "rueckgabe" else None
     has = set()

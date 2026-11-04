@@ -1,11 +1,11 @@
-"""ISBN-Prüfung und Abfrage von Buchdaten aus öffentlichen Katalogen.
+"""ISBN validation and lookup of book data from public catalogs.
 
-Quellen (Reihenfolge in den Einstellungen änderbar):
-  * dnb         – Deutsche Nationalbibliothek (SRU, MARC21) – sehr gut für deutschsprachige Titel
+Sources (order can be changed in the settings):
+  * dnb         – Deutsche Nationalbibliothek (SRU, MARC21) – very good for German-language titles
   * openlibrary – Open Library (Internet Archive)
   * google      – Google Books
-Die Ergebnisse werden zusammengeführt: Felder, die eine Quelle nicht liefert,
-werden aus der nächsten ergänzt.
+The results are merged: fields that one source does not provide
+are filled in from the next one.
 """
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def is_valid_isbn(isbn: str) -> bool:
 
 def to_isbn13(isbn: str) -> str:
     isbn = clean_isbn(isbn)
-    if not re.fullmatch(r"\d{9}[\dX]", isbn):   # z. B. „X“ mitten im Code: unverändert lassen
+    if not re.fullmatch(r"\d{9}[\dX]", isbn):   # e.g. "X" in the middle of the code: leave unchanged
         return isbn
     core = "978" + isbn[:9]
     total = sum(int(c) * (1 if i % 2 == 0 else 3) for i, c in enumerate(core))
@@ -58,7 +58,7 @@ def to_isbn10(isbn13: str) -> str | None:
     return core + ("X" if check == 10 else str(check))
 
 
-# ---------------------------------------------------------------- Quellen
+# ---------------------------------------------------------------- Sources
 
 MARC = "{http://www.loc.gov/MARC21/slim}"
 
@@ -68,7 +68,7 @@ def _subfields(field, code):
 
 
 def _strip_marc(s: str) -> str:
-    s = s.replace("\u0098", "").replace("\u009c", "")  # Nichtsortierzeichen der DNB
+    s = s.replace("\u0098", "").replace("\u009c", "")  # DNB non-sorting characters
     return re.sub(r"\s*[/:;,.=]\s*$", "", s).strip()
 
 
@@ -97,7 +97,7 @@ def lookup_dnb(isbn: str) -> dict:
                 continue
             for a in _subfields(df, "a"):
                 name = _strip_marc(a)
-                if "," in name:  # "Nachname, Vorname" -> "Vorname Nachname"
+                if "," in name:  # "Last, First" -> "First Last"
                     last, first = [p.strip() for p in name.split(",", 1)]
                     name = f"{first} {last}"
                 if name not in authors:
@@ -187,7 +187,7 @@ SOURCES = {
 
 
 def lookup(isbn: str, order: list[str] | None = None) -> dict:
-    """Fragt alle konfigurierten Quellen ab und führt die Ergebnisse zusammen."""
+    """Query all configured sources and merge the results."""
     isbn = clean_isbn(isbn)
     isbn13 = to_isbn13(isbn)
     order = order or list(SOURCES)
@@ -200,7 +200,7 @@ def lookup(isbn: str, order: list[str] | None = None) -> dict:
             data = fn(isbn13)
             if not data and len(isbn) == 10:
                 data = fn(isbn)
-        except Exception as exc:  # Netzwerkfehler etc. sollen die anderen Quellen nicht blockieren
+        except Exception as exc:  # network errors etc. must not block the other sources
             log.warning("ISBN lookup %s at %s failed: %s", isbn13, key, exc)
             result["errors"].append(f"{label}: {exc.__class__.__name__}")
             continue

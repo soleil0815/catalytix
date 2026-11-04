@@ -1,11 +1,11 @@
-"""Aufbewahrungsfristen (DSGVO: Speicherbegrenzung, Art. 5 Abs. 1 e).
+"""Retention periods (GDPR: storage limitation, Art. 5(1)(e)).
 
-Abgeschlossene Ausleihen werden nach der eingestellten Frist (Standard 12 Monate nach der Rückgabe)
-gelöscht. Pro Buch bleibt nur die Anzahl erhalten (Book.archived_loans), damit die Statistik stimmt.
-Einträge im Mail-Protokoll werden nach derselben Frist gelöscht – außer solche zu laufenden Ausleihen,
-denn daran erkennt Catalytix, wie oft schon gemahnt wurde.
+Completed loans are deleted after the configured period (default 12 months after the return).
+Only the count is kept per book (Book.archived_loans), so the statistics stay correct.
+Mail log entries are deleted after the same period – except those for ongoing loans,
+because that is how Catalytix knows how many overdue notices have already been sent.
 
-Laufende und überfällige Ausleihen werden nie gelöscht.
+Ongoing and overdue loans are never deleted.
 """
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def cutoff_date(now: datetime | None = None, months: int | None = None) -> datet
 
 
 def archive_loans(loan_ids: list[int]) -> int:
-    """Ausleihen löschen und pro Buch mitzählen. Erwartet nur abgeschlossene Ausleihen."""
+    """Delete loans and count them per book. Expects only completed loans."""
     total = 0
     for i in range(0, len(loan_ids), BATCH):
         ids = loan_ids[i:i + BATCH]
@@ -49,18 +49,18 @@ def archive_loans(loan_ids: list[int]) -> int:
 
 
 def delete_user(user) -> list[int]:
-    """Benutzer samt abgeschlossenen Ausleihen löschen (pro Buch nur gezählt, Statistik bleibt).
+    """Delete a user including completed loans (only counted per book, statistics remain).
 
-    Der Aufrufer prüft vorher, dass keine Ausleihe mehr läuft; committet wird nicht. Liefert die Bücher, für die
-    das Konto offene Vormerkungen hatte – nach dem Commit reservations.promote_after_delete() aufrufen, damit ein
-    für das Konto zurückgelegtes Exemplar an die Nächsten in der Warteschlange geht."""
+    The caller checks beforehand that no loan is still ongoing; nothing is committed. Returns the books for which
+    the account had open reservations – call reservations.promote_after_delete() after the commit so that a
+    copy held for the account goes to the next people in the queue."""
     from .models import RES_READY, RES_WAITING, Reservation
     books = [b for (b,) in db.session.query(Reservation.book_id).filter(
         Reservation.user_id == user.id, Reservation.status.in_((RES_WAITING, RES_READY)))]
     ids = [i for (i,) in db.session.query(Loan.id).filter(Loan.user_id == user.id)]
     archive_loans(ids)
     db.session.query(Loan).filter(Loan.user_id == user.id).delete(synchronize_session=False)
-    # schon geladene Ausleihen aus der Sitzung nehmen – sonst will das ORM sie beim Löschen noch ändern
+    # remove already loaded loans from the session – otherwise the ORM still wants to modify them on delete
     for obj in [o for o in db.session.identity_map.values() if isinstance(o, Loan) and o.id in set(ids)]:
         db.session.expunge(obj)
     db.session.expire(user, ["loans"])
@@ -69,7 +69,7 @@ def delete_user(user) -> list[int]:
 
 
 def run_retention(now: datetime | None = None) -> dict:
-    """Fristen anwenden. Liefert {'loans': n, 'mails': m} bzw. {'off': True}."""
+    """Apply retention periods. Returns {'loans': n, 'mails': m} or {'off': True}."""
     cutoff = cutoff_date(now)
     if cutoff is None:
         return {"off": True, "loans": 0, "mails": 0}
@@ -78,7 +78,7 @@ def run_retention(now: datetime | None = None) -> dict:
     loans = archive_loans(old_ids)
     from .models import Reservation
     db.session.query(Reservation).filter(Reservation.closed_at.isnot(None), Reservation.closed_at < cutoff).delete(
-        synchronize_session=False)    # abgeschlossene Vormerkungen: nur so lange wie Ausleihen
+        synchronize_session=False)    # completed reservations: only as long as loans
     active = select(Loan.id).where(Loan.returned_at.is_(None))
     mails = (db.session.query(MailLog)
              .filter(MailLog.created_at < cutoff,
@@ -97,7 +97,7 @@ def format_result(res: dict) -> str:
 
 
 def display_message(msg: str) -> str:
-    """Gespeichertes Ergebnis (deutsch) in der aktuellen Sprache."""
+    """Stored result (German) in the current language."""
     import re
     from .i18n import _
     m = re.match(r"^Gelöscht: (\d+) alte Ausleihe\(n\), (\d+) Einträge im E-Mail-Protokoll$", msg)
@@ -108,7 +108,7 @@ def display_message(msg: str) -> str:
 
 
 def run_daily(now: datetime | None = None) -> dict | None:
-    """Einmal pro Tag (auch bei mehreren Server-Prozessen nur einmal)."""
+    """Once a day (only once even with multiple server processes)."""
     from .mailer import _claim_today
     now = now or datetime.now()
     if not _claim_today(now.date().isoformat(), key="retention_last_run"):

@@ -1,4 +1,4 @@
-"""Neuigkeiten in der App: Inhalt, Zielgruppen, „gesehen“-Stand und dezente Hinweise."""
+"""News in the app: content, audiences, "seen" state and unobtrusive hints."""
 import json
 import os
 import sys
@@ -32,7 +32,7 @@ class NewsFileTests(unittest.TestCase):
                 for lang in ("de", "en"):
                     self.assertTrue(item[lang]["title"].strip() and item[lang]["text"].strip())
                 text = json.dumps(item).lower()
-                self.assertNotIn("catalytix", text)         # Programmname nur auf der Info-Seite
+                self.assertNotIn("catalytix", text)         # program name only on the info page
 
     def test_current_version_has_news(self):
         self.assertEqual(json.loads(NEWS.read_text(encoding="utf-8"))[0]["version"], __version__)
@@ -84,17 +84,17 @@ class NewsTests(unittest.TestCase):
         html = self.c.get("/").get_data(as_text=True)
         self.assertNotIn("news-hint", html)
         self.assertNotIn("news-dot", html)
-        self.assertIn("/neuigkeiten", html)                  # Link bleibt dezent in der Seitenleiste
+        self.assertIn("/neuigkeiten", html)                  # link stays unobtrusive in the sidebar
 
     def test_existing_account_sees_only_this_version(self):
         leser = self.user("leser")
-        leser.news_seen = None                                # Konto von vor dieser Funktion
+        leser.news_seen = None                                # account from before this feature
         db.session.commit()
         entries = news.for_user(leser, "de")
         unseen = [e["version"] for e in entries if e["unseen"]]
-        self.assertIn(news.INTRODUCED, unseen)                    # auch bei einem Sprung über mehrere Versionen
+        self.assertIn(news.INTRODUCED, unseen)                    # also when jumping over several versions
         self.assertTrue(all(news.vtuple(v) >= news.vtuple(news.INTRODUCED) for v in unseen))
-        self.assertTrue(any(not e["unseen"] for e in entries))     # ältere Einträge nur zum Nachlesen
+        self.assertTrue(any(not e["unseen"] for e in entries))     # older entries only for reading up
 
     def test_hint_dot_and_mark_seen(self):
         with self.fake([{"version": __version__, "date": "2026-10-24",
@@ -105,7 +105,7 @@ class NewsTests(unittest.TestCase):
             self.login("leser")
             html = self.c.get("/").get_data(as_text=True)
             self.assertIn("news-hint", html)
-            self.assertIn("Sicherer", html)                   # Sicherheit steht vorne
+            self.assertIn("Sicherer", html)                   # security comes first
             self.assertIn("und 1 weitere Neuigkeit", html)
             self.assertIn("news-dot", html)
             page = self.c.get("/neuigkeiten").get_data(as_text=True)
@@ -140,7 +140,7 @@ class NewsTests(unittest.TestCase):
             self.assertEqual(titles("leser"), ["Für alle"])
             self.assertEqual(titles("bib"), ["Für alle", "Für die Theke"])
             self.assertEqual(titles("admin"), ["Nur Admin", "Für alle", "Für die Theke", "Alt"])
-            # eine Version nur mit Admin-Themen zeigt Lesern keinen Punkt
+            # a version with only admin topics shows readers no dot
             leser = self.user("leser")
             leser.news_seen = "0.0.1"
             db.session.commit()
@@ -182,7 +182,7 @@ class NewsTests(unittest.TestCase):
         col = User.__table__.c.news_seen
         ddl = _add_column_ddl(User.__table__, col, db.engine.dialect)
         self.assertEqual(len(ddl), 1)
-        self.assertNotIn("DEFAULT", ddl[0])                  # bestehende Konten: NULL → sehen die neue Version
+        self.assertNotIn("DEFAULT", ddl[0])                  # existing accounts: NULL → see the new version
 
 
 if __name__ == "__main__":

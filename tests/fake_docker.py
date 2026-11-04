@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Nachgebautes „docker“ für die update.sh-Tests: Zustand in $FAKE_DOCKER_STATE (JSON), Aufrufe in $FAKE_DOCKER_LOG.
+"""Fake "docker" for the update.sh tests: state in $FAKE_DOCKER_STATE (JSON), calls in $FAKE_DOCKER_LOG.
 
-Zustand:
-  images    {ref oder id: {"id", "version", "dist": {Datei: Inhalt}}}   lokal vorhandene Images
-  registry  {ref: Image}                                                 was „pull“ holen kann
-  container {"image": id, "status", "health", "restarts", "project"} oder null
-  health    {Version: "healthy" | "unhealthy" | "exited"}               Startverhalten je Version
-  run_rc    {Befehl: Rückgabewert}                                       z. B. restore-before
-  mounts    [Pfade]                                                      Mounts aller Container
-  compose_v2  false → „docker compose“ fehlt (docker-compose wird benutzt)
+State:
+  images    {ref or id: {"id", "version", "dist": {file: content}}}     locally present images
+  registry  {ref: image}                                                 what "pull" can fetch
+  container {"image": id, "status", "health", "restarts", "project"} or null
+  health    {version: "healthy" | "unhealthy" | "exited"}               start behaviour per version
+  run_rc    {command: return code}                                       e.g. restore-before
+  mounts    [paths]                                                      mounts of all containers
+  compose_v2  false → "docker compose" is missing (docker-compose is used)
 """
 import json
 import os

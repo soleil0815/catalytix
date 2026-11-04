@@ -1,4 +1,4 @@
-"""Katalog und Buchpflege."""
+"""Catalog and book maintenance."""
 from __future__ import annotations
 
 import csv
@@ -34,7 +34,7 @@ bp = Blueprint("books", __name__)
 log = logging.getLogger(__name__)
 
 PER_PAGE = 24
-TEXT_FIELDS = {  # Feldname -> maximale Länge
+TEXT_FIELDS = {  # field name -> maximum length
     "title": 500, "subtitle": 500, "authors": 500, "publisher": 300, "published": 30,
     "edition": 100, "language": 30, "category": 200, "tags": 500, "location": 200,
     "signature": 100, "cover_url": 1000,
@@ -47,22 +47,22 @@ MAX_COPIES = 10_000
 
 
 def _active_loan_counts():
-    """Unterabfrage: Buch-ID → belegte Exemplare (offene Ausleihen plus für Vormerkungen zurückgelegte) – für Filter,
-    Vorschläge und Export ohne Abfrage je Buch."""
+    """Subquery: book ID → occupied copies (open loans plus copies held for reservations) – for filters,
+    suggestions and export without a query per book."""
     from ..models import occupied_counts
     return occupied_counts()
 
 
 def _with_active_loans():
-    """Nur die offenen Ausleihen (und zurückgelegten Vormerkungen) mitladen – genug für „verfügbar“, ohne den ganzen
-    Verlauf und ohne eine Abfrage je Buch."""
+    """Eager-load only the open loans (and held reservations) – enough for "available", without the whole
+    history and without a query per book."""
     from ..models import RES_READY, Reservation
     return (selectinload(Book.loans.and_(Loan.returned_at.is_(None))),
             selectinload(Book.reservations.and_(Reservation.status == RES_READY)))
 
 
 def _bounded_int(value, maximum: int) -> int | None:
-    """Zahl aus JSON (int oder Ziffern-Text) auf 1 … maximum begrenzen; alles andere → None."""
+    """Clamp a number from JSON (int or digit text) to 1 … maximum; anything else → None."""
     if isinstance(value, str):
         value = value.strip()
         value = (int(value) if len(value) <= 30 else maximum) if is_digits(value) else None
@@ -100,19 +100,19 @@ def _store_cover_bytes(data: bytes, ext: str) -> str:
 
 COVER_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
 COVER_MAX = 5 * 1024 * 1024
-_COVER_FAILED: dict[int, float] = {}  # Buch-ID -> Zeitpunkt des letzten Fehlschlags
+_COVER_FAILED: dict[int, float] = {}  # book ID -> time of the last failure
 
 
-COVER_DEADLINE = 10   # Sekunden für den ganzen Abruf eines Covers (alle Weiterleitungen zusammen)
-_COVER_TIMEOUT = 6    # Sekunden je Verbindungsaufbau bzw. Lesevorgang
-# Adressbereiche, hinter denen sich interne IPv4-Adressen verbergen können: NAT64, IPv4-mapped/-kompatibel, Teredo
+COVER_DEADLINE = 10   # seconds for fetching a whole cover (all redirects combined)
+_COVER_TIMEOUT = 6    # seconds per connection attempt or read
+# Address ranges that can hide internal IPv4 addresses: NAT64, IPv4-mapped/-compatible, Teredo
 _BLOCKED_V6 = [ipaddress.ip_network(n) for n in ("64:ff9b::/96", "64:ff9b:1::/48", "::ffff:0:0/96", "::/96",
                                                  "2001::/32")]
 _fetch_state = threading.local()
 
 
 def _ip_allowed(addr: str) -> bool:
-    """Nur öffentliche Unicast-Adressen."""
+    """Public unicast addresses only."""
     try:
         ip = ipaddress.ip_address(str(addr).split("%")[0])
     except ValueError:
@@ -120,13 +120,13 @@ def _ip_allowed(addr: str) -> bool:
     if ip.version == 6:
         if any(ip in net for net in _BLOCKED_V6):
             return False
-        if ip.sixtofour is not None:   # 6to4: die eingebettete IPv4-Adresse zählt
+        if ip.sixtofour is not None:   # 6to4: the embedded IPv4 address counts
             return _ip_allowed(str(ip.sixtofour))
     return ip.is_global and not ip.is_multicast
 
 
 def _resolve_public(host: str, port: int) -> list | None:
-    """Namen auflösen; nur wenn ausnahmslos alle Adressen öffentlich sind, die Liste (getaddrinfo-Form)."""
+    """Resolve the name; return the list (getaddrinfo form) only if every single address is public."""
     try:
         infos = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM, socket.IPPROTO_TCP)
     except (OSError, UnicodeError, ValueError):
@@ -137,14 +137,14 @@ def _resolve_public(host: str, port: int) -> list | None:
 
 
 def _public_host(host: str) -> bool:
-    """Nur öffentliche Adressen abrufen (kein Zugriff auf interne Server über die Cover-Funktion)."""
+    """Fetch only public addresses (no access to internal servers via the cover feature)."""
     return _resolve_public(host, 443) is not None
 
 
 class _PinnedConnectionMixin:
-    """Löst den Namen erst beim Verbindungsaufbau auf, prüft alle Adressen und verbindet genau zu einer
-    geprüften. Ein DNS-Rebinding zwischen Prüfung und Verbindung läuft so ins Leere; Host-Header, SNI und
-    Zertifikatsprüfung verwenden weiterhin den Namen."""
+    """Resolves the name only when connecting, checks all addresses and connects to exactly one checked
+    address. DNS rebinding between check and connect thus has no effect; Host header, SNI and
+    certificate verification still use the name."""
 
     def _new_conn(self):
         from urllib3.exceptions import NewConnectionError
@@ -158,7 +158,7 @@ class _PinnedConnectionMixin:
                 self._dns_host = info[4][0]
                 try:
                     sock = super()._new_conn()
-                except Exception as exc:  # noqa: BLE001 – nächste geprüfte Adresse versuchen
+                except Exception as exc:  # noqa: BLE001 – try the next checked address
                     error = exc
                     continue
                 socks = getattr(_fetch_state, "socks", None)
@@ -194,9 +194,9 @@ class _PinnedAdapter(requests.adapters.HTTPAdapter):
 
 def _cover_session() -> requests.Session:
     session = requests.Session()
-    # Kein Umweg über HTTP(S)_PROXY: Der Proxy würde den Namen selbst (ungeprüft) auflösen.
-    # Wer Cover nur über einen Proxy laden kann, setzt CATALYTIX_COVER_VIA_PROXY=1 (dann muss der Proxy
-    # interne Ziele selbst sperren).
+    # No detour via HTTP(S)_PROXY: the proxy would resolve the name itself (unchecked).
+    # If covers can only be fetched via a proxy, set CATALYTIX_COVER_VIA_PROXY=1 (the proxy must then
+    # block internal targets itself).
     session.trust_env = os.environ.get("CATALYTIX_COVER_VIA_PROXY") == "1"
     adapter = _PinnedAdapter(max_retries=0)
     session.mount("http://", adapter)
@@ -210,7 +210,7 @@ def _http_get(session: requests.Session, url: str):
 
 
 def _abort_sockets(socks: list):
-    """Frist abgelaufen: offene Verbindungen hart beenden (auch ein blockierendes Lesen kehrt dann zurück)."""
+    """Deadline expired: forcibly close open connections (a blocking read then returns too)."""
     for sock in list(socks):
         try:
             sock.shutdown(socket.SHUT_RDWR)
@@ -219,7 +219,7 @@ def _abort_sockets(socks: list):
 
 
 def _fetch_cover(url: str) -> tuple[bytes, str] | None:
-    """Coverbild serverseitig laden (Browser der Nutzer verbinden sich nie mit Fremdservern)."""
+    """Fetch the cover image server-side (users' browsers never connect to third-party servers)."""
     from urllib.parse import urljoin, urlsplit
     deadline = time.monotonic() + COVER_DEADLINE
     socks: list = []
@@ -229,7 +229,7 @@ def _fetch_cover(url: str) -> tuple[bytes, str] | None:
     watchdog.start()
     session = _cover_session()
     try:
-        for _hop in range(4):  # höchstens 3 Weiterleitungen, jede wird geprüft
+        for _hop in range(4):  # at most 3 redirects, each one is checked
             parts = urlsplit(url)
             if parts.scheme not in ("https", "http") or not parts.hostname or not _public_host(parts.hostname):
                 return None
@@ -250,13 +250,13 @@ def _fetch_cover(url: str) -> tuple[bytes, str] | None:
                     if not chunk:
                         break
                     data += chunk
-                if len(data) < 1500 or len(data) > COVER_MAX:  # Platzhalterbilder ignorieren
+                if len(data) < 1500 or len(data) > COVER_MAX:  # ignore placeholder images
                     return None
                 return bytes(data), ctype
             finally:
                 r.close()
         return None
-    except Exception as exc:  # noqa: BLE001 – Netzwerk-, Protokoll- und Dekodierfehler: kein Cover, kein 500
+    except Exception as exc:  # noqa: BLE001 – network, protocol and decoding errors: no cover, no 500
         log.info("Cover download failed (%s): %s", url, exc)
         return None
     finally:
@@ -266,7 +266,7 @@ def _fetch_cover(url: str) -> tuple[bytes, str] | None:
 
 
 def _clean_image(raw: bytes) -> bytes | None:
-    """Nur echte Bilder annehmen und neu kodieren (entfernt eingeschleuste Inhalte und Metadaten)."""
+    """Accept only real images and re-encode them (removes injected content and metadata)."""
     from PIL import Image
     from ..branding import BrandingError, _open_image
     try:
@@ -278,18 +278,18 @@ def _clean_image(raw: bytes) -> bytes | None:
         return out.getvalue()
     except BrandingError:
         return None
-    except Exception as exc:  # noqa: BLE001 – z. B. abgeschnittenes JPEG (OSError) oder Dekompressionsbombe
+    except Exception as exc:  # noqa: BLE001 – e.g. truncated JPEG (OSError) or decompression bomb
         log.info("Image not readable: %s", exc)
         return None
 
 
 def _download_cover(url: str) -> str:
-    """Lädt ein Cover herunter und speichert es lokal; liefert den Dateinamen oder ''."""
+    """Downloads a cover and stores it locally; returns the file name or ''."""
     try:
         got = _fetch_cover(url)
         clean = _clean_image(got[0]) if got else None
         return _store_cover_bytes(clean, ".jpg") if clean else ""
-    except Exception as exc:  # noqa: BLE001 – ein kaputtes Cover darf nie das Speichern/Anzeigen verhindern
+    except Exception as exc:  # noqa: BLE001 – a broken cover must never prevent saving/displaying
         log.warning("Could not take over the cover (%s): %s", url, exc)
         return ""
 
@@ -321,7 +321,7 @@ def cover(filename):
 @bp.route("/covers/buch/<int:book_id>")
 @login_required
 def cover_remote(book_id):
-    """Cover eines Buchs, das noch nicht lokal liegt: einmal serverseitig laden und speichern."""
+    """Cover of a book not yet stored locally: fetch and store it once server-side."""
     book = _get_book_or_404(book_id)
     if not current_user.can_see(book, get_setting("catalog_visibility") == "all"):
         abort(404)
@@ -332,7 +332,7 @@ def cover_remote(book_id):
         try:
             name = _download_cover(book.cover_url)
         finally:
-            if not name:   # auch bei unerwarteten Fehlern: nicht bei jedem Katalogaufruf neu versuchen
+            if not name:   # also on unexpected errors: don't retry on every catalog request
                 _COVER_FAILED[book.id] = time.time()
         if not name:
             abort(404)
@@ -344,7 +344,7 @@ def cover_remote(book_id):
 @bp.route("/covers/vorschau")
 @librarian_required
 def cover_preview():
-    """Vorschau beim Erfassen (Bild aus dem ISBN-Abruf), über den eigenen Server geladen."""
+    """Preview while adding a book (image from the ISBN lookup), loaded via our own server."""
     got = _fetch_cover((request.args.get("u") or "")[:1000])
     clean = _clean_image(got[0]) if got else None
     if not clean:
@@ -353,7 +353,7 @@ def cover_preview():
                                                           "X-Content-Type-Options": "nosniff"})
 
 
-# ---------------------------------------------------------------- Katalog
+# ---------------------------------------------------------------- Catalog
 
 @bp.route("/buecher")
 @login_required
@@ -383,7 +383,7 @@ def index():
         query = query.filter(Book.group_id == parse_id(group))
     if location:
         query = query.filter(Book.location == location)
-    if status in ("verfuegbar", "ausgeliehen"):   # in SQL filtern statt jedes Buch einzeln zu laden
+    if status in ("verfuegbar", "ausgeliehen"):   # filter in SQL instead of loading each book individually
         active = _active_loan_counts()
         lent = func.coalesce(active.c.n, 0)
         query = query.outerjoin(active, active.c.book_id == Book.id)
@@ -415,7 +415,7 @@ SUGGEST_LIMIT = 8
 @bp.route("/api/katalog")
 @login_required
 def api_catalog():
-    """Vorschläge für das Suchfeld oben: nur Bücher, die man im Katalog sehen darf."""
+    """Suggestions for the top search field: only books the user may see in the catalog."""
     from .loans import _like_escape
     q = (request.args.get("q") or "").strip()[:100]
     if len(q) < 2:
@@ -434,7 +434,7 @@ def api_catalog():
     base = (visible_books_query(current_user)
             .outerjoin(active, active.c.book_id == Book.id)
             .add_columns(func.coalesce(active.c.n, 0)))
-    # Genaue Treffer (ISBN, Signatur) immer zuerst, dann Titel, die mit dem Suchtext beginnen
+    # Exact matches (ISBN, call number) always first, then titles starting with the search text
     exact = [func.lower(Book.signature) == q.lower()]
     if isbn13:
         exact.append(Book.isbn == isbn13)
@@ -478,10 +478,10 @@ def detail(book_id):
                            loan_days=get_setting("loan_days"))
 
 
-# ---------------------------------------------------------------- Pflege
+# ---------------------------------------------------------------- Maintenance
 
 def _fill_book(book: Book) -> str | None:
-    """Formular übernehmen; liefert eine Fehlermeldung (z. B. unbekannter Standort) oder None."""
+    """Apply the form; returns an error message (e.g. unknown location) or None."""
     from .locations import check as check_location
     previous_location = book.location or ""
     for field, maxlen in TEXT_FIELDS.items():
@@ -500,7 +500,7 @@ def _fill_book(book: Book) -> str | None:
 
 
 def _same_book(book: Book) -> Book | None:
-    """Bereits vorhandenes Buch mit derselben ISBN in derselben Gruppe, das die Person verwalten darf."""
+    """Existing book with the same ISBN in the same group that the person may manage."""
     if not book.isbn:
         return None
     same_group = Book.group_id.is_(None) if book.group_id is None else Book.group_id == book.group_id
@@ -521,19 +521,19 @@ def create():
         elif not book.title:
             flash(_("Ein Titel ist erforderlich."), "error")
         elif (same := _same_book(book)) is not None:
-            # Dasselbe Buch (ISBN) in derselben Gruppe gibt es schon: Exemplare dort hinzuzählen statt doppelt anlegen
+            # Same book (ISBN) already exists in the same group: add copies there instead of creating a duplicate
             add = book.copies or 0
             before = same.copies or 0
             if add:
-                total = func.coalesce(Book.copies, 0) + add       # in SQL: gleichzeitige Erfassungen zählen beide
+                total = func.coalesce(Book.copies, 0) + add       # in SQL: concurrent entries are both counted
                 db.session.execute(update(Book).where(Book.id == same.id)
                                    .values(copies=case((total > MAX_COPIES, MAX_COPIES), else_=total))
                                    .execution_options(synchronize_session=False))
             db.session.commit()
             from .. import reservations
-            reservations.promote(same.id)          # neue Exemplare gehen zuerst an die Warteschlange
+            reservations.promote(same.id)          # new copies go to the waiting queue first
             db.session.refresh(same)
-            added = max(0, (same.copies or 0) - before)      # an der Höchstgrenze ggf. weniger als eingetragen
+            added = max(0, (same.copies or 0) - before)      # at the upper limit possibly fewer than entered
             if added:
                 flash(_n("„{title}“ ist bereits im Bestand – {n} Exemplar hinzugefügt, jetzt {copies}. Die übrigen "
                          "Angaben des Formulars wurden nicht übernommen.",
@@ -582,7 +582,7 @@ def edit(book_id):
             _apply_cover(book, old_url)
             db.session.commit()
             from .. import reservations
-            reservations.rebalance(book.id)    # Anzahl der Exemplare geändert: Vormerkungen anpassen
+            reservations.rebalance(book.id)    # number of copies changed: adjust reservations
             flash(_("Änderungen gespeichert."), "success")
             return redirect(url_for("books.detail", book_id=book.id))
     from .locations import names as location_names
@@ -606,7 +606,7 @@ def delete(book_id):
     return redirect(url_for("books.index"))
 
 
-# ---------------------------------------------------------------- ISBN / Schnellerfassung
+# ---------------------------------------------------------------- ISBN / quick entry
 
 @bp.route("/api/isbn/<raw>")
 @librarian_required
@@ -615,7 +615,7 @@ def api_isbn(raw):
     if not isbnlib.is_valid_isbn(clean):
         return jsonify({"ok": False, "error": _("Keine gültige ISBN (Prüfziffer stimmt nicht).")}), 400
     isbn13 = isbnlib.to_isbn13(clean)
-    existing = [   # nur Bücher, die der Benutzer im Katalog sehen darf – keine Titel anderer Gruppen
+    existing = [   # only books the user may see in the catalog – no titles from other groups
         {"id": b.id, "title": b.title, "copies": b.copies, "available": b.available,
          "group": b.group.name if b.group else _("Allgemein"), "url": url_for("books.detail", book_id=b.id),
          "manageable": current_user.can_manage(b)}
@@ -681,12 +681,12 @@ def api_add_copy(book_id):
     book = _get_book_or_404(book_id)
     if not current_user.can_manage(book):
         abort(403)
-    # In SQL hochzählen: zwei gleichzeitige Klicks ergeben zwei Exemplare, nicht eins
+    # Increment in SQL: two simultaneous clicks yield two copies, not one
     db.session.execute(update(Book).where(Book.id == book.id, Book.copies < MAX_COPIES)
                        .values(copies=func.coalesce(Book.copies, 0) + 1).execution_options(synchronize_session=False))
     db.session.commit()
     from .. import reservations
-    reservations.promote(book.id)          # neues Exemplar geht zuerst an die Warteschlange
+    reservations.promote(book.id)          # new copy goes to the waiting queue first
     db.session.refresh(book)
     return jsonify({"ok": True, "copies": book.copies, "available": book.available})
 
@@ -702,7 +702,7 @@ def export_csv():
                 "Seiten", "Sprache", "Kategorie", "Schlagwörter", "Standort", "Signatur",
                 "Gruppe", "Exemplare", "Verfügbar"]])
     def cell(v):
-        # Schutz vor Formel-Einschleusung in Excel: Inhalte, die mit = + - @ beginnen, als Text markieren
+        # Protection against formula injection in Excel: mark content starting with = + - @ as text
         if isinstance(v, str) and v[:1] in ("=", "+", "-", "@", "\t", "\r"):
             return "'" + v
         return v

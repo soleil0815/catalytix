@@ -205,8 +205,8 @@ jobs:
           python3 tools/security_update.py changelog "$TAG" "$VERSION" handover/old-packages.txt handover/new-packages.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Dockerfile requirements.txt docker/pip.lock CHANGELOG.md
-          git commit -q -m "Sicherheitsupdate $TAG: aktualisierte Pakete für $VERSION"
+          git add Dockerfile requirements.txt docker/pip.lock CHANGELOG.md CHANGELOG.en.md
+          git commit -q -m "Security update $TAG: updated packages for $VERSION"
           git push -q "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main \
             || fail "Could not update main" "main changed in the meantime – start the security update again."
 

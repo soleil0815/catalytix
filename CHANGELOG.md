@@ -1,6 +1,7 @@
 # Änderungen an Catalytix
 
-Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
+Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
+[CHANGELOG.en.md](CHANGELOG.en.md).
 
 ## 3.0.1-s1 – 02.11.2026 (Sicherheitsupdate)
 Gleiches Programm wie 3.0.1, nur aktualisierte Pakete (wöchentliches Sicherheitsupdate, automatisch gebaut, getestet und mit Trivy geprüft):

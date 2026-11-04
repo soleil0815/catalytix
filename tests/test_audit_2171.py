@@ -1,4 +1,4 @@
-"""Code-Audit zu 2.17.1: Regressionstests für die behobenen Befunde."""
+"""Code audit for 2.17.1: regression tests for the fixed findings."""
 import os
 import smtplib
 import sys
@@ -19,7 +19,7 @@ from catalytix.models import Book, Group, Loan, LoginAttempt, MailLog, User, db,
 
 
 class GroupScopeTests(Base):
-    """Ein Gruppen-Verwalter, der seine letzte Gruppe verliert, darf nicht plötzlich alles verwalten."""
+    """A group manager who loses their last group must not suddenly manage everything."""
 
     def setUp(self):
         super().setUp()
@@ -56,7 +56,7 @@ class GroupScopeTests(Base):
 
     def test_removed_by_directory_sync_does_not_escalate(self):
         bib = User.query.filter_by(username="bib").one()
-        bib.groups.remove(self.group)       # wie beim AD-Abgleich
+        bib.groups.remove(self.group)       # as in the AD sync
         db.session.commit()
         self.assertFalse(bib.is_global_manager)
 
@@ -68,7 +68,7 @@ class GroupScopeTests(Base):
         form = {"username": "bib", "display_name": "Bib", "role": "librarian", "active": "1"}
         page = self.c.get(f"/admin/benutzer/{bib.id}").get_data(as_text=True)
         self.assertIn("manage_all", page)
-        self.c.post(f"/admin/benutzer/{bib.id}", data=form)                     # ohne Bestätigung: bleibt gebunden
+        self.c.post(f"/admin/benutzer/{bib.id}", data=form)                     # without confirmation: stays bound
         db.session.expire_all()
         self.assertFalse(User.query.filter_by(username="bib").one().is_global_manager)
         self.c.post(f"/admin/benutzer/{bib.id}", data={**form, "manage_all": "1"})
@@ -90,9 +90,9 @@ class DeskTests(Base):
         db.session.add(Loan(book=self.book, user=leser, due_at=date.today() + timedelta(days=5)))
         db.session.commit()
         self.c.post("/theke", data={"modus": "rueckgabe", "code": "Goethe", "auto": "1"})
-        self.assertIsNone(Loan.query.one().returned_at)                          # ungefähr: nichts passiert
+        self.assertIsNone(Loan.query.one().returned_at)                          # approximate: nothing happens
         self.c.post("/theke", data={"modus": "rueckgabe", "code": "goe-1", "auto": "1"})
-        self.assertIsNotNone(Loan.query.one().returned_at)                       # Signatur: zurückgenommen
+        self.assertIsNotNone(Loan.query.one().returned_at)                       # shelf mark: returned
 
     def test_return_twice_notifies_once(self):
         leser = User.query.filter_by(username="leser").one()
@@ -105,7 +105,7 @@ class DeskTests(Base):
             login_user(User.query.filter_by(username="bib").one())
             views.return_loan(loan)
             stamp = Loan.query.one().returned_at
-            views.return_loan(loan)                       # zweite Rückgabe derselben Ausleihe (Doppelklick)
+            views.return_loan(loan)                       # second return of the same loan (double click)
             self.assertEqual(notify.call_count, 1)
             self.assertEqual(Loan.query.one().returned_at, stamp)
 
@@ -117,19 +117,19 @@ class ReminderTests(MailBase):
         loan = self.loan(self.lena, b, today + timedelta(days=1))
         mailer.run_notifications(today)
         self.assertEqual(len(self.smtp.messages), 1)
-        # verlängert: neue Frist, für die wieder erinnert wird
+        # extended: new due date, reminders start again for it
         loan.due_at = today + timedelta(days=1)
         loan.due_changed_at = datetime.now() + timedelta(seconds=1)
         db.session.commit()
         self.assertIn(self.lena.id, mailer.collect_due(today))
-        # Mahnungen: Höchstzahl gilt je Frist
+        # reminders: the maximum applies per due date
         loan.due_at = today - timedelta(days=30)
         db.session.commit()
         for _ in range(3):
             db.session.add(MailLog(kind="overdue", status="sent", loan_id=loan.id, user_id=self.lena.id,
                                    created_at=datetime.now() - timedelta(days=60)))
         db.session.commit()
-        self.assertIn(self.lena.id, mailer.collect_due(today))   # alte Mahnungen vor der Verlängerung zählen nicht
+        self.assertIn(self.lena.id, mailer.collect_due(today))   # old reminders from before the extension do not count
 
     def test_run_lock(self):
         token = mailer._claim_run()
@@ -194,7 +194,7 @@ class RegistrationTests(unittest.TestCase):
         from test_register import RegisterTests
         self.helper = RegisterTests("test_disabled_by_default")
         self.helper.setUp()
-        self.addCleanup(self.helper.doCleanups)     # u. a. den Mail-Patch der Hilfsklasse wieder entfernen
+        self.addCleanup(self.helper.doCleanups)     # among other things, remove the helper class's mail patch again
         self.addCleanup(self.helper.tearDown)
 
     def test_existence_probes_are_limited(self):
@@ -221,7 +221,7 @@ class RegistrationTests(unittest.TestCase):
         db.session.commit()
         h.c.post("/login", data={"username": "chef", "password": "geheim12345"})
         h.c.post(f"/admin/benutzer/{u.id}", data={"username": "lena.s", "display_name": "Lena", "role": "reader",
-                                                    "email": "lena@schule.de"})          # „Konto aktiv“ aus
+                                                    "email": "lena@schule.de"})          # "account active" off
         h.c.post("/logout")
         h.c.get(f"/registrieren/bestaetigen/{token}")
         db.session.expire_all()
@@ -234,7 +234,7 @@ class ApiSessionTests(Base):
         r = self.c.get("/api/katalog?q=Faust")
         self.assertEqual(r.status_code, 401)
         self.assertFalse(r.get_json()["ok"])
-        self.assertEqual(self.c.get("/ausleihen").status_code, 302)              # Seiten leiten weiter um
+        self.assertEqual(self.c.get("/ausleihen").status_code, 302)              # pages still redirect
 
 
 class NewsHintTests(Base):

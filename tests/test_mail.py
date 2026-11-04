@@ -1,7 +1,7 @@
-"""Tests für den E-Mail-Versand – mit einem echten (Mini-)SMTP-Server im Test.
+"""Tests for sending e-mail – with a real (mini) SMTP server in the test.
 
-Der Testserver spricht SMTP inkl. STARTTLS, implizitem TLS und AUTH PLAIN/LOGIN,
-damit der Versandweg wirklich über smtplib und das Netzwerk läuft."""
+The test server speaks SMTP incl. STARTTLS, implicit TLS and AUTH PLAIN/LOGIN,
+so the sending path really goes through smtplib and the network."""
 import base64
 import datetime as dt
 import email
@@ -44,7 +44,7 @@ def self_signed(tmp):
 
 
 class FakeSMTP:
-    """Minimaler SMTP-Server (RFC 5321) für Tests."""
+    """Minimal SMTP server (RFC 5321) for tests."""
 
     def __init__(self, mode="plain", user=None, password=None, cert=None):
         self.mode, self.user, self.password = mode, user, password
@@ -63,7 +63,7 @@ class FakeSMTP:
                         sock = outer.ctx.wrap_socket(sock, server_side=True)
                     self.run(sock)
                 except (ssl.SSLError, OSError):
-                    pass  # z. B. Client lehnt Testzertifikat ab – gewollt im Test
+                    pass  # e.g. client rejects the test certificate – intended in the test
 
             def run(self, sock):
                 f = sock.makefile("rb")
@@ -252,19 +252,19 @@ class SendTests(MailBase):
     def test_reminders_grouped_and_not_repeated(self):
         today = date.today()
         b1, b2, b3 = self.book("Momo"), self.book("Krabat"), self.book("Tschick")
-        self.loan(self.lena, b1, today + timedelta(days=1))   # bald fällig
-        self.loan(self.lena, b2, today - timedelta(days=3))   # überfällig
-        self.loan(self.lena, b3, today + timedelta(days=20))  # noch lange Zeit
+        self.loan(self.lena, b1, today + timedelta(days=1))   # due soon
+        self.loan(self.lena, b2, today - timedelta(days=3))   # overdue
+        self.loan(self.lena, b3, today + timedelta(days=20))  # plenty of time left
         stats = mailer.run_notifications(today)
         self.assertEqual(stats["sent"], 1)
         self.assertEqual(stats["loans"], 2)
-        self.assertEqual(len(self.smtp.messages), 1)  # eine Mail für beide Bücher
+        self.assertEqual(len(self.smtp.messages), 1)  # one mail for both books
         text = body_text(self.smtp.messages[0]["msg"])
         self.assertIn("Krabat", text)
         self.assertIn("3 Tage überfällig", text)
         self.assertIn("Momo", text)
         self.assertNotIn("Tschick", text)
-        # gleicher Tag: nichts Neues
+        # same day: nothing new
         mailer.run_notifications(today)
         self.assertEqual(len(self.smtp.messages), 1)
 
@@ -276,16 +276,16 @@ class SendTests(MailBase):
         l = self.loan(self.lena, self.book(), today - timedelta(days=1))
         mailer.run_notifications(today)
         self.assertEqual(len(self.smtp.messages), 1)
-        mailer.run_notifications(today + timedelta(days=3))   # zu früh für Wiederholung
+        mailer.run_notifications(today + timedelta(days=3))   # too early for a repeat
         self.assertEqual(len(self.smtp.messages), 1)
-        # Wiederholung nach 7 Tagen (Protokolldatum zurückdatieren)
+        # repeat after 7 days (backdate the log date)
         MailLog.query.filter_by(loan_id=l.id).update({"created_at": datetime.now() - timedelta(days=8)})
         db.session.commit()
         mailer.run_notifications(today)
         self.assertEqual(len(self.smtp.messages), 2)
         MailLog.query.filter_by(loan_id=l.id).update({"created_at": datetime.now() - timedelta(days=8)})
         db.session.commit()
-        mailer.run_notifications(today)   # Maximum 2 erreicht
+        mailer.run_notifications(today)   # maximum of 2 reached
         self.assertEqual(len(self.smtp.messages), 2)
 
     def test_digest_to_librarian(self):
@@ -307,7 +307,7 @@ class SendTests(MailBase):
         self.assertIsNone(mailer.run_scheduled(early))
         later = datetime.combine(date.today(), dt.time(7, 5))
         self.assertIsNotNone(mailer.run_scheduled(later))
-        self.assertIsNone(mailer.run_scheduled(later))   # zweiter Prozess / zweiter Aufruf: nichts
+        self.assertIsNone(mailer.run_scheduled(later))   # second process / second call: nothing
         self.assertEqual(len(self.smtp.messages), 1)
 
     def test_manual_reminder_button(self):
@@ -339,10 +339,10 @@ class SendTests(MailBase):
         self.c.post("/admin/email", data={"action": "save", **same, "smtp_port": "465",
                                           "smtp_security": "ssl", "smtp_from": "a@b.de", "mail_enabled": "1"})
         self.assertEqual(get_setting("smtp_security"), "ssl")
-        self.assertEqual(get_setting("smtp_password"), "pw")   # leeres Feld behält Passwort (gleicher Server)
+        self.assertEqual(get_setting("smtp_password"), "pw")   # empty field keeps the password (same server)
         self.c.post("/admin/email", data={"action": "save", "smtp_host": "mail.anders.example", "smtp_port": "465",
                                           "smtp_security": "ssl", "smtp_from": "a@b.de", "mail_enabled": "1"})
-        self.assertEqual(get_setting("smtp_password"), "")     # anderer Server bekommt das alte Passwort nicht
+        self.assertEqual(get_setting("smtp_password"), "")     # a different server does not get the old password
         self.assertEqual(self.c.get("/admin/email").status_code, 200)
 
     def test_test_mail_error_is_shown(self):
@@ -402,7 +402,7 @@ class MigrationTests(unittest.TestCase):
         import sqlalchemy as sa
         path = os.path.join(tempfile.mkdtemp(), "old.db")
         eng = sa.create_engine(f"sqlite:///{path}")
-        with eng.begin() as c:   # Tabelle wie in Version 1.2 – ohne email_notifications
+        with eng.begin() as c:   # table as in version 1.2 – without email_notifications
             c.execute(sa.text("CREATE TABLE users (id INTEGER PRIMARY KEY, username VARCHAR(120) NOT NULL UNIQUE, "
                               "display_name VARCHAR(200), email VARCHAR(200), password_hash VARCHAR(256), "
                               "auth_source VARCHAR(10), ldap_dn VARCHAR(500), role VARCHAR(20) NOT NULL, "

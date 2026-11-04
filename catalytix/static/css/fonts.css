@@ -1,6 +1,6 @@
-/* Schriften werden vom eigenen Server geladen – keine Verbindung zu Google oder anderen Dritten.
-   Inter (rsms/inter) und Fraunces (undercasetype/Fraunces), SIL Open Font License 1.1,
-   Lizenztexte: static/fonts/LICENSE-*.txt. Dateien aus fontsource (Variable Fonts). */
+/* Fonts are loaded from our own server – no connection to Google or other third parties.
+   Inter (rsms/inter) and Fraunces (undercasetype/Fraunces), SIL Open Font License 1.1,
+   license texts: static/fonts/LICENSE-*.txt. Files from fontsource (variable fonts). */
 @font-face {
   font-family: "Inter"; font-style: normal; font-display: swap; font-weight: 100 900;
   src: url(../fonts/inter-latin-ext-wght-normal.woff2) format("woff2-variations"), url(../fonts/inter-latin-ext-wght-normal.woff2) format("woff2");

@@ -1,4 +1,4 @@
-"""Vormerkungen: Warteschlange, Zurücklegen mit Abholfrist, Ausleihe, Ablauf, Einstellungen."""
+"""Reservations: queue, holding with a pickup deadline, loan, expiry, settings."""
 import os
 import sys
 import tempfile
@@ -25,7 +25,7 @@ class ReservationTests(Base):
         self.anna = User.query.filter_by(username="anna").one()
         self.notify = mock.patch("catalytix.mailer.notify_reservation_ready").start()
         self.addCleanup(mock.patch.stopall)
-        # Faust (1 Exemplar) ist an „bib“ verliehen
+        # Faust (1 copy) is lent to "bib"
         db.session.add(Loan(book=self.book, user=User.query.filter_by(username="bib").one(),
                             due_at=date.today() + timedelta(days=10)))
         db.session.commit()
@@ -90,11 +90,11 @@ class ReservationTests(Base):
         db.session.refresh(self.book)
         self.assertEqual(self.book.available, 0)
         self.assertEqual(self.book.available_for(self.leser), 1)
-        # anna darf das zurückgelegte Exemplar nicht ausleihen
+        # anna may not borrow the held copy
         self.login("anna")
         self.c.post(f"/buecher/{self.book.id}/ausleihen")
         self.assertEqual(Loan.query.filter_by(user_id=self.anna.id).count(), 0)
-        # leser schon – die Vormerkung ist damit erledigt
+        # leser may – the reservation is then fulfilled
         self.login("leser")
         self.assertIn("Für dich zurückgelegt", self.c.get(f"/buecher/{self.book.id}").get_data(as_text=True))
         self.c.post(f"/buecher/{self.book.id}/ausleihen")
@@ -130,7 +130,7 @@ class ReservationTests(Base):
         self.reserve("leser")
         self.login("anna")
         self.assertEqual(self.c.post(f"/vormerkungen/{self.res(self.leser).id}/stornieren").status_code, 403)
-        self.login("bib")      # Verwalter des Buchs darf
+        self.login("bib")      # the book's manager may
         self.c.post(f"/vormerkungen/{self.res(self.leser).id}/stornieren")
         self.assertEqual(self.res(self.leser).status, "cancelled")
 
@@ -146,7 +146,7 @@ class ReservationTests(Base):
         self.c.post(f"/ausleihen/{loan.id}/verlaengern")
         db.session.refresh(loan)
         self.assertEqual(loan.due_at, due)
-        self.login("bib")      # Verwalter dürfen trotzdem
+        self.login("bib")      # managers may anyway
         self.c.post(f"/ausleihen/{loan.id}/verlaengern")
         db.session.refresh(loan)
         self.assertGreater(loan.due_at, due)
@@ -158,7 +158,7 @@ class ReservationTests(Base):
         self.c.post(f"/api/buecher/{self.book.id}/exemplar")
         self.assertEqual(self.res(self.leser).status, "ready")
         self.assertEqual(self.res(self.anna).status, "waiting")
-        # wieder ein Exemplar weniger: Zurücklegung geht zurück in die Warteschlange
+        # one copy fewer again: the hold goes back into the queue
         self.book.copies = 1
         db.session.commit()
         reservations.rebalance(self.book.id)

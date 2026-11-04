@@ -1,4 +1,4 @@
-"""Start, Info-Seite und neutraler Name in der Oberfläche."""
+"""Start, info page and neutral name in the UI."""
 import os
 import sys
 import tempfile
@@ -99,7 +99,7 @@ if __name__ == "__main__":
 
 
 class NoProductNameTests(unittest.TestCase):
-    """Der Projektname erscheint nicht in der Oberfläche – nur der Name der Bibliothek."""
+    """The project name does not appear in the UI – only the name of the library."""
 
     def setUp(self):
         self.app = create_app({"TESTING": True, "WTF_CSRF_ENABLED": False, "SQLALCHEMY_DATABASE_URI": "sqlite://"})

@@ -241,7 +241,7 @@ jobs:
           - Without internet: \`./update.sh --load catalytix-$VERSION-amd64.tar.gz\` (arm64 for ARM), checked against SHA256SUMS.
           - Installations from before 3.0.0: run your old \`./update.sh --pull\` once, then \`./update.sh --cleanup\`.
 
-          Changes: see CHANGELOG.md.
+          Changes: see CHANGELOG.en.md (English) or CHANGELOG.md (German).
           EOF
           gh release create "v$VERSION" assets/* \
             --target "$GITHUB_SHA" \

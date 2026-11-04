@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.0.1** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.0.1** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -136,7 +136,7 @@ gunicorn -w 2 --threads 4 -b 0.0.0.0:9300 wsgi:app   # Windows: waitress-serve -
 - **Fix new versions:** `python3 tools/lock.py update` (needs Docker and internet) – always **within the foundation**: same Debian release, same Python series, every package within its major version (before 1.0: minor version; ranges in `requirements.in`). No limit for calendar versions such as the root certificates (`certifi`). New package versions are only taken once they are at least 7 days old (protection against freshly uploaded malicious releases). `python3 tools/lock.py check` verifies the locks.
 
 **Automatically on GitHub** (details under [GitHub](#github-building-the-image-and-publishing-versions)):
-- **Every Monday early – security update:** fix the newest versions within the foundation, rebuild without cache, run the tests in the finished image, scan with Trivy. Only if **everything** passes is the image published as `latest` and as **`<program version>-s<counter>`** (e.g. `3.0.0-s1`, `3.0.0-s2` – "same program, only new packages"; a new program version starts again at `s1`), with a CHANGELOG entry listing the changed packages. If nothing changed, nothing happens.
+- **Every Monday early – security update:** fix the newest versions within the foundation, rebuild without cache, run the tests in the finished image, scan with Trivy. Only if **everything** passes is the image published as `latest` and as **`<program version>-s<counter>`** (e.g. `3.0.0-s1`, `3.0.0-s2` – "same program, only new packages"; a new program version starts again at `s1`), with an entry in both change logs (German and English) listing the changed packages. If nothing changed, nothing happens.
 - **Daily:** Trivy scans the published `latest` for vulnerabilities that became known after the release.
 - **Weekly:** check how long Debian 13 and Python 3.13 still get security updates. From 12 months before: a notice on the run; from 6 months: the run turns red. Nobody raises the foundation silently – it is a deliberate change (see below).
 
@@ -511,7 +511,10 @@ git push -u origin main
 
 Then wait for the run under *Actions*. **Make the package public once:** GitHub → profile → *Packages* → `catalytix` → *Package settings* → *Change visibility* → *Public*. Otherwise the servers first have to sign in with a token (scope `read:packages`): `docker login ghcr.io`.
 
-**Publishing a new version:** raise the version number in `catalytix/__init__.py` and in the label in `Dockerfile` (the workflow checks that they match), add to the CHANGELOG, add the notes for the interface to `catalytix/news.json` (a test checks that the current version is listed there) – as a **pull request**. After merging: *Actions → Build → Run workflow* (branch `main`, tick **publish**). Only then are the image, `latest` and the release created; no tag needed. `docker-compose.yml` stays unchanged – only when something in it really has to change does `CATALYTIX_COMPOSE` go up (in the file, in the label `catalytix.compose` in `Dockerfile` and in `catalytix/composefile.py`).
+**Language:** code, comments, scripts and commit messages are in English. The interface is bilingual – the
+translation keys are the German texts, `catalytix/translations/en.json` holds the English ones.
+
+**Publishing a new version:** raise the version number in `catalytix/__init__.py` and in the label in `Dockerfile` (the workflow checks that they match), add to `CHANGELOG.md` and `CHANGELOG.en.md`, add the notes for the interface to `catalytix/news.json` (a test checks that the current version is listed there) – as a **pull request**. After merging: *Actions → Build → Run workflow* (branch `main`, tick **publish**). Only then are the image, `latest` and the release created; no tag needed. `docker-compose.yml` stays unchanged – only when something in it really has to change does `CATALYTIX_COMPOSE` go up (in the file, in the label `catalytix.compose` in `Dockerfile` and in `catalytix/composefile.py`).
 
 ## Tests
 

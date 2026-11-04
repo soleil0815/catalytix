@@ -1,11 +1,11 @@
-"""Zwei-Faktor-Anmeldung: TOTP (Authenticator-App), Sicherheitsschlüssel (WebAuthn/FIDO2,
-z. B. YubiKey) und Wiederherstellungscodes.
+"""Two-factor login: TOTP (authenticator app), security keys (WebAuthn/FIDO2,
+e.g. YubiKey) and recovery codes.
 
-* TOTP nach RFC 6238 (SHA-1, 6 Ziffern, 30 s) – kompatibel mit Google/Microsoft Authenticator,
-  Aegis, 2FAS, Bitwarden, Yubico Authenticator usw. Geheimnisse liegen verschlüsselt in der DB.
-* WebAuthn über die Bibliothek „fido2“ von Yubico. Funktioniert nur über HTTPS (oder localhost)
-  und ist an die Domain gebunden, unter der der Schlüssel registriert wurde.
-* Wiederherstellungscodes: 10 Einmal-Codes, nur als Hash gespeichert.
+* TOTP per RFC 6238 (SHA-1, 6 digits, 30 s) – compatible with Google/Microsoft Authenticator,
+  Aegis, 2FAS, Bitwarden, Yubico Authenticator etc. Secrets are stored encrypted in the DB.
+* WebAuthn via Yubico's "fido2" library. Works only over HTTPS (or localhost)
+  and is bound to the domain under which the key was registered.
+* Recovery codes: 10 one-time codes, stored only as hashes.
 """
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ TOTP_PERIOD = 30
 TOTP_DIGITS = 6
 
 
-# ---------------------------------------------------------------- Verschlüsselung
+# ---------------------------------------------------------------- Encryption
 
 def _fernet() -> Fernet:
     key = hashlib.sha256(("totp-secret-key:" + current_app.config["SECRET_KEY"]).encode()).digest()
@@ -66,10 +66,10 @@ def totp_now(secret_b32: str, at: float | None = None) -> str:
 
 
 def check_totp(secret_b32: str, code: str, last_step: int = 0, at: float | None = None, window: int = 1) -> int | None:
-    """Prüft einen Code (±window Zeitschritte). Liefert den Zeitschritt oder None.
+    """Checks a code (±window time steps). Returns the time step or None.
 
-    Codes eines bereits verwendeten (oder älteren) Zeitschritts werden abgelehnt."""
-    # Ziffern aus jeder Schrift (z. B. arabische Tastatur) in 0–9 umwandeln, alles andere ignorieren
+    Codes of an already used (or older) time step are rejected."""
+    # convert digits from any script (e.g. Arabic keyboard) to 0–9, ignore everything else
     code = "".join(str(unicodedata.decimal(c)) for c in (code or "") if c.isdecimal())
     if len(code) != TOTP_DIGITS or not secret_b32:
         return None
@@ -93,7 +93,7 @@ def qr_svg(data: str) -> str:
 
 
 def totp_unreadable(user: User) -> bool:
-    """Authenticator-App eingerichtet, Geheimnis aber nicht mehr lesbar (z. B. nach Schlüsselwechsel)."""
+    """Authenticator app set up, but the secret is no longer readable (e.g. after a key change)."""
     return bool(user.totp_enabled and user.totp_secret and not decrypt(user.totp_secret))
 
 
@@ -103,8 +103,8 @@ def verify_user_totp(user: User, code: str) -> bool:
     step = check_totp(decrypt(user.totp_secret), code, user.totp_last_step or 0)
     if step is None:
         return False
-    # Atomar: Nur wer den Zeitschritt als Erster verbraucht, kommt durch – auch bei gleichzeitigen
-    # Anfragen in mehreren Threads/Prozessen mit demselben Code.
+    # Atomic: only whoever consumes the time step first gets through – even with concurrent
+    # requests in multiple threads/processes with the same code.
     from sqlalchemy import func, update
     res = db.session.execute(
         update(User).where(User.id == user.id, func.coalesce(User.totp_last_step, 0) < step)
@@ -114,7 +114,7 @@ def verify_user_totp(user: User, code: str) -> bool:
     return res.rowcount == 1
 
 
-# ---------------------------------------------------------------- Wiederherstellungscodes
+# ---------------------------------------------------------------- Recovery codes
 
 def new_recovery_codes(user: User, count: int = 10) -> list[str]:
     alphabet = "abcdefghjkmnpqrstuvwxyz23456789"
@@ -147,9 +147,9 @@ def use_recovery_code(user: User, code: str) -> bool:
         if match is None:
             return False
         hashes.remove(match)
-        # Atomar (compare-and-swap): nur übernehmen, wenn die Liste seit dem Lesen unverändert ist –
-        # sonst könnte derselbe Code bei gleichzeitigen Anfragen zweimal gelten bzw. ein anderer
-        # verbrauchter Code wieder auftauchen.
+        # Atomic (compare-and-swap): only apply if the list is unchanged since it was read –
+        # otherwise the same code could count twice with concurrent requests, or another
+        # used code could reappear.
         res = db.session.execute(
             update(User).where(User.id == user.id, User.recovery_codes == old)
             .values(recovery_codes=json.dumps(hashes)).execution_options(synchronize_session=False))
@@ -166,30 +166,30 @@ def reset_2fa(user: User):
     user.totp_last_step = 0
     user.recovery_codes = ""
     WebAuthnCredential.query.filter_by(user_id=user.id).delete()
-    user.end_all_sessions()   # wer evtl. noch mit dem verlorenen Gerät angemeldet ist, fliegt raus
+    user.end_all_sessions()   # anyone possibly still logged in with the lost device gets logged out
     db.session.commit()
 
 
-# ---------------------------------------------------------------- Richtlinie
+# ---------------------------------------------------------------- Policy
 
 def internal_mode() -> str:
-    """Regel im internen Netz: same (wie von außen), optional (keine Pflicht), skip (keine Abfrage)."""
+    """Rule on the internal network: same (as from outside), optional (not mandatory), skip (no prompt)."""
     mode = get_setting("mfa_internal")
     return mode if mode in ("same", "optional", "skip") else "same"
 
 
 def needed_outside(user: User) -> bool:
-    """Braucht dieser Benutzer bei Zugriff von außen einen zweiten Faktor?"""
+    """Does this user need a second factor when accessing from outside?"""
     return bool(user.has_2fa or required_for(user))
 
 
 def should_challenge(user: User, internal: bool) -> bool:
-    """Zweiten Faktor bei der Anmeldung abfragen?"""
+    """Prompt for the second factor at login?"""
     return bool(user.has_2fa) and not (internal and internal_mode() == "skip")
 
 
 def must_set_up(user: User, internal: bool) -> bool:
-    """Muss der Benutzer jetzt einen zweiten Faktor einrichten (Richtlinie)?"""
+    """Must the user set up a second factor now (policy)?"""
     if user.has_2fa or not required_for(user):
         return False
     return not (internal and internal_mode() in ("optional", "skip"))
@@ -268,7 +268,7 @@ def webauthn_auth_complete(user: User, rp_id: str, state, response: dict) -> boo
     used = next(c for c in stored if c.credential_id == websafe_encode(cred_data.credential_id))
     parsed = AuthenticationResponse.from_dict(response)
     counter = parsed.response.authenticator_data.counter
-    # Klon-Erkennung: Zähler muss steigen (0 = Schlüssel ohne Zähler, z. B. manche Passkeys)
+    # clone detection: the counter must increase (0 = key without a counter, e.g. some passkeys)
     if counter and used.sign_count and counter <= used.sign_count:
         return False
     used.sign_count = counter

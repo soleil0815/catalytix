@@ -1,12 +1,12 @@
-"""Automatische Datensicherung der Datenbank (SQLite).
+"""Automatic database backup (SQLite).
 
-- täglich zur eingestellten Uhrzeit (Standard 2 Uhr), auch bei mehreren Server-Prozessen nur einmal
-- im laufenden Betrieb über die Online-Backup-Funktion von SQLite (konsistent, ohne Anhalten)
-- jede Sicherung wird mit PRAGMA integrity_check geprüft, erst dann gilt sie als fertig
-- es werden die neuesten N Sicherungen aufbewahrt (Standard 10), ältere werden gelöscht
-- Ablage: <Datenverzeichnis>/backups oder CATALYTIX_BACKUP_DIR (z. B. ein NAS-Laufwerk)
+- daily at the configured time (default 2 a.m.), only once even with several server processes
+- while running, via SQLite's online backup API (consistent, no downtime)
+- every backup is checked with PRAGMA integrity_check; only then is it considered complete
+- the newest N backups are kept (default 10), older ones are deleted
+- location: <data directory>/backups or CATALYTIX_BACKUP_DIR (e.g. a NAS drive)
 
-Bei MySQL/MariaDB oder PostgreSQL sichert man besser mit den Werkzeugen des Datenbankservers.
+With MySQL/MariaDB or PostgreSQL, better back up with the database server's own tools.
 """
 from __future__ import annotations
 
@@ -28,9 +28,9 @@ log = logging.getLogger(__name__)
 
 PREFIX = "catalytix-"
 NAME_RE = re.compile(r"^catalytix-(\d{4}-\d{2}-\d{2})_(\d{6})(-vor-\d+\.\d+\.\d+|-[a-z-]*[a-z])?(-\d+)?\.db$")
-UPDATE_KIND_RE = re.compile(r"^-vor-(\d+\.\d+\.\d+)$")   # automatisch beim Start einer neuen Version
-KEEP_UPDATE_BACKUPS = 3                                    # davon die neuesten behalten (eigene Zählung)
-PART_MAX_AGE = 3600   # unfertige *.part-Dateien erst nach 1 Stunde als Reste abgebrochener Läufe löschen
+UPDATE_KIND_RE = re.compile(r"^-vor-(\d+\.\d+\.\d+)$")   # automatically when a new version starts
+KEEP_UPDATE_BACKUPS = 3                                    # keep the newest of these (counted separately)
+PART_MAX_AGE = 3600   # delete incomplete *.part files as leftovers of aborted runs only after 1 hour
 KIND_LABELS = {"": "automatisch", "-manuell": "manuell", "-vor-wiederherstellung": "vor Wiederherstellung"}
 KEEP_MIN, KEEP_MAX = 1, 100
 
@@ -39,7 +39,7 @@ class BackupError(Exception):
     pass
 
 
-# ---------------------------------------------------------------- Orte
+# ---------------------------------------------------------------- Locations
 
 def backup_dir() -> Path:
     custom = os.environ.get("CATALYTIX_BACKUP_DIR")
@@ -49,7 +49,7 @@ def backup_dir() -> Path:
 
 
 def database_file() -> Path | None:
-    """Pfad der SQLite-Datei – oder None bei anderen Datenbanken bzw. In-Memory-Datenbank."""
+    """Path of the SQLite file – or None for other databases or an in-memory database."""
     url = db.engine.url
     if url.get_backend_name() != "sqlite" or not url.database or url.database == ":memory:":
         return None
@@ -70,7 +70,7 @@ def keep_count() -> int:
     return min(KEEP_MAX, max(KEEP_MIN, get_int("backup_keep", 10)))
 
 
-# ---------------------------------------------------------------- Sichern
+# ---------------------------------------------------------------- Backing up
 
 def _integrity_ok(path: Path) -> bool:
     con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
@@ -82,7 +82,7 @@ def _integrity_ok(path: Path) -> bool:
 
 
 def create_backup(kind: str = "", now: datetime | None = None, *, rotate_after: bool = True) -> Path:
-    """Sicherung anlegen; kind: '' (automatisch), '-manuell', '-vor-wiederherstellung'."""
+    """Create a backup; kind: '' (automatic), '-manuell', '-vor-wiederherstellung'."""
     src_path = database_file()
     if src_path is None:
         raise BackupError("Automatische Sicherung gibt es nur für SQLite.")
@@ -93,7 +93,7 @@ def create_backup(kind: str = "", now: datetime | None = None, *, rotate_after: 
     name = f"{PREFIX}{now:%Y-%m-%d_%H%M%S}{kind}.db"
     final = target_dir / name
     n = 1
-    while final.exists():  # zwei Sicherungen in derselben Sekunde
+    while final.exists():  # two backups in the same second
         final = target_dir / name.replace(".db", f"-{n}.db")
         n += 1
     part = final.with_suffix(".part")
@@ -101,7 +101,7 @@ def create_backup(kind: str = "", now: datetime | None = None, *, rotate_after: 
     dst = sqlite3.connect(str(part))
     try:
         src.backup(dst)
-        # Die Kopie übernimmt den WAL-Modus der Quelle – als eigenständige Datei ohne -wal/-shm ablegen
+        # The copy inherits the source's WAL mode – store it as a standalone file without -wal/-shm
         dst.execute("PRAGMA journal_mode=DELETE").fetchone()
     except sqlite3.Error as exc:
         dst.close()
@@ -116,7 +116,7 @@ def create_backup(kind: str = "", now: datetime | None = None, *, rotate_after: 
         raise BackupError("Die Sicherung ist beschädigt (integrity_check) und wurde verworfen.")
     _unlink_siblings(part)
     try:
-        os.chmod(part, 0o600)  # enthält personenbezogene Daten
+        os.chmod(part, 0o600)  # contains personal data
     except OSError:
         pass
     os.replace(part, final)
@@ -143,7 +143,7 @@ def list_backups() -> list[dict[str, Any]]:
             continue
         created = datetime.strptime(f"{m.group(1)}_{m.group(2)}", "%Y-%m-%d_%H%M%S")
         kind = m.group(3) or ""
-        seq = int(m.group(4)[1:]) if m.group(4) else 0   # „-1“, „-2“ …: später in derselben Sekunde
+        seq = int(m.group(4)[1:]) if m.group(4) else 0   # "-1", "-2" …: later within the same second
         upd = UPDATE_KIND_RE.match(kind)
         items.append({"name": p.name, "path": p, "size": p.stat().st_size, "created": created,
                       "kind": "vor Update" if upd else KIND_LABELS.get(kind, "manuell"),
@@ -156,7 +156,7 @@ def rotate(keep: int | None = None) -> int:
     keep = keep_count() if keep is None else keep
     removed = 0
     items = list_backups()
-    # Sicherungen „vor Update auf X“ zählen extra: die täglichen verdrängen sie nicht (für den Weg zurück)
+    # "before update to X" backups are counted separately: daily ones do not push them out (for going back)
     regular = [i for i in items if not i["before_version"]]
     updates = [i for i in items if i["before_version"]]
     for item in regular[keep:] + updates[KEEP_UPDATE_BACKUPS:]:
@@ -165,7 +165,7 @@ def rotate(keep: int | None = None) -> int:
             removed += 1
         except OSError as exc:
             log.warning("Could not delete old backup %s: %s", item["name"], exc)
-    # Reste abgebrochener Läufe – aber nicht, was ein anderer Prozess gerade noch schreibt
+    # Leftovers of aborted runs – but not what another process is still writing
     limit = time.time() - PART_MAX_AGE
     for stale in backup_dir().glob(f"{PREFIX}*.part*"):
         try:
@@ -180,7 +180,7 @@ def find_backup(name: str) -> Path | None:
     if not NAME_RE.match(name or ""):
         return None
     p = backup_dir() / name
-    # keine Verknüpfungen (auf einer fremd beschreibbaren Freigabe könnte sonst eine beliebige Datei angeboten werden)
+    # no symlinks (on a share writable by others, any arbitrary file could otherwise be offered)
     return p if p.is_file() and not p.is_symlink() else None
 
 
@@ -192,10 +192,10 @@ def delete_backup(name: str) -> bool:
     return True
 
 
-# ---------------------------------------------------------------- Wiederherstellen (nur bei angehaltener App!)
+# ---------------------------------------------------------------- Restoring (only with the app stopped!)
 
 def restore_backup(name: str) -> Path | None:
-    """Sicherung zurückspielen. Vorher wird der aktuelle Stand gesichert („vor Wiederherstellung“)."""
+    """Restore a backup. The current state is backed up first ("vor Wiederherstellung")."""
     src = find_backup(name)
     if src is None:
         raise BackupError(f"Backup {name} not found.")
@@ -204,7 +204,7 @@ def restore_backup(name: str) -> Path | None:
     target = database_file()
     if target is None:
         raise BackupError("Restoring only works with SQLite.")
-    # ohne Aufräumen – sonst könnte gerade die Sicherung gelöscht werden, die zurückgespielt werden soll
+    # without rotation – otherwise the very backup that is to be restored could be deleted
     safety = create_backup("-vor-wiederherstellung", rotate_after=False) if target.exists() else None
     db.session.remove()
     db.engine.dispose()
@@ -219,20 +219,20 @@ def restore_backup(name: str) -> Path | None:
 
 
 def find_before(version: str, since: float | None = None) -> Path | None:
-    """Neueste Sicherung, die beim Start von <version> angelegt wurde (Stand der Version davor).
-    since: nur eine Sicherung, die ab diesem Zeitpunkt geschrieben wurde – eine ältere aus einem früheren,
-    schon zurückgenommenen Versuch würde sonst alles seitdem Eingetragene überschreiben."""
+    """Newest backup created when <version> started (the state of the version before it).
+    since: only a backup written at or after this time – an older one from an earlier attempt that was
+    already rolled back would otherwise overwrite everything entered since then."""
     found: list[Path] = [i["path"] for i in list_backups()
              if i["before_version"] == version and not i["path"].is_symlink()
              and (since is None or i["path"].stat().st_mtime >= since - 2)]
     if not found:
         return None
-    # Seit <since>: die ÄLTESTE – spätere Versuche hätten einen schon halb umgestellten Stand gesichert
+    # Since <since>: the OLDEST – later attempts would have backed up an already half-migrated state
     return found[-1] if since is not None else found[0]
 
 
 def version_of_backup(path: Path) -> str | None:
-    """Programmversion, die zuletzt in die gesicherte Datenbank geschrieben hat (None: vor 3.0.0 oder unlesbar)."""
+    """Program version that last wrote to the backed-up database (None: before 3.0.0 or unreadable)."""
     try:
         con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
         try:
@@ -245,10 +245,10 @@ def version_of_backup(path: Path) -> str | None:
 
 
 def find_for_version(version: str) -> Path | None:
-    """Für den Weg zurück zu <version>: neueste Sicherung, die diese Version lesen kann (von ihr oder älter)."""
+    """For going back to <version>: newest backup that this version can read (written by it or older)."""
     from .dbversion import vtuple
     want = vtuple(version)
-    if want is None:          # keine gültige Versionsnummer → keine passende Sicherung
+    if want is None:          # no valid version number → no matching backup
         return None
     for item in list_backups():
         if item["path"].is_symlink():
@@ -260,10 +260,10 @@ def find_for_version(version: str) -> Path | None:
     return None
 
 
-# ---------------------------------------------------------------- Zeitplan und Status
+# ---------------------------------------------------------------- Schedule and status
 
 def display_message(msg: str) -> str:
-    """Gespeichertes Ergebnis (deutsch) in der aktuellen Sprache."""
+    """Stored result (German) in the current language."""
     m = re.match(r"^(\S+) gesichert \((.+)\)$", msg)
     if m:
         return _("{name} gesichert ({size})", name=m.group(1), size=m.group(2))
@@ -277,7 +277,7 @@ def display_message(msg: str) -> str:
 
 
 def english(msg: str) -> str:
-    """Für Protokoll und Kommandozeile: immer englisch."""
+    """For the log and the command line: always English."""
     from .i18n import force_locale
     with force_locale("en"):
         return display_message(msg)
@@ -310,7 +310,7 @@ def run_now(kind: str = "-manuell", now: datetime | None = None) -> tuple[bool, 
 
 
 def run_daily(now: datetime | None = None) -> tuple[bool, str] | None:
-    """Vom Zeitplan aufgerufen (alle paar Minuten); sichert einmal pro Tag ab der eingestellten Uhrzeit."""
+    """Called by the scheduler (every few minutes); backs up once a day from the configured time on."""
     from .mailer import _claim_today
     now = now or datetime.now()
     if not get_bool("backup_enabled") or not supported() or now.hour < get_int("backup_hour", 2):
@@ -324,7 +324,7 @@ def run_daily(now: datetime | None = None) -> tuple[bool, str] | None:
 
 
 def warning() -> str:
-    """Kurzer Warnhinweis für Admins, wenn die letzte Sicherung fehlgeschlagen ist."""
+    """Short warning for admins if the last backup failed."""
     if not get_bool("backup_enabled") or not get_setting("backup_last_error"):
         return ""
     if get_setting("backup_last_ok") > get_setting("backup_last_error"):

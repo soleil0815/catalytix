@@ -1,11 +1,11 @@
-"""Erscheinungsbild (Corporate Design): Logo, Hintergrundbild der Anmeldeseite, Farben, Texte.
+"""Branding (corporate design): logo, login page background image, colors, texts.
 
-Bilder werden beim Hochladen geprüft und aufbereitet (Pillow):
-  * Logo:        PNG/JPG/WebP/GIF -> PNG (max. 800×300, Transparenz bleibt), oder SVG (geprüft)
-  * Hintergrund: PNG/JPG/WebP -> JPEG (max. 2560 px, Metadaten wie GPS werden entfernt)
-  * Favicon:     wird automatisch aus dem Logo erzeugt (quadratisch, 128 px)
-Dateien liegen in <Datenverzeichnis>/branding und tragen einen Inhalts-Hash im Namen
-(Browser-Cache wird bei Änderung automatisch umgangen).
+Images are validated and processed on upload (Pillow):
+  * Logo:        PNG/JPG/WebP/GIF -> PNG (max. 800×300, transparency is kept), or SVG (validated)
+  * Background:  PNG/JPG/WebP -> JPEG (max. 2560 px, metadata such as GPS is removed)
+  * Favicon:     generated automatically from the logo (square, 128 px)
+Files are stored in <data directory>/branding and carry a content hash in their name
+(so the browser cache is bypassed automatically when they change).
 """
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ def brand_dir() -> str:
     return path
 
 
-# ---------------------------------------------------------------- Bilder
+# ---------------------------------------------------------------- Images
 
 def _write(kind: str, data: bytes, ext: str) -> str:
     name = f"{kind}-{hashlib.sha256(data).hexdigest()[:12]}{ext}"
@@ -86,7 +86,7 @@ def _check_svg(raw: bytes) -> bytes:
 def _favicon_from(img) -> bytes:
     from PIL import Image
     src = img.convert("RGBA")
-    bbox = src.getbbox()          # transparente Ränder abschneiden
+    bbox = src.getbbox()          # crop transparent borders
     if bbox:
         src = src.crop(bbox)
     src.thumbnail((120, 120), Image.Resampling.LANCZOS)
@@ -98,7 +98,7 @@ def _favicon_from(img) -> bytes:
 
 
 def store(kind: str, upload) -> None:
-    """Speichert ein hochgeladenes Logo bzw. Hintergrundbild."""
+    """Store an uploaded logo or background image."""
     from PIL import Image
     raw = upload.read()
     if not raw:
@@ -132,7 +132,7 @@ def store(kind: str, upload) -> None:
         img = img.convert("RGB")
         img.thumbnail((2560, 2560), Image.Resampling.LANCZOS)
         out = io.BytesIO()
-        img.save(out, "JPEG", quality=84, optimize=True, progressive=True)   # ohne EXIF/GPS
+        img.save(out, "JPEG", quality=84, optimize=True, progressive=True)   # without EXIF/GPS
         name = _write("bg", out.getvalue(), ".jpg")
 
     set_setting(KINDS[kind], name)
@@ -165,10 +165,10 @@ def file_url(name: str) -> str:
         return ""
     if has_request_context():
         return url_for("main.branding_file", filename=name)
-    return f"/branding/{name}"   # z. B. beim Mailversand im Hintergrund
+    return f"/branding/{name}"   # e.g. when sending mail in the background
 
 
-# ---------------------------------------------------------------- Farben
+# ---------------------------------------------------------------- Colors
 
 def clean_hex(value: str) -> str:
     value = (value or "").strip()
@@ -186,7 +186,7 @@ def _hex(rgb) -> str:
 
 
 def mix(a: str, b: str, t: float) -> str:
-    """t = Anteil von b (0..1)."""
+    """t = proportion of b (0..1)."""
     ra, rb = _rgb(a), _rgb(b)
     return _hex(tuple(x + (y - x) * t for x, y in zip(ra, rb)))
 
@@ -205,7 +205,7 @@ def contrast(a: str, b: str) -> float:
 
 
 def ink(bg: str) -> str:
-    """Gut lesbare Textfarbe (hell oder dunkel) auf der Hintergrundfarbe."""
+    """Readable text color (light or dark) on the given background color."""
     return "#ffffff" if contrast(bg, "#ffffff") >= contrast(bg, "#14191a") else "#14191a"
 
 
@@ -214,7 +214,7 @@ def colors() -> dict:
 
 
 def theme_css() -> str:
-    """CSS-Variablen für eigene Farben (nur aus geprüften Hex-Werten zusammengesetzt)."""
+    """CSS variables for custom colors (built only from validated hex values)."""
     c = colors()
     light, dark = [], []
     if c["accent"]:
@@ -258,17 +258,17 @@ def mail_colors() -> dict:
             "mail_accent": accent, "mail_accent_ink": ink(accent)}
 
 
-# ---------------------------------------------------------------- Für die Vorlagen
+# ---------------------------------------------------------------- For the templates
 
 def _default_text(key: str) -> str:
-    """Unveränderte Standardtexte (deutsch gespeichert) in der Sprache der Oberfläche zeigen."""
+    """Show unchanged default texts (stored in German) in the UI language."""
     from .models import DEFAULT_SETTINGS
     value = get_setting(key)
     return _(value) if value and value == DEFAULT_SETTINGS.get(key) else value
 
 
 def library_name() -> str:
-    """Name der Bibliothek – der unveränderte Standardname „Bibliothek“ in der aktuellen Sprache."""
+    """Name of the library – the unchanged default name "Bibliothek" in the current language."""
     return _default_text("library_name") or _("Bibliothek")
 
 

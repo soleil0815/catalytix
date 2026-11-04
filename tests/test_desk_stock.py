@@ -1,4 +1,4 @@
-"""Bestandssuche an der Ausleihtheke."""
+"""Stock search at the circulation desk."""
 import os
 import sys
 import tempfile
@@ -141,7 +141,7 @@ class StockSearchTests(Base):
             res = self.c.get("/api/bestand?q=Faust&modus=ausleihe&benutzer=neu").get_json()["results"]
             self.c.get("/api/bestand?q=Faust&modus=ausleihe&benutzer=neu")
         self.assertEqual([(b["title"], b["allowed"]) for b in res], [("Faust", True), ("Faust II", False)])
-        self.assertEqual(cls.return_value.check_account.call_count, 1)    # zwischengespeichert
+        self.assertEqual(cls.return_value.check_account.call_count, 1)    # cached
 
 
 if __name__ == "__main__":

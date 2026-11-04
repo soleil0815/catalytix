@@ -1,4 +1,4 @@
-"""AD-Personen-Cache: Abgleich im Hintergrund, Suche aus der Datenbank, Konten nachziehen."""
+"""AD people cache: background sync, search from the database, updating accounts."""
 import os
 import sys
 import tempfile
@@ -52,7 +52,7 @@ class SyncTests(CacheBase):
         r = self.c.get("/api/personen?q=ber&verzeichnis=0").get_json()
         self.assertEqual([(x["username"], x["new"]) for x in r["results"] if x["username"] == "berta"],
                          [("berta", True)])
-        self.assertFalse(r["directory_pending"])                    # Cache kennt jemanden → kein Live-AD
+        self.assertFalse(r["directory_pending"])                    # cache knows someone → no live AD
         cls.return_value.search_users.assert_not_called()
         self.assertEqual(next(x for x in r["results"] if x["username"] == "berta")["groups"], ["IT"])
 
@@ -68,7 +68,7 @@ class SyncTests(CacheBase):
 
     def test_disabled_and_deleted_removed(self):
         self.sync([person("berta", "Berta Brecht"), person("carl", "Carl Ohne")])
-        stats, _cls = self.sync([person("berta", "Berta Brecht")])     # carl im AD deaktiviert/gelöscht
+        stats, _cls = self.sync([person("berta", "Berta Brecht")])     # carl disabled/deleted in AD
         self.assertEqual(stats["removed"], 1)
         self.assertEqual([p.username for p in DirectoryPerson.query], ["berta"])
 
@@ -122,7 +122,7 @@ class ScheduleTests(CacheBase):
         self.scan([person("berta", "Berta Brecht")])
         now = datetime(2026, 10, 23, 10, 5)
         self.assertIsNotNone(people.run_scheduled_sync(now))
-        self.assertIsNone(people.run_scheduled_sync(now + timedelta(minutes=10)))   # gleiches Zeitfenster
+        self.assertIsNone(people.run_scheduled_sync(now + timedelta(minutes=10)))   # same time window
         self.assertIsNotNone(people.run_scheduled_sync(now + timedelta(hours=1)))
 
     def test_interval_hours(self):
@@ -131,15 +131,15 @@ class ScheduleTests(CacheBase):
         self.scan([person("berta", "Berta Brecht")])
         now = datetime(2026, 10, 23, 9, 0)
         people.run_scheduled_sync(now)
-        self.assertIsNone(people.run_scheduled_sync(now + timedelta(hours=2)))     # 8–12 Uhr: ein Lauf
-        self.assertIsNotNone(people.run_scheduled_sync(now + timedelta(hours=3)))  # 12 Uhr: neues Fenster
+        self.assertIsNone(people.run_scheduled_sync(now + timedelta(hours=2)))     # 8–12 o'clock: one run
+        self.assertIsNotNone(people.run_scheduled_sync(now + timedelta(hours=3)))  # 12 o'clock: new window
 
     def test_first_run_retries_after_failure(self):
         self.scan([], error=LDAPError("down"))
         now = datetime(2026, 10, 23, 10, 0)
         people.run_scheduled_sync(now)
         self.assertIsNone(people.run_scheduled_sync(now + timedelta(minutes=5)))
-        self.assertIsNotNone(people.run_scheduled_sync(now + timedelta(minutes=16)))   # nach 15 Minuten erneut
+        self.assertIsNotNone(people.run_scheduled_sync(now + timedelta(minutes=16)))   # again after 15 minutes
 
     def test_without_service_account_nothing(self):
         set_setting("ldap_bind_dn", "")
@@ -176,7 +176,7 @@ class AccountTests(CacheBase):
 
     def test_rename_skipped_when_name_taken(self):
         u = self.ldap_user("berta", guid="g1")
-        self.sync([person("anna", "Anna", guid="g1")])          # „anna“ ist ein lokales Konto
+        self.sync([person("anna", "Anna", guid="g1")])          # "anna" is a local account
         db.session.refresh(u)
         self.assertEqual(u.username, "berta")
         self.assertEqual(User.query.filter_by(username="anna").one().auth_source, "local")
@@ -191,7 +191,7 @@ class AccountTests(CacheBase):
         db.session.refresh(u)
         self.assertFalse(u.active)
         self.assertIsNotNone(u.ldap_gone_at)
-        self.assertGreater(u.auth_epoch, epoch)                   # Sitzungen beendet
+        self.assertGreater(u.auth_epoch, epoch)                   # sessions ended
         self.assertEqual(stats["accounts_disabled"], 1)
         stats, _cls = self.sync(others + [person("berta", "Berta", guid="g1")])
         db.session.refresh(u)
@@ -208,7 +208,7 @@ class AccountTests(CacheBase):
     def test_safety_brake(self):
         for i in range(10):
             self.ldap_user(f"p{i}", guid=f"g{i}")
-        stats, _cls = self.sync([person("p0", "P0", guid="g0")])  # 9 von 10 fehlen – eher Fehlkonfiguration
+        stats, _cls = self.sync([person("p0", "P0", guid="g0")])  # 9 of 10 missing – more likely a misconfiguration
         self.assertEqual(stats["accounts_disabled"], 0)
         self.assertEqual(stats["accounts_brake"], 9)
         self.assertEqual(User.query.filter_by(auth_source="ldap", active=True).count(), 10)
@@ -226,7 +226,7 @@ class AccountTests(CacheBase):
         db.session.commit()
         self.directory(account=person("berta", "Berta Neu", guid="neu"))
         self.c.post(f"/buecher/{self.gbook.id}/ausleihen", data={"benutzer": "berta"})
-        # find() liefert das alte Konto (gleicher Name) – erst account_for erkennt die andere Person
+        # find() returns the old account (same name) – only account_for recognises the other person
         from catalytix.views.main import account_for
         self.assertIsNone(account_for(person("berta", "Berta Neu", guid="neu")))
         db.session.refresh(old)
@@ -245,8 +245,8 @@ class NamesakeTests(CacheBase):
         self.assertFalse(old.active)
         self.assertEqual(old.username, f"berta~{old.id}")
         self.assertEqual(stats["accounts_disabled"], 1)
-        self.assertEqual(Loan.query.filter_by(user_id=old.id).count(), 1)     # Ausleihe bleibt bei der alten Person
-        # an der Theke ist „berta“ jetzt die neue Person
+        self.assertEqual(Loan.query.filter_by(user_id=old.id).count(), 1)     # loan stays with the old person
+        # at the desk "berta" is now the new person
         self.directory(account=person("berta", "Berta Neu", guid="neu"))
         self.c.post(f"/buecher/{self.gbook.id}/ausleihen", data={"benutzer": "berta"})
         new = User.query.filter_by(username="berta").one()
@@ -278,7 +278,7 @@ def fillers(n=6):
 
 
 class ReviewFixTests(CacheBase):
-    """Befunde aus dem Code Review zu 2.14.0."""
+    """Findings from the code review of 2.14.0."""
 
     def mkfill(self):
         for i in range(6):
@@ -314,16 +314,16 @@ class ReviewFixTests(CacheBase):
 
     def test_retire_keeps_admin_lock(self):
         self.mkfill()
-        x = self.ldap_user("berta", guid="g1", active=False)      # von Hand gesperrt, Person aus dem AD weg
+        x = self.ldap_user("berta", guid="g1", active=False)      # locked manually, person gone from AD
         self.sync(fillers() + [person("berta", "Berta Neu", guid="g2")])
         db.session.refresh(x)
         self.assertEqual((x.active, x.ldap_gone_at), (False, None))
         self.sync(fillers() + [person("berta", "Berta Neu", guid="g2"), person("berta.x", "B", guid="g1")])
         db.session.refresh(x)
-        self.assertFalse(x.active)                               # kommt zurück – bleibt trotzdem gesperrt
+        self.assertFalse(x.active)                               # comes back – still stays locked
 
-    def test_login_of_namesake_moves_renamed_person(self):      # H2 (Anmeldung)
-        x = self.ldap_user("berta", guid="g1", active=False)    # von Hand gesperrt
+    def test_login_of_namesake_moves_renamed_person(self):      # H2 (login)
+        x = self.ldap_user("berta", guid="g1", active=False)    # locked manually
         self.c.post("/logout")
         cls = self.directory()
         cls.return_value.find_by_guid.return_value = person("berta.m", "Berta M", guid="g1")
@@ -333,7 +333,7 @@ class ReviewFixTests(CacheBase):
         self.assertEqual(r.status_code, 302)
         db.session.expire_all()
         x = db.session.get(User, x.id)
-        self.assertEqual((x.username, x.active), ("berta.m", False))      # zieht um, bleibt gesperrt
+        self.assertEqual((x.username, x.active), ("berta.m", False))      # moves, stays locked
         self.assertEqual(User.query.filter_by(username="berta").one().ldap_guid, "g2")
 
     def test_login_namesake_unresolvable_refused(self):
@@ -375,10 +375,10 @@ class ReviewFixTests(CacheBase):
                 mock.patch("catalytix.views.main.ldap_enabled", return_value=True):
             self.c.post("/login", data={"username": "berta", "password": "x"})
         with self.c.session_transaction() as sess:
-            sess["ldap_ok_at"] = 0                               # Nachprüfung fällig
+            sess["ldap_ok_at"] = 0                               # re-check due
         self.directory(account=person("berta", "Berta NEU", guid="g2", role="admin"))
         r = self.c.get("/")
-        self.assertIn("/login", r.headers.get("Location", ""))  # Sitzung beendet
+        self.assertIn("/login", r.headers.get("Location", ""))  # session ended
         db.session.refresh(u)
         self.assertEqual((u.ldap_guid, u.role, u.display_name), ("g1", "reader", "Berta"))
 
@@ -401,7 +401,7 @@ class ReviewFixTests(CacheBase):
         cls = self.directory()
 
         def scan(reuse, progress=None):
-            set_setting("dircache_running", "2099-01-01T00:00:00|fremd")   # anderer Prozess hat übernommen
+            set_setting("dircache_running", "2099-01-01T00:00:00|fremd")   # another process took over
             db.session.commit()
             progress(0, 1)
             return [(person("berta", "Berta"), "k", True)]
@@ -426,9 +426,9 @@ class ReviewFixTests(CacheBase):
     def test_retry_after_error_within_window(self):
         self.scan([person("berta", "Berta")])
         now = datetime(2026, 10, 23, 9, 0)
-        people.run_scheduled_sync(now)                          # erster Lauf ok
+        people.run_scheduled_sync(now)                          # first run ok
         cls = self.scan([], error=LDAPError("down"))
-        people.run_scheduled_sync(now + timedelta(hours=1))     # neues Fenster, Fehler
+        people.run_scheduled_sync(now + timedelta(hours=1))     # new window, error
         self.assertIsNone(people.run_scheduled_sync(now + timedelta(hours=1, minutes=5)))
         cls.return_value.scan_people.side_effect = None
         cls.return_value.scan_people.return_value = [(person("berta", "Berta"), "k", True)]
@@ -458,7 +458,7 @@ class ReviewFixTests(CacheBase):
 
 
 class ReviewRound2Tests(CacheBase):
-    """Nachprüfung des Code Reviews zu 2.14.0."""
+    """Follow-up check of the code review of 2.14.0."""
 
     def test_domain_migration_new_guids_braked(self):          # N1
         for i in range(10):
@@ -487,7 +487,7 @@ class ReviewRound2Tests(CacheBase):
         def search(*a, **k):
             conn.response = [{"type": "searchResEntry", "dn": "CN=G,DC=x,DC=de"}]
             conn.result = {"result": 3, "description": "timeLimitExceeded"}
-            return True                                         # ldap3: True trotz Teilergebnis
+            return True                                         # ldap3: True despite partial result
         conn.search.side_effect = search
         d.strict = True
         with self.assertRaises(LE):
@@ -610,7 +610,7 @@ class AdminPageTests(CacheBase):
         self.sync([person("berta", "Berta Brecht")])
         data = {k: get_setting(k) for k in ("ldap_server", "ldap_bind_dn", "ldap_base_dn", "ldap_user_attr")}
         data.update(action="save", ldap_enabled="1", ldap_group_sync="1", ldap_cache_hours="2")
-        self.c.post("/admin/verzeichnisdienst", data=data)            # Haken „Cache verwenden“ fehlt
+        self.c.post("/admin/verzeichnisdienst", data=data)            # "use cache" checkbox missing
         self.assertEqual(DirectoryPerson.query.count(), 0)
         self.assertEqual(get_setting("ldap_cache_hours"), "2")
 
@@ -628,7 +628,7 @@ class AdminPageTests(CacheBase):
 
 
 class ScanPeopleTests(Base):
-    """scan_people selbst: vollständiges Lesen, Wiederverwendung der Gruppen, keine Computer/Deaktivierten."""
+    """scan_people itself: complete read, reuse of the groups, no computers/disabled accounts."""
 
     def setUp(self):
         super().setUp()
@@ -674,13 +674,13 @@ class ScanPeopleTests(Base):
         with mock.patch.object(self.d, "service_connection", return_value=c), \
                 mock.patch.object(self.d, "user_groups", return_value={}), \
                 mock.patch.object(self.la, "resolve_role", return_value=(None, "")):
-            self.assertEqual(self.d.scan_people(), [])             # ohne Rolle nicht im Cache
+            self.assertEqual(self.d.scan_people(), [])             # without a role not in the cache
         flt = c.extend.standard.paged_search.call_args[0][1]
         self.assertIn("(objectCategory=person)", flt)
         self.assertIn("(!(userAccountControl:1.2.840.113556.1.4.803:=2))", flt)
 
     def test_sync_reuses_groups_for_unchanged_people(self):
-        """Ganzer Ablauf: zweiter Abgleich ohne Änderung löst keine Gruppen neu auf."""
+        """Full flow: a second sync without changes does not resolve any groups again."""
         set_setting("ldap_server", "ldap://dc")
         set_setting("ldap_base_dn", "DC=x,DC=de")
         db.session.commit()
@@ -702,7 +702,7 @@ if __name__ == "__main__":
 
 
 class DirectBindIdentityTests(Base):
-    """Ohne Dienstkonto: Der UPN-Bind darf nicht als Beweis für einen anderen Eintrag gleichen Anmeldenamens gelten."""
+    """Without a service account: the UPN bind must not count as proof for another entry with the same login name."""
 
     def test_password_checked_against_found_entry(self):
         from catalytix.ldap_auth import Directory
@@ -714,11 +714,11 @@ class DirectBindIdentityTests(Base):
 
         def connect(user, password):
             binds.append(user)
-            if user == "CN=Opfer,DC=x,DC=de":      # das Passwort des Angreifers passt nicht zum Opfer
+            if user == "CN=Opfer,DC=x,DC=de":      # the attacker's password does not match the victim
                 raise LDAPError("Bind abgelehnt")
             return mock.Mock()
         with mock.patch.object(d, "connect", side_effect=connect), \
                 mock.patch.object(d, "find_user", return_value=victim):
             with self.assertRaises(LDAPError):
-                d.authenticate("chef", "angreifer-passwort")   # UPN chef@x.de gehört dem Angreifer
+                d.authenticate("chef", "angreifer-passwort")   # UPN chef@x.de belongs to the attacker
         self.assertEqual(binds, ["chef@x.de", "CN=Opfer,DC=x,DC=de"])

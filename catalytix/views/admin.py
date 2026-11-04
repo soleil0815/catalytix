@@ -1,4 +1,4 @@
-"""Administration: Benutzer, Gruppen, Einstellungen, Active Directory."""
+"""Administration: users, groups, settings, Active Directory."""
 from __future__ import annotations
 
 import logging
@@ -18,7 +18,7 @@ from . import admin_required, form_bool, form_int, form_str, safe_next
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
-# Änderungen, mit denen sich jemand Zugang verschaffen oder Schutz abschalten könnte
+# Changes that someone could use to gain access or disable protection
 _SECURITY_ENDPOINTS = {"admin.user_new", "admin.user_edit", "admin.user_delete", "admin.user_reset_2fa",
                        "admin.user_unlock", "admin.user_approve", "admin.user_reject", "admin.settings",
                        "admin.ldap", "admin.email", "admin.retention_run", "admin.backups", "admin.backup_now",
@@ -29,13 +29,13 @@ _RETURN_TO_PAGE = {"admin.user_new", "admin.user_edit", "admin.settings", "admin
 
 @bp.before_request
 def _require_second_factor_for_changes():
-    """Eine Sitzung, die im internen Netz ohne zweiten Faktor begonnen wurde, darf sicherheitsrelevante
-    Einstellungen (Benutzer, Rollen, 2FA, Netze, AD) erst nach Bestätigung des zweiten Faktors ändern.
+    """A session started on the internal network without a second factor may change security-relevant
+    settings (users, roles, 2FA, networks, AD) only after confirming the second factor.
 
-    Sonst könnte jemand mit dem Admin-Passwort im LAN z. B. die eigene 2FA zurücksetzen, einen neuen
-    Faktor anlegen und sich damit von außen anmelden. Ebenso alles, was Daten löscht (Aufbewahrung, Gruppen
-    löschen, Registrierungen ablehnen) oder die Datensicherung abschaltet. Erscheinungsbild und das Anlegen
-    oder Bearbeiten von Gruppen bleiben ohne Rückfrage."""
+    Otherwise someone with the admin password on the LAN could e.g. reset their own 2FA, add a new
+    factor and use it to sign in from outside. The same applies to anything that deletes data (retention,
+    deleting groups, rejecting registrations) or disables backups. Appearance and creating or editing
+    groups need no confirmation."""
     import time
     from flask import session
     if ((request.method == "POST" or request.endpoint == "admin.backup_download")
@@ -65,7 +65,7 @@ LDAP_BOOL = ["ldap_enabled", "ldap_verify_cert", "ldap_check_hostname", "ldap_ne
 
 
 def _id(value) -> int | None:
-    """Datenbank-ID aus einem Formularwert – nur ASCII-Ziffern (kein „²“), nicht zu groß für SQLite."""
+    """Database ID from a form value – ASCII digits only (no "²"), not too large for SQLite."""
     value = (value or "").strip()
     if value.isascii() and value.isdecimal() and len(value) <= 18:
         return int(value)
@@ -83,7 +83,7 @@ def _admin_count(exclude_id: int | None = None) -> int:
     return q.count()
 
 
-# ---------------------------------------------------------------- Benutzer
+# ---------------------------------------------------------------- Users
 
 @bp.route("/benutzer")
 @admin_required
@@ -108,7 +108,7 @@ def users():
     locked = lockout.locked_usernames()
     from sqlalchemy.orm import selectinload
     users = query.options(selectinload(User.groups)).order_by(User.pending_approval.desc(), User.username).all()
-    # Sperren werden unter dem vereinheitlichten Namen geführt („DOMÄNE\anna“ = „anna“)
+    # Lockouts are tracked under the normalized name ("DOMAIN\anna" = "anna")
     locked = {u.username.lower() for u in users if lockout.norm(u.username) in locked}
     if status == "anmeldesperre":
         users = [u for u in users if u.username.lower() in locked]
@@ -126,7 +126,7 @@ def _save_user(user: User, is_new: bool):
     if clash:
         return _("Dieser Benutzername ist bereits vergeben.")
     local = is_new or user.auth_source == "local"
-    role = request.form.get("role", "reader") if local else user.role  # AD-Rolle kommt aus den Regeln
+    role = request.form.get("role", "reader") if local else user.role  # AD role comes from the rules
     if role not in ROLES:
         return _("Unbekannte Rolle.")
     active = form_bool("active")
@@ -151,15 +151,15 @@ def _save_user(user: User, is_new: bool):
     if user.auth_source == "local" or is_new:
         user.role = role
     if user.active != active or not active:
-        # Von Hand entschieden (freigegeben oder gesperrt gespeichert): das gilt – der Abgleich gibt nur Konten
-        # wieder frei, die er selbst gesperrt hat
+        # Decided manually (saved as approved or locked): that applies – the sync only re-enables accounts
+        # that it locked itself
         user.ldap_gone_at = None
     user.active = active
-    if active and user.pending_approval:   # „Konto aktiv“ angehakt = freigegeben
+    if active and user.pending_approval:   # "Account active" checked = approved
         user.pending_approval = False
     if not user.email_verified:
-        # Admin entscheidet: freigegeben (bestätigt die Adresse stellvertretend) oder gesperrt – dann darf ein später
-        # geklickter Bestätigungslink das Konto nicht wieder aktivieren
+        # Admin decides: approved (confirms the address on the user's behalf) or locked – then a confirmation link
+        # clicked later must not reactivate the account
         user.email_verified = True
     user.email_notifications = form_bool("email_notifications")
     if password and (user.auth_source == "local" or is_new):
@@ -167,8 +167,8 @@ def _save_user(user: User, is_new: bool):
         user.set_password(password)
     ids = _ids(request.form.getlist("groups"))
     user.groups = Group.query.filter(Group.id.in_(ids)).all() if ids else []
-    # Ohne Gruppe verwaltet ein Verwalter den gesamten Bestand – bei einem Konto, das schon gruppengebunden war
-    # (letzte Gruppe gelöscht oder im AD entfernt), nur nach ausdrücklicher Bestätigung (siehe User.group_bound)
+    # Without a group a librarian manages the entire collection – for an account that was already group-bound
+    # (last group deleted or removed in AD), only after explicit confirmation (see User.group_bound)
     if user.groups:
         user.group_bound = True
     elif form_bool("manage_all"):
@@ -205,7 +205,7 @@ def user_edit(user_id):
         else:
             db.session.commit()
             from .. import reservations
-            reservations.revalidate([user.id])   # gesperrt oder Gruppe entfernt: Vormerkungen freigeben
+            reservations.revalidate([user.id])   # locked or group removed: release reservations
             flash(_("Benutzer gespeichert."), "success")
             return redirect(url_for("admin.users"))
     from .. import lockout, twofa
@@ -234,7 +234,7 @@ def user_approve(user_id):
 @admin_required
 def user_reject(user_id):
     user = db.session.get(User, user_id) or abort(404)
-    # Nur wartende bzw. unbestätigte Selbstregistrierungen – nie das eigene Konto oder einen Administrator
+    # Only pending or unconfirmed self-registrations – never one's own account or an administrator
     if (not user.self_registered or not (user.pending_approval or not user.email_verified)
             or user.id == current_user.id or user.role == ROLE_ADMIN):
         flash(_("Nur wartende Registrierungen können abgelehnt werden."), "error")
@@ -290,10 +290,10 @@ def user_delete(user_id):
     else:
         from ..retention import delete_user
         name = user.username
-        books = delete_user(user)   # abgeschlossene Ausleihen nur noch gezählt – Statistik bleibt erhalten
+        books = delete_user(user)   # completed loans are only counted from now on – statistics are preserved
         db.session.commit()
         from .. import reservations
-        reservations.promote_after_delete(books)   # für das Konto zurückgelegte Exemplare: die Nächsten sind dran
+        reservations.promote_after_delete(books)   # copies held for the account: next in line get their turn
         flash(_("Benutzer {name} gelöscht.", name=name), "success")
     return redirect(url_for("admin.users"))
 
@@ -314,7 +314,7 @@ def retention_run():
     return redirect(url_for("admin.settings") + "#aufbewahrung")
 
 
-# ---------------------------------------------------------------- Datensicherung
+# ---------------------------------------------------------------- Backup
 
 @bp.route("/datensicherung", methods=["GET", "POST"])
 @admin_required
@@ -341,7 +341,7 @@ def backups():
 
 
 def _stamped(value: str, translate) -> str:
-    """Gespeichertes Laufergebnis „TT.MM.JJJJ HH:MM: Text“ in der Sprache der Oberfläche anzeigen."""
+    """Show a stored run result "DD.MM.YYYY HH:MM: text" in the UI language."""
     import re
     from datetime import datetime
 
@@ -362,7 +362,7 @@ def _retention_message(msg: str) -> str:
 
 
 def _backup_message(msg: str) -> str:
-    """Ergebnis von backup.run_now (deutsch, so auch gespeichert) in der Sprache der Oberfläche."""
+    """Result of backup.run_now (German, stored that way too) in the UI language."""
     from ..backup import display_message
     return display_message(msg)
 
@@ -398,7 +398,7 @@ def backup_delete(name):
     return redirect(url_for("admin.backups"))
 
 
-# ---------------------------------------------------------------- Gruppen
+# ---------------------------------------------------------------- Groups
 
 @bp.route("/gruppen")
 @admin_required
@@ -413,7 +413,7 @@ def _save_group(group: Group):
     name = form_str("name", 120)
     if not name:
         return _("Name fehlt.")
-    # In Python vergleichen: SQLite-lower() kennt keine Umlaute („Ärzte“ / „ärzte“)
+    # Compare in Python: SQLite lower() does not handle umlauts ("Ärzte" / "ärzte")
     clash = any(g.name.casefold() == name.casefold() for g in Group.query.filter(Group.id != (group.id or 0)))
     if clash:
         return _("Eine Gruppe mit diesem Namen existiert bereits.")
@@ -464,7 +464,7 @@ def group_edit(group_id):
         else:
             db.session.commit()
             from .. import reservations
-            reservations.revalidate()   # Mitglieder entfernt: deren Vormerkungen auf Bücher der Gruppe freigeben
+            reservations.revalidate()   # Members removed: release their reservations on the group's books
             flash(_("Gruppe gespeichert."), "success")
             return redirect(url_for("admin.groups"))
     return render_template("admin/group_form.html", group=group,
@@ -485,7 +485,7 @@ def group_delete(group_id):
     return redirect(url_for("admin.groups"))
 
 
-# ---------------------------------------------------------------- Einstellungen
+# ---------------------------------------------------------------- Settings
 
 @bp.route("/einstellungen", methods=["GET", "POST"])
 @admin_required
@@ -508,7 +508,7 @@ def settings():
         if was_on and not form_bool("reservations_enabled"):
             from .. import reservations
             db.session.commit()
-            n = reservations.cancel_all()   # sonst blieben Exemplare für Vormerkungen zurückgelegt
+            n = reservations.cancel_all()   # otherwise copies would stay held for reservations
             if n:
                 flash(_n("{n} offene Vormerkung gelöscht.", "{n} offene Vormerkungen gelöscht.", n), "info")
         reg = request.form.get("registration_mode")
@@ -576,7 +576,7 @@ def _ldap_form_cfg() -> dict:
     pw = request.form.get("ldap_bind_password") or ""
     same_target = all(cfg[k].strip().lower() == (get_setting(k) or "").strip().lower()
                       for k in ("ldap_server", "ldap_bind_dn"))
-    # Gespeichertes Passwort nur für denselben Server und dasselbe Dienstkonto weiterverwenden
+    # Reuse the stored password only for the same server and the same service account
     cfg["ldap_bind_password"] = pw if pw else (get_setting("ldap_bind_password") if same_target else "")
     if request.form.get("clear_bind_password"):
         cfg["ldap_bind_password"] = ""
@@ -601,7 +601,7 @@ def ldap():
             db.session.commit()
             from .. import people
             if not people.cache_enabled() and (get_setting("dircache_ok_at") or people._cache_rows()):
-                people.clear_cache()      # abgeschaltet: zwischengespeicherte Personen sofort löschen
+                people.clear_cache()      # disabled: delete cached people immediately
             flash(_("Verzeichnisdienst-Einstellungen gespeichert."), "success")
             return redirect(url_for("admin.ldap"))
         if action == "cache_sync":
@@ -675,7 +675,7 @@ def ldap():
                     test_result = {"user": info}
             except LDAPError as exc:
                 test_error = str(exc)
-            except Exception as exc:  # noqa: BLE001 – Admin soll den Fehler sehen
+            except Exception as exc:  # noqa: BLE001 – admin should see the error
                 test_error = f"{exc.__class__.__name__}: {exc}"
     values = {k: get_setting(k) for k in DEFAULT_SETTINGS if k.startswith("ldap_")}
     if cfg:
@@ -697,7 +697,7 @@ def ldap():
                            group_query=request.form.get("group_query", ""), group_cn=group_cn)
 
 
-# ---------------------------------------------------------------- E-Mail
+# ---------------------------------------------------------------- Email
 
 MAIL_TEXT = ["smtp_host", "smtp_port", "smtp_security", "smtp_user", "smtp_from", "smtp_from_name",
              "smtp_reply_to", "app_base_url", "mail_reminder_days", "mail_overdue_repeat_days",
@@ -719,7 +719,7 @@ def _mail_form_cfg() -> dict:
         cfg[k] = str(min(hi, max(lo, int(cfg[k]))))
     cfg["app_base_url"] = cfg["app_base_url"].rstrip("/")
     if cfg["app_base_url"] and not cfg["app_base_url"].lower().startswith(("https://", "http://")):
-        cfg["app_base_url"] = ""   # nur echte Web-Adressen (Links in E-Mails)
+        cfg["app_base_url"] = ""   # only real web addresses (links in emails)
     for k in MAIL_BOOL:
         cfg[k] = "1" if form_bool(k) else "0"
     cfg["mail_footer"] = (request.form.get("mail_footer") or "").strip()[:1000]
@@ -729,8 +729,8 @@ def _mail_form_cfg() -> dict:
     elif pw:
         cfg["smtp_password"] = pw
     elif all(cfg[k].strip().lower() == (get_setting(k) or "").strip().lower() for k in ("smtp_host", "smtp_user")):
-        # Gespeichertes Passwort nur für denselben Server und dasselbe Konto weiterverwenden – sonst könnte
-        # man es an einen fremden Server schicken lassen
+        # Reuse the stored password only for the same server and the same account – otherwise someone could
+        # have it sent to a foreign server
         cfg["smtp_password"] = get_setting("smtp_password")
     else:
         cfg["smtp_password"] = ""
@@ -795,7 +795,7 @@ def email():
                            without_mail=without_mail, suggested_url=suggested_url)
 
 
-# ---------------------------------------------------------------- Erscheinungsbild
+# ---------------------------------------------------------------- Appearance
 
 @bp.route("/erscheinungsbild", methods=["GET", "POST"])
 @admin_required

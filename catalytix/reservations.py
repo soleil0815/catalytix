@@ -1,15 +1,15 @@
-"""Vormerkungen (Reservierungen): Warteschlange je Buch, Bereitlegen mit Abholfrist.
+"""Reservations: queue per book, holding with a pickup deadline.
 
-Ablauf:
-- Sind alle Exemplare verliehen (oder zurückgelegt), kann man ein Buch vormerken und steht in der Warteschlange.
-- Wird ein Exemplar frei (Rückgabe, mehr Exemplare, Vormerkung storniert oder abgelaufen), wird es für die erste
-  Person zurückgelegt (Status „ready“, bis hold_until) und sie bekommt eine E-Mail. Für alle anderen gilt es als
-  nicht verfügbar.
-- Leiht die Person das Buch aus, ist die Vormerkung erledigt. Holt sie es nicht ab, läuft die Vormerkung nach der
-  Abholfrist ab und die nächste Person ist dran.
+Process:
+- If all copies are on loan (or held), a book can be reserved and the person joins the queue.
+- When a copy becomes available (return, more copies, reservation cancelled or expired), it is held for the first
+  person (status "ready", until hold_until) and they get an e-mail. For everyone else it counts as
+  unavailable.
+- If the person borrows the book, the reservation is done. If they don't pick it up, the reservation expires after
+  the pickup deadline and it's the next person's turn.
 
-Alle Änderungen an der Warteschlange eines Buchs laufen unter derselben Sperre wie die Ausleihe (lock_book),
-damit gleichzeitige Rückgaben, Ausleihen und Vormerkungen sich nicht in die Quere kommen.
+All changes to a book's queue run under the same lock as lending (lock_book),
+so that concurrent returns, loans and reservations don't get in each other's way.
 """
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ def open_for(user, book) -> Reservation | None:
 
 
 def position(res: Reservation) -> int:
-    """Platz in der Warteschlange (1 = als Nächstes dran); bereitgelegte zählen nicht mit."""
+    """Position in the queue (1 = next in line); held reservations don't count."""
     waiting = [r.id for r in res.book.reservations if r.status == RES_WAITING]
     return waiting.index(res.id) + 1 if res.id in waiting else 0
 
@@ -101,7 +101,7 @@ def reserve(book: Book, user: User) -> tuple[bool, str]:
 
 
 def _close(res: Reservation, status: str) -> bool:
-    """Vormerkung abschließen, falls sie noch offen ist. Liefert True, wenn diese Anfrage sie abgeschlossen hat."""
+    """Close the reservation if it is still open. Returns True if this request closed it."""
     done = db.session.execute(
         update(Reservation).where(Reservation.id == res.id, Reservation.status.in_((RES_WAITING, RES_READY)))
         .values(status=status, closed_at=datetime.now()).execution_options(synchronize_session=False))
@@ -119,7 +119,7 @@ def cancel(res: Reservation) -> bool:
 
 
 def fulfil_on_loan(book_id: int, user_id: int) -> None:
-    """Teil der Ausleihe (gleiche Transaktion, Buch schon gesperrt): offene Vormerkung der Person ist erledigt."""
+    """Part of lending (same transaction, book already locked): the person's open reservation is done."""
     db.session.execute(
         update(Reservation).where(Reservation.book_id == book_id, Reservation.user_id == user_id,
                                   Reservation.status.in_((RES_WAITING, RES_READY)))
@@ -127,12 +127,12 @@ def fulfil_on_loan(book_id: int, user_id: int) -> None:
 
 
 def waiting_ahead(book_id: int, user_id: int | None) -> int:
-    """Wie viele Wartende stehen vor dieser Person (alle, wenn sie nicht in der Warteschlange steht)?"""
+    """How many waiting people are ahead of this person (all, if they are not in the queue)?"""
     if not enabled():
         return 0
     if db.session.query(Reservation.id).filter(Reservation.book_id == book_id, Reservation.user_id == user_id,
                                                Reservation.status == RES_READY).first():
-        return 0                  # für die Person zurückgelegt – sie ist dran
+        return 0                  # held for the person – it's their turn
     waiting = [uid for (uid,) in db.session.query(Reservation.user_id).filter(
         Reservation.book_id == book_id, Reservation.status == RES_WAITING)
         .order_by(Reservation.created_at, Reservation.id)]
@@ -148,13 +148,13 @@ def held_by_others(book_id: int, user_id: int | None) -> int:
 
 
 def still_valid(res: Reservation) -> bool:
-    """Darf die Person das Buch (noch) bekommen? Gesperrt, nicht mehr in der Gruppe des Buchs oder Buch im
-    Präsenzbestand: dann blockiert die Vormerkung nur ein Exemplar, das sie nie abholen kann."""
+    """May the person (still) get the book? Locked, no longer in the book's group or book is
+    reference-only stock ("Präsenzbestand"): then the reservation only blocks a copy they can never pick up."""
     return bool(res.user.active and res.book.lendable and res.user.can_borrow(res.book))
 
 
 def _drop_invalid(book_id: int) -> int:
-    """Offene Vormerkungen eines Buchs beenden, die nicht mehr gelten (Buch ist schon gesperrt, ohne Commit)."""
+    """End a book's open reservations that no longer apply (book is already locked, no commit)."""
     n = 0
     for res in Reservation.query.filter(Reservation.book_id == book_id,
                                         Reservation.status.in_((RES_WAITING, RES_READY))).all():
@@ -169,7 +169,7 @@ def _drop_invalid(book_id: int) -> int:
 
 
 def promote(book_id: int) -> list[Reservation]:
-    """Freie Exemplare an die Warteschlange vergeben (zurücklegen und benachrichtigen)."""
+    """Assign available copies to the queue (hold them and notify)."""
     if not enabled():
         return []
     _lock(book_id)
@@ -195,8 +195,8 @@ def promote(book_id: int) -> list[Reservation]:
 
 
 def rebalance(book_id: int) -> None:
-    """Nach einer Änderung der Exemplarzahl: zu viele Zurücklegungen (weniger Exemplare) wieder in die Warteschlange
-    stellen – die zuletzt bereitgelegten zuerst, sie behalten ihren Platz –, sonst freie Exemplare vergeben."""
+    """After the number of copies changed: put excess holds (fewer copies) back into the queue
+    – most recently held first, they keep their position –, otherwise assign available copies."""
     _lock(book_id)
     _drop_invalid(book_id)
     excess = -_free_copies(book_id)
@@ -212,7 +212,7 @@ def rebalance(book_id: int) -> None:
 
 
 def expire_due(today: date | None = None) -> int:
-    """Nicht abgeholte Vormerkungen ablaufen lassen und die nächste Person nachrücken lassen."""
+    """Expire uncollected reservations and move the next person up."""
     today = today or date.today()
     due = Reservation.query.filter(Reservation.status == RES_READY, Reservation.hold_until < today).all()
     books = set()
@@ -229,9 +229,9 @@ def expire_due(today: date | None = None) -> int:
 
 
 def revalidate(user_ids=None) -> set[int]:
-    """Offene Vormerkungen prüfen, die nicht mehr gelten (Konto gesperrt, Gruppe verlassen – auch durch den
-    AD-Abgleich –, Buch verschoben oder Präsenzbestand) und die nächste Person nachrücken lassen.
-    Läuft im Hintergrund regelmäßig und sofort nach Änderungen durch Admins. Liefert die betroffenen Bücher."""
+    """Check open reservations that no longer apply (account locked, group left – also through the
+    AD sync –, book moved or reference-only stock) and move the next person up.
+    Runs regularly in the background and immediately after changes by admins. Returns the affected books."""
     if not enabled():
         return set()
     q = Reservation.query.filter(Reservation.status.in_((RES_WAITING, RES_READY)))
@@ -242,18 +242,18 @@ def revalidate(user_ids=None) -> set[int]:
         q = q.filter(Reservation.user_id.in_(ids))
     books = {res.book_id for res in q.all() if not still_valid(res)}
     for book_id in books:
-        promote(book_id)          # beendet die ungültigen unter der Sperre und vergibt das Exemplar neu
+        promote(book_id)          # ends the invalid ones under the lock and reassigns the copy
     return books
 
 
 def promote_after_delete(book_ids) -> None:
-    """Nach dem Löschen eines Kontos: seine zurückgelegten Exemplare an die Nächsten vergeben."""
+    """After deleting an account: assign its held copies to the next people."""
     for book_id in set(book_ids):
         promote(book_id)
 
 
 def cancel_for_group(group_id: int) -> int:
-    """Gruppe wird Präsenzbestand: offene Vormerkungen ihrer Bücher beenden (ohne Commit – der Aufrufer speichert)."""
+    """Group becomes reference-only stock: end open reservations of its books (no commit – the caller saves)."""
     ids = db.session.query(Book.id).filter(Book.group_id == group_id)
     n = db.session.execute(
         update(Reservation).where(Reservation.book_id.in_(ids), Reservation.status.in_((RES_WAITING, RES_READY)))
@@ -262,7 +262,7 @@ def cancel_for_group(group_id: int) -> int:
 
 
 def cancel_all() -> int:
-    """Beim Ausschalten: alle offenen Vormerkungen beenden (sonst blieben Exemplare zurückgelegt)."""
+    """When switching off: end all open reservations (otherwise copies would stay held)."""
     n = db.session.execute(
         update(Reservation).where(Reservation.status.in_((RES_WAITING, RES_READY)))
         .values(status=RES_CANCELLED, closed_at=datetime.now()).execution_options(synchronize_session=False))

@@ -1,8 +1,8 @@
-"""Anmeldesperre nach Fehlversuchen – in der Datenbank, damit sie für alle Server-Prozesse gilt
-und ein Administrator sie in der Oberfläche aufheben kann.
+"""Login lockout after failed attempts – stored in the database so it applies to all server processes
+and an administrator can lift it in the UI.
 
-8 Fehlversuche je Benutzername und Adresse innerhalb von 5 Minuten sperren diese Kombination für
-5 Minuten (Passwort und zweiter Faktor werden getrennt gezählt).
+8 failed attempts per username and address within 5 minutes lock that combination for
+5 minutes (password and second factor are counted separately).
 """
 from __future__ import annotations
 
@@ -16,15 +16,15 @@ WINDOW = timedelta(minutes=5)
 
 
 def norm(username: str) -> str:
-    """Benutzername für Sperrschlüssel: wie bei der AD-Anmeldung ohne „DOMÄNE\\“ und „@…“, klein geschrieben.
+    """Username for the lockout key: as with AD login, without "DOMAIN\\" and "@…", lowercased.
 
-    Sonst ergäben „DOMÄNE\\anna“, „anna@x“ und „ANNA“ jeweils eine eigene, frische Sperre."""
+    Otherwise "DOMAIN\\anna", "anna@x" and "ANNA" would each get their own fresh lockout."""
     name = (username or "").strip()
     if "\\" in name:
         name = name.split("\\", 1)[1]
     if "@" in name:
         name = name.split("@", 1)[0]
-    # NFKC + casefold: „ａｎｎａ“ (Vollbreite) oder „ANNA“ zählen wie „anna“ – das AD vergleicht ähnlich großzügig
+    # NFKC + casefold: "ａｎｎａ" (full-width) or "ANNA" count as "anna" – AD compares similarly leniently
     return unicodedata.normalize("NFKC", name).strip().casefold()
 
 
@@ -37,7 +37,7 @@ def throttled(key: str) -> bool:
 
 
 def _origin() -> tuple[str, bool]:
-    """Adresse und „intern?“ der laufenden Anfrage (außerhalb einer Anfrage: leer)."""
+    """Address and "internal?" of the current request (outside a request: empty)."""
     from flask import has_request_context, request
     if not has_request_context():
         return "", False
@@ -57,11 +57,11 @@ USER_WINDOW = timedelta(minutes=15)
 
 
 def user_throttled(username: str, internal: bool = False) -> bool:
-    """Zusätzliche Bremse je Benutzername über alle Adressen (gegen Raten mit wechselnden IPs).
+    """Additional throttle per username across all addresses (against guessing from changing IPs).
 
-    Im internen Netz zählen nur Fehlversuche aus dem internen Netz (höhere Grenze): Wer von außen
-    absichtlich falsche Passwörter eingibt, sperrt das Konto nur für Zugriffe von außen – im Hausnetz
-    kann man sich weiter anmelden."""
+    On the internal network only failed attempts from the internal network count (higher limit): anyone
+    deliberately entering wrong passwords from outside locks the account only for external access – on the
+    internal network people can still log in."""
     since = datetime.now() - USER_WINDOW
     q = LoginAttempt.query.filter(LoginAttempt.username == norm(username), LoginAttempt.created_at >= since)
     if internal:
@@ -69,7 +69,7 @@ def user_throttled(username: str, internal: bool = False) -> bool:
     return q.count() >= USER_MAX_FAILS
 
 
-IP_MAX_FAILS = 30          # Fehlversuche je Adresse von außen über alle Konten (gegen „ein Passwort für alle“)
+IP_MAX_FAILS = 30          # failed attempts per external address across all accounts (against "one password for all")
 
 
 def ip_throttled() -> bool:
@@ -80,7 +80,7 @@ def ip_throttled() -> bool:
     return LoginAttempt.query.filter(LoginAttempt.ip == ip, LoginAttempt.created_at >= since).count() >= IP_MAX_FAILS
 
 
-MFA_DAILY_MAX = 30         # falsche Codes beim zweiten Faktor je Konto und Tag – dann Admin oder morgen
+MFA_DAILY_MAX = 30         # wrong second-factor codes per account and day – then admin or tomorrow
 
 
 def mfa_daily_exceeded(username: str) -> bool:
@@ -90,7 +90,7 @@ def mfa_daily_exceeded(username: str) -> bool:
 
 
 def mfa_fails_since(username: str, ts: float) -> int:
-    """Fehlversuche beim zweiten Faktor für diesen Benutzer seit dem Zeitpunkt ts (Unix-Zeit)."""
+    """Failed second-factor attempts for this user since time ts (Unix time)."""
     since = max(datetime.fromtimestamp(ts or 0), datetime.now() - USER_WINDOW)
     return LoginAttempt.query.filter(LoginAttempt.username == norm(username), LoginAttempt.key.like("2fa|%"),
                                      LoginAttempt.created_at >= since).count()
@@ -102,7 +102,7 @@ def clear(key: str) -> None:
 
 
 def locked_usernames() -> set[str]:
-    """Benutzernamen, die gerade (von mindestens einer Adresse aus) gesperrt sind."""
+    """Usernames that are currently locked (from at least one address)."""
     from sqlalchemy import func
     rows = (db.session.query(LoginAttempt.username, LoginAttempt.key, func.count(LoginAttempt.id))
             .filter(LoginAttempt.created_at >= _since()).group_by(LoginAttempt.username, LoginAttempt.key).all())
@@ -120,7 +120,7 @@ def unlock_user(username: str) -> int:
 
 
 def cleanup() -> int:
-    # etwas mehr als einen Tag aufheben (Tagesgrenze beim zweiten Faktor)
+    # keep a little more than a day (day boundary for the second factor)
     n = LoginAttempt.query.filter(LoginAttempt.created_at < datetime.now() - timedelta(days=1, hours=1)).delete()
     db.session.commit()
     return n

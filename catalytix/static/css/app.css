@@ -1,4 +1,4 @@
-/* Catalytix – Lesesaal-Design: Papier, Tinte, Messing. */
+/* Catalytix – reading-room design: paper, ink, brass. */
 :root {
   --paper: #f5f0e6;
   --paper-2: #ece5d6;
@@ -148,7 +148,7 @@ code, .mono { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-si
 .eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--brass); font-weight: 600; margin-bottom: 6px; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
-/* ------------------------------------------------------------ Bausteine */
+/* ------------------------------------------------------------ Components */
 .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
 .card-pad { padding: 22px; }
 .card-head { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--line); gap: 12px; }
@@ -190,7 +190,7 @@ code, .mono { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-si
 .badge.brass { background: var(--brass-soft); color: var(--brass); }
 .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
 
-/* ------------------------------------------------------------ Formulare */
+/* ------------------------------------------------------------ Forms */
 label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
 input[type=text], input[type=search], input[type=password], input[type=email], input[type=number], input[type=date],
 input[type=url], select, textarea {
@@ -215,7 +215,7 @@ fieldset { border: 0; padding: 0; margin: 0; }
 .chip input { accent-color: var(--accent); }
 .chip:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); }
 
-/* ------------------------------------------------------------ Meldungen */
+/* ------------------------------------------------------------ Messages */
 .flashes { position: fixed; right: 22px; top: 18px; z-index: 100; display: flex; flex-direction: column; gap: 10px; max-width: 420px; }
 .flash { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); font-size: 14px; animation: slidein .25s ease; }
 .flash.success { border-left: 4px solid var(--ok); }
@@ -230,7 +230,7 @@ fieldset { border: 0; padding: 0; margin: 0; }
 .notice.ok { background: var(--ok-soft); }
 .notice.accent { background: var(--accent-soft); }
 
-/* ------------------------------------------------------------ Tabellen */
+/* ------------------------------------------------------------ Tables */
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--paper-2); }
@@ -245,7 +245,7 @@ td.actions-cell { text-align: right; white-space: nowrap; }
 .empty { text-align: center; color: var(--muted); padding: 40px 20px; }
 .empty svg { width: 38px; height: 38px; color: var(--line-2); margin-bottom: 10px; }
 
-/* ------------------------------------------------------------ Bücher */
+/* ------------------------------------------------------------ Books */
 .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
 .toolbar select, .toolbar input { width: auto; min-width: 150px; padding: 8px 12px; font-size: 14px; }
 .toolbar .grow { flex: 1; min-width: 220px; }
@@ -355,7 +355,7 @@ dialog::backdrop { background: rgba(10, 14, 12, .55); backdrop-filter: blur(3px)
 .auth-form .box { width: 100%; max-width: 380px; }
 .auth-form h2 { font-size: 28px; margin-bottom: 6px; }
 
-/* ------------------------------------------------------------ Diverses */
+/* ------------------------------------------------------------ Miscellaneous */
 .pagination { display: flex; gap: 6px; justify-content: center; margin-top: 30px; }
 .pagination a, .pagination span { min-width: 38px; text-align: center; padding: 7px 10px; border-radius: 9px; border: 1px solid var(--line-2); color: var(--ink-2); font-weight: 600; font-size: 14px; }
 .pagination .cur { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -378,14 +378,14 @@ dialog::backdrop { background: rgba(10, 14, 12, .55); backdrop-filter: blur(3px)
 .mt-0 { margin-top: 0 !important; }
 hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
 
-/* ------------------------------------------------------------ Responsiv */
+/* ------------------------------------------------------------ Responsive */
 @media (max-width: 1080px) {
   .split, .grid-3 { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 860px) {
   .app { grid-template-columns: minmax(0, 1fr); background: none; }
-  /* Höhe über top/bottom statt 100vh: 100vh ist auf Handys höher als der sichtbare Bereich
-     (Adressleiste) – dadurch lag der Abmelde-Bereich unten außerhalb des Bildschirms. */
+  /* Height via top/bottom instead of 100vh: on phones 100vh is taller than the visible area
+     (address bar) – which put the logout area below the bottom of the screen. */
   .sidebar { position: fixed; left: 0; top: 0; bottom: 0; height: auto; max-height: 100dvh; width: 264px; z-index: 50;
     transform: translateX(-100%); transition: transform .2s; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
 
@@ -413,7 +413,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
 }
 .list-row .grow small { display: block; overflow-wrap: anywhere; }
 
-/* ------------------------------------------------------------ Benutzermenü (Handy) */
+/* ------------------------------------------------------------ User menu (phone) */
 .user-menu { display: none; position: relative; margin-left: auto; }
 .user-menu summary { list-style: none; cursor: pointer; }
 .user-menu summary::-webkit-details-marker { display: none; }
@@ -431,7 +431,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
   .topbar .btn.primary.sm span { display: none; }
 }
 
-/* ------------------------------------------------------------ Erscheinungsbild (Admin) */
+/* ------------------------------------------------------------ Appearance (admin) */
 .logo-previews { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
 .logo-swatch { height: 96px; border-radius: 12px; display: grid; place-items: center; padding: 12px; border: 1px solid var(--line); }
 .logo-swatch.side { background: var(--side); }
@@ -469,7 +469,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
 .lp-form span { height: 12px; border: 1px solid var(--line-2); border-radius: 4px; background: var(--card); }
 .lp-form b { height: 14px; border-radius: 4px; background: var(--accent); margin-top: 4px; }
 
-/* ------------------------------------------------------------ Sprache und Hilfe */
+/* ------------------------------------------------------------ Language and help */
 .lang-switch { display: inline-flex; border: 1px solid var(--line-2); border-radius: 999px; padding: 2px; gap: 2px; background: var(--card); }
 .lang-switch button { border: 0; background: none; color: var(--muted); font: 600 12px var(--font); letter-spacing: .04em;
   padding: 4px 9px; border-radius: 999px; cursor: pointer; }
@@ -501,7 +501,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
 .help-topic pre code { background: none; padding: 0; }
 .help-topic code { font-size: .92em; }
 
-/* ------------------------------------------------------------ Personensuche */
+/* ------------------------------------------------------------ Person search */
 .user-search { position: relative; }
 .user-search > input { width: 100%; }
 .user-suggest { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 70; list-style: none; margin: 0; padding: 6px;
@@ -515,7 +515,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
 .user-suggest .avatar.sm { width: 30px; height: 30px; font-size: 11px; flex: none; }
 .input-group.user-search { position: relative; }
 
-/* Lange Wörter (Titel, Namen, Befehle) dürfen die Seite auf dem Handy nicht verbreitern */
+/* Long words (titles, names, commands) must not widen the page on phones */
 h1, h2, h3, .who b, .list-row, td, .kv dd, .notice, .card-head h2 { overflow-wrap: anywhere; }
 .content pre, .content code { white-space: pre-wrap; overflow-wrap: anywhere; }
 .content input, .content select, .content textarea { max-width: 100%; min-width: 0; }

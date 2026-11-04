@@ -1,14 +1,14 @@
-"""Selbstregistrierung neuer Leser.
+"""Self-registration of new readers.
 
-Modi (Administration → Einstellungen):
-  off       – keine Registrierung (Standard)
-  approval  – Konto wird angelegt, ein Admin muss es freigeben
-  open      – Konto ist sofort aktiv
-Zusätzlich optional: E-Mail-Bestätigung (wenn E-Mail-Versand aktiv), erlaubte E-Mail-Domains,
-Standardgruppe, Link zu Datenschutzhinweisen, Benachrichtigung der Admins.
+Modes (Administration → Settings):
+  off       – no registration (default)
+  approval  – account is created, an admin must approve it
+  open      – account is active immediately
+Additionally optional: email confirmation (if email sending is enabled), allowed email domains,
+default group, link to the privacy notice, notification of admins.
 
-Schutz bei Betrieb im Internet: Honeypot-Feld, Mindest-Ausfüllzeit, Begrenzung pro IP,
-reservierte Namen, keine Namen, die es im Active Directory gibt.
+Protection when running on the internet: honeypot field, minimum fill-in time, per-IP limit,
+reserved names, no names that exist in Active Directory.
 """
 from __future__ import annotations
 
@@ -58,8 +58,8 @@ def _serializer():
 
 
 def _base_url() -> str:
-    """Basis-Adresse für Links in E-Mails – nur aus der Einstellung, nie aus der Anfrage (der Host-Kopf ist von
-    außen fälschbar: Links in Mails könnten sonst auf eine fremde Seite zeigen)."""
+    """Base URL for links in emails – only from the setting, never from the request (the Host header can be
+    forged from outside: links in emails could otherwise point to a foreign site)."""
     return (get_setting("app_base_url") or "").rstrip("/")
 
 
@@ -78,7 +78,7 @@ def _allowed_domain(email: str) -> bool:
 
 
 def _exists_in_directory(username: str) -> bool | None:
-    """True/False, oder None wenn das AD nicht geprüft werden konnte."""
+    """True/False, or None if AD could not be checked."""
     from ..ldap_auth import Directory, LDAPAmbiguous, LDAPUserNotFound, ldap_enabled
     if not ldap_enabled():
         return False
@@ -107,11 +107,11 @@ def _rate_limited(ip: str) -> bool:
     return len(_REG_LOG[ip]) >= REG_PER_HOUR
 
 
-PROBES_PER_WINDOW = 10   # Prüfungen auf vergebene Namen/Adressen je Adresse in 15 Minuten (alle Server-Prozesse)
+PROBES_PER_WINDOW = 10   # checks for taken names/addresses per address within 15 minutes (all server processes)
 
 
 def _probe_limited(ip: str) -> bool:
-    """Zählt diese Prüfung (in der Datenbank, wie die Anmeldesperre) und meldet, ob die Grenze erreicht ist."""
+    """Counts this check (in the database, like the login lockout) and reports whether the limit is reached."""
     from datetime import datetime
     from .. import lockout
     from ..models import LoginAttempt
@@ -128,7 +128,7 @@ def maybe_activate(user: User):
         user.active = True
 
 
-# ---------------------------------------------------------------- Mails
+# ---------------------------------------------------------------- Emails
 
 def _send(template: str, to: str, **ctx):
     from ..mailer import mail_active, render_mail, send_mail
@@ -170,7 +170,7 @@ def _change_serializer():
 
 
 def send_email_change(user: User, new_email: str) -> bool:
-    """Neue Adresse erst nach Bestätigung übernehmen (Link an die NEUE Adresse)."""
+    """Apply the new address only after confirmation (link sent to the NEW address)."""
     token = _change_serializer().dumps({"uid": user.id, "email": new_email, "epoch": user.auth_epoch or 0})
     link = _link("register.confirm_email_change", token=token)
     if not link:
@@ -208,7 +208,7 @@ def confirm_email_change(token):
     return redirect(url_for("main.profile"))
 
 
-# ---------------------------------------------------------------- Seiten
+# ---------------------------------------------------------------- Pages
 
 @bp.route("/registrieren", methods=["GET", "POST"])
 def register():
@@ -226,12 +226,12 @@ def register():
     if request.method == "POST":
         ip = request.remote_addr or "?"
         values = {k: form_str(k, 200) for k in ("username", "display_name", "email")}
-        # Bots: verstecktes Feld ausgefüllt oder Formular in Sekundenbruchteilen abgeschickt
+        # Bots: hidden field filled in or form submitted within fractions of a second
         started = session.pop("reg_started", 0)
         if form_str("homepage_url", 200) or (started and time.time() - started < MIN_FILL_SECONDS):
             log.info("Registration from %s discarded as a bot", ip)
             return render_template("register_done.html", state="check_mail" if needs_verification() else "approval")
-        if not started:  # Sitzung abgelaufen o. Ä. – Formular einfach erneut anzeigen
+        if not started:  # session expired or similar – simply show the form again
             session["reg_started"] = time.time() - MIN_FILL_SECONDS
             flash(_("Bitte sende das Formular noch einmal ab."), "info")
             return render_template("register.html", v=values, privacy=privacy), 400
@@ -261,8 +261,8 @@ def register():
         elif privacy and not request.form.get("privacy"):
             error = _("Bitte bestätige die Datenschutzhinweise.")
         elif _probe_limited(ip):
-            # Jede Prüfung „Name/Adresse schon vergeben?“ zählt – sonst ließen sich Konten und AD-Namen beliebig
-            # oft abfragen (Formular wird nach jedem Fehler sofort wieder angenommen)
+            # Every "name/address already taken?" check counts – otherwise accounts and AD names could be probed
+            # arbitrarily often (the form is accepted again immediately after each error)
             flash(_("Zu viele Registrierungen von deinem Anschluss. Bitte versuche es später erneut."), "error")
             return render_template("register.html", v=values, privacy=privacy), 429
         elif User.query.filter(func.lower(User.username) == username.lower()).first():
@@ -277,7 +277,7 @@ def register():
                 error = _("Dieser Benutzername ist bereits vergeben.")
         if error:
             flash(error, "error")
-            session["reg_started"] = time.time() - MIN_FILL_SECONDS  # erneutes Absenden sofort erlaubt
+            session["reg_started"] = time.time() - MIN_FILL_SECONDS  # resubmitting is allowed immediately
             return render_template("register.html", v=values, privacy=privacy), 400
 
         _REG_LOG[ip].append(time.time())
@@ -285,7 +285,7 @@ def register():
         from ..i18n import get_locale
         user = User(username=username, display_name=name, email=email, role=ROLE_READER, auth_source="local",
                     self_registered=True, email_verified=not verify, pending_approval=mode() == "approval",
-                    active=False, language=get_locale())   # Mails in der Sprache der Registrierung
+                    active=False, language=get_locale())   # emails in the language of the registration
         user.set_password(password)
         gid = get_setting("registration_group_id")
         if gid.isdigit():

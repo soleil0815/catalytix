@@ -1,8 +1,8 @@
-"""Einrichtungscode für die Ersteinrichtung.
+"""Setup code for the initial setup.
 
-Solange es kein Konto gibt, darf nur das Administratorkonto anlegen, wer den Code kennt. Er steht im
-Protokoll des Containers und wird von update.sh nach der Erstinstallation angezeigt – wer nur den Port
-erreicht, kann die Einrichtung so nicht an sich reißen."""
+As long as there is no account, only someone who knows the code may create the administrator account. It appears
+in the container log and is shown by update.sh after the initial installation – anyone who can only reach the port
+therefore cannot hijack the setup."""
 from __future__ import annotations
 
 import hmac
@@ -15,7 +15,7 @@ from flask import current_app
 
 log = logging.getLogger(__name__)
 FILE = "setup_code"
-ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"   # ohne 0/O, 1/I – gut abzutippen
+ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"   # without 0/O, 1/I – easy to type
 
 
 def _path() -> Path:
@@ -27,7 +27,7 @@ def normalize(code: str) -> str:
 
 
 def ensure() -> str:
-    """Code anlegen (falls nötig) und zurückgeben. Atomar, damit mehrere Worker denselben Code nutzen."""
+    """Create the code (if needed) and return it. Atomic, so that multiple workers use the same code."""
     p = _path()
     try:
         fd = os.open(p, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)

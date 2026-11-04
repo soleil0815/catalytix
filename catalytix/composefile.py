@@ -1,17 +1,17 @@
-"""Version der docker-compose.yml prüfen.
+"""Check the version of docker-compose.yml.
 
-Die docker-compose.yml setzt CATALYTIX_COMPOSE (feste Zahl, nicht in der .env). Sie ändert sich nur, wenn sich an der
-Datei selbst etwas Nötiges ändert – Vorgaben stehen im Programm. Ist die Datei auf dem Server älter als nötig, sehen
-Admins einen Hinweis (Übersicht) und das Protokoll eine Warnung; der Start wird nicht verhindert.
-Das Image bringt die passende Datei mit (/app/dist/docker-compose.yml; update.sh legt sie ab).
+docker-compose.yml sets CATALYTIX_COMPOSE (a fixed number, not in .env). It only changes when something necessary
+changes in the file itself – defaults live in the program. If the file on the server is older than required, admins
+see a notice (overview page) and the log shows a warning; startup is not prevented.
+The image ships the matching file (/app/dist/docker-compose.yml; update.sh puts it in place).
 """
 from __future__ import annotations
 
 import os
 import re
 
-COMPOSE_VERSION = 2     # Version der docker-compose.yml in diesem Image (Zeile CATALYTIX_COMPOSE)
-COMPOSE_MIN = 2         # mindestens nötige Version der Datei auf dem Server
+COMPOSE_VERSION = 2     # version of docker-compose.yml in this image (line CATALYTIX_COMPOSE)
+COMPOSE_MIN = 2         # minimum required version of the file on the server
 
 
 def in_container() -> bool:
@@ -19,13 +19,13 @@ def in_container() -> bool:
 
 
 def current() -> int:
-    """Version der laufenden docker-compose.yml (0: alte Datei ohne Versionsangabe)."""
+    """Version of the running docker-compose.yml (0: old file without a version)."""
     m = re.fullmatch(r"\s*(\d+)\s*", os.environ.get("CATALYTIX_COMPOSE", ""))
     return int(m.group(1)) if m else 0
 
 
 def outdated() -> int | None:
-    """Version der zu alten Datei – oder None, wenn alles passt (oder nicht im Container)."""
+    """Version of the outdated file – or None if everything is fine (or not running in a container)."""
     if not in_container():
         return None
     have = current()

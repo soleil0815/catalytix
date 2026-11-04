@@ -1,4 +1,4 @@
-"""Tests der Zwei-Faktor-Anmeldung (TOTP, Wiederherstellungscodes, Richtlinie, WebAuthn-Grundlagen)."""
+"""Tests of two-factor login (TOTP, recovery codes, policy, WebAuthn basics)."""
 import base64
 import os
 import re
@@ -18,19 +18,19 @@ RFC_SECRET = base64.b32encode(b"12345678901234567890").decode()
 
 class TotpAlgorithmTests(unittest.TestCase):
     def test_rfc6238_vectors(self):
-        # RFC 6238, Anhang B (SHA-1) – letzte 6 Ziffern
+        # RFC 6238, appendix B (SHA-1) – last 6 digits
         for t, expected in [(59, "287082"), (1111111109, "081804"), (1234567890, "005924"), (2000000000, "279037")]:
             self.assertEqual(twofa.totp_now(RFC_SECRET, at=t), expected)
 
     def test_window_and_replay(self):
         now = 1_700_000_000
         code = twofa.totp_now(RFC_SECRET, at=now - 30)
-        step = twofa.check_totp(RFC_SECRET, code, 0, at=now)        # ein Schritt Toleranz
+        step = twofa.check_totp(RFC_SECRET, code, 0, at=now)        # one step tolerance
         self.assertIsNotNone(step)
-        self.assertIsNone(twofa.check_totp(RFC_SECRET, code, step, at=now))   # keine Wiederverwendung
+        self.assertIsNone(twofa.check_totp(RFC_SECRET, code, step, at=now))   # no reuse
         self.assertIsNone(twofa.check_totp(RFC_SECRET, twofa.totp_now(RFC_SECRET, at=now - 120), 0, at=now))
         self.assertIsNone(twofa.check_totp(RFC_SECRET, "12345", 0, at=now))
-        self.assertIsNotNone(twofa.check_totp(RFC_SECRET, "287 082", 0, at=59))  # Leerzeichen erlaubt
+        self.assertIsNotNone(twofa.check_totp(RFC_SECRET, "287 082", 0, at=59))  # spaces allowed
 
 
 class TwoFaFlowTests(unittest.TestCase):
@@ -60,7 +60,7 @@ class TwoFaFlowTests(unittest.TestCase):
         html = self.c.post("/profil/sicherheit/app/einrichten").get_data(as_text=True)
         self.assertIn("<svg", html)                                # QR-Code
         secret = re.search(r"secret=([A-Z2-7]+)", html).group(1)
-        # Code aus dem vorherigen Zeitschritt, damit der aktuelle beim Login frei bleibt
+        # code from the previous time step, so the current one stays free for the login
         r = self.c.post("/profil/sicherheit/app/bestaetigen", data={"code": twofa.totp_now(secret, time.time() - 30)})
         html = r.get_data(as_text=True)
         codes = re.findall(r">([a-z2-9]{4}-[a-z2-9]{4})<", html)
@@ -72,18 +72,18 @@ class TwoFaFlowTests(unittest.TestCase):
         secret, _ = self.enable_totp()
         db.session.refresh(self.admin)
         self.assertTrue(self.admin.totp_enabled)
-        self.assertNotIn(secret, self.admin.totp_secret)           # verschlüsselt gespeichert
+        self.assertNotIn(secret, self.admin.totp_secret)           # stored encrypted
         r = self.login()
         self.assertIn("/login/2fa", r.headers["Location"])
-        self.assertIn("/login", self.c.get("/").headers["Location"])  # noch nicht angemeldet
+        self.assertIn("/login", self.c.get("/").headers["Location"])  # not logged in yet
         r = self.c.post("/login/2fa", data={"code": "000000"})
         self.assertIn("ungültig", r.get_data(as_text=True))
         code = twofa.totp_now(secret)
         r = self.c.post("/login/2fa", data={"code": code})
         self.assertEqual(r.status_code, 302)
         self.assertEqual(self.c.get("/").status_code, 200)
-        # gleicher Code ein zweites Mal: abgelehnt (genau dieser Code – nicht neu erzeugt, sonst wackelt der
-        # Test an der 30-Sekunden-Grenze)
+        # same code a second time: rejected (exactly this code – not regenerated, otherwise the test is flaky
+        # at the 30-second boundary)
         self.c.post("/logout")
         self.login()
         r = self.c.post("/login/2fa", data={"code": code})
@@ -123,7 +123,7 @@ class TwoFaFlowTests(unittest.TestCase):
         self.assertIn("/profil/sicherheit", r.headers["Location"])
         self.assertIn("/profil/sicherheit", self.c.get("/buecher").headers["Location"])
         self.assertEqual(self.c.post("/logout").status_code, 302)
-        # Leser ist nicht betroffen
+        # reader is not affected
         r = self.login("lena")
         self.assertEqual(r.headers["Location"], "/")
 
@@ -153,7 +153,7 @@ class TwoFaFlowTests(unittest.TestCase):
     def test_admin_reset_and_cli(self):
         self.enable_totp()
         self.login("admin")
-        # zweiter Admin setzt zurück
+        # second admin resets
         other = User(username="admin2", role="admin")
         other.set_password("geheim123")
         db.session.add(other)
@@ -187,7 +187,7 @@ if __name__ == "__main__":
 
 
 class UnreadableTotpTests(unittest.TestCase):
-    """Authenticator-Geheimnis mit altem Schlüssel: klarer Hinweis statt „Code ungültig“, Neueinrichtung möglich."""
+    """Authenticator secret with an old key: clear hint instead of "invalid code", new setup possible."""
 
     def setUp(self):
         from catalytix import create_app

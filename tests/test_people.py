@@ -1,4 +1,4 @@
-"""Personensuche bei der Ausleihe: lokal und im Active Directory (noch nie angemeldete Personen)."""
+"""People search when lending: local and in Active Directory (people who never logged in)."""
 import os
 import sys
 import tempfile
@@ -64,7 +64,7 @@ class Base(unittest.TestCase):
         patcher = mock.patch("catalytix.ldap_auth.Directory")
         cls = patcher.start()
         self.addCleanup(patcher.stop)
-        cls.return_value.find_by_guid.return_value = None      # bisherige Person gibt es im AD nicht mehr
+        cls.return_value.find_by_guid.return_value = None      # the previous person no longer exists in AD
         if error:
             cls.return_value.search_users.side_effect = error
             cls.return_value.check_account.side_effect = error
@@ -79,9 +79,9 @@ class SearchTests(Base):
         self.directory(search=[ad("berta", "Berta Brecht"), ad("anna", "Anna Local")])
         r = self.c.get("/api/personen?q=ann").get_json()
         names = [(x["username"], x["new"]) for x in r["results"]]
-        self.assertIn(("anna", False), names)          # lokales Konto
-        self.assertIn(("berta", True), names)          # neu aus dem AD
-        self.assertEqual(sum(1 for u, _n in names if u == "anna"), 1)   # nicht doppelt
+        self.assertIn(("anna", False), names)          # local account
+        self.assertIn(("berta", True), names)          # new from AD
+        self.assertEqual(sum(1 for u, _n in names if u == "anna"), 1)   # not duplicated
         self.assertEqual(next(x for x in r["results"] if x["username"] == "berta")["groups"], ["IT"])
 
     def test_nothing_is_created_by_searching(self):
@@ -125,7 +125,7 @@ class LendTests(Base):
         self.assertEqual(Loan.query.filter_by(user_id=u.id).count(), 1)
 
     def test_failed_lend_leaves_no_account(self):
-        self.directory(account=ad("carl", "Carl Ohne", groups=()))      # nicht in IT → darf IT-Buch nicht
+        self.directory(account=ad("carl", "Carl Ohne", groups=()))      # not in IT → may not borrow the IT book
         self.c.post("/theke", data={"modus": "ausleihe", "benutzer": "carl", "book_id": self.gbook.id})
         self.assertIsNone(User.query.filter_by(username="carl").first())
 
@@ -177,7 +177,7 @@ class ReviewFixTests(Base):
         real_sync = __import__("catalytix.views.main", fromlist=["sync_ldap_user"]).sync_ldap_user
 
         def racing(info, existing):
-            # jemand anderes legt das Konto genau jetzt an (eigene, bereits abgeschlossene Transaktion)
+            # someone else creates the account right now (own, already committed transaction)
             db.session.add(User(username="berta", display_name="B", role="reader", auth_source="ldap"))
             db.session.commit()
             return real_sync(info, existing)
@@ -214,7 +214,7 @@ class ReviewFixTests(Base):
         cls.return_value.search_users.side_effect = LDAPError("down")
         self.c.get("/api/personen?q=bert")
         self.c.get("/api/personen?q=berta")
-        self.assertEqual(cls.return_value.search_users.call_count, 2)   # zweite Anfrage: Pause, kein AD-Aufruf
+        self.assertEqual(cls.return_value.search_users.call_count, 2)   # second request: pause, no AD call
 
     def test_short_query_does_not_hit_directory(self):
         cls = self.directory(search=[ad("berta", "Berta Brecht")])

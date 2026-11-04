@@ -1,4 +1,4 @@
-"""Tests für das Erscheinungsbild (Logo, Hintergrund, Farben, Texte)."""
+"""Tests for the appearance (logo, background, colours, texts)."""
 import io
 import os
 import sys
@@ -77,8 +77,8 @@ class BrandingTests(unittest.TestCase):
         html = self.c.get("/login").get_data(as_text=True)
         self.assertIn(f"/branding/{logo}", html)
         self.assertIn(f'rel="icon" href="/branding/{fav}"', html)
-        self.assertEqual(self.c.get(f"/branding/{logo}").status_code, 200)   # öffentlich erreichbar
-        # Ersetzen löscht die alte Datei
+        self.assertEqual(self.c.get(f"/branding/{logo}").status_code, 200)   # publicly reachable
+        # replacing deletes the old file
         self.c.post("/login", data={"username": "admin", "password": "geheim123"})
         self.save(logo=(png(color=(0, 0, 255, 255)), "neu.png"))
         self.assertNotIn(logo, self.files())
@@ -123,8 +123,8 @@ class BrandingTests(unittest.TestCase):
         self.assertEqual(get_setting("brand_brass"), "")
         css = branding.theme_css()
         self.assertIn("--accent:#c0ffee", css)
-        self.assertIn("--accent-ink:#14191a", css)        # heller Hintergrund -> dunkle Schrift
-        self.assertIn("--side-ink:#1d2421", css)           # helle Seitenleiste -> dunkle Schrift
+        self.assertIn("--accent-ink:#14191a", css)        # light background -> dark text
+        self.assertIn("--side-ink:#1d2421", css)           # light sidebar -> dark text
         self.assertIn("prefers-color-scheme: dark", css)
         self.assertIn("--accent:#c0ffee", self.c.get("/").get_data(as_text=True))
         self.assertEqual(branding.ink("#17322c"), "#ffffff")

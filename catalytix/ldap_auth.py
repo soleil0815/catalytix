@@ -1,19 +1,19 @@
-"""Anmeldung gegen Active Directory (Windows Server oder Samba AD) bzw. LDAP.
+"""Authentication against Active Directory (Windows Server or Samba AD) or LDAP.
 
-Ablauf
-  1. Verbindung mit dem Dienstkonto (Bind-DN) – oder, falls keines hinterlegt ist,
-     direkt als Benutzer per UPN (benutzer@domaene.local).
-  2. Suche des Benutzers unterhalb der Basis-DN über das Login-Attribut
-     (AD/Samba-AD: sAMAccountName, OpenLDAP/klassisches Samba: uid).
-  3. Bind mit dem DN und Passwort des Benutzers (eigentliche Passwortprüfung).
-  4. Ermitteln der Gruppen (memberOf, optional verschachtelt über
-     LDAP_MATCHING_RULE_IN_CHAIN, Fallback member/uniqueMember/memberUid).
-  5. Regeln anwenden. Jede Regel ist entweder eine OU/ein Container
-     (der Benutzer liegt darunter) oder der DN einer Gruppe (der Benutzer ist Mitglied):
-       - Admin-Regeln       -> Rolle Administrator
-       - Verwalter-Regeln   -> Rolle Verwalter
-       - Login-Regeln       -> Rolle Leser
-     Ist keine Regel erfüllt, wird die Anmeldung abgelehnt.
+Flow
+  1. Connect with the service account (bind DN) – or, if none is configured,
+     directly as the user via UPN (user@firma.local).
+  2. Search for the user below the base DN via the login attribute
+     (AD/Samba AD: sAMAccountName, OpenLDAP/classic Samba: uid).
+  3. Bind with the user's DN and password (the actual password check).
+  4. Determine the groups (memberOf, optionally nested via
+     LDAP_MATCHING_RULE_IN_CHAIN, fallback member/uniqueMember/memberUid).
+  5. Apply the rules. Each rule is either an OU/container
+     (the user is located below it) or the DN of a group (the user is a member):
+       - admin rules        -> role administrator
+       - librarian rules    -> role librarian
+       - login rules        -> role reader
+     If no rule matches, the login is refused.
 """
 from __future__ import annotations
 
@@ -24,9 +24,9 @@ from dataclasses import dataclass, field
 from .i18n import _
 from .models import ROLE_ADMIN, ROLE_LIBRARIAN, ROLE_READER, get_bool, get_int, get_setting
 
-# Gruppen von Personen aus der Vorschlagssuche kurz merken: Beim Weitertippen („ann“ → „anna“) kommen dieselben
-# Personen wieder, die verschachtelte Auflösung kostet aber mehrere Abfragen je Person. Nur für die Suche –
-# Anmeldung und Nachprüfung fragen immer frisch.
+# Briefly cache the groups of people from the suggestion search: when typing on ("ann" → "anna") the same
+# people come up again, but nested resolution costs several queries per person. Only for the search –
+# login and re-checks always query fresh.
 SEARCH_GROUP_TTL = 300
 _search_groups: dict[str, tuple[float, dict]] = {}
 
@@ -35,15 +35,15 @@ IN_CHAIN = "1.2.840.113556.1.4.1941"
 
 
 class LDAPError(Exception):
-    """Fehler mit einer für Administratoren verständlichen Meldung."""
+    """Error with a message that administrators can understand."""
 
 
 class LDAPUserNotFound(LDAPError):
-    """Das Konto existiert (nicht mehr) im Verzeichnis."""
+    """The account does not exist (any more) in the directory."""
 
 
 class LDAPAmbiguous(LDAPError):
-    """Der Benutzername passt auf mehrere Einträge im Verzeichnis."""
+    """The username matches several entries in the directory."""
 
 
 @dataclass
@@ -55,13 +55,13 @@ class LDAPUser:
     groups: list[str] = field(default_factory=list)
     role: str | None = None
     matched_rule: str = ""
-    group_info: dict = field(default_factory=dict)  # DN -> direkt | primär | verschachtelt
-    guid: str = ""      # objectGUID (AD) bzw. entryUUID – bleibt bei Umbenennung und Verschieben gleich
+    group_info: dict = field(default_factory=dict)  # DN -> 'direkt' | 'primär' | 'verschachtelt' (origin)
+    guid: str = ""      # objectGUID (AD) or entryUUID – stays the same when renamed or moved
 
 
 class ScanResult(list):
-    """Ergebnis von scan_people: (LDAPUser, group_key, neu_aufgelöst) je Person, dazu .uncertain:
-    (benutzername, guid) der Personen, deren Gruppen nicht sicher ermittelbar waren."""
+    """Result of scan_people: (LDAPUser, group_key, newly_resolved) per person, plus .uncertain:
+    (username, guid) of the people whose groups could not be determined reliably."""
 
     def __init__(self, *a):
         super().__init__(*a)
@@ -69,7 +69,7 @@ class ScanResult(list):
 
 
 def entry_guid(entry: dict) -> str:
-    """Feste Kennung eines Eintrags: objectGUID (AD) oder entryUUID (OpenLDAP), sonst leer."""
+    """Stable identifier of an entry: objectGUID (AD) or entryUUID (OpenLDAP), otherwise empty."""
     raw = (entry.get("raw_attributes") or {})
     g = raw.get("objectGUID") or []
     if g and isinstance(g[0], (bytes, bytearray)) and len(g[0]) == 16:
@@ -84,7 +84,7 @@ def normalize_dn(dn: str) -> str:
 
 
 def split_dn(dn: str) -> list[str]:
-    r"""DN in seine Bestandteile zerlegen; „\,“ (und jedes andere mit \ maskierte Zeichen) trennt nicht."""
+    r"""Split a DN into its components; "\," (and any other character escaped with \) does not split."""
     parts, cur, i = [], [], 0
     while i < len(dn):
         ch = dn[i]
@@ -113,23 +113,23 @@ def parse_rules(text: str) -> list[str]:
 
 
 def group_cn(dn: str) -> str:
-    """'CN=Bibliothek-Admins,OU=Gruppen,DC=x' -> 'Bibliothek-Admins'"""
+    """'CN=Library-Admins,OU=Groups,DC=x' -> 'Library-Admins'"""
     m = re.match(r"\s*cn\s*=\s*((?:\\.|[^,])+)", dn or "", re.I)
     return re.sub(r"\\(.)", r"\1", m.group(1)).strip() if m else ""
 
 
 def is_group_name(rule: str) -> bool:
-    """Eine Regel ohne '=' ist ein Gruppenname (z. B. 'Bibliothek-Admins')."""
+    """A rule without '=' is a group name (e.g. 'Library-Admins')."""
     return "=" not in rule
 
 
 def rule_matches(rule: str, user_dn: str, group_dns: set[str]) -> bool:
-    """Regel = AD-Gruppenname, Gruppen-DN oder OU/Container."""
+    """Rule = AD group name, group DN or OU/container."""
     rule = (rule or "").strip()
     if not rule:
         return False
     if is_group_name(rule):
-        def norm(x):  # gleiche Normalisierung wie bei DNs (Leerzeichen um Kommas)
+        def norm(x):  # same normalization as for DNs (whitespace around commas)
             return re.sub(r"\s*,\s*", ",", x).lower()
         name = norm(rule)
         return any(norm(group_cn(g)) == name for g in group_dns)
@@ -137,9 +137,9 @@ def rule_matches(rule: str, user_dn: str, group_dns: set[str]) -> bool:
     u = normalize_dn(user_dn)
     if r in group_dns:
         return True
-    # OU/Container: die Bestandteile (RDNs) der Regel müssen das Ende des Benutzer-DNs bilden. Verglichen wird
-    # Bestandteil für Bestandteil – ein maskiertes Komma im Namen („CN=Mallory\\, OU=Bib-Admins,…“) ist kein
-    # Trenner und darf keine Zugehörigkeit zu einer OU vortäuschen.
+    # OU/container: the components (RDNs) of the rule must form the end of the user DN. The comparison is
+    # component by component – an escaped comma in the name ("CN=Mallory\\, OU=Bib-Admins,…") is not a
+    # separator and must not fake membership in an OU.
     rr, ur = split_dn(r), split_dn(u)
     return bool(rr) and len(ur) >= len(rr) and ur[-len(rr):] == rr
 
@@ -195,7 +195,7 @@ class Directory:
         if not self.base_dn:
             raise LDAPError(_("Keine Basis-DN konfiguriert."))
 
-    # ---------------------------------------------------------------- Verbindung
+    # ---------------------------------------------------------------- Connection
     def _server_pool(self):
         from ldap3 import FIRST, Server, ServerPool
 
@@ -216,7 +216,7 @@ class Directory:
         from ldap3.core.exceptions import LDAPException
 
         if not password:
-            # Leeres Passwort = anonymer Bind -> niemals als Erfolg werten
+            # Empty password = anonymous bind -> never treat as success
             raise LDAPError(_("Leeres Passwort."))
         conn = None
         try:
@@ -254,7 +254,7 @@ class Directory:
             return self.connect(principal, password)
         raise LDAPError(_("Weder Dienstkonto (Bind-DN) noch UPN-Suffix für direkten Bind konfiguriert."))
 
-    # ---------------------------------------------------------------- Suche
+    # ---------------------------------------------------------------- Search
     def find_user(self, conn, username: str) -> dict:
         from ldap3 import SUBTREE
 
@@ -272,11 +272,11 @@ class Directory:
             raise LDAPAmbiguous(_("Benutzername '{username}' ist nicht eindeutig.", username=username))
         return entries[0]
 
-    # ---------------------------------------------------------------- Gruppen
+    # ---------------------------------------------------------------- Groups
     def group_base(self, user_dn: str = "") -> str:
-        """Suchbasis für Gruppen: die Domänenwurzel (DC=…), nicht nur die Benutzer-OU.
+        """Search base for groups: the domain root (DC=…), not just the user OU.
 
-        Gruppen liegen oft außerhalb der Benutzer-OU (z. B. OU=Gruppen, CN=Users, CN=Builtin)."""
+        Groups often live outside the user OU (e.g. OU=Groups, CN=Users, CN=Builtin)."""
         for dn in (self.base_dn, user_dn):
             m = re.search(r"(?:^|,)\s*(dc\s*=.*)$", dn or "", re.I)
             if m:
@@ -286,14 +286,14 @@ class Directory:
     def _search_dns(self, conn, base: str, flt: str) -> list[str]:
         from ldap3 import SUBTREE
         found = conn.search(base, flt, SUBTREE, attributes=["1.1"])
-        self._check_transient(conn)       # auch bei Teilergebnis (ldap3 meldet dann trotzdem True)
+        self._check_transient(conn)       # also on a partial result (ldap3 still reports True then)
         if not found:
             return []
         return [e["dn"] for e in conn.response if e.get("type") == "searchResEntry"]
 
-    # Vorübergehende Fehler (Zeit-/Größenlimit, Server beschäftigt …). Im strengen Modus (AD-Abgleich) darf eine
-    # solche Teilantwort nicht als „keine Gruppen“ gelten – sonst würde die Person fälschlich als ausgeschieden
-    # behandelt. Fehlende Rechte oder nicht unterstützte Suchregeln (z. B. OpenLDAP) bleiben erlaubt.
+    # Transient errors (time/size limit, server busy …). In strict mode (AD sync) such a partial answer must not
+    # count as "no groups" – otherwise the person would wrongly be treated as having left. Missing permissions
+    # or unsupported matching rules (e.g. OpenLDAP) remain allowed.
     TRANSIENT_RESULTS = {3, 4, 11, 51, 52, 80}
     strict = False
 
@@ -313,12 +313,12 @@ class Directory:
         return dns
 
     def user_groups(self, conn, user_dn: str, username: str, entry: dict) -> dict[str, str]:
-        """Alle Gruppen eines Benutzers als {DN: Herkunft}.
+        """All groups of a user as {DN: origin}.
 
-        Herkunft: 'direkt' (memberOf), 'primär' (primaryGroupID, z. B. Domänen-Benutzer –
-        steht in AD NICHT in memberOf!) oder 'verschachtelt' (über andere Gruppen).
-        Kombiniert mehrere Verfahren, damit nichts verloren geht, wenn eines davon
-        vom Server nicht unterstützt oder durch Rechte eingeschränkt wird."""
+        Origin: 'direkt' (memberOf), 'primär' (primaryGroupID, e.g. Domain Users –
+        NOT listed in memberOf in AD!) or 'verschachtelt' (nested, via other groups).
+        Combines several methods so that nothing is lost if one of them is not
+        supported by the server or is restricted by permissions."""
         from ldap3 import BASE
 
         attrs = entry.get("attributes", {}) or {}
@@ -329,14 +329,14 @@ class Directory:
         def add(dns, source):
             for dn in dns:
                 key = normalize_dn(dn)
-                # bessere (direktere) Herkunft nicht überschreiben
+                # do not overwrite a better (more direct) origin
                 if key not in {normalize_dn(k) for k in found}:
                     found[dn] = source
 
-        # 1) Direkte Mitgliedschaften
+        # 1) Direct memberships
         add(_as_list(attrs.get("memberOf")), "direkt")
 
-        # 2) Primäre Gruppe (AD/Samba: primaryGroupID + Domänen-SID des Benutzers)
+        # 2) Primary group (AD/Samba: primaryGroupID + the user's domain SID)
         sid = (raw.get("objectSid") or [None])[0]
         pgid = _first(attrs.get("primaryGroupID"))
         primary_dns = []
@@ -346,12 +346,12 @@ class Directory:
             add(primary_dns, "primär")
 
         if self.nested:
-            # 3) AD/Samba-AD: alle (auch verschachtelten) Gruppen über LDAP_MATCHING_RULE_IN_CHAIN
+            # 3) AD/Samba AD: all groups (including nested ones) via LDAP_MATCHING_RULE_IN_CHAIN
             add(self._search_dns(conn, base, f"(member:{IN_CHAIN}:={escape_filter(user_dn)})"), "verschachtelt")
-            for pdn in primary_dns:  # Gruppen, in denen die primäre Gruppe Mitglied ist
+            for pdn in primary_dns:  # groups the primary group is a member of
                 add(self._search_dns(conn, base, f"(member:{IN_CHAIN}:={escape_filter(pdn)})"), "verschachtelt")
 
-            # 4) AD/Samba-AD: tokenGroups – exakt die Sicherheitsgruppen aus dem Anmeldetoken
+            # 4) AD/Samba AD: tokenGroups – exactly the security groups from the logon token
             found_tg = conn.search(user_dn, "(objectClass=*)", BASE, attributes=["tokenGroups"])
             self._check_transient(conn)
             if found_tg:
@@ -361,14 +361,14 @@ class Directory:
                         if sids:
                             add(self._sids_to_dns(conn, base, list(sids)), "verschachtelt")
 
-        # 5) OpenLDAP / klassische Samba-Domäne (kein memberOf, keine IN_CHAIN-Regel)
+        # 5) OpenLDAP / classic Samba domain (no memberOf, no IN_CHAIN rule)
         if not found:
             flt = (f"(|(member={escape_filter(user_dn)})(uniqueMember={escape_filter(user_dn)})"
                    f"(memberUid={escape_filter(username)}))")
             add(self._search_dns(conn, base, flt), "direkt")
             if self.nested:
                 queue, seen = list(found), {normalize_dn(d) for d in found}
-                for _ in range(10):  # Ebene für Ebene nach oben
+                for _ in range(10):  # level by level upwards
                     nxt = []
                     for gdn in queue:
                         for parent in self._search_dns(
@@ -383,7 +383,7 @@ class Directory:
         return found
 
     def list_groups(self, query: str = "", limit: int = 1000) -> list[dict]:
-        """Gruppen aus dem Verzeichnis zur Auswahl in der Oberfläche."""
+        """Groups from the directory for selection in the UI."""
         from ldap3 import SUBTREE
 
         flt = ("(|(objectClass=group)(objectClass=groupOfNames)"
@@ -412,7 +412,7 @@ class Directory:
     # ---------------------------------------------------------------- Login
     def authenticate(self, username: str, password: str) -> LDAPUser:
         username = (username or "").strip()
-        if "\\" in username:  # DOMAENE\benutzer
+        if "\\" in username:  # DOMAIN\user
             username = username.split("\\", 1)[1]
         if "@" in username and self.user_attr.lower() == "samaccountname":
             username = username.split("@", 1)[0]
@@ -425,11 +425,11 @@ class Directory:
             entry = self.find_user(svc, username)
             user_dn = entry["dn"]
             attrs = entry.get("attributes", {})
-            # Passwort gegen GENAU diesen Eintrag prüfen – auch ohne Dienstkonto: Dort hat der erste Bind nur
-            # „name@UPN-Suffix“ bestätigt, und UPN und Anmeldename können im AD zu verschiedenen Personen gehören.
+            # Check the password against EXACTLY this entry – also without a service account: there the first bind only
+            # confirmed "name@UPN suffix", and in AD the UPN and the logon name can belong to different people.
             user_conn = self.connect(user_dn, password)
-            # Gruppen bevorzugt als der Benutzer selbst lesen: jeder darf sein eigenes
-            # tokenGroups lesen, ein Dienstkonto in gehärteten Domänen nicht immer.
+            # Prefer reading the groups as the user themselves: everyone may read their own
+            # tokenGroups, a service account in hardened domains not always.
             group_info = self.user_groups(user_conn or svc, user_dn, username, entry)
             if not group_info and user_conn is not None:
                 group_info = self.user_groups(svc, user_dn, username, entry)
@@ -451,17 +451,17 @@ class Directory:
                         groups=groups, role=role, matched_rule=rule, group_info=group_info, guid=entry_guid(entry))
 
     def _user_from_entry(self, conn, entry: dict, username: str, cached_groups: bool = False) -> "LDAPUser | None":
-        """Verzeichniseintrag → LDAPUser mit Gruppen und Rolle; None bei im AD deaktiviertem Konto.
+        """Directory entry → LDAPUser with groups and role; None for an account disabled in AD.
 
-        cached_groups=True (nur Vorschlagssuche): Gruppen bis zu SEARCH_GROUP_TTL Sekunden wiederverwenden."""
+        cached_groups=True (suggestion search only): reuse groups for up to SEARCH_GROUP_TTL seconds."""
         attrs = entry.get("attributes", {})
-        if _disabled(attrs):   # im AD deaktiviert oder abgelaufen
+        if _disabled(attrs):   # disabled or expired in AD
             return None
         user_dn = entry["dn"]
         name = _first(attrs.get(self.user_attr)) or username
         if cached_groups:
             import time
-            # Direkte Gruppen und primäre Gruppe gehören zum Schlüssel: ändern sie sich im AD, wird neu aufgelöst
+            # Direct groups and the primary group are part of the key: if they change in AD, groups are resolved again
             key = "|".join([normalize_dn(user_dn), _first(attrs.get("primaryGroupID")),
                             ";".join(sorted(normalize_dn(str(g)) for g in _as_list(attrs.get("memberOf"))))])
             hit = _search_groups.get(key)
@@ -482,10 +482,10 @@ class Directory:
                         groups=groups, role=role, matched_rule=rule, group_info=group_info, guid=entry_guid(entry))
 
     def check_account(self, username: str) -> "LDAPUser | None":
-        """Ist das Konto noch vorhanden, aktiv und berechtigt? (für laufende Sitzungen, ohne Passwort)
+        """Does the account still exist, is it active and entitled? (for active sessions, without a password)
 
-        Liefert None, wenn das Konto fehlt oder im AD deaktiviert ist. Verbindungsprobleme lösen
-        LDAPError aus – dann bleibt die Sitzung bestehen (ein AD-Ausfall soll niemanden aussperren)."""
+        Returns None if the account is missing or disabled in AD. Connection problems raise
+        LDAPError – then the session is kept (an AD outage must not lock anyone out)."""
         if not self.bind_dn:
             raise LDAPError(_("Ohne Dienstkonto kann eine Sitzung nicht nachgeprüft werden."))
         svc = self.service_connection()
@@ -502,10 +502,10 @@ class Directory:
                 pass
 
     def search_users(self, query: str, limit: int = 10) -> list["LDAPUser"]:
-        """Personen im Verzeichnis suchen (Name, Benutzername, E-Mail) – nur mit Dienstkonto.
+        """Search for people in the directory (name, username, email) – only with a service account.
 
-        Geliefert werden nur aktive Konten, die laut Rollenregeln Catalytix nutzen dürfen. Angelegt oder
-        angemeldet wird dabei niemand."""
+        Only active accounts that may use Catalytix according to the role rules are returned. Nobody is
+        created or logged in by this."""
         from ldap3 import SUBTREE
 
         query = (query or "").strip()
@@ -517,8 +517,8 @@ class Directory:
         attrs_or = "".join(f"({a}=*{q}*)" for a in (self.user_attr, "displayName", "cn", "mail", "givenName", "sn"))
         flt = f"(|{attrs_or})"
         if self.user_attr.lower() == "samaccountname":
-            # Nur im Active Directory: deaktivierte Konten gleich im Filter ausschließen (OpenLDAP kennt das nicht –
-            # dort würde der Ausdruck alle Treffer verwerfen). _user_from_entry prüft ohnehin noch einmal.
+            # Active Directory only: exclude disabled accounts right in the filter (OpenLDAP does not know this –
+            # there the expression would discard all hits). _user_from_entry checks again anyway.
             flt = f"(&{flt}(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
         if self.user_filter:
             uf = self.user_filter if self.user_filter.startswith("(") else f"({self.user_filter})"
@@ -544,11 +544,11 @@ class Directory:
         return sorted(found, key=lambda u: (u.display_name or u.username).lower())
 
     def scan_people(self, reuse=None, page_size: int = 500, progress=None):
-        """Alle aktiven Personen, die laut Rollenregeln Catalytix nutzen dürfen – für den Such-Cache.
+        """All active people who may use Catalytix according to the role rules – for the search cache.
 
-        reuse(dn, group_key) liefert noch gültige Gruppen-DNs aus dem Cache (oder None → neu auflösen).
-        Ergebnis: Liste von (LDAPUser, group_key, neu_aufgelöst). Ist die Suche unvollständig (Größenlimit,
-        Abbruch), wird LDAPError ausgelöst – dann darf niemand aus dem Cache gelöscht werden."""
+        reuse(dn, group_key) returns still-valid group DNs from the cache (or None → resolve again).
+        Result: list of (LDAPUser, group_key, newly_resolved). If the search is incomplete (size limit,
+        abort), LDAPError is raised – then nobody may be removed from the cache."""
         import hashlib
 
         from ldap3 import SUBTREE
@@ -559,15 +559,15 @@ class Directory:
         if self.user_filter:
             parts.append(self.user_filter if self.user_filter.startswith("(") else f"({self.user_filter})")
         if self.user_attr.lower() == "samaccountname":
-            # nur echte Personen (keine Computerkonten), deaktivierte gleich weglassen
+            # only real people (no computer accounts), leave out disabled ones right away
             parts += ["(objectCategory=person)", "(!(userAccountControl:1.2.840.113556.1.4.803:=2))"]
         flt = f"(&{''.join(parts)})"
         attrs = ["displayName", "cn", "mail", "memberOf", "givenName", "sn", "objectSid", "primaryGroupID",
                  "objectGUID", "entryUUID", "userAccountControl", "accountExpires", self.user_attr]
         conn = self.service_connection()
         try:
-            # Erst alle Seiten vollständig lesen und das Ergebnis prüfen – die Gruppenauflösung danach nutzt
-            # dieselbe Verbindung und überschreibt conn.result.
+            # First read all pages completely and check the result – the group resolution afterwards uses
+            # the same connection and overwrites conn.result.
             entries = [e for e in conn.extend.standard.paged_search(self.base_dn, flt, SUBTREE, attributes=attrs,
                                                                      paged_size=page_size, generator=True)
                        if e.get("type") == "searchResEntry"]
@@ -592,7 +592,7 @@ class Directory:
                     else:
                         info = self._user_from_known_groups(entry, groups)
                 except LDAPError as exc:
-                    # Gruppen nicht sicher ermittelbar: die Person ist da, aber ihr Stand ungewiss – nicht entfernen
+                    # Groups not reliably determinable: the person exists, but their status is unknown – do not remove
                     log.warning("AD sync: groups of %s cannot be determined: %s", entry.get("dn"), exc)
                     found.uncertain.append(((_first(a.get(self.user_attr)) or "").lower(), entry_guid(entry)))
                     continue
@@ -610,8 +610,8 @@ class Directory:
                 pass
 
     def find_by_guid(self, guid: str) -> "LDAPUser | None":
-        """Person über die feste Kennung suchen (z. B. um festzustellen, ob sie nur umbenannt wurde).
-        None, wenn es sie im AD nicht (mehr) gibt oder sie deaktiviert ist."""
+        """Look up a person by the stable identifier (e.g. to find out whether they were only renamed).
+        None if they do not exist (any more) in AD or are disabled."""
         if not guid or not self.bind_dn:
             return None
         from ldap3 import SUBTREE
@@ -621,8 +621,8 @@ class Directory:
             return None
         if len(raw) != 16:
             return None
-        # Gespeichert ist entweder die objectGUID (AD) oder die entryUUID (OpenLDAP) – beide 16 Byte. Beides fragen:
-        # das jeweils unbekannte Attribut ergibt im Filter einfach keinen Treffer.
+        # Stored is either the objectGUID (AD) or the entryUUID (OpenLDAP) – both 16 bytes. Query both:
+        # the attribute unknown to the server simply yields no hit in the filter.
         uuid = f"{guid[:8]}-{guid[8:12]}-{guid[12:16]}-{guid[16:20]}-{guid[20:32]}"
         flt = f"(|(objectGUID={_escape_bytes(raw)})(entryUUID={uuid}))"
         svc = self.service_connection()
@@ -645,7 +645,7 @@ class Directory:
                 pass
 
     def _user_from_known_groups(self, entry: dict, groups: list[str]) -> "LDAPUser | None":
-        """Wie _user_from_entry, aber mit schon bekannten Gruppen (ohne weitere Abfragen)."""
+        """Like _user_from_entry, but with already known groups (no further queries)."""
         attrs = entry.get("attributes", {}) or {}
         if _disabled(attrs):
             return None
@@ -675,7 +675,7 @@ def _as_list(v):
 
 
 def _escape_bytes(data: bytes) -> str:
-    """Binärwert (z. B. SID) für einen LDAP-Filter kodieren."""
+    """Encode a binary value (e.g. a SID) for an LDAP filter."""
     return "".join(f"\\{b:02x}" for b in data)
 
 
@@ -683,8 +683,8 @@ AD_NEVER = 0x7FFFFFFFFFFFFFFF
 
 
 def _expired(value) -> bool:
-    """accountExpires (AD): abgelaufen? 0 und 0x7FFF… bedeuten „nie“. ldap3 liefert je nach Schema-Info eine Zahl
-    (100-ns-Schritte seit 1601) oder schon ein datetime."""
+    """accountExpires (AD): expired? 0 and 0x7FFF… mean "never". Depending on schema info, ldap3 returns a number
+    (100 ns steps since 1601) or already a datetime."""
     from datetime import datetime, timedelta, timezone
     vals = _as_list(value)
     if not vals:
@@ -706,7 +706,7 @@ def _expired(value) -> bool:
 
 
 def _disabled(attrs: dict) -> bool:
-    """Im AD deaktiviert (userAccountControl, Bit 2) oder abgelaufen (accountExpires)."""
+    """Disabled in AD (userAccountControl, bit 2) or expired (accountExpires)."""
     try:
         uac = int(_first(attrs.get("userAccountControl")) or 0)
     except (TypeError, ValueError):

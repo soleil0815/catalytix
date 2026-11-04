@@ -1,4 +1,4 @@
-"""3.0.1: Typprüfung (mypy) – Fehler, die sie gefunden hat, und die Prüfung selbst."""
+"""3.0.1: type checking (mypy) – errors it found, and the check itself."""
 import configparser
 import os
 import re
@@ -17,7 +17,7 @@ from catalytix.models import db  # noqa: E402
 
 
 class FakeConn:
-    """ldap3.Connection, dessen Bind vom Server abgelehnt wird."""
+    """ldap3.Connection whose bind is rejected by the server."""
 
     def __init__(self, *a, **kw):
         self.result = {"description": "invalidCredentials", "message": "80090308: LdapErr: DSID-0C09042A"}
@@ -48,7 +48,7 @@ class BindRejectedTests(unittest.TestCase):
         self.ctx.pop()
 
     def test_rejected_bind_gives_message_not_typeerror(self):
-        # Vorher: _("…{msg}", msg=…) → TypeError „got multiple values for argument 'msg'“, die Anmeldung brach ab.
+        # Before: _("…{msg}", msg=…) → TypeError "got multiple values for argument 'msg'", the login aborted.
         d = ldap_auth.Directory({"ldap_server": "ldap://dc.firma.local", "ldap_base_dn": "DC=firma,DC=local"})
         with mock.patch("ldap3.Connection", FakeConn), mock.patch.object(ldap_auth.Directory, "_server_pool",
                                                                          return_value=object()):

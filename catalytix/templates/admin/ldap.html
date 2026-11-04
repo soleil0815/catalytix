@@ -41,7 +41,7 @@
 
 <form method="post" autocomplete="off">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  {# Standardaktion bei Enter = Speichern #}
+  {# Default action on Enter = Save #}
   <button type="submit" name="action" value="save" style="position:absolute;left:-9999px" tabindex="-1" aria-hidden="true"></button>
   <div class="grid grid-2">
     <div class="stack">

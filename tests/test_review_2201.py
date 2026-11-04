@@ -1,5 +1,5 @@
-"""2.20.1: Befunde des Code-Reviews – Vormerkungen, die nicht mehr gelten, Vordrängeln, unsichtbare Bücher beim
-Ausleihen, Meldung beim Zusammenführen doppelter ISBN, Anzeigename im Profil."""
+"""2.20.1: findings of the code review – reservations that no longer apply, queue jumping, invisible books when
+lending, message when merging duplicate ISBNs, display name in the profile."""
 import os
 import re
 import sys
@@ -68,7 +68,7 @@ class ReservationValidityTests(Base):
                                                                   "group_id": str(arch.id)})
         self.assertEqual(self.status(self.leser), "cancelled")
         self.give_back(self.book)
-        self.assertEqual(self.notify.call_count, 0)          # keine „liegt bereit“-Mail für ein Präsenzbuch
+        self.assertEqual(self.notify.call_count, 0)          # no "ready for pickup" mail for a reference-only book
 
     def test_deleted_user_with_ready_hold_next_in_line_gets_it(self):
         self.lend_to_bib(self.book)
@@ -79,7 +79,7 @@ class ReservationValidityTests(Base):
         self.c.post(f"/admin/benutzer/{self.leser.id}/loeschen")
         self.assertIsNone(db.session.get(User, self.leser.id))
         self.assertEqual(self.status(self.anna), "ready")
-        # und Carl kann sich nicht vordrängeln
+        # and Carl cannot jump the queue
         self.login("carl")
         self.c.post(f"/buecher/{self.book.id}/ausleihen")
         self.assertIsNone(Loan.query.filter_by(user_id=self.carl.id).first())
@@ -87,15 +87,15 @@ class ReservationValidityTests(Base):
     def test_no_queue_jumping_when_a_copy_is_free_but_not_yet_held(self):
         self.lend_to_bib(self.book)
         self.queue(self.book, "leser", "anna")
-        # Exemplar frei, ohne dass promote lief (z. B. Rückgabe gerade erst gebucht)
+        # copy free without promote having run (e.g. return just booked)
         Loan.query.filter_by(book_id=self.book.id, returned_at=None).one().returned_at = db.func.now()
         db.session.commit()
         self.login("carl")
         html = self.c.post(f"/buecher/{self.book.id}/ausleihen", follow_redirects=True).get_data(as_text=True)
         self.assertIn("vorgemerkt haben", html)
         self.assertIsNone(Loan.query.filter_by(user_id=self.carl.id).first())
-        self.assertEqual(self.status(self.leser), "ready")      # gleich an die Erste vergeben
-        self.login("anna")                                       # Zweite in der Schlange: auch nicht vorbei
+        self.assertEqual(self.status(self.leser), "ready")      # given straight to the first in line
+        self.login("anna")                                       # second in the queue: cannot skip ahead either
         self.c.post(f"/buecher/{self.book.id}/ausleihen")
         self.assertIsNone(Loan.query.filter_by(user_id=self.anna.id).first())
         self.login("leser")
@@ -108,7 +108,7 @@ class ReservationValidityTests(Base):
         db.session.commit()
         self.lend_to_bib(self.gbook)
         self.queue(self.gbook, "leser", "anna")
-        db.session.get(User, self.leser.id).groups = []      # z. B. durch den AD-Abgleich
+        db.session.get(User, self.leser.id).groups = []      # e.g. by the AD sync
         db.session.commit()
         self.give_back(self.gbook)
         self.assertEqual(self.status(self.leser), "cancelled")
@@ -122,9 +122,9 @@ class ReservationValidityTests(Base):
         self.queue(self.gbook, "leser", "anna")
         self.give_back(self.gbook)
         self.assertEqual(self.status(self.leser), "ready")
-        db.session.get(User, self.leser.id).groups = []      # AD-Abgleich, ohne Admin-Formular
+        db.session.get(User, self.leser.id).groups = []      # AD sync, without the admin form
         db.session.commit()
-        reservations.expire_due()                            # regelmäßiger Hintergrundlauf
+        reservations.expire_due()                            # regular background run
         self.assertEqual(self.status(self.leser), "cancelled")
         self.assertEqual(self.status(self.anna), "ready")
 
@@ -134,7 +134,7 @@ class ReservationValidityTests(Base):
         self.give_back(self.book)
         self.login("chef")
         self.c.post(f"/admin/benutzer/{self.leser.id}", data={"username": "leser", "display_name": "Leser",
-                                                               "role": "reader"})   # „Konto aktiv“ nicht angehakt
+                                                               "role": "reader"})   # "account active" not ticked
         db.session.expire_all()
         self.assertFalse(db.session.get(User, self.leser.id).active)
         self.assertEqual(self.status(self.leser), "cancelled")

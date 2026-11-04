@@ -1,9 +1,9 @@
-"""Hilfe – zeigt jedem nur, was für seine Rolle gilt, und springt zur passenden Stelle.
+"""Help – shows everyone only what applies to their role, and jumps to the matching section.
 
-Jedes Thema hat eine Mindestrolle und die Seiten (Endpunkte), zu denen es gehört. Der „?“-Knopf
-oben rechts führt so direkt zur Hilfe der aktuellen Seite. Die Texte liegen je Sprache in
-templates/help/<sprache>/<thema>.html und dürfen die aktuellen Einstellungen verwenden
-(z. B. Leihfrist, Selbstausleihe), damit die Hilfe zum tatsächlichen Betrieb passt.
+Each topic has a minimum role and the pages (endpoints) it belongs to. The "?" button at the
+top right thus leads directly to the help for the current page. The texts live per language in
+templates/help/<language>/<topic>.html and may use the current settings
+(e.g. loan period, self-checkout) so the help matches actual operation.
 """
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ GROUPS = {
 }
 
 TOPICS: tuple[Topic, ...] = (
-    # --- alle
+    # --- everyone
     Topic("start", ROLE_READER, "Erste Schritte", "Getting started", ("main.dashboard", "main.about")),
     Topic("catalog", ROLE_READER, "Bücher finden", "Finding books", ("books.index", "books.detail")),
     Topic("borrow", ROLE_READER, "Ausleihen und zurückgeben", "Borrowing and returning", ("loans.borrow", "loans.give_back")),
@@ -50,7 +50,7 @@ TOPICS: tuple[Topic, ...] = (
     Topic("security", ROLE_READER, "Sicherheit und Zwei-Faktor-Anmeldung", "Security and two-factor sign-in",
           ("security.settings", "security.challenge")),
     Topic("login", ROLE_READER, "Probleme bei der Anmeldung", "Sign-in problems", ("main.login",)),
-    # --- Verwalter
+    # --- librarians
     Topic("desk", ROLE_LIBRARIAN, "Ausleihtheke", "Circulation desk", ("loans.desk",)),
     Topic("all-loans", ROLE_LIBRARIAN, "Alle Ausleihen, Mahnungen", "All loans and reminders", ("loans.remind",)),
     Topic("add-book", ROLE_LIBRARIAN, "Bücher erfassen und bearbeiten", "Adding and editing books",
@@ -95,16 +95,16 @@ def topic_for(endpoint: str | None, user) -> str | None:
 
 
 def help_url() -> str:
-    """Link für den „?“-Knopf: Hilfe zur aktuellen Seite (oder Übersicht)."""
+    """Link for the "?" button: help for the current page (or the overview)."""
     topic = topic_for(request.endpoint, current_user) if current_user.is_authenticated else None
     if (topic == "my-loans" and request.endpoint == "loans.index" and current_user.is_librarian
             and request.args.get("nur") != "meine"):
-        topic = "all-loans"   # Verwalter sehen hier „Alle Ausleihen“
+        topic = "all-loans"   # librarians see "All loans" here
     return url_for("help.index", thema=topic) if topic else url_for("help.index")
 
 
 def facts() -> dict:
-    """Aktuelle Einstellungen, damit die Hilfe den echten Betrieb beschreibt."""
+    """Current settings, so the help describes actual operation."""
     from .. import backup, twofa
     from ..i18n import LANGUAGES
     from ..models import User
@@ -126,7 +126,7 @@ def facts() -> dict:
         "mfa_internal": twofa.internal_mode(),   # same | optional | skip
         "ldap_on": get_bool("ldap_enabled"),
         "loan_mail": get_bool("mail_on_loan"),
-        "https": request.is_secure,   # Kamera und Sicherheitsschlüssel brauchen HTTPS
+        "https": request.is_secure,   # camera and security keys require HTTPS
         "registration_mode": get_setting("registration_mode"),
         "retention_months": get_int("retention_months", 12),
         "catalog_all": get_setting("catalog_visibility") == "all",

@@ -1,4 +1,4 @@
-"""Datenschutz bei Betrieb im Internet: keine Fremdserver im Browser, Rechtliches-Links, Cover-Proxy."""
+"""Privacy when run on the internet: no third-party servers in the browser, legal links, cover proxy."""
 import json
 import os
 import re
@@ -61,7 +61,7 @@ class NoThirdPartyTests(Base):
         for url in ["/", "/buecher", "/buecher/neu", "/info", "/admin/einstellungen"]:
             page = self.c.get(url).get_data(as_text=True)
             pages.append(url)
-            # nur ausgehende Links (Impressum usw.) sind erlaubt, keine eingebundenen Ressourcen
+            # only outgoing links (imprint etc.) are allowed, no embedded resources
             for m in re.finditer(r"""<(link|script|img)\b[^>]*>""", page, re.I):
                 with self.subTest(url=url, tag=m.group(0)[:80]):
                     self.assertIsNone(EXTERNAL.search(m.group(0)))
@@ -177,7 +177,7 @@ class CoverProxyTests(Base):
         with mock.patch.object(books_view, "_fetch_cover", return_value=(PNG, "image/png")):
             r = self.c.get("/covers/vorschau?u=https://x.example/a.png")
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.mimetype, "image/jpeg")   # neu kodiert
+        self.assertEqual(r.mimetype, "image/jpeg")   # re-encoded
 
     def test_internal_addresses_are_never_fetched(self):
         for url in ["http://127.0.0.1/x.png", "https://localhost/x.png", "http://10.0.0.5/x.png",
@@ -203,7 +203,7 @@ class CoverProxyTests(Base):
 
 @unittest.skipUnless(shutil.which("node"), "Node.js nicht installiert")
 class Ean13DecoderTests(unittest.TestCase):
-    """Eigene Barcode-Erkennung (Ersatz für ZXing) mit erzeugten Bildern prüfen."""
+    """Test our own barcode detection (replacement for ZXing) with generated images."""
 
     L = ["0001101", "0011001", "0010011", "0111101", "0100011", "0110001", "0101111", "0111011", "0110111", "0001011"]
     G = ["0100111", "0110011", "0011011", "0100001", "0011101", "0111001", "0000101", "0010001", "0001001", "0010111"]

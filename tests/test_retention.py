@@ -1,4 +1,4 @@
-"""Aufbewahrungsfrist: alte Ausleihen und Mail-Protokoll löschen, Statistik behalten."""
+"""Retention period: delete old loans and mail log, keep statistics."""
 import os
 import sys
 import tempfile
@@ -71,16 +71,16 @@ class RetentionTests(unittest.TestCase):
         self.assertFalse(old_ids & remaining)
 
     def test_active_and_overdue_loans_are_never_deleted(self):
-        active = self.loan(self.book, 900)          # seit 900 Tagen überfällig, nicht zurückgegeben
+        active = self.loan(self.book, 900)          # overdue for 900 days, not returned
         res = run_retention(NOW)
         self.assertEqual(res["loans"], 0)
         self.assertIsNotNone(db.session.get(Loan, active.id))
 
     def test_mail_log_cleanup_keeps_entries_of_active_loans(self):
         active = self.loan(self.book, 900)
-        keep = {self.mail(800, active, "overdue").id,      # zählt für „wie oft gemahnt“
+        keep = {self.mail(800, active, "overdue").id,      # counts for "how often reminded"
                 self.mail(10).id}
-        gone = {self.mail(800).id,                          # z. B. Kontomail
+        gone = {self.mail(800).id,                          # e.g. account mail
                 self.mail(790, self.loan(self.other, 800, 700)).id}
         res = run_retention(NOW)
         self.assertEqual(res["mails"], 2)
@@ -154,7 +154,7 @@ class RetentionTests(unittest.TestCase):
             db.session.remove()
             db.engine.dispose()
         eng = create_engine(uri)
-        with eng.begin() as conn:  # Zustand wie in 2.1: Spalte fehlt
+        with eng.begin() as conn:  # state as in 2.1: column missing
             conn.execute(text("ALTER TABLE books DROP COLUMN archived_loans"))
         eng.dispose()
         app2 = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": uri})

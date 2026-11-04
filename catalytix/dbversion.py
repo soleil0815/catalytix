@@ -1,14 +1,14 @@
-"""Welche Programmversion hat die Datenbank zuletzt benutzt? – Schutz beim Versionswechsel.
+"""Which program version last used the database? – Protection when changing versions.
 
-Beim Start (unter der Start-Sperre, VOR dem Anlegen neuer Tabellen und Spalten):
-- Datenbank von einer älteren Version (oder von vor 3.0.0, ohne Eintrag): erst eine Sicherung
-  „catalytix-<Zeit>-vor-<neue Version>.db“ anlegen (nur SQLite), dann migrieren, dann die neue Version eintragen.
-- Datenbank von einer NEUEREN Version: nicht starten – mit klarer Meldung, welche Sicherung zurückzuspielen ist
-  (oder welche Version in der .env einzutragen ist). Ohne diese Prüfung liefe ein altes Programm auf einem Schema,
-  das es nicht kennt, und hinterließe Folgefehler.
+At startup (under the startup lock, BEFORE new tables and columns are created):
+- Database from an older version (or from before 3.0.0, without an entry): first create a backup
+  "catalytix-<time>-vor-<new version>.db" (SQLite only), then migrate, then record the new version.
+- Database from a NEWER version: do not start – with a clear message saying which backup to restore
+  (or which version to set in .env). Without this check an old program would run on a schema it does
+  not know and leave follow-up errors behind.
 
-CATALYTIX_SKIP_DB_CHECK=1 überspringt die Prüfung UND alle Migrationen – nur für das Zurückspielen einer Sicherung
-mit einer älteren Version (update.sh bei einem missglückten Update, „flask restore-before“).
+CATALYTIX_SKIP_DB_CHECK=1 skips the check AND all migrations – only for restoring a backup
+with an older version (update.sh after a failed update, "flask restore-before").
 """
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from . import __version__
 log = logging.getLogger(__name__)
 
 KEY = "db_version"
-BACKUP_KEY = "db_upgrade_backup"     # Version, für die die Sicherung vor dem Wechsel schon angelegt wurde
+BACKUP_KEY = "db_upgrade_backup"     # version for which the backup before the change has already been created
 SKIP_ENV = "CATALYTIX_SKIP_DB_CHECK"
 
 
@@ -33,16 +33,16 @@ def vtuple(v: str | None) -> tuple[int, int, int] | None:
 
 
 class StartupRefused(RuntimeError):
-    """Start abgelehnt (keine SystemExit: gunicorn hält dann mit „Worker failed to boot“ an, statt die Worker im
-    Sekundentakt neu zu starten)."""
+    """Startup refused (not SystemExit: gunicorn then stops with "Worker failed to boot" instead of restarting
+    the workers every second)."""
 
 
 class DatabaseTooNew(StartupRefused):
-    """Die Datenbank stammt von einer neueren Programmversion."""
+    """The database comes from a newer program version."""
 
 
 def read_stamp(db, key: str = KEY) -> str | None:
-    """Gespeicherte Version (None: neue Datenbank oder Datenbank von vor 3.0.0)."""
+    """Stored version (None: new database or a database from before 3.0.0)."""
     insp = inspect(db.engine)
     if not insp.has_table("settings"):
         return None
@@ -52,7 +52,7 @@ def read_stamp(db, key: str = KEY) -> str | None:
 
 
 def _write_setting(db, key: str, value: str) -> None:
-    """Vor den Migrationen: direkt in die Tabelle settings schreiben (das Modell ist noch nicht sicher passend)."""
+    """Before the migrations: write directly to the settings table (the model may not match yet)."""
     col = _key_col(db)
     with db.engine.begin() as conn:
         done = conn.execute(text(f"UPDATE settings SET value = :v WHERE {col} = :k"), {"k": key, "v": value})
@@ -61,11 +61,11 @@ def _write_setting(db, key: str, value: str) -> None:
 
 
 def _key_col(db) -> str:
-    return db.engine.dialect.identifier_preparer.quote("key")   # „key“ ist in MySQL ein reserviertes Wort
+    return db.engine.dialect.identifier_preparer.quote("key")   # "key" is a reserved word in MySQL
 
 
 def is_empty(db) -> bool:
-    """Noch keine Catalytix-Datenbank (Neuinstallation)."""
+    """Not yet a Catalytix database (new installation)."""
     insp = inspect(db.engine)
     return not (insp.has_table("users") or insp.has_table("settings"))
 
@@ -80,8 +80,8 @@ def too_new_message(stamp: str, current: str = __version__) -> str:
 
 
 def prepare(db, current: str = __version__) -> str:
-    """Vor den Migrationen aufrufen. Liefert 'new' (leere Datenbank), 'same', 'upgrade' oder 'skip'
-    (CATALYTIX_SKIP_DB_CHECK – keine Migrationen!). Bricht bei einer neueren Datenbank ab."""
+    """Call before the migrations. Returns 'new' (empty database), 'same', 'upgrade' or 'skip'
+    (CATALYTIX_SKIP_DB_CHECK – no migrations!). Aborts on a newer database."""
     if os.environ.get(SKIP_ENV) == "1":
         log.warning("%s=1: database version check and migrations skipped (only for restoring a backup)", SKIP_ENV)
         return "skip"
@@ -95,9 +95,9 @@ def prepare(db, current: str = __version__) -> str:
     if have is not None and have == want:
         return "same"
     if read_stamp(db, BACKUP_KEY) == current:
-        # Ein früherer Startversuch dieser Version hat schon gesichert (z. B. Migration abgebrochen, Neustart-
-        # Schleife): nicht bei jedem Start erneut sichern – das füllte den Datenträger, und die erste Sicherung ist
-        # die vor dem Update
+        # An earlier start attempt of this version already made a backup (e.g. migration aborted, restart
+        # loop): do not back up again on every start – that would fill the disk, and the first backup is
+        # the one from before the update
         log.warning("Version change %s → %s: backup from the first start attempt is kept, no new one",
                     stamp or "before 3.0.0", current)
         return "upgrade"
@@ -126,7 +126,7 @@ def _backup_before(current: str, stamp: str | None) -> None:
 
 
 def stamp(db, current: str = __version__) -> None:
-    """Nach erfolgreichen Migrationen: diese Version eintragen."""
+    """After successful migrations: record this version."""
     from .models import Setting
     row = db.session.get(Setting, KEY)
     if row is None:

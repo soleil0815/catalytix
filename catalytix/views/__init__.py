@@ -1,4 +1,4 @@
-"""Hilfsfunktionen für die Views."""
+"""Helper functions for the views."""
 from __future__ import annotations
 
 from functools import wraps
@@ -31,16 +31,16 @@ def form_str(name: str, maxlen: int = 500) -> str:
     return (request.form.get(name) or "").strip()[:maxlen]
 
 
-DB_INT_MAX = 2_147_483_647   # größter Wert, den eine INTEGER-Spalte überall (auch MySQL/PostgreSQL) fasst
+DB_INT_MAX = 2_147_483_647   # largest value an INTEGER column holds everywhere (including MySQL/PostgreSQL)
 
 
 def is_digits(value) -> bool:
-    """Nur ASCII-Ziffern 0–9 (str.isdigit() akzeptiert auch „²“ oder andere Schriften – int() scheitert daran)."""
+    """ASCII digits 0–9 only (str.isdigit() also accepts "²" or other scripts – int() fails on those)."""
     return isinstance(value, str) and value.isascii() and value.isdecimal()
 
 
 def parse_int(value, maximum: int = DB_INT_MAX) -> int | None:
-    """Ganze Zahl aus Text (ASCII, optional mit Minus) oder int; sonst None. Zu große Werte → None."""
+    """Integer from text (ASCII, optional minus sign) or int; otherwise None. Values too large → None."""
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
@@ -58,13 +58,13 @@ def parse_int(value, maximum: int = DB_INT_MAX) -> int | None:
 
 
 def parse_id(value) -> int | None:
-    """Datenbank-ID (positiv, im INTEGER-Bereich) aus Formular-/URL-Text; sonst None."""
+    """Database ID (positive, within INTEGER range) from form/URL text; otherwise None."""
     val = parse_int(value)
     return val if val is not None and val > 0 else None
 
 
 def get_by_id(model, ident):
-    """db.session.get mit Bereichsprüfung: riesige IDs aus URL/Formular → None (sonst OverflowError → 500)."""
+    """db.session.get with range check: huge IDs from URL/form → None (otherwise OverflowError → 500)."""
     from ..models import db
     if isinstance(ident, bool) or not isinstance(ident, int) or not 0 < ident <= DB_INT_MAX:
         return None
@@ -88,9 +88,9 @@ def form_bool(name: str) -> bool:
 
 
 def safe_next(target: str | None) -> str | None:
-    """Nur relative Weiterleitungen zulassen (kein Open Redirect)."""
+    """Allow only relative redirects (no open redirect)."""
     if not target or any(ord(ch) < 0x21 or ch == "\x7f" for ch in target):
-        return None   # Browser entfernen Tab/Zeilenumbruch – „/\t/evil“ würde sonst zu „//evil“
+        return None   # browsers strip tab/newline – "/\t/evil" would otherwise become "//evil"
     if target.startswith("/") and not target.startswith("//") and "\\" not in target:
         return target
     return None

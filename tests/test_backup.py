@@ -1,4 +1,4 @@
-"""Automatische Datensicherung: anlegen, prüfen, rotieren, herunterladen, wiederherstellen."""
+"""Automatic backup: create, verify, rotate, download, restore."""
 import os
 import sqlite3
 import sys
@@ -69,8 +69,8 @@ class BackupTests(unittest.TestCase):
             backup.create_backup("", T0 + timedelta(days=d))
         names = [b["name"] for b in backup.list_backups()]
         self.assertEqual(len(names), 10)
-        self.assertTrue(names[0].startswith("catalytix-2026-11-01"))   # neueste
-        self.assertTrue(names[-1].startswith("catalytix-2026-10-23"))  # älteste behaltene
+        self.assertTrue(names[0].startswith("catalytix-2026-11-01"))   # newest
+        self.assertTrue(names[-1].startswith("catalytix-2026-10-23"))  # oldest kept
         set_setting("backup_keep", "3")
         db.session.commit()
         backup.rotate()
@@ -81,10 +81,10 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(get_setting("backup_enabled"), "1")
 
     def test_daily_run_once_per_day_after_hour(self):
-        self.assertIsNone(backup.run_daily(T0.replace(hour=1)))          # vor 2 Uhr
+        self.assertIsNone(backup.run_daily(T0.replace(hour=1)))          # before 2 a.m.
         ok, msg = backup.run_daily(T0)
         self.assertTrue(ok, msg)
-        self.assertIsNone(backup.run_daily(T0 + timedelta(hours=3)))     # heute schon gelaufen
+        self.assertIsNone(backup.run_daily(T0 + timedelta(hours=3)))     # already ran today
         self.assertTrue(backup.run_daily(T0 + timedelta(days=1))[0])
         self.assertEqual(len(backup.list_backups()), 2)
         set_setting("backup_enabled", "0")

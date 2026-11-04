@@ -1,4 +1,4 @@
-"""Befunde aus dem Code Review zu 2.11.0 (Rundumcheck)."""
+"""Findings from the code review of 2.11.0 (all-round check)."""
 import os
 import sys
 import tempfile
@@ -50,7 +50,7 @@ class TotpDigitsTests(Base):
         self.assertLess(r.status_code, 500)
         arabic = "".join(chr(0x0660 + int(d)) for d in twofa.totp_now(secret))
         r = self.c.post("/login/2fa", data={"code": arabic}, environ_base=EXT)
-        self.assertEqual(r.status_code, 302)          # arabische Ziffern werden angenommen
+        self.assertEqual(r.status_code, 302)          # Arabic digits are accepted
 
 
 class GuardScopeTests(Base):

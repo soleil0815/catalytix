@@ -1,4 +1,4 @@
-"""Tests für CATALYTIX – ausführen mit:  python -m unittest discover -s tests -v"""
+"""Tests for CATALYTIX – run with:  python -m unittest discover -s tests -v"""
 import os
 import sys
 import tempfile
@@ -32,7 +32,7 @@ class BaseCase(unittest.TestCase):
         db.session.remove()
         self.ctx.pop()
 
-    # Hilfen
+    # Helpers
     def make_user(self, name, role="reader", pw="geheim123", groups=()):
         u = User(username=name, display_name=name.title(), role=role, auth_source="local")
         u.set_password(pw)
@@ -57,7 +57,7 @@ class SetupAndAuthTests(BaseCase):
         self.assertEqual(r.status_code, 200)
         self.assertIn("Schulbibliothek", r.get_data(as_text=True))
         self.assertTrue(User.query.filter_by(username="admin", role="admin").first())
-        # Setup danach nicht mehr erreichbar, der Code ist weg
+        # Setup no longer reachable afterwards, the code is gone
         self.assertIn("/login", self.c.get("/setup").headers["Location"])
         self.assertEqual(setupcode.current(), "")
 
@@ -70,7 +70,7 @@ class SetupAndAuthTests(BaseCase):
         r = self.c.post("/setup", data=data)
         self.assertEqual(r.status_code, 403)
         self.assertIsNone(User.query.filter_by(username="evil").first())
-        # Kleinbuchstaben und ohne Bindestriche gehen auch
+        # lower case and without hyphens also works
         r = self.c.post("/setup", data=dict(data, username="admin", setup_code=code.lower().replace("-", "")))
         self.assertEqual(r.status_code, 302)
 
@@ -91,7 +91,7 @@ class SetupAndAuthTests(BaseCase):
         self.make_user("admin", "admin")
         r = self.c.post("/login", data={"username": "admin", "password": "falsch"})
         self.assertEqual(r.status_code, 401)
-        r = self.login("ADMIN")  # Groß-/Kleinschreibung egal
+        r = self.login("ADMIN")  # case-insensitive
         self.assertIn("Hallo", r.get_data(as_text=True))
         self.c.post("/logout")
         self.assertIn("/login", self.c.get("/").headers["Location"])
@@ -141,7 +141,7 @@ class PermissionTests(BaseCase):
         db.session.commit()
         self.login("schueler7")
         self.assertIn("Buch 8b", self.c.get("/buecher").get_data(as_text=True))
-        # Ausleihen trotzdem verboten
+        # borrowing is still forbidden
         self.c.post(f"/buecher/{self.b8.id}/ausleihen")
         self.assertEqual(Loan.query.count(), 0)
 
@@ -149,11 +149,11 @@ class PermissionTests(BaseCase):
         self.login("schueler7")
         self.c.post(f"/buecher/{self.b7.id}/ausleihen")
         self.assertEqual(Loan.query.filter_by(user_id=self.r7.id).count(), 1)
-        self.c.post(f"/buecher/{self.b8.id}/ausleihen")  # fremde Gruppe
+        self.c.post(f"/buecher/{self.b8.id}/ausleihen")  # other group
         self.assertEqual(Loan.query.filter_by(book_id=self.b8.id).count(), 0)
         self.c.post(f"/buecher/{self.ball.id}/ausleihen")
         self.assertEqual(Loan.query.filter_by(user_id=self.r7.id).count(), 2)
-        # zweimal dasselbe Buch geht nicht
+        # the same book twice is not possible
         self.c.post(f"/buecher/{self.ball.id}/ausleihen")
         self.assertEqual(Loan.query.filter_by(user_id=self.r7.id).count(), 2)
 
@@ -169,7 +169,7 @@ class PermissionTests(BaseCase):
         self.assertEqual(self.c.get("/buecher/neu").status_code, 403)
         self.assertEqual(self.c.get("/admin/benutzer").status_code, 403)
         self.assertEqual(self.c.post(f"/buecher/{self.b7.id}/loeschen").status_code, 403)
-        # Für andere ausleihen ist verboten
+        # borrowing for others is forbidden
         self.assertEqual(self.c.post(f"/buecher/{self.b7.id}/ausleihen", data={"user_id": self.r8.id}).status_code, 403)
 
     def test_group_librarian_scope(self):
@@ -177,10 +177,10 @@ class PermissionTests(BaseCase):
         self.assertEqual(self.c.get(f"/buecher/{self.b7.id}/bearbeiten").status_code, 200)
         self.assertEqual(self.c.get(f"/buecher/{self.b8.id}/bearbeiten").status_code, 403)
         self.assertEqual(self.c.get("/admin/benutzer").status_code, 403)
-        # darf keine Bücher in fremde Gruppen verschieben
+        # must not move books into other groups
         r = self.c.post(f"/buecher/{self.b7.id}/bearbeiten", data={"title": "X", "group_id": self.g8.id, "copies": 1})
         self.assertEqual(r.status_code, 403)
-        # Verleihen an Mitglied der eigenen Gruppe
+        # lending to a member of the own group
         self.c.post(f"/buecher/{self.b7.id}/ausleihen", data={"user_id": self.r7.id})
         self.assertEqual(Loan.query.filter_by(user_id=self.r7.id).count(), 1)
 
@@ -363,7 +363,7 @@ class LdapTests(BaseCase):
         self.assertEqual(ldap_auth.resolve_role(dn, groups, cfg)[0], "admin")
         self.assertEqual(ldap_auth.resolve_role(dn, [], cfg)[0], "reader")
         self.assertIsNone(ldap_auth.resolve_role("CN=X,OU=Gaeste,DC=schule,DC=local", [], cfg)[0])
-        # Teilstring einer OU darf nicht greifen
+        # a substring of an OU must not match
         self.assertFalse(ldap_auth.rule_matches("OU=Schueler,DC=schule,DC=local",
                                                 "CN=Y,OU=AltSchueler,DC=schule,DC=local", set()))
 
@@ -376,7 +376,7 @@ class LdapTests(BaseCase):
         self.assertEqual(ldap_auth.resolve_role(dn, groups, cfg), ("librarian", "bibliothek-verwalter"))
         self.assertEqual(ldap_auth.resolve_role(dn, groups[1:], cfg)[0], "reader")
         self.assertIsNone(ldap_auth.resolve_role(dn, [], cfg)[0])
-        # Teilname greift nicht
+        # partial name does not match
         self.assertFalse(ldap_auth.rule_matches("Bibliothek", dn, {ldap_auth.normalize_dn(groups[0])}))
 
     def test_group_sync_by_name(self):
@@ -417,7 +417,7 @@ class LdapTests(BaseCase):
         u = User.query.filter_by(username="mmuster").one()
         self.assertEqual(u.auth_source, "ldap")
         self.assertEqual([x.name for x in u.groups], ["Klasse 7a"])
-        # manuell zugeordnete Gruppe bleibt, AD-Gruppe wird bei Austritt entfernt
+        # manually assigned group stays, AD group is removed on leaving
         u.groups.append(manual)
         db.session.commit()
         info.groups, info.role = [], "librarian"
@@ -481,7 +481,7 @@ class LdapTests(BaseCase):
         from catalytix.models import get_setting
         self.assertEqual(get_setting("ldap_login_rules"), "OU=A,DC=x\nOU=B,DC=x")
         self.assertEqual(get_setting("ldap_bind_password"), "pw1")
-        # leeres Passwortfeld behält das gespeicherte
+        # empty password field keeps the stored one
         self.c.post("/admin/verzeichnisdienst", data={"action": "save", "ldap_server": "ldap://dc1", "ldap_base_dn": "DC=x"})
         self.assertEqual(get_setting("ldap_bind_password"), "pw1")
         self.assertNotIn("pw1", self.c.get("/admin/verzeichnisdienst").get_data(as_text=True))

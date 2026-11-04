@@ -1,4 +1,4 @@
-"""Nachbesserungen aus der Überprüfung: Katalog, Ausleihe, Theke, Standorte, ISBN, Cover."""
+"""Fixes from the review: catalogue, loans, desk, locations, ISBN, covers."""
 import io
 import os
 import re
@@ -113,7 +113,7 @@ class Base(unittest.TestCase):
         return l
 
 
-# ---------------------------------------------------------------- 1. Gleichzeitige Ausleihen (Datei-SQLite)
+# ---------------------------------------------------------------- 1. Concurrent loans (file SQLite)
 
 class RaceTests(Base):
     def setUp(self):
@@ -122,7 +122,7 @@ class RaceTests(Base):
         super().setUp()
 
     def run_parallel(self, jobs, patch_target, patch_attr, key=None):
-        """Alle Anfragen am gleichen Punkt (vor der Prüfung) zusammentreffen lassen."""
+        """Let all requests meet at the same point (before the check)."""
         barrier = threading.Barrier(len(jobs), timeout=3)
         real = getattr(patch_target, patch_attr)
 
@@ -196,7 +196,7 @@ class ActiveLoanIndexTests(Base):
     def test_second_open_loan_rejected_by_database(self):
         b = self.book(copies=3)
         self.loan(b, self.leser)
-        self.loan(b, self.leser, returned=True)   # abgeschlossene zählen nicht
+        self.loan(b, self.leser, returned=True)   # completed ones do not count
         with self.assertRaises(IntegrityError):
             self.loan(b, self.leser)
         db.session.rollback()
@@ -221,7 +221,7 @@ class ActiveLoanIndexTests(Base):
         self.assertIn("bereits ausgeliehen", r.get_data(as_text=True))
 
 
-# ---------------------------------------------------------------- 2./3. Cover: DNS-Rebinding, Fristen, kaputte Bilder
+# ---------------------------------------------------------------- 2./3. Covers: DNS rebinding, timeouts, broken images
 
 class CoverTests(Base):
     def test_ip_checks(self):
@@ -341,7 +341,7 @@ class CoverTests(Base):
         srv.shutdown()
 
 
-# ---------------------------------------------------------------- 4. Theke: Signatur vor Buch-Nummer
+# ---------------------------------------------------------------- 4. Desk: shelf mark before book number
 
 class DeskSearchTests(Base):
     def test_digits_match_signature_not_internal_id(self):
@@ -359,7 +359,7 @@ class DeskSearchTests(Base):
             self.assertEqual(loans_view._find_books("#99999999999999999999"), [])
 
 
-# ---------------------------------------------------------------- 5. ISBN mit „X“ an falscher Stelle
+# ---------------------------------------------------------------- 5. ISBN with "X" in the wrong position
 
 class IsbnTests(Base):
     def test_x_not_at_end_is_left_unchanged(self):
@@ -379,7 +379,7 @@ class IsbnTests(Base):
         self.assertEqual(self.c.post("/api/buecher", json={"title": "x", "isbn": "X23456789X"}).status_code, 200)
 
 
-# ---------------------------------------------------------------- 6. Katalog/Export ohne Abfrage je Buch
+# ---------------------------------------------------------------- 6. Catalogue/export without a query per book
 
 class PerformanceTests(Base):
     def setUp(self):
@@ -430,7 +430,7 @@ class PerformanceTests(Base):
         self.assertEqual(avail["Buch 050"], "1")
 
 
-# ---------------------------------------------------------------- 7.–10. Sichtbarkeit und Rechte
+# ---------------------------------------------------------------- 7.–10. Visibility and permissions
 
 class VisibilityTests(Base):
     def test_desk_hides_other_groups_loans_and_names(self):
@@ -478,7 +478,7 @@ class VisibilityTests(Base):
         self.assertIn("bereits abgeschlossen", r.get_data(as_text=True))
 
 
-# ---------------------------------------------------------------- 11. Ungültige Eingaben → kein 500
+# ---------------------------------------------------------------- 11. Invalid input → no 500
 
 class MalformedInputTests(Base):
     def test_no_server_errors(self):
@@ -526,7 +526,7 @@ class MalformedInputTests(Base):
         self.assertEqual(self.c.post("/api/buecher", json={"title": "ok", "group_id": self.ga.id}).status_code, 200)
 
 
-# ---------------------------------------------------------------- 12./13. Blättern
+# ---------------------------------------------------------------- 12./13. Paging
 
 class PagingTests(Base):
     def test_catalogue_pages_keep_location(self):

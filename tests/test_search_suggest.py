@@ -1,4 +1,4 @@
-"""Vorschläge beim Tippen: Suchfeld oben (Katalog) und schnelle Personensuche an der Theke."""
+"""Suggestions while typing: search field at the top (catalogue) and quick people search at the desk."""
 import os
 import sys
 import tempfile
@@ -29,7 +29,7 @@ class CatalogSuggestTests(Base):
         db.session.commit()
         self.login("leser")
         self.assertEqual(self.titles("Fau"), ["Faust"])
-        self.assertEqual(self.titles("Nur"), [])                 # Buch der Gruppe IT, Leser ist nicht drin
+        self.assertEqual(self.titles("Nur"), [])                 # book of group IT, reader is not in it
         leser = User.query.filter_by(username="leser").one()
         leser.groups = [self.group]
         db.session.commit()
@@ -45,12 +45,12 @@ class CatalogSuggestTests(Base):
         db.session.add_all([Book(title="Alles über Faust", copies=1),
                             Book(title="Zauberberg", isbn="9783596294336", copies=1)])
         db.session.commit()
-        self.assertEqual(self.titles("Faust")[:2], ["Faust", "Alles über Faust"])   # Titelanfang vorne
+        self.assertEqual(self.titles("Faust")[:2], ["Faust", "Alles über Faust"])   # title prefix first
         self.assertEqual(self.titles("978-3-596-29433-6"), ["Zauberberg"])
 
     def test_short_query_and_wildcards(self):
         self.assertEqual(self.titles("F"), [])
-        self.assertEqual(self.titles("%25%25"), [])                                  # „%%“ wörtlich, nicht alles
+        self.assertEqual(self.titles("%25%25"), [])                                  # "%%" literally, not everything
 
     def test_needs_login(self):
         self.c.post("/logout")
@@ -111,7 +111,7 @@ class SearchGroupCacheTests(Base):
     def test_changed_membership_resolved_again(self):
         self.run_search()
         self.entry["attributes"]["memberOf"] = [GDN, "CN=Neu,DC=x,DC=de"]
-        self.assertEqual(self.run_search(), 1)              # neuer Schlüssel → einmal neu aufgelöst
+        self.assertEqual(self.run_search(), 1)              # new key → resolved again once
 
     def test_login_check_never_cached(self):
         conn = mock.Mock()

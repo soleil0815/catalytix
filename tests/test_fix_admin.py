@@ -1,4 +1,4 @@
-"""Korrekturen aus der Überprüfung: Administration, Mail-Zeitplan, Datensicherung, Hilfe, Übersetzung."""
+"""Fixes from the review: administration, mail schedule, backup, help, translation."""
 import os
 import sys
 import tempfile
@@ -57,7 +57,7 @@ class Base(unittest.TestCase):
         return b
 
 
-# ---------------------------------------------------------------- 1. Ablehnen / letzter Admin
+# ---------------------------------------------------------------- 1. Reject / last admin
 
 class RejectTests(Base):
     def test_reject_refuses_self_and_admins(self):
@@ -74,7 +74,7 @@ class RejectTests(Base):
         self.assertIsNotNone(db.session.get(User, other.id))
 
     def test_reject_only_pending(self):
-        self.leser.self_registered = True     # freigegeben und bestätigt – kein Ablehnen mehr
+        self.leser.self_registered = True     # approved and confirmed – no more rejecting
         self.leser.email_verified = True
         self.leser.pending_approval = False
         db.session.commit()
@@ -101,7 +101,7 @@ class RejectTests(Base):
         other.active = False
         db.session.commit()
         self.login("admin")
-        # sich selbst herabstufen / sperren
+        # demoting / locking oneself
         self.c.post(f"/admin/benutzer/{self.admin.id}", data={"username": "admin", "role": "reader", "active": "1"})
         self.c.post(f"/admin/benutzer/{self.admin.id}", data={"username": "admin", "role": "admin"})
         db.session.expire_all()
@@ -121,7 +121,7 @@ class RejectTests(Base):
         self.assertEqual(User.query.filter_by(username="leser").count(), 0)
 
 
-# ---------------------------------------------------------------- 2. Unicode-Ziffern
+# ---------------------------------------------------------------- 2. Unicode digits
 
 class DigitTests(Base):
     def test_superscript_digits_no_500(self):
@@ -137,7 +137,7 @@ class DigitTests(Base):
         self.assertEqual(get_setting("registration_group_id"), "")
 
 
-# ---------------------------------------------------------------- 3./4. Mail-Zeitplan und Übersicht
+# ---------------------------------------------------------------- 3./4. Mail schedule and overview
 
 class MailScheduleTests(Base):
     def setUp(self):
@@ -160,23 +160,23 @@ class MailScheduleTests(Base):
         with mock.patch.object(mailer, "smtp_connect", side_effect=mailer.MailError("down")):
             self.assertIn("error", mailer.run_scheduled(now))
         with self.ok_smtp():
-            self.assertIsNone(mailer.run_scheduled(now + timedelta(minutes=5)))   # nicht sofort wieder
+            self.assertIsNone(mailer.run_scheduled(now + timedelta(minutes=5)))   # not again right away
             stats = mailer.run_scheduled(now + timedelta(minutes=20))
         self.assertEqual(stats["sent"], 1)
         self.assertEqual(mailer.collect_due(), {})
         with self.ok_smtp():
-            self.assertIsNone(mailer.run_scheduled(now + timedelta(hours=2)))   # heute erledigt
+            self.assertIsNone(mailer.run_scheduled(now + timedelta(hours=2)))   # done today
 
     def test_digest_once_per_day(self):
         with self.ok_smtp():
             first = mailer.run_notifications()
-            second = mailer.run_notifications()   # „Jetzt versenden“ / send-reminders zusätzlich
+            second = mailer.run_notifications()   # "send now" / send-reminders in addition
         self.assertEqual(first["digest"], 1)
         self.assertEqual(second["digest"], 0)
         self.assertEqual(MailLog.query.filter_by(kind="digest", user_id=self.bib.id).count(), 1)
 
 
-# ---------------------------------------------------------------- 5. Datensicherung
+# ---------------------------------------------------------------- 5. Backup
 
 class BackupTests(Base):
     def setUp(self):
@@ -223,7 +223,7 @@ class BackupTests(Base):
         self.assertFalse(old_wal.exists())
 
 
-# ---------------------------------------------------------------- 6./7. Übersetzte Standardnamen
+# ---------------------------------------------------------------- 6./7. Translated default names
 
 class DefaultNameTests(Base):
     def test_library_name_translated_in_english(self):
@@ -254,7 +254,7 @@ class DefaultNameTests(Base):
         from catalytix.models import WebAuthnCredential
         self.leser.language = "en"
         db.session.commit()
-        self.login("leser")   # vor dem Anlegen des Schlüssels – sonst verlangt die Anmeldung den zweiten Faktor
+        self.login("leser")   # before creating the key – otherwise the login asks for the second factor
         db.session.add(WebAuthnCredential(user_id=self.leser.id, rp_id="localhost", name="Sicherheitsschlüssel",
                                           credential_id="abc", credential_data="eA=="))
         db.session.commit()
@@ -263,7 +263,7 @@ class DefaultNameTests(Base):
         self.assertIn("<b>Security key</b>", page)
 
 
-# ---------------------------------------------------------------- 8. Hilfe
+# ---------------------------------------------------------------- 8. Help
 
 class HelpTests(Base):
     def test_all_loans_help_for_librarian(self):
@@ -305,7 +305,7 @@ class LazyStringTests(Base):
         self.assertEqual(len({s, "A & B"}), 1)
 
 
-# ---------------------------------------------------------------- 10. Zeit der Testmail
+# ---------------------------------------------------------------- 10. Time of the test mail
 
 class TestMailTimeTests(Base):
     def test_sent_time_localized(self):

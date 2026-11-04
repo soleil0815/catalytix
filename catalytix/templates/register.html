@@ -6,7 +6,7 @@
 <p class="muted">{{ _("Registriere dich, um Bücher auszuleihen.") }}</p>
 <form method="post" style="margin-top: 22px" autocomplete="on">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  {# Für Menschen unsichtbar – wird es ausgefüllt, war es ein Bot #}
+  {# Invisible to humans – if it gets filled in, it was a bot #}
   <div style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden" aria-hidden="true">
     <label>{{ _("Webseite") }}<input type="text" name="homepage_url" tabindex="-1" autocomplete="off"></label></div>
   <div class="field"><label for="display_name">{{ _("Vor- und Nachname") }}</label>

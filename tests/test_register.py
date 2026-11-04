@@ -1,4 +1,4 @@
-"""Tests der Selbstregistrierung."""
+"""Tests of self-registration."""
 import os
 import re
 import sys
@@ -59,7 +59,7 @@ class RegisterTests(unittest.TestCase):
 
     def submit(self, **kw):
         self.c.get("/registrieren")
-        with self.c.session_transaction() as s:   # Mindest-Ausfüllzeit simulieren
+        with self.c.session_transaction() as s:   # simulate the minimum fill-in time
             s["reg_started"] = time.time() - 10
         return self.c.post("/registrieren", data=self.form(**kw))
 
@@ -76,13 +76,13 @@ class RegisterTests(unittest.TestCase):
         self.assertTrue(u.pending_approval)
         self.assertFalse(u.active)
         self.assertEqual(u.role, "reader")
-        self.assertTrue(any(m["to"] == "admin@bib.de" for m in self.sent))   # Admin informiert
+        self.assertTrue(any(m["to"] == "admin@bib.de" for m in self.sent))   # admin notified
         r = self.c.post("/login", data={"username": "lena.s", "password": "einlangespasswort"})
         self.assertIn("wartet noch auf die Freigabe", r.get_data(as_text=True))
-        # falsches Passwort verrät nichts
+        # wrong password reveals nothing
         r = self.c.post("/login", data={"username": "lena.s", "password": "falschfalsch"})
         self.assertIn("Benutzername oder Passwort ist falsch", r.get_data(as_text=True))
-        # Admin gibt frei
+        # admin approves
         self.c.post("/login", data={"username": "admin", "password": "geheim123"})
         html = self.c.get("/").get_data(as_text=True)
         self.assertIn("1 neue Registrierung", html)
@@ -181,7 +181,7 @@ class RegisterTests(unittest.TestCase):
                 r = self.submit(**data)
                 self.assertEqual(r.status_code, 400)
                 self.assertIn(msg, r.get_data(as_text=True))
-        r = self.submit(email="x@eltern.schule.de", privacy="1")       # Subdomain erlaubt
+        r = self.submit(email="x@eltern.schule.de", privacy="1")       # subdomain allowed
         self.assertEqual(r.status_code, 302)
         self.c.post("/logout")
         r = self.submit(username="lena2", email="X@ELTERN.schule.de", privacy="1")
@@ -195,7 +195,7 @@ class RegisterTests(unittest.TestCase):
         with self.c.session_transaction() as s:
             s["reg_started"] = time.time() - 10
         self.c.post("/registrieren", data=self.form(homepage_url="http://spam"))
-        self.c.get("/registrieren")   # zu schnell abgeschickt
+        self.c.get("/registrieren")   # submitted too quickly
         self.c.post("/registrieren", data=self.form(username="schnell", email="s@schule.de"))
         self.assertEqual(User.query.filter(User.username != "admin").count(), 0)
         for i in range(5):
@@ -278,7 +278,7 @@ class EmailChangeTests(RegisterTests):
 
 
 
-# Tests der Elternklasse hier nicht noch einmal laufen lassen
+# do not run the parent class's tests here again
 for _name in dir(RegisterTests):
     if _name.startswith("test_") and _name not in EmailChangeTests.__dict__:
         setattr(EmailChangeTests, _name, None)

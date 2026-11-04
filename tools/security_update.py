@@ -6,6 +6,7 @@
   next-tag VERSION             next security tag for VERSION from CHANGELOG.md, e.g. 2.18.3-s2 (counter starts at
                                s1 for every program version)
   changelog TAG VERSION OLD NEW  insert the change log entry for TAG (list of changed packages) into CHANGELOG.md
+                               (German) and CHANGELOG.en.md (English)
   is-highest VERSION LATEST    exit code 0 if VERSION >= LATEST (only then may :latest be set)
   highest                      read release tags (one per line) from stdin, print the highest version (not GitHub's
                                "latest" flag, which only marks the most recently created release)
@@ -18,11 +19,27 @@ import datetime as dt
 import re
 import sys
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 CHANGELOG = ROOT / "CHANGELOG.md"
+CHANGELOG_EN = ROOT / "CHANGELOG.en.md"
 UNCHANGED = 3
 KINDS = {"base": "Basis-Image", "python": "Python", "deb": "Debian-Pakete", "pip": "Python-Pakete"}
+# Texts of the change log entry per language (CHANGELOG.md is German, CHANGELOG.en.md English)
+TEXTS: dict[str, dict[str, Any]] = {
+    "de": {"kinds": KINDS, "new": "neu", "removed": "entfernt", "date": "%d.%m.%Y", "suffix": "Sicherheitsupdate",
+           "intro": "Gleiches Programm wie {version}, nur aktualisierte Pakete (wöchentliches Sicherheitsupdate, "
+                    "automatisch gebaut, getestet und mit Trivy geprüft):",
+           "first": "- Erster Stand mit vollständiger Paketliste ({deb} Debian-Pakete, {pip} Python-Pakete, siehe "
+                    "`/app/image-packages.txt`) – ein Vergleich mit dem vorigen Image ist nicht möglich."},
+    "en": {"kinds": {"base": "Base image", "python": "Python", "deb": "Debian packages", "pip": "Python packages"},
+           "new": "new", "removed": "removed", "date": "%Y-%m-%d", "suffix": "security update",
+           "intro": "Same program as {version}, only updated packages (weekly security update, built, tested and "
+                    "checked with Trivy automatically):",
+           "first": "- First state with a complete package list ({deb} Debian packages, {pip} Python packages, see "
+                    "`/app/image-packages.txt`) – a comparison with the previous image is not possible."},
+}
 
 
 def parse(text: str) -> dict[tuple[str, str], str]:
@@ -51,7 +68,8 @@ def diff(old: str, new: str) -> list[Change]:
     return changes
 
 
-def format_changes(changes: list[Change]) -> list[str]:
+def format_changes(changes: list[Change], lang: str = "de") -> list[str]:
+    t = TEXTS[lang]
     lines = []
     for kind in KINDS:
         items = [c for c in changes if c[0] == kind]
@@ -63,10 +81,10 @@ def format_changes(changes: list[Change]) -> list[str]:
             if old and new:
                 parts.append(f"{label}{old} → {new}")
             elif new:
-                parts.append(f"{label}neu {new}")
+                parts.append(f"{label}{t['new']} {new}")
             else:
-                parts.append(f"{label}entfernt ({old})")
-        lines.append(f"- {KINDS[kind]}: " + ", ".join(f"`{p}`" for p in parts))
+                parts.append(f"{label}{t['removed']} ({old})")
+        lines.append(f"- {t['kinds'][kind]}: " + ", ".join(f"`{p}`" for p in parts))
     return lines
 
 
@@ -77,20 +95,17 @@ def next_tag(version: str, text: str | None = None) -> str:
 
 
 def changelog_entry(tag: str, version: str, changes: list[Change], today: dt.date | None = None,
-                    first: bool = False) -> str:
+                    first: bool = False, lang: str = "de") -> str:
     today = today or dt.date.today()
-    head = [f"## {tag} – {today:%d.%m.%Y} (Sicherheitsupdate)",
-            f"Gleiches Programm wie {version}, nur aktualisierte Pakete (wöchentliches Sicherheitsupdate, automatisch "
-            "gebaut, getestet und mit Trivy geprüft):"]
+    t = TEXTS[lang]
+    head = [f"## {tag} – {today.strftime(t['date'])} ({t['suffix']})", t["intro"].format(version=version)]
     if first:     # the previous image had no package list – nothing to compare with
         new = [c for c in changes if c[3]]
         counts = {k: sum(1 for c in new if c[0] == k) for k in ("deb", "pip")}
-        body = [f"- Erster Stand mit vollständiger Paketliste ({counts['deb']} Debian-Pakete, {counts['pip']} "
-                "Python-Pakete, siehe `/app/image-packages.txt`) – ein Vergleich mit dem vorigen Image ist nicht "
-                "möglich.",
-                *[line for line in format_changes([c for c in changes if c[0] in ("base", "python")])]]
+        body = [t["first"].format(deb=counts["deb"], pip=counts["pip"]),
+                *format_changes([c for c in changes if c[0] in ("base", "python")], lang)]
     else:
-        body = format_changes(changes)
+        body = format_changes(changes, lang)
     return "\n".join([*head, *body, ""]) + "\n"
 
 
@@ -127,8 +142,10 @@ def main(argv: list[str] | None = None) -> int:
             print("no changes – no change log entry")
             return UNCHANGED
         first = not parse(old_text)
-        CHANGELOG.write_text(insert_changelog(changelog_entry(tag, version, changes, first=first),
-                                              CHANGELOG.read_text(encoding="utf-8")), encoding="utf-8")
+        for path, lang in ((CHANGELOG, "de"), (CHANGELOG_EN, "en")):
+            if path.exists():
+                path.write_text(insert_changelog(changelog_entry(tag, version, changes, first=first, lang=lang),
+                                                 path.read_text(encoding="utf-8")), encoding="utf-8")
         return 0
     if cmd == "highest" and len(argv) == 1:
         versions = [t.strip() for t in sys.stdin.read().split() if re.fullmatch(r"v?\d+\.\d+\.\d+", t.strip())]

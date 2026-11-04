@@ -1,4 +1,4 @@
-"""Mehrsprachigkeit und Hilfe: Katalog vollständig, Sprachwahl, E-Mails, rollenabhängige Hilfe."""
+"""Multilingual support and help: catalogue complete, language choice, e-mails, role-dependent help."""
 import ast
 import json
 import os
@@ -33,7 +33,7 @@ def template_msgids() -> set[str]:
     ids = set()
     for f in (PKG / "templates").rglob("*"):
         if f.suffix not in (".html", ".txt") or (f.parent.parent.name == "help" and f.parent.name in ("de", "en")):
-            continue   # Hilfetexte liegen je Sprache als eigene Dateien vor
+            continue   # help texts exist as separate files per language
         text = f.read_text(encoding="utf-8")
         for m in TPL_GETTEXT.finditer(text):
             ids.add(_unescape(m.group(1) if m.group(1) is not None else m.group(2)))
@@ -142,7 +142,7 @@ class LanguageTests(Base):
         self.c.post("/sprache/en", data={"next": "/"})
         db.session.refresh(self.users["leser"])
         self.assertEqual(self.users["leser"].language, "en")
-        # neue Sitzung, anderer Browser: Profil gilt
+        # new session, different browser: the profile applies
         other = self.app.test_client()
         other.post("/login", data={"username": "leser", "password": PW})
         self.assertIn('<html lang="en">', other.get("/").get_data(as_text=True))
@@ -153,7 +153,7 @@ class LanguageTests(Base):
         self.assertEqual(self.c.post("/sprache/xx").status_code, 404)
 
     def test_english_pages_have_no_common_german_words(self):
-        """Grobe Kontrolle: auf englischen Seiten tauchen typische deutsche Wörter nicht auf."""
+        """Rough check: typical German words do not appear on English pages."""
         words = re.compile(r"\b(und|oder|nicht|Bücher|Ausleihe|Benutzer|Einstellungen|Speichern|Zurück|Abmelden|"
                            r"Übersicht|Katalog|Sicherheit|Hilfe|bitte|werden|wird)\b")
         self.login("admin")

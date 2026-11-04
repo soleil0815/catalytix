@@ -1,4 +1,4 @@
-"""Befunde aus dem zweiten Code Review."""
+"""Findings from the second code review."""
 import os
 import subprocess
 import sys
@@ -32,12 +32,12 @@ class AdminNeedsSecondFactorTests(Base):
         self.login_skipped_admin()
         admin = self.user("admin")
         r = self.c.post(f"/admin/benutzer/{admin.id}/2fa-zuruecksetzen", environ_base=LAN)
-        self.assertIn("/login/2fa", r.headers["Location"])           # direkt zur Bestätigung
-        self.assertTrue(self.user("admin").totp_enabled)          # nicht zurückgesetzt
+        self.assertIn("/login/2fa", r.headers["Location"])           # straight to the confirmation
+        self.assertTrue(self.user("admin").totp_enabled)          # not reset
         r = self.c.post("/admin/einstellungen", data={"mfa_internal": "same"}, environ_base=LAN)
         self.assertIn("/login/2fa", r.headers["Location"])
         self.assertEqual(get_setting("mfa_internal"), "skip")
-        self.assertEqual(self.c.get("/admin/benutzer", environ_base=LAN).status_code, 200)   # ansehen geht
+        self.assertEqual(self.c.get("/admin/benutzer", environ_base=LAN).status_code, 200)   # viewing works
 
     def test_after_confirming_returns_to_page(self):
         from catalytix import twofa
@@ -128,7 +128,7 @@ class BackupOrderTests(unittest.TestCase):
                 names = [b["name"] for b in backup.list_backups()]
         self.assertTrue(ok1 and ok2)
         self.assertEqual(len(names), 1)
-        self.assertTrue(names[0].endswith("-manuell-1.db"), names)   # die neuere bleibt
+        self.assertTrue(names[0].endswith("-manuell-1.db"), names)   # the newer one stays
 
 
 class StartupTests(unittest.TestCase):

@@ -8,6 +8,9 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. E
 - „Buy me a coffee“-Button unten in der Seitenleiste – nur für Admins sichtbar, öffnet die Unterstützerseite des
   Entwicklers in einem neuen Tab. Leser und Verwalter sehen ihn nicht.
 
+**Sicherheit**
+- Debian-Pakete auf den Stand vom 04.11.2026 (u. a. `apt` 3.0.3 → 3.0.4, Sicherheitslücke der Stufe HIGH).
+
 ## 3.0.2 – 05.11.2026
 **Sicherheit**
 - Bestätigungslinks für eine neue E-Mail-Adresse (selbst registrierte Konten) gelten nur noch, solange das Konto

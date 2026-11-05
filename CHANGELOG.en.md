@@ -7,6 +7,9 @@ The current version is shown at the bottom left of the sidebar after signing in.
 - "Buy me a coffee" button at the bottom of the sidebar – visible to admins only, opens the developer's support
   page in a new tab. Readers and librarians don't see it.
 
+**Security**
+- Debian packages at the state of 2026-11-04 (including `apt` 3.0.3 → 3.0.4, HIGH severity vulnerability).
+
 ## 3.0.2 – 2026-11-05
 **Security**
 - Confirmation links for a new e-mail address (self-registered accounts) are only valid while the account still has

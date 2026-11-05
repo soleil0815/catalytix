@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user
@@ -241,9 +242,14 @@ def user_reject(user_id):
     elif user.active_loans:
         flash(_("Der Benutzer hat noch ausgeliehene Bücher. Sperre das Konto stattdessen."), "error")
     else:
-        from ..retention import delete_user
+        from ..retention import OpenLoans, delete_user
         name = user.name
-        books = delete_user(user)
+        try:
+            books = delete_user(user)
+        except OpenLoans:
+            db.session.rollback()
+            flash(_("Der Benutzer hat noch ausgeliehene Bücher. Sperre das Konto stattdessen."), "error")
+            return redirect(url_for("admin.users", status="neu"))
         db.session.commit()
         from .. import reservations
         reservations.promote_after_delete(books)
@@ -288,9 +294,14 @@ def user_delete(user_id):
     elif user.role == ROLE_ADMIN and _admin_count(user.id) == 0:
         flash(_("Der letzte Administrator kann nicht gelöscht werden."), "error")
     else:
-        from ..retention import delete_user
+        from ..retention import OpenLoans, delete_user
         name = user.username
-        books = delete_user(user)   # completed loans are only counted from now on – statistics are preserved
+        try:
+            books = delete_user(user)   # completed loans are only counted from now on – statistics are preserved
+        except OpenLoans:
+            db.session.rollback()
+            flash(_("Der Benutzer hat noch ausgeliehene Bücher. Sperre das Konto stattdessen."), "error")
+            return redirect(url_for("admin.users"))
         db.session.commit()
         from .. import reservations
         reservations.promote_after_delete(books)   # copies held for the account: next in line get their turn
@@ -520,7 +531,10 @@ def settings():
         set_setting("registration_group_id", str(gid) if gid is not None and db.session.get(Group, gid) else "")
         for key in ("imprint_url", "privacy_url"):
             url = form_str(key, 500)
-            set_setting(key, url if url.startswith(("https://", "http://", "/")) else "")
+            # "//host/…" and "/\host/…" would be protocol-relative links to another server
+            ok = (url.startswith(("https://", "http://", "/")) and not url.startswith(("//", "/\\"))
+                  and not re.search(r"[\x00-\x20\x7f]", url))   # browsers drop tabs inside URLs: "/<tab>/host"
+            set_setting(key, url if ok else "")
         months = request.form.get("retention_months", "12")
         set_setting("retention_months", months if months in ("0", "3", "6", "12", "24", "36") else "12")
         pol = request.form.get("mfa_policy")

@@ -1,5 +1,59 @@
 [
  {
+  "version": "3.0.2",
+  "date": "2026-11-05",
+  "items": [
+   {
+    "kind": "security",
+    "audience": "all",
+    "de": {
+     "title": "Sicherere Bestätigung einer neuen E-Mail-Adresse",
+     "text": "Ein Bestätigungslink für eine neue E-Mail-Adresse gilt nur noch einmal und nur, solange die Adresse im Konto noch die ist, von der aus du die Änderung angefordert hast. Ältere Links – etwa an eine vertippte Adresse – sind danach ungültig."
+    },
+    "en": {
+     "title": "Safer confirmation of a new e-mail address",
+     "text": "A confirmation link for a new e-mail address now only works once, and only while your account still has the address you requested the change from. Older links – e.g. to a mistyped address – stop working."
+    }
+   },
+   {
+    "kind": "fixed",
+    "audience": "librarian",
+    "de": {
+     "title": "Schnellerfassung: keine doppelten Bücher mehr",
+     "text": "Wird dieselbe ISBN zweimal kurz hintereinander gescannt, werden die Exemplare beim vorhandenen Buch derselben Gruppe dazugezählt, statt ein zweites Buch anzulegen."
+    },
+    "en": {
+     "title": "Quick capture: no more duplicate books",
+     "text": "If the same ISBN is scanned twice in quick succession, the copies are added to the existing book of the same group instead of creating a second book."
+    }
+   },
+   {
+    "kind": "fixed",
+    "audience": "admin",
+    "de": {
+     "title": "Update-Weg robuster",
+     "text": "Nach einem fehlgeschlagenen Update wird beim nächsten Versuch wieder eine frische Sicherung angelegt. update.sh prüft vorab, ob .env beschreibbar ist, liest .env wie Docker Compose und meldet keinen Erfolg, wenn ein anderes Image läuft als das geholte."
+    },
+    "en": {
+     "title": "More robust update path",
+     "text": "After a failed update, the next attempt makes a fresh backup again. update.sh checks beforehand that .env is writable, reads .env like Docker Compose and no longer reports success when another image runs than the one fetched."
+    }
+   },
+   {
+    "kind": "improved",
+    "audience": "all",
+    "de": {
+     "title": "Besser lesbar und bedienbar",
+     "text": "Mehr Kontrast für graue Texte, Namen in Tabellen brechen auf dem Handy nicht mehr Buchstabe für Buchstabe um, und die zugeklappte Seitenleiste stört die Bedienung mit der Tastatur nicht mehr."
+    },
+    "en": {
+     "title": "Easier to read and use",
+     "text": "More contrast for grey texts, names in tables no longer wrap letter by letter on phones, and the closed sidebar no longer gets in the way of keyboard navigation."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.0.1",
   "date": "2026-11-01",
   "items": [

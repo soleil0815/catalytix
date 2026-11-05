@@ -37,9 +37,13 @@ release_exists() {
 # Highest released version (by version number – not GitHub's "latest" flag, which marks the newest release)
 highest_release() {
     local tags
-    tags="$(gh release list --limit 200 --json tagName --jq '.[].tagName')" \
+    tags="$(gh release list --limit 1000 --json tagName --jq '.[].tagName')" \
         || fail "GitHub API not reachable" "Could not list the releases."
-    python3 tools/security_update.py highest <<<"$tags" || true
+    # Empty only when there really is no release yet – an unreadable list must never count as "first release"
+    # (that would skip the downgrade check for :latest)
+    [ -n "$tags" ] || return 0
+    python3 tools/security_update.py highest <<<"$tags" \
+        || fail "Release list unreadable" "No version number found among the releases: $(head -c 300 <<<"$tags")"
 }
 
 prepare_builder() {   # prepare_builder [multi] – buildx builder; "multi" also enables arm64 emulation

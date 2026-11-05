@@ -133,7 +133,8 @@ class LockFileTests(unittest.TestCase):
         self.assertIn("Packages left out of the upgrade", text)
         self.assertIn("--require-hashes", text)
         self.assertIn("python -m pip uninstall -y pip", text)     # package manager not in the finished image
-        self.assertIn('! python -c "import pip"', text)
+        # not "! cmd" under set -e (POSIX ignores -e for negated commands) – an explicit exit
+        self.assertIn('if command -v pip >/dev/null || python -c "import pip" 2>/dev/null; then echo', text)
 
     def test_every_package_pinned_with_hash(self):
         problems = lock.check()

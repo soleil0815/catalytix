@@ -33,7 +33,8 @@ def _since() -> datetime:
 
 
 def throttled(key: str) -> bool:
-    return LoginAttempt.query.filter(LoginAttempt.key == key, LoginAttempt.created_at >= _since()).count() >= MAX_FAILS
+    n: int = LoginAttempt.query.filter(LoginAttempt.key == key, LoginAttempt.created_at >= _since()).count()
+    return n >= MAX_FAILS
 
 
 def _origin() -> tuple[str, bool]:
@@ -65,8 +66,10 @@ def user_throttled(username: str, internal: bool = False) -> bool:
     since = datetime.now() - USER_WINDOW
     q = LoginAttempt.query.filter(LoginAttempt.username == norm(username), LoginAttempt.created_at >= since)
     if internal:
-        return q.filter(LoginAttempt.internal.is_(True)).count() >= USER_MAX_FAILS_INTERNAL
-    return q.count() >= USER_MAX_FAILS
+        n_internal: int = q.filter(LoginAttempt.internal.is_(True)).count()
+        return n_internal >= USER_MAX_FAILS_INTERNAL
+    n: int = q.count()
+    return n >= USER_MAX_FAILS
 
 
 IP_MAX_FAILS = 30          # failed attempts per external address across all accounts (against "one password for all")
@@ -77,7 +80,8 @@ def ip_throttled() -> bool:
     if not ip or internal:
         return False
     since = datetime.now() - USER_WINDOW
-    return LoginAttempt.query.filter(LoginAttempt.ip == ip, LoginAttempt.created_at >= since).count() >= IP_MAX_FAILS
+    n: int = LoginAttempt.query.filter(LoginAttempt.ip == ip, LoginAttempt.created_at >= since).count()
+    return n >= IP_MAX_FAILS
 
 
 MFA_DAILY_MAX = 30         # wrong second-factor codes per account and day – then admin or tomorrow
@@ -85,15 +89,17 @@ MFA_DAILY_MAX = 30         # wrong second-factor codes per account and day – t
 
 def mfa_daily_exceeded(username: str) -> bool:
     since = datetime.now() - timedelta(days=1)
-    return LoginAttempt.query.filter(LoginAttempt.username == norm(username), LoginAttempt.key.like("2fa|%"),
-                                     LoginAttempt.created_at >= since).count() >= MFA_DAILY_MAX
+    n: int = LoginAttempt.query.filter(LoginAttempt.username == norm(username), LoginAttempt.key.like("2fa|%"),
+                                       LoginAttempt.created_at >= since).count()
+    return n >= MFA_DAILY_MAX
 
 
 def mfa_fails_since(username: str, ts: float) -> int:
     """Failed second-factor attempts for this user since time ts (Unix time)."""
     since = max(datetime.fromtimestamp(ts or 0), datetime.now() - USER_WINDOW)
-    return LoginAttempt.query.filter(LoginAttempt.username == norm(username), LoginAttempt.key.like("2fa|%"),
-                                     LoginAttempt.created_at >= since).count()
+    n: int = LoginAttempt.query.filter(LoginAttempt.username == norm(username), LoginAttempt.key.like("2fa|%"),
+                                       LoginAttempt.created_at >= since).count()
+    return n
 
 
 def clear(key: str) -> None:
@@ -114,13 +120,13 @@ def locked_usernames() -> set[str]:
 
 
 def unlock_user(username: str) -> int:
-    n = LoginAttempt.query.filter_by(username=norm(username)).delete()
+    n: int = LoginAttempt.query.filter_by(username=norm(username)).delete()
     db.session.commit()
     return n
 
 
 def cleanup() -> int:
     # keep a little more than a day (day boundary for the second factor)
-    n = LoginAttempt.query.filter(LoginAttempt.created_at < datetime.now() - timedelta(days=1, hours=1)).delete()
+    n: int = LoginAttempt.query.filter(LoginAttempt.created_at < datetime.now() - timedelta(days=1, hours=1)).delete()
     db.session.commit()
     return n

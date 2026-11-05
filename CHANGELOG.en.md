@@ -2,6 +2,54 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.0.2 – 2026-11-05
+**Security**
+- Confirmation links for a new e-mail address (self-registered accounts) are only valid while the account still has
+  the address the change was requested from: after one change is confirmed, all older links are invalid, and no
+  link works twice (links sent before the update must be requested again). Before, e.g. a link sent to a mistyped address could still switch the account to that address
+  for 48 hours. The allowed domains are checked again on confirmation.
+- Imprint and privacy link: values like `//other-site.example` (or with spaces/control characters) are no longer stored. In e-mails, relative paths
+  (`/datenschutz`) now become a full address based on the configured program address.
+- Group-bound librarians get "not found" (404) instead of "forbidden" (403) for books of other groups they may not
+  see – so they can no longer tell which book numbers exist there.
+- Covers are only cached as "private", no longer in shared proxies.
+
+**Fixed**
+- Update: if a version change failed and the old version ran again afterwards, the next update attempt made no new
+  backup before the change (the old one from the first attempt still counted). From 3.0.2 on, every successful start
+  resets the "backup already made" marker (so it applies when the version you go back to is 3.0.2 or newer).
+- Quick capture: if the same ISBN is scanned twice (e.g. quickly in auto mode), the server adds the copies to the
+  existing book of the same group instead of creating a second book.
+- Deleting a user: if the account does have an ongoing loan at that moment, it is not deleted (before, the loan
+  could have been deleted with it).
+- update.sh:
+  - checks that `.env` is writable before changing anything – before, a downgrade with a read-only `.env` could
+    stop with the container stopped and the database already put back;
+  - reads and writes `.env` like Docker Compose (`export CATALYTIX_TAG=…`, comments after the value);
+  - stops without changes when `CATALYTIX_TAG` or `CATALYTIX_IMAGE` is set in the shell (Compose would otherwise
+    start another image), and no longer reports success when another image than the one fetched runs anyway;
+  - removes "orphan" containers (`--remove-orphans`) only in the Compose project of this folder – no longer in
+    another stack whose name the container carries;
+  - removes the temporary helper container together with its anonymous volume;
+  - `--cleanup` stops when a file name with a line break is in the data folder (a link with such a name would not
+    have been recognised as protected).
+- Build: the package list in the image stops the build on an error instead of staying incomplete;
+  `highest_release` no longer treats an unreadable release list as "no version yet";
+  `tools/security_update.py changelog` only writes when both CHANGELOGs exist.
+- Two-factor sign-in: with the unchanged library name, authenticator apps and passkeys show the name in the
+  interface language ("Library" instead of "Bibliothek" in English).
+
+**Interface and accessibility**
+- Phone: names in the loans list no longer wrap letter by letter.
+- The closed sidebar on phones can no longer be reached with the Tab key; the menu button reports whether it is open.
+- "+ Book" (top bar on phones) and the camera buttons at the circulation desk have a name for screen readers.
+- More contrast for grey hint texts, table headers and brass text (WCAG AA).
+
+**Quality**
+- Type checking: `dbversion.py`, `composefile.py` and `lockout.py` are now checked strictly. Remaining findings: 58.
+- Docs: `.env.example` lists `CATALYTIX_COVER_VIA_PROXY`; the English README correctly says the interface is
+  bilingual.
+
 ## 3.0.1-s1 – 2026-11-02 (security update)
 Same program as 3.0.1, only updated packages (weekly security update, built, tested and scanned with Trivy automatically):
 - Base image: `python:3.13.17-slim-trixie@sha256:d98cc29d3266e535dd9da1099688d9cb3ca4753813571e071763d17725460962 → python:3.13.18-slim-trixie@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1`
@@ -175,7 +223,7 @@ Build and delivery reorganised: everything pinned, automatically secure and up t
 **Weekly security update** (`.github/workflows/security-update.yml`, Mondays 04:17 UTC, also manually)
 - Code of the highest release, re-pin versions, build once without cache for amd64 and arm64, compare with the
   published `latest` – nothing changed: do nothing. Otherwise: tests in the image, Trivy for both platforms, and only if
-  everything passes: publish exactly these images as `<version>-s<Zähler>`, locks and CHANGELOG entry (list of changed
+  everything passes: publish exactly these images as `<version>-s<counter>`, locks and CHANGELOG entry (list of changed
   packages) on `main`, then switch `latest`. Replaces the weekly rebuild `rebuild.yml`.
 - On release, too, both platforms are built once, tested and scanned, and exactly these images are published. The
   Debian state is always a fully imported point in time (previous day 00:00 UTC); the build checks that no package was

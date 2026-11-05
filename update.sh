@@ -113,27 +113,33 @@ ver_gt() {   # ver_gt A B: version A is newer than B
 
 # ---------------------------------------------------------------- .env
 env_get() {   # last value of KEY in .env (without quotes), empty if not set
+    # Read like Compose does: also "export KEY=…" and an unquoted " # comment" after the value
     [ -f .env ] || return 0
-    sed -n "s/^$1=//p" .env 2>/dev/null | tail -n1 | tr -d '"'"'"' \r' || true
+    sed -n "s/^[[:space:]]*\(export[[:space:]][[:space:]]*\)\{0,1\}$1=//p" .env 2>/dev/null | tail -n1 \
+        | sed 's/[[:space:]][[:space:]]*#.*$//' | tr -d '"'"'"' \r' || true
 }
 env_write() {   # replace .env with the content of file $1 – owner and permissions of .env stay
     cat -- "$1" > .env || { rm -f -- "$1"; die "Cannot write .env."; }
     rm -f -- "$1"
 }
-env_set() {   # set KEY=VALUE: replace an existing (or commented-out) line, otherwise append
+# Active lines as Compose reads them: "KEY=…", also indented or as "export KEY=…" (same as env_get)
+ENV_AWK_ACTIVE='"^[ \t]*(export[ \t]+)?"k"="'
+env_set() {   # set KEY=VALUE: replace the first (or commented-out) line, comment out later active ones, else append
     printf '%s\n' "$2" | grep -Eq '^[A-Za-z0-9._/:-]+$' || die "Invalid value for $1: $2"
     _t="$(mktemp "$DIR/.catalytix-env.XXXXXX")" || die "Cannot write .env."
-    if grep -qE "^#?$1=" .env 2>/dev/null; then
-        awk -v k="$1" -v v="$2" 'BEGIN{done=0} { if (!done && ($0 ~ "^"k"=" || $0 ~ "^#"k"=")) { print k"="v; done=1 } else if ($0 ~ "^"k"=") { print "#"$0 } else print }' .env > "$_t"
+    if [ -f .env ]; then
+        awk -v k="$1" -v v="$2" 'BEGIN{done=0; a='"$ENV_AWK_ACTIVE"'; c="^#"k"="} { if (!done && ($0 ~ a || $0 ~ c)) { print k"="v; done=1 } else if ($0 ~ a) { print "#"$0 } else print } END { if (!done) print k"="v }' .env > "$_t" \
+            || { rm -f -- "$_t"; die "Cannot write .env."; }
     else
-        { cat .env 2>/dev/null; printf '%s=%s\n' "$1" "$2"; } > "$_t"
+        printf '%s=%s\n' "$1" "$2" > "$_t"
     fi
     env_write "$_t"
 }
-env_unset() {   # comment out KEY
-    grep -qE "^$1=" .env 2>/dev/null || return 0
+env_unset() {   # comment out KEY (every active line)
+    grep -qE "^[[:space:]]*(export[[:space:]]+)?$1=" .env 2>/dev/null || return 0
     _t="$(mktemp "$DIR/.catalytix-env.XXXXXX")" || die "Cannot write .env."
-    sed "s/^$1=/#$1=/" .env > "$_t" || { rm -f -- "$_t"; die "Cannot write .env."; }
+    awk -v k="$1" 'BEGIN{a='"$ENV_AWK_ACTIVE"'} { if ($0 ~ a) print "#"$0; else print }' .env > "$_t" \
+        || { rm -f -- "$_t"; die "Cannot write .env."; }
     env_write "$_t"
 }
 ensure_env() {   # docker-compose.yml reads .env – Compose aborts if it is missing
@@ -160,6 +166,13 @@ elif command -v docker-compose >/dev/null 2>&1; then DCV=1
 else die "Docker Compose is missing (neither \"docker compose\" nor \"docker-compose\" found)."; fi
 # Reuse the project name of the running container – otherwise e.g. a symlinked folder gives another project name
 PROJECT="$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' "$CONTAINER" 2>/dev/null || true)"
+# --remove-orphans only for the project of THIS folder: a borrowed name (the container belongs to a larger stack
+# of a container manager) would make every other service of that stack an "orphan" and remove it
+ORPHANS=--remove-orphans
+if [ -n "$PROJECT" ]; then
+    WORKDIR="$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project.working_dir"}}' "$CONTAINER" 2>/dev/null || true)"
+    if [ -z "$WORKDIR" ] || [ "$(realpath_of "$WORKDIR")" != "$(realpath_of "$DIR")" ]; then ORPHANS=""; fi
+fi
 dc() {
     if [ "$DCV" = 2 ]; then
         if [ -n "$PROJECT" ]; then docker compose -p "$PROJECT" "$@"; else docker compose "$@"; fi
@@ -282,6 +295,13 @@ do_cleanup() {
     if [ -r /proc/mounts ] && awk '{ print $2 }' /proc/mounts | grep -q '\\012'; then
         die "A mount point with a line break in its name exists – cleaning up is refused to be safe."
     fi
+    # Names with a line break cannot be read line by line – a link "data/a<newline>b" would not protect its target
+    for d in data instance; do
+        [ -d "$d" ] || continue
+        if [ -n "$(find -H "$d" -name "*$NL*" 2>/dev/null | head -n1)" ]; then
+            die "A file name with a line break exists in $d/ – cleaning up is refused to be safe."
+        fi
+    done
     PROT=""
     PROT="$(mktemp "$DIR/.catalytix-protect.XXXXXX")" || die "Cannot write in $DIR."
     trap 'rm -f -- "$PROT"' EXIT
@@ -312,6 +332,14 @@ TMP="$(mktemp -d "$DIR/.catalytix-update.XXXXXX")" || die "No write access to $D
 COMPOSE_SWAPPED=0; DOWNGRADE=0; SAFETY=""
 
 ensure_env
+# CATALYTIX_TAG / CATALYTIX_IMAGE set in the shell win over .env in Compose – then another image would start
+# than the one this script fetches and checks (and on a downgrade after the database was put back)
+if [ -n "${CATALYTIX_TAG:-}" ] || [ -n "${CATALYTIX_IMAGE:-}" ]; then
+    die "CATALYTIX_TAG or CATALYTIX_IMAGE is set in your shell – it would win over .env. Run \"unset CATALYTIX_TAG CATALYTIX_IMAGE\" (or use --version=…) and start again. Nothing changed."
+fi
+# Check before anything is stopped or restored: a .env that cannot be written would otherwise only fail in
+# step 5 – after the database was already put back for a downgrade, with the container stopped
+[ -w .env ] || die "Cannot write .env (permissions, read-only mount?) – nothing changed."
 IMAGE="$(env_get CATALYTIX_IMAGE)"
 case "$IMAGE" in ""|catalytix) IMAGE="$DEFAULT_IMAGE" ;; esac   # "catalytix" = old locally built image
 OLD_TAG="$(env_get CATALYTIX_TAG)"
@@ -374,7 +402,7 @@ echo "Running: ${PREV_VER:-none}   new: $NEW_VER"
 # ---- 2. Files from the image (read before anything is changed)
 CID="$(docker create "$NEW_REF" 2>/dev/null)" || die "Could not read the image – nothing changed."
 docker cp "$CID:/app/dist/." "$TMP/" >/dev/null 2>&1 || true
-docker rm -f "$CID" >/dev/null 2>&1 || true
+docker rm -f -v "$CID" >/dev/null 2>&1 || true     # -v: also the anonymous /data volume
 
 # ---- 3. Going back to an older version: first the database a version up to that one can read
 if [ -n "$PREV_VER" ] && ver_gt "$PREV_VER" "$NEW_VER"; then
@@ -450,8 +478,14 @@ wait_healthy() {
     return 1
 }
 STARTED=0
-if dc up -d --remove-orphans "$SERVICE"; then
+if dc up -d $ORPHANS "$SERVICE"; then
     wait_healthy && STARTED=1
+fi
+if [ "$STARTED" = 1 ] && [ -n "$NEW_IMG" ] && [ "$(running_image)" != "$NEW_IMG" ]; then
+    # Compose started another image than the one fetched (e.g. CATALYTIX_TAG set in the shell, or another
+    # spelling in .env) – do not report success and do not replace update.sh
+    warn "The container runs another image than $NEW_REF – check CATALYTIX_TAG / CATALYTIX_IMAGE in .env and in your shell (\"env | grep CATALYTIX\")."
+    exit 1
 fi
 if [ "$STARTED" = 1 ]; then
     ok "Version $NEW_VER is running."

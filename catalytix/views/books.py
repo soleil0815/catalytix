@@ -78,6 +78,15 @@ def _get_book_or_404(book_id: int) -> Book:
     return book
 
 
+def _get_managed_book(book_id: int) -> Book:
+    """Book the current user may manage. 404 (not 403) for books they cannot even see, so a group-bound
+    librarian cannot tell which ids exist in other groups."""
+    book = _get_book_or_404(book_id)
+    if not current_user.can_manage(book):
+        abort(403 if current_user.can_see(book, get_setting("catalog_visibility") == "all") else 404)
+    return book
+
+
 def _check_group_allowed(group_id):
     if group_id is None:
         return None
@@ -314,8 +323,12 @@ def _apply_cover(book: Book, old_url: str = ""):
 @bp.route("/covers/<path:filename>")
 @login_required
 def cover(filename):
-    return send_from_directory(current_app.config["COVER_DIR"], secure_filename(filename),
+    resp = send_from_directory(current_app.config["COVER_DIR"], secure_filename(filename),
                                max_age=60 * 60 * 24 * 30)
+    # Only behind a login (covers of books in other groups): browsers may cache, shared proxies must not
+    resp.cache_control.public = False
+    resp.cache_control.private = True
+    return resp
 
 
 @bp.route("/covers/buch/<int:book_id>")
@@ -510,6 +523,22 @@ def _same_book(book: Book) -> Book | None:
     return None
 
 
+def _add_copies(same: Book, add: int) -> int:
+    """Add copies to an existing book (in SQL, so concurrent entries are all counted); returns how many were
+    really added (at the upper limit possibly fewer)."""
+    before = same.copies or 0
+    if add:
+        total = func.coalesce(Book.copies, 0) + add
+        db.session.execute(update(Book).where(Book.id == same.id)
+                           .values(copies=case((total > MAX_COPIES, MAX_COPIES), else_=total))
+                           .execution_options(synchronize_session=False))
+    db.session.commit()
+    from .. import reservations
+    reservations.promote(same.id)          # new copies go to the waiting queue first
+    db.session.refresh(same)
+    return max(0, (same.copies or 0) - before)
+
+
 @bp.route("/buecher/neu", methods=["GET", "POST"])
 @librarian_required
 def create():
@@ -522,18 +551,7 @@ def create():
             flash(_("Ein Titel ist erforderlich."), "error")
         elif (same := _same_book(book)) is not None:
             # Same book (ISBN) already exists in the same group: add copies there instead of creating a duplicate
-            add = book.copies or 0
-            before = same.copies or 0
-            if add:
-                total = func.coalesce(Book.copies, 0) + add       # in SQL: concurrent entries are both counted
-                db.session.execute(update(Book).where(Book.id == same.id)
-                                   .values(copies=case((total > MAX_COPIES, MAX_COPIES), else_=total))
-                                   .execution_options(synchronize_session=False))
-            db.session.commit()
-            from .. import reservations
-            reservations.promote(same.id)          # new copies go to the waiting queue first
-            db.session.refresh(same)
-            added = max(0, (same.copies or 0) - before)      # at the upper limit possibly fewer than entered
+            added = _add_copies(same, book.copies or 0)
             if added:
                 flash(_n("„{title}“ ist bereits im Bestand – {n} Exemplar hinzugefügt, jetzt {copies}. Die übrigen "
                          "Angaben des Formulars wurden nicht übernommen.",
@@ -568,9 +586,7 @@ def create():
 @bp.route("/buecher/<int:book_id>/bearbeiten", methods=["GET", "POST"])
 @librarian_required
 def edit(book_id):
-    book = _get_book_or_404(book_id)
-    if not current_user.can_manage(book):
-        abort(403)
+    book = _get_managed_book(book_id)
     if request.method == "POST":
         old_url = book.cover_url
         error = _fill_book(book)
@@ -593,9 +609,7 @@ def edit(book_id):
 @bp.route("/buecher/<int:book_id>/loeschen", methods=["POST"])
 @librarian_required
 def delete(book_id):
-    book = _get_book_or_404(book_id)
-    if not current_user.can_manage(book):
-        abort(403)
+    book = _get_managed_book(book_id)
     if book.active_loans:
         flash(_("Das Buch ist noch ausgeliehen und kann nicht gelöscht werden."), "error")
         return redirect(url_for("books.detail", book_id=book.id))
@@ -668,6 +682,12 @@ def api_quick_add():
         if not parse_id(gid):
             return jsonify({"ok": False, "error": _("Ungültige Anfrage.")}), 400
         book.group_id = _check_group_allowed(parse_id(gid))
+    if (same := _same_book(book)) is not None:
+        # Same ISBN already in this group (e.g. scanned twice in auto mode, or the page was stale): add the
+        # copies there instead of creating a duplicate – like the normal form does
+        _add_copies(same, book.copies or 0)
+        return jsonify({"ok": True, "id": same.id, "url": url_for("books.detail", book_id=same.id),
+                        "merged": True, "copies": same.copies})
     if book.cover_url:
         book.cover_file = _download_cover(book.cover_url)
     db.session.add(book)
@@ -678,9 +698,7 @@ def api_quick_add():
 @bp.route("/api/buecher/<int:book_id>/exemplar", methods=["POST"])
 @librarian_required
 def api_add_copy(book_id):
-    book = _get_book_or_404(book_id)
-    if not current_user.can_manage(book):
-        abort(403)
+    book = _get_managed_book(book_id)
     # Increment in SQL: two simultaneous clicks yield two copies, not one
     db.session.execute(update(Book).where(Book.id == book.id, Book.copies < MAX_COPIES)
                        .values(copies=func.coalesce(Book.copies, 0) + 1).execution_options(synchronize_session=False))

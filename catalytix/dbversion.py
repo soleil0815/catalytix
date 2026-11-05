@@ -15,10 +15,14 @@ from __future__ import annotations
 import logging
 import os
 import re
+from typing import TYPE_CHECKING
 
 from sqlalchemy import inspect, text
 
 from . import __version__
+
+if TYPE_CHECKING:
+    from flask_sqlalchemy import SQLAlchemy
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +33,7 @@ SKIP_ENV = "CATALYTIX_SKIP_DB_CHECK"
 
 def vtuple(v: str | None) -> tuple[int, int, int] | None:
     m = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", (v or "").strip())
-    return tuple(int(x) for x in m.groups()) if m else None
+    return (int(m[1]), int(m[2]), int(m[3])) if m else None
 
 
 class StartupRefused(RuntimeError):
@@ -41,7 +45,7 @@ class DatabaseTooNew(StartupRefused):
     """The database comes from a newer program version."""
 
 
-def read_stamp(db, key: str = KEY) -> str | None:
+def read_stamp(db: SQLAlchemy, key: str = KEY) -> str | None:
     """Stored version (None: new database or a database from before 3.0.0)."""
     insp = inspect(db.engine)
     if not insp.has_table("settings"):
@@ -51,7 +55,7 @@ def read_stamp(db, key: str = KEY) -> str | None:
     return (row[0] or None) if row else None
 
 
-def _write_setting(db, key: str, value: str) -> None:
+def _write_setting(db: SQLAlchemy, key: str, value: str) -> None:
     """Before the migrations: write directly to the settings table (the model may not match yet)."""
     col = _key_col(db)
     with db.engine.begin() as conn:
@@ -60,11 +64,12 @@ def _write_setting(db, key: str, value: str) -> None:
             conn.execute(text(f"INSERT INTO settings ({col}, value) VALUES (:k, :v)"), {"k": key, "v": value})
 
 
-def _key_col(db) -> str:
-    return db.engine.dialect.identifier_preparer.quote("key")   # "key" is a reserved word in MySQL
+def _key_col(db: SQLAlchemy) -> str:
+    quoted: str = db.engine.dialect.identifier_preparer.quote("key")
+    return quoted   # "key" is a reserved word in MySQL
 
 
-def is_empty(db) -> bool:
+def is_empty(db: SQLAlchemy) -> bool:
     """Not yet a Catalytix database (new installation)."""
     insp = inspect(db.engine)
     return not (insp.has_table("users") or insp.has_table("settings"))
@@ -79,7 +84,7 @@ def too_new_message(stamp: str, current: str = __version__) -> str:
             f"and older; see README, \"Going back\"). Nothing was changed.")
 
 
-def prepare(db, current: str = __version__) -> str:
+def prepare(db: SQLAlchemy, current: str = __version__) -> str:
     """Call before the migrations. Returns 'new' (empty database), 'same', 'upgrade' or 'skip'
     (CATALYTIX_SKIP_DB_CHECK – no migrations!). Aborts on a newer database."""
     if os.environ.get(SKIP_ENV) == "1":
@@ -89,7 +94,7 @@ def prepare(db, current: str = __version__) -> str:
         return "new"
     stamp = read_stamp(db)
     have, want = vtuple(stamp), vtuple(current)
-    if have is not None and want is not None and have > want:
+    if stamp is not None and have is not None and want is not None and have > want:
         log.error(too_new_message(stamp, current))
         raise DatabaseTooNew("Catalytix: " + too_new_message(stamp, current))
     if have is not None and have == want:
@@ -125,17 +130,23 @@ def _backup_before(current: str, stamp: str | None) -> None:
     log.info("Version change %s → %s: database backed up as %s", stamp or "before 3.0.0", current, path.name)
 
 
-def stamp(db, current: str = __version__) -> None:
+def stamp(db: SQLAlchemy, current: str = __version__) -> None:
     """After successful migrations: record this version."""
     from .models import Setting
     row = db.session.get(Setting, KEY)
+    changed = False
     if row is None:
         db.session.add(Setting(key=KEY, value=current))
+        changed = True
     elif row.value != current:
         row.value = current
-    else:
-        return
+        changed = True
+    # Clear the "backup already made" marker after EVERY successful start, also when the version stayed the
+    # same: after a failed upgrade and a return to the old version, the next upgrade attempt must make a new,
+    # current backup instead of relying on the stale one from weeks ago.
     marker = db.session.get(Setting, BACKUP_KEY)
-    if marker is not None:
+    if marker is not None and marker.value:
         marker.value = ""
-    db.session.commit()
+        changed = True
+    if changed:
+        db.session.commit()

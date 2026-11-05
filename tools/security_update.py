@@ -142,6 +142,10 @@ def main(argv: list[str] | None = None) -> int:
             print("no changes – no change log entry")
             return UNCHANGED
         first = not parse(old_text)
+        missing = [p.name for p in (CHANGELOG, CHANGELOG_EN) if not p.exists()]
+        if missing:   # both change logs or none – never only the German one
+            print(f"missing: {', '.join(missing)} – no change log entry written", file=sys.stderr)
+            return 1
         for path, lang in ((CHANGELOG, "de"), (CHANGELOG_EN, "en")):
             if path.exists():
                 path.write_text(insert_changelog(changelog_entry(tag, version, changes, first=first, lang=lang),

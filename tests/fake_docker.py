@@ -42,8 +42,14 @@ def env_file_value(key):
     val = None
     if p.exists():
         for line in p.read_text().splitlines():
+            line = line.strip()
+            if line.startswith("export "):          # like Compose: "export KEY=…" counts too
+                line = line[7:].lstrip()
             if line.startswith(key + "="):
-                val = line.split("=", 1)[1].strip().strip('"\'')
+                val = line.split("=", 1)[1].strip()
+                if val[:1] not in ("'", '"'):
+                    val = val.split(" #", 1)[0].split("\t#", 1)[0].strip()   # unquoted: " # comment" is not part of it
+                val = val.strip('"\'')
     return val
 
 
@@ -117,6 +123,8 @@ def main():
             return 1
         if ".Mounts" in fmt:
             print("\n".join(s.get("mounts", [])))
+        elif "com.docker.compose.project.working_dir" in fmt:
+            print(c.get("working_dir", ""))
         elif "com.docker.compose.project" in fmt:
             print(c.get("project", ""))
         elif ".State.Status" in fmt:

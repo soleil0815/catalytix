@@ -48,13 +48,23 @@ def archive_loans(loan_ids: list[int]) -> int:
     return total
 
 
+class OpenLoans(RuntimeError):
+    """The account still has ongoing loans – it must not be deleted."""
+
+
 def delete_user(user) -> list[int]:
     """Delete a user including completed loans (only counted per book, statistics remain).
 
     The caller checks beforehand that no loan is still ongoing; nothing is committed. Returns the books for which
     the account had open reservations – call reservations.promote_after_delete() after the commit so that a
     copy held for the account goes to the next people in the queue."""
-    from .models import RES_READY, RES_WAITING, Reservation
+    from .models import RES_READY, RES_WAITING, Reservation, User
+    if db.session.get_bind().dialect.name != "sqlite":
+        db.session.query(User.id).filter(User.id == user.id).with_for_update().first()
+    # Check again in SQL (the caller's check used loans loaded earlier): an ongoing loan must never be deleted
+    # together with the account – the book would then show as available although it is lent
+    if db.session.query(Loan.id).filter(Loan.user_id == user.id, Loan.returned_at.is_(None)).first() is not None:
+        raise OpenLoans(user.id)
     books = [b for (b,) in db.session.query(Reservation.book_id).filter(
         Reservation.user_id == user.id, Reservation.status.in_((RES_WAITING, RES_READY)))]
     ids = [i for (i,) in db.session.query(Loan.id).filter(Loan.user_id == user.id)]

@@ -564,5 +564,18 @@ class FoundationTests(unittest.TestCase):
             c.args[0] for c in stdout.write.call_args_list))
 
 
+
+class SecurityPolicyTests(unittest.TestCase):
+    """SECURITY.md: confidential reporting via GitHub, both languages, linked from both READMEs."""
+
+    def test_policy(self):
+        text = (ROOT / "SECURITY.md").read_text(encoding="utf-8")
+        self.assertIn("https://github.com/soleil0815/catalytix/security/advisories/new", text)
+        self.assertIn("## English", text)
+        self.assertIn("## Deutsch", text)
+        self.assertNotRegex(text, r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}")   # no personal e-mail address
+        self.assertIn("SECURITY.md#deutsch", (ROOT / "README.md").read_text(encoding="utf-8"))
+        self.assertIn("SECURITY.md#english", (ROOT / "README.en.md").read_text(encoding="utf-8"))
+
 if __name__ == "__main__":
     unittest.main()

@@ -28,11 +28,11 @@
       <label class="check"><input type="checkbox" name="backup_enabled" value="1" {{ 'checked' if s('backup_enabled') == '1' }}>
         <span><b>{{ _("Täglich automatisch sichern") }}</b></span></label>
       <div class="form-grid">
-        <div class="field span-3"><label>{{ _("Anzahl aufbewahrter Sicherungen") }}</label>
-          <input type="number" name="backup_keep" value="{{ keep }}" min="1" max="100">
+        <div class="field span-3"><label for="f-backup-keep">{{ _("Anzahl aufbewahrter Sicherungen") }}</label>
+          <input id="f-backup-keep" type="number" name="backup_keep" value="{{ keep }}" min="1" max="100">
           <div class="hint">{{ _("Standard 10 · bei täglicher Sicherung also 10 Tage") }}</div></div>
-        <div class="field span-3"><label>{{ _("Uhrzeit") }}</label>
-          <select name="backup_hour">
+        <div class="field span-3"><label for="f-backup-hour">{{ _("Uhrzeit") }}</label>
+          <select id="f-backup-hour" name="backup_hour">
             {% for h in range(24) %}<option value="{{ h }}" {{ 'selected' if s('backup_hour') == h|string }}>{{ _("ab {time} Uhr", time='%02d:00' % h) }}</option>{% endfor %}
           </select>
           <div class="hint">{{ _("am besten nachts") }}</div></div>

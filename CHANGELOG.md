@@ -3,6 +3,12 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.0.5 – 05.11.2026
+**Barrierefreiheit**
+- Alle Formularfelder haben jetzt einen Namen für Screenreader: Rund 100 Beschriftungen sind mit ihrem Feld
+  verknüpft (ein Klick auf die Beschriftung setzt auch den Cursor ins Feld), Such- und Filterfelder ohne sichtbare
+  Beschriftung haben eine unsichtbare. Ein Test rendert die Seiten mit Formularen und prüft jedes Feld.
+
 ## 3.0.4 – 05.11.2026
 **Sicherheit**
 - Active Directory: Ein bloßer Gruppenname bei den Rollen Administrator und Verwalter (z. B. `Bibliothek-Admins`)

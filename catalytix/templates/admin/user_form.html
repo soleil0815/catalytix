@@ -19,18 +19,18 @@
           <br><small class="mono">{{ user.ldap_dn }}</small></div></div>
       {% endif %}
       <div class="form-grid">
-        <div class="field span-3"><label>{{ _("Benutzername") }}</label>
-          <input type="text" name="username" value="{{ user.username or '' }}" required {{ "readonly" if ldap_user }}></div>
-        <div class="field span-3"><label>{{ _("Anzeigename") }}</label><input type="text" name="display_name" value="{{ user.display_name or '' }}"></div>
-        <div class="field span-6"><label>{{ _("E-Mail") }}</label><input type="email" name="email" value="{{ user.email or '' }}"></div>
-        <div class="field span-3"><label>{{ _("Rolle") }}</label>
-          <select name="role" {{ "disabled" if ldap_user }}>
+        <div class="field span-3"><label for="f-username">{{ _("Benutzername") }}</label>
+          <input id="f-username" type="text" name="username" value="{{ user.username or '' }}" required {{ "readonly" if ldap_user }}></div>
+        <div class="field span-3"><label for="f-display-name">{{ _("Anzeigename") }}</label><input id="f-display-name" type="text" name="display_name" value="{{ user.display_name or '' }}"></div>
+        <div class="field span-6"><label for="f-email">{{ _("E-Mail") }}</label><input id="f-email" type="email" name="email" value="{{ user.email or '' }}"></div>
+        <div class="field span-3"><label for="f-role">{{ _("Rolle") }}</label>
+          <select id="f-role" name="role" {{ "disabled" if ldap_user }}>
             {% for k, v in ROLES.items() %}<option value="{{ k }}" {{ 'selected' if user.role == k }}>{{ v }}</option>{% endfor %}
           </select>
           <div class="hint">{{ _("Leser: ausleihen · Verwalter: Bestand &amp; Ausleihe ihrer Gruppen · Administrator: alles") }}</div></div>
         {% if not ldap_user %}
-        <div class="field span-3"><label>{{ _("Passwort") if is_new else _("Neues Passwort") }}</label>
-          <input type="password" name="password" minlength="10" autocomplete="new-password" {{ "required" if is_new }}
+        <div class="field span-3"><label for="f-password">{{ _("Passwort") if is_new else _("Neues Passwort") }}</label>
+          <input id="f-password" type="password" name="password" minlength="10" autocomplete="new-password" {{ "required" if is_new }}
                  placeholder="{{ '' if is_new else _('leer lassen = unverändert') }}"></div>
         {% endif %}
       </div>

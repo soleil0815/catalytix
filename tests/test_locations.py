@@ -48,7 +48,7 @@ class LocationTests(unittest.TestCase):
     def test_without_list_free_text_as_before(self):
         self.login("bib")
         html = self.c.get("/buecher/neu").get_data(as_text=True)
-        self.assertIn('<input type="text" name="location"', html)
+        self.assertIn('<input id="f-location" type="text" name="location"', html)
         self.c.post("/buecher/neu", data={"title": "Faust", "location": "irgendwo"})
         self.assertEqual(Book.query.one().location, "irgendwo")
 
@@ -59,7 +59,7 @@ class LocationTests(unittest.TestCase):
         names = [l.name for l in Location.query.order_by(Location.name)]
         self.assertEqual(sorted(names), ["Lehrer zimmer", "Regal 10", "Regal 2"])
         html = self.c.get("/buecher/neu").get_data(as_text=True)
-        self.assertIn('<select name="location">', html)
+        self.assertIn('<select id="f-location" name="location">', html)
         self.assertLess(html.index(">Regal 2<"), html.index(">Regal 10<"))   # natural sort order
         self.c.post("/buecher/neu", data={"title": "Faust", "location": "REGAL 2"})
         self.assertEqual(Book.query.one().location, "Regal 2")                 # spelling aligned
@@ -80,7 +80,7 @@ class LocationTests(unittest.TestCase):
         self.assertTrue(r.get_json()["ok"])
         self.assertEqual(Book.query.one().location, "Regal 2")
         html = self.c.get("/buecher/schnellerfassung").get_data(as_text=True)
-        self.assertIn('<select data-quick-location>', html)
+        self.assertIn('<select id="quick-location" data-quick-location>', html)
 
     def test_existing_unlisted_value_may_stay_on_edit(self):
         b = Book(title="Alt", location="Keller")

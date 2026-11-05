@@ -38,8 +38,8 @@
       <form method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="action" value="data">
-        <div class="field"><label>{{ _("Anzeigename") }}</label><input type="text" name="display_name" maxlength="200" required value="{{ current_user.display_name or '' }}" autocomplete="name"></div>
-        <div class="field"><label>{{ _("E-Mail-Adresse") }}</label><input type="email" name="email" maxlength="200" value="{{ current_user.email or '' }}" autocomplete="email">
+        <div class="field"><label for="f-display-name">{{ _("Anzeigename") }}</label><input id="f-display-name" type="text" name="display_name" maxlength="200" required value="{{ current_user.display_name or '' }}" autocomplete="name"></div>
+        <div class="field"><label for="f-email">{{ _("E-Mail-Adresse") }}</label><input id="f-email" type="email" name="email" maxlength="200" value="{{ current_user.email or '' }}" autocomplete="email">
           {% if current_user.self_registered %}<div class="hint">{{ _("Eine neue Adresse gilt erst, wenn du den Link in der Bestätigungsmail öffnest (falls die Bibliothek das verlangt).") }}</div>{% endif %}</div>
         <button class="btn">{{ icon("check") }} {{ _("Speichern") }}</button>
       </form>
@@ -84,9 +84,9 @@
       <h3 style="margin-bottom: 14px">{{ _("Passwort ändern") }}</h3>
       <form method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="field"><label>{{ _("Aktuelles Passwort") }}</label><input type="password" name="current" required autocomplete="current-password"></div>
-        <div class="field"><label>{{ _("Neues Passwort") }}</label><input type="password" name="new" required minlength="10" autocomplete="new-password"></div>
-        <div class="field"><label>{{ _("Wiederholen") }}</label><input type="password" name="new2" required minlength="10" autocomplete="new-password"></div>
+        <div class="field"><label for="f-current">{{ _("Aktuelles Passwort") }}</label><input id="f-current" type="password" name="current" required autocomplete="current-password"></div>
+        <div class="field"><label for="f-new">{{ _("Neues Passwort") }}</label><input id="f-new" type="password" name="new" required minlength="10" autocomplete="new-password"></div>
+        <div class="field"><label for="f-new2">{{ _("Wiederholen") }}</label><input id="f-new2" type="password" name="new2" required minlength="10" autocomplete="new-password"></div>
         <button class="btn primary">{{ icon("lock") }} {{ _("Ändern") }}</button>
       </form>
     </section>

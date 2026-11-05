@@ -8,15 +8,15 @@
   <div class="actions"><a class="btn primary" href="{{ url_for('admin.user_new') }}">{{ icon("plus") }} {{ _("Lokaler Benutzer") }}</a></div>
 </div>
 <form class="toolbar" method="get">
-  <input class="grow" type="search" name="q" value="{{ q }}" placeholder="{{ _('Name, Benutzername, E-Mail …') }}">
-  <select name="status" data-autosubmit>
+  <input class="grow" type="search" name="q" value="{{ q }}" placeholder="{{ _('Name, Benutzername, E-Mail …') }}" aria-label="{{ _('Suchen …') }}">
+  <select name="status" data-autosubmit aria-label="{{ _('Status') }}">
     <option value="">{{ _("Alle Konten") }}</option>
     <option value="neu" {{ 'selected' if status == 'neu' }}>{{ _("Warten auf Freigabe") }}</option>
     <option value="registriert" {{ 'selected' if status == 'registriert' }}>{{ _("Selbst registriert") }}</option>
     <option value="gesperrt" {{ 'selected' if status == 'gesperrt' }}>{{ _("Gesperrt") }}</option>
     <option value="anmeldesperre" {{ 'selected' if status == 'anmeldesperre' }}>{{ _("Anmeldesperre (Fehlversuche)") }}</option>
   </select>
-  <select name="rolle" data-autosubmit>
+  <select name="rolle" data-autosubmit aria-label="{{ _('Rolle') }}">
     <option value="">{{ _("Alle Rollen") }}</option>
     {% for k, v in ROLES.items() %}<option value="{{ k }}" {{ 'selected' if role == k }}>{{ v }}</option>{% endfor %}
   </select>

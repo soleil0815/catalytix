@@ -12,8 +12,8 @@
     <h2 style="margin-bottom: 12px">{{ icon("plus") }} {{ _("Standorte anlegen") }}</h2>
     <form method="post" action="{{ url_for('locations.create') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div class="field"><label>{{ _("Namen – einer pro Zeile") }}</label>
-        <textarea name="names" rows="5" placeholder="{{ _("Regal A1&#10;Regal A2&#10;Lehrerzimmer&#10;Werkstatt, Schrank 3") }}" required></textarea>
+      <div class="field"><label for="f-names">{{ _("Namen – einer pro Zeile") }}</label>
+        <textarea id="f-names" name="names" rows="5" placeholder="{{ _("Regal A1&#10;Regal A2&#10;Lehrerzimmer&#10;Werkstatt, Schrank 3") }}" required></textarea>
         <div class="hint">{{ _("Mehrere auf einmal möglich. Groß-/Kleinschreibung wird beim Erfassen angeglichen.") }}</div></div>
       <button class="btn primary">{{ icon("check") }} {{ _("Anlegen") }}</button>
     </form>

@@ -27,8 +27,8 @@
             <span class="muted" data-preview-nologo {{ 'hidden' if brand.logo_url }}>{{ _("kein Logo") }}</span>
           </div>
         </div>
-        <div class="field" style="margin-top: 14px"><label>{{ _("Logo hochladen") }}</label>
-          <input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*" data-file-preview="logo"></div>
+        <div class="field" style="margin-top: 14px"><label for="f-logo">{{ _("Logo hochladen") }}</label>
+          <input id="f-logo" type="file" name="logo" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*" data-file-preview="logo"></div>
         <label class="check"><input type="checkbox" name="brand_logo_text" value="1" {{ 'checked' if s('brand_logo_text') != '0' }}>
           <span>{{ _("Namen der Bibliothek neben dem Logo anzeigen") }}<small class="muted">{{ _("Ausschalten, wenn euer Logo den Namen schon enthält. Den Namen legst du unter <i>Einstellungen</i> fest.") }}</small></span></label>
         <label class="check"><input type="checkbox" name="brand_logo_plate" value="1" {{ 'checked' if s('brand_logo_plate') == '1' }} data-plate-toggle>
@@ -72,21 +72,21 @@
           <div class="lp-form"><span></span><span></span><b></b></div>
         </div>
 
-        <div class="field" style="margin-top: 16px"><label>{{ _("Hintergrundbild") }}</label>
-          <input type="file" name="bg" accept=".png,.jpg,.jpeg,.webp,image/*" data-file-preview="bg">
+        <div class="field" style="margin-top: 16px"><label for="f-bg">{{ _("Hintergrundbild") }}</label>
+          <input id="f-bg" type="file" name="bg" accept=".png,.jpg,.jpeg,.webp,image/*" data-file-preview="bg">
           <div class="hint">{{ _("Querformat, mindestens 1600 px breit. Wird automatisch verkleinert; Metadaten (z. B. GPS) werden entfernt.") }}</div></div>
         {% if brand.bg_url %}<label class="check"><input type="checkbox" name="remove_bg" value="1"> <span>{{ _("Hintergrundbild entfernen") }}</span></label>{% endif %}
-        <div class="field"><label>{{ _("Abdunkeln für bessere Lesbarkeit:") }} <span data-dim-label>{{ brand.bg_dim }}</span> %</label>
-          <input type="range" name="brand_bg_dim" min="0" max="85" step="5" value="{{ brand.bg_dim }}" data-dim style="width: 100%"></div>
+        <div class="field"><label for="f-brand-bg-dim">{{ _("Abdunkeln für bessere Lesbarkeit:") }} <span data-dim-label>{{ brand.bg_dim }}</span> %</label>
+          <input id="f-brand-bg-dim" type="range" name="brand_bg_dim" min="0" max="85" step="5" value="{{ brand.bg_dim }}" data-dim style="width: 100%"></div>
         <label class="check"><input type="checkbox" name="login_show_shelf" value="1" {{ 'checked' if brand.show_shelf }} data-shelf-toggle>
           <span>{{ _("Bücherregal-Grafik anzeigen") }}</span></label>
         <div class="form-grid">
-          <div class="field span-6"><label>{{ _("Name der Bibliothek") }}</label>
-            <input type="text" name="library_name" value="{{ s('library_name') }}" maxlength="120"></div>
-          <div class="field span-6"><label>{{ _("Kleine Überschrift") }}</label>
-            <input type="text" name="login_eyebrow" value="{{ brand.eyebrow }}" maxlength="60" placeholder="{{ _('leer = ausblenden') }}" data-bind="eyebrow"></div>
-          <div class="field span-6"><label>{{ _("Begrüßungstext") }}</label>
-            <textarea name="login_text" maxlength="300" style="min-height: 70px" placeholder="{{ _('leer = ausblenden') }}" data-bind="text">{{ brand.text }}</textarea></div>
+          <div class="field span-6"><label for="f-library-name">{{ _("Name der Bibliothek") }}</label>
+            <input id="f-library-name" type="text" name="library_name" value="{{ s('library_name') }}" maxlength="120"></div>
+          <div class="field span-6"><label for="f-login-eyebrow">{{ _("Kleine Überschrift") }}</label>
+            <input id="f-login-eyebrow" type="text" name="login_eyebrow" value="{{ brand.eyebrow }}" maxlength="60" placeholder="{{ _('leer = ausblenden') }}" data-bind="eyebrow"></div>
+          <div class="field span-6"><label for="f-login-text">{{ _("Begrüßungstext") }}</label>
+            <textarea id="f-login-text" name="login_text" maxlength="300" style="min-height: 70px" placeholder="{{ _('leer = ausblenden') }}" data-bind="text">{{ brand.text }}</textarea></div>
         </div>
       </section>
     </div>

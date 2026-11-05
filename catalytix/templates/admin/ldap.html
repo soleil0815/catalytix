@@ -57,34 +57,34 @@
       <label class="check"><input type="checkbox" name="ldap_enabled" value="1" {{ 'checked' if v.ldap_enabled == '1' }}>
         <span><b>{{ _("Anmeldung über Verzeichnisdienst aktivieren") }}</b></span></label>
       <div class="form-grid">
-        <div class="field span-4"><label>{{ _("Server") }}</label>
-          <input class="mono" type="text" name="ldap_server" value="{{ v.ldap_server }}" placeholder="ldap://dc1.firma.local, ldap://dc2.firma.local">
+        <div class="field span-4"><label for="f-ldap-server">{{ _("Server") }}</label>
+          <input id="f-ldap-server" class="mono" type="text" name="ldap_server" value="{{ v.ldap_server }}" placeholder="ldap://dc1.firma.local, ldap://dc2.firma.local">
           <div class="hint">{{ _("Mehrere Domänencontroller mit Komma trennen (Failover).") }}</div></div>
-        <div class="field span-2"><label>{{ _("Sicherheit") }}</label>
-          <select name="ldap_security">
+        <div class="field span-2"><label for="f-ldap-security">{{ _("Sicherheit") }}</label>
+          <select id="f-ldap-security" name="ldap_security">
             <option value="none" {{ 'selected' if v.ldap_security == 'none' }}>{{ _("keine (389)") }}</option>
             <option value="starttls" {{ 'selected' if v.ldap_security == 'starttls' }}>StartTLS (389)</option>
             <option value="ldaps" {{ 'selected' if v.ldap_security == 'ldaps' }}>LDAPS (636)</option>
           </select>
           {% if v.ldap_security == 'none' and v.ldap_enabled == '1' %}<div class="hint" style="color: var(--warn)">{{ _("Unverschlüsselt: Passwörter gehen im Klartext über das Netz. LDAPS oder StartTLS verwenden.") }}</div>{% endif %}</div>
-        <div class="field span-6"><label>{{ _("Basis-DN") }}</label>
-          <input class="mono" type="text" name="ldap_base_dn" value="{{ v.ldap_base_dn }}" placeholder="DC=firma,DC=local"></div>
-        <div class="field span-6"><label>{{ _("Dienstkonto (Bind-DN)") }}</label>
-          <input class="mono" type="text" name="ldap_bind_dn" value="{{ v.ldap_bind_dn }}" placeholder="{{ _('CN=svc-catalytix,OU=Dienstkonten,DC=firma,DC=local  oder  svc-catalytix@firma.local') }}"></div>
-        <div class="field span-6"><label>{{ _("Passwort des Dienstkontos") }}</label>
-          <input type="password" name="ldap_bind_password" value="" autocomplete="new-password"
+        <div class="field span-6"><label for="f-ldap-base-dn">{{ _("Basis-DN") }}</label>
+          <input id="f-ldap-base-dn" class="mono" type="text" name="ldap_base_dn" value="{{ v.ldap_base_dn }}" placeholder="DC=firma,DC=local"></div>
+        <div class="field span-6"><label for="f-ldap-bind-dn">{{ _("Dienstkonto (Bind-DN)") }}</label>
+          <input id="f-ldap-bind-dn" class="mono" type="text" name="ldap_bind_dn" value="{{ v.ldap_bind_dn }}" placeholder="{{ _('CN=svc-catalytix,OU=Dienstkonten,DC=firma,DC=local  oder  svc-catalytix@firma.local') }}"></div>
+        <div class="field span-6"><label for="f-ldap-bind-password">{{ _("Passwort des Dienstkontos") }}</label>
+          <input id="f-ldap-bind-password" type="password" name="ldap_bind_password" value="" autocomplete="new-password"
                  placeholder="{{ _('•••••••• gespeichert – leer lassen = unverändert') if has_pw else '' }}">
           {% if has_pw %}<label class="check" style="margin-top: 8px"><input type="checkbox" name="clear_bind_password" value="1"> {{ _("Gespeichertes Passwort löschen") }}</label>
           <div class="hint">{{ _("Bei anderem Server oder Dienstkonto bitte neu eingeben.") }}</div>{% endif %}</div>
-        <div class="field span-6"><label>{{ _("UPN-Suffix") }} <small>{{ _("(nur ohne Dienstkonto)") }}</small></label>
-          <input class="mono" type="text" name="ldap_upn_suffix" value="{{ v.ldap_upn_suffix }}" placeholder="firma.local">
+        <div class="field span-6"><label for="f-ldap-upn-suffix">{{ _("UPN-Suffix") }} <small>{{ _("(nur ohne Dienstkonto)") }}</small></label>
+          <input id="f-ldap-upn-suffix" class="mono" type="text" name="ldap_upn_suffix" value="{{ v.ldap_upn_suffix }}" placeholder="firma.local">
           <div class="hint">{{ _("Ohne Dienstkonto meldet sich jeder Benutzer direkt als <code>benutzer@firma.local</code> an und sucht sich selbst.") }}</div></div>
-        <div class="field span-3"><label>{{ _("Login-Attribut") }}</label>
-          <input class="mono" type="text" name="ldap_user_attr" value="{{ v.ldap_user_attr }}"></div>
-        <div class="field span-3"><label>{{ _("Timeout (s)") }}</label>
-          <input type="number" name="ldap_timeout" value="{{ v.ldap_timeout }}" min="1" max="60"></div>
-        <div class="field span-6"><label>{{ _("Benutzerfilter") }}</label>
-          <input class="mono" type="text" name="ldap_user_filter" value="{{ v.ldap_user_filter }}">
+        <div class="field span-3"><label for="f-ldap-user-attr">{{ _("Login-Attribut") }}</label>
+          <input id="f-ldap-user-attr" class="mono" type="text" name="ldap_user_attr" value="{{ v.ldap_user_attr }}"></div>
+        <div class="field span-3"><label for="f-ldap-timeout">{{ _("Timeout (s)") }}</label>
+          <input id="f-ldap-timeout" type="number" name="ldap_timeout" value="{{ v.ldap_timeout }}" min="1" max="60"></div>
+        <div class="field span-6"><label for="f-ldap-user-filter">{{ _("Benutzerfilter") }}</label>
+          <input id="f-ldap-user-filter" class="mono" type="text" name="ldap_user_filter" value="{{ v.ldap_user_filter }}">
           <div class="hint">{{ _("z. B. <code>(&amp;(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))</code> schließt deaktivierte AD-Konten aus.") }}</div></div>
       </div>
       <label class="check"><input type="checkbox" name="ldap_nested_groups" value="1" {{ 'checked' if v.ldap_nested_groups == '1' }}>
@@ -153,8 +153,8 @@
         <span>{{ _("Hostname prüfen") }}<small class="muted">{{ _("Der Servername muss im Zertifikat stehen. Abschalten, wenn du den DC per IP-Adresse ansprichst.") }}</small></span></label>
       <details style="margin-top: 6px">
         <summary class="muted" style="cursor: pointer; font-size: 13.5px">{{ _("Erweitert: eigene CA-Datei") }}</summary>
-        <div class="field" style="margin-top: 10px"><label>{{ _("CA-Zertifikat (Pfad auf dem Server)") }}</label>
-          <input class="mono" type="text" name="ldap_ca_file" value="{{ v.ldap_ca_file }}" placeholder="/certs/firma-root-ca.pem">
+        <div class="field" style="margin-top: 10px"><label for="f-ldap-ca-file">{{ _("CA-Zertifikat (Pfad auf dem Server)") }}</label>
+          <input id="f-ldap-ca-file" class="mono" type="text" name="ldap_ca_file" value="{{ v.ldap_ca_file }}" placeholder="/certs/firma-root-ca.pem">
           <div class="hint">{{ _("Wird zusätzlich zu den abgerufenen Zertifikaten verwendet.") }}</div></div>
       </details>
     </section>
@@ -165,8 +165,8 @@
       <label class="check"><input type="checkbox" name="ldap_cache_enabled" value="1" {{ 'checked' if v.ldap_cache_enabled == '1' }}>
         <span>{{ _("Personen-Cache verwenden") }}<small class="muted">{{ _("Nur mit Dienstkonto. Ausschalten löscht die zwischengespeicherten Personen sofort; die bestehenden Konten werden dann nur noch einmal täglich abgeglichen.") }}</small></span></label>
       <div class="form-grid">
-        <div class="field span-3"><label>{{ _("Abgleich") }}</label>
-          <select name="ldap_cache_hours">
+        <div class="field span-3"><label for="f-ldap-cache-hours">{{ _("Abgleich") }}</label>
+          <select id="f-ldap-cache-hours" name="ldap_cache_hours">
             {% for h in cache.hours %}<option value="{{ h }}" {{ 'selected' if v.ldap_cache_hours == h|string }}>{{ _n("jede Stunde", "alle {n} Stunden", h) }}</option>{% endfor %}
           </select></div>
       </div>
@@ -187,13 +187,17 @@
       <section class="card card-pad">
         <h2 style="margin-bottom: 6px">{{ _("Wer darf was?") }}</h2>
         <p class="muted" style="font-size: 13.5px">{{ _("Trage pro Rolle die <b>AD-Gruppen</b> ein – eine pro Zeile, einfach mit ihrem Namen (z. B. <code>Bibliothek-Admins</code>). Mitglieder verschachtelter Gruppen zählen mit. Die höchste passende Rolle gewinnt; wer in keiner Gruppe ist, kann sich nicht anmelden.") }}</p>
-        <div class="field"><label>{{ icon("shield") }} {{ _("Administratoren") }}</label>
-          <textarea class="rule-box" name="ldap_admin_rules" data-rule-box="admin" placeholder="{{ _('Bibliothek-Admins') }}">{{ v.ldap_admin_rules }}</textarea>
+        {% if bare_strict %}
+        <div class="notice warn" style="margin-bottom: 12px">{{ _("Bei Administratoren oder Verwaltern steht noch ein bloßer Gruppenname ({names}). Er passt auf jede gleichnamige Gruppe im AD. Einmal speichern – dann wird er in den DN genau dieser Gruppe umgewandelt.", names=bare_strict|join(", ")) }}</div>
+        {% endif %}
+        <div class="field"><label for="f-ldap-admin-rules">{{ icon("shield") }} {{ _("Administratoren") }}</label>
+          <textarea id="f-ldap-admin-rules" class="rule-box" name="ldap_admin_rules" data-rule-box="admin" placeholder="{{ _('Bibliothek-Admins') }}">{{ v.ldap_admin_rules }}</textarea>
           <div class="hint">{{ _("Sicherer mit vollständigem DN (z. B. <code>CN=Bibliothek-Admins,OU=Gruppen,DC=firma,DC=local</code>): Ein bloßer Name passt auf jede gleichnamige Gruppe im AD – wer irgendwo Gruppen anlegen darf, könnte sich sonst selbst zum Administrator machen. „Gruppen laden“ übernimmt den DN per Klick.") }}</div></div>
-        <div class="field"><label>{{ icon("books") }} {{ _("Verwalter (Bibliothekspersonal)") }}</label>
-          <textarea class="rule-box" name="ldap_librarian_rules" data-rule-box="librarian" placeholder="{{ _('Bibliothek-Verwalter') }}">{{ v.ldap_librarian_rules }}</textarea></div>
-        <div class="field"><label>{{ icon("user") }} {{ _("Leser (Anmeldung erlaubt)") }}</label>
-          <textarea class="rule-box" name="ldap_login_rules" data-rule-box="reader" placeholder="{{ _('Bibliothek-Leser') }}&#10;{{ _('Domänen-Benutzer') }}">{{ v.ldap_login_rules }}</textarea></div>
+        <div class="field"><label for="f-ldap-librarian-rules">{{ icon("books") }} {{ _("Verwalter (Bibliothekspersonal)") }}</label>
+          <textarea id="f-ldap-librarian-rules" class="rule-box" name="ldap_librarian_rules" data-rule-box="librarian" placeholder="{{ _('Bibliothek-Verwalter') }}">{{ v.ldap_librarian_rules }}</textarea>
+          <div class="hint">{{ _("Beim Speichern werden bloße Gruppennamen bei Administratoren und Verwaltern in den DN genau dieser Gruppe umgewandelt (dafür ist das Dienstkonto nötig). Gibt es den Namen mehrfach oder gar nicht, wird nicht gespeichert.") }}</div></div>
+        <div class="field"><label for="f-ldap-login-rules">{{ icon("user") }} {{ _("Leser (Anmeldung erlaubt)") }}</label>
+          <textarea id="f-ldap-login-rules" class="rule-box" name="ldap_login_rules" data-rule-box="reader" placeholder="{{ _('Bibliothek-Leser') }}&#10;{{ _('Domänen-Benutzer') }}">{{ v.ldap_login_rules }}</textarea></div>
         <details class="muted" style="font-size: 13px; margin-bottom: 14px">
           <summary style="cursor: pointer">{{ _("Weitere Möglichkeiten") }}</summary>
           <p style="margin-top: 8px">{{ _("Statt eines Gruppennamens geht auch der vollständige DN einer Gruppe (<code>CN=Bibliothek-Admins,OU=Gruppen,DC=schule,DC=local</code>) – sinnvoll, wenn es denselben Namen mehrfach gibt – oder eine OU (<code>OU=Schueler,DC=schule,DC=local</code>): dann zählen alle Benutzer darunter.") }}</p>
@@ -202,14 +206,14 @@
         <hr>
         <h3 style="margin-bottom: 8px">{{ _("Gruppen aus dem AD auswählen") }}</h3>
         <div class="input-group">
-          <input type="search" name="group_query" value="{{ group_query }}" placeholder="{{ _('Name enthält … (leer = alle)') }}"
+          <input type="search" name="group_query" value="{{ group_query }}" aria-label="{{ _('Suchen …') }}" placeholder="{{ _('Name enthält … (leer = alle)') }}"
                  data-enter-clicks-next>
           <button class="btn" name="action" value="list_groups" formnovalidate>{{ icon("search") }} {{ _("Gruppen laden") }}</button>
         </div>
         {% if ad_groups is not none %}
         <div id="ad-groups" style="margin-top: 12px">
           {% if ad_groups %}
-          <input type="search" placeholder="{{ _('In {n} Gruppen filtern …', n=ad_groups|length) }}" data-filter-list="#ad-group-list" style="margin-bottom: 8px">
+          <input type="search" placeholder="{{ _('In {n} Gruppen filtern …', n=ad_groups|length) }}" aria-label="{{ _('In {n} Gruppen filtern …', n=ad_groups|length) }}" data-filter-list="#ad-group-list" style="margin-bottom: 8px">
           <div id="ad-group-list" style="max-height: 360px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px">
             {% for g in ad_groups %}
             <div class="list-row" data-filter-item style="padding: 9px 12px">
@@ -238,8 +242,8 @@
         <button class="btn" name="action" value="test_bind" formnovalidate>{{ icon("server") }} {{ _("Verbindung testen") }}</button>
         <hr>
         <div class="form-grid">
-          <div class="field span-3"><label>{{ _("Benutzername") }}</label><input type="text" name="test_user" autocomplete="off"></div>
-          <div class="field span-3"><label>{{ _("Passwort") }}</label><input type="password" name="test_password" autocomplete="new-password"></div>
+          <div class="field span-3"><label for="f-test-user">{{ _("Benutzername") }}</label><input id="f-test-user" type="text" name="test_user" autocomplete="off"></div>
+          <div class="field span-3"><label for="f-test-password">{{ _("Passwort") }}</label><input id="f-test-password" type="password" name="test_password" autocomplete="new-password"></div>
         </div>
         <button class="btn" name="action" value="test_user" formnovalidate>{{ icon("user") }} {{ _("Login testen") }}</button>
       </section>

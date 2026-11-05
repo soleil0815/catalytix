@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.0.3** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 3.0.6** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name eurer Bibliothek.
 
@@ -142,6 +142,7 @@ Zum Ausprobieren reicht `python wsgi.py` (nur `127.0.0.1:9300`). Das Image selbs
 
 | Lauf / Meldung | Bedeutung | Was zu tun ist |
 |---|---|---|
+| *Security update* – „lock: no release of … / no resolution … older than the cool-down“ | Ein neues oder geändertes Paket (auch eine neu hinzugekommene Abhängigkeit) ist jünger als 7 Tage, und es gibt keine ältere passende Version (sonst nimmt der Lauf automatisch die nächstältere) | Abwarten – ein späterer Lauf übernimmt es. Für einen dringenden Fix: *Run workflow* mit `cooldown_days` = `0` |
 | *Security update* – „Trivy: … blocking finding(s)“ | Ein Paket hat eine schwere Lücke mit Korrektur, die Korrektur ist aber noch nicht im Image – meist, weil sie jünger als 7 Tage ist | Abwarten (nächster Montag) oder *Actions → Security update → Run workflow* mit `cooldown_days` = `0` starten. Hilft das nicht: die Korrektur liegt außerhalb des Unterbaus (z. B. nur in einer neuen Hauptversion) – das Paket bewusst anheben |
 | *Daily scan* rot | Für das veröffentlichte Image wurde eine neue Lücke bekannt | Ebenso: *Security update* von Hand starten; ist sie nicht ausnutzbar, mit Begründung und Ablaufdatum in `.trivyignore` eintragen |
 | „Tests failed in the new image“ | Ein Paket-Update verträgt sich nicht mit dem Programm | Fehler im Log ansehen, Programm anpassen oder das Paket in `requirements.in` begrenzen, neue Programmversion |
@@ -222,6 +223,8 @@ Jedes Buch gehört entweder zu einer **Gruppe** oder ist **allgemein**. Allgemei
    ```
 
    Mit **„Gruppen laden“** zeigt Catalytix die Gruppen aus dem AD an; ein Klick auf *Admin*, *Verwalter* oder *Leser* übernimmt sie. Mitglieder verschachtelter Gruppen zählen mit. Die höchste passende Rolle gewinnt, wer in keiner Gruppe ist, wird abgewiesen. Rollen von AD-Benutzern werden bei jeder Anmeldung neu bestimmt – Änderungen im AD wirken also beim nächsten Login.
+
+   **Administratoren und Verwalter:** Ein bloßer Gruppenname passt auf jede gleichnamige Gruppe im AD – wer irgendwo Gruppen anlegen darf (z. B. Lehrkräfte in ihrer OU), könnte sich sonst selbst Rechte geben. Deshalb wandelt das Speichern bloße Namen bei diesen beiden Rollen in den DN genau dieser Gruppe um (mit Dienstkonto). Gibt es den Namen mehrfach oder gar nicht, wird nicht gespeichert. Ohne Dienstkonto, bei ausgeschaltetem oder nicht erreichbarem AD bleibt der Name stehen. Ältere Einstellungen mit bloßem Namen funktionieren weiter; die Seite *Active Directory* weist auf jeden bloßen Namen hin, bis er umgewandelt ist.
 
    Statt des Namens geht auch der vollständige DN einer Gruppe (falls ein Name mehrfach vorkommt) oder eine OU (`OU=Schueler,DC=schule,DC=local` – dann zählen alle Benutzer darunter).
 5. **Login testen** zeigt DN, alle Gruppen und die Rolle, die der Benutzer bekäme – ohne vorher speichern zu müssen.
@@ -486,7 +489,7 @@ Das Repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) e
 | Täglich | **Scan** des veröffentlichten `latest` (`scan.yml`) |
 | Montags | **Unterbau-Prüfung** (`foundation.yml`) |
 
-Für alle Workflows gilt: Actions auf Commit-Prüfsummen festgelegt, minimale Rechte je Job, keine gespeicherten Git-Anmeldedaten, veröffentlicht wird nur vom Zweig `main` und nie zweimal gleichzeitig, eine veröffentlichte Version wird nie überschrieben, `latest` zeigt immer auf die höchste Version. Trivy wird nicht als GitHub Action eingebunden (die Actions `trivy-action`/`setup-trivy` wurden im März 2026 kompromittiert, CVE-2026-33634), sondern als feste Version geladen und per SHA-256 geprüft (`tools/trivy.lock`, `tools/trivy_scan.py`). Gestoppt wird nur bei Schwachstellen HIGH/CRITICAL, für die es eine Korrektur gibt.
+Für alle Workflows gilt: Actions auf Commit-Prüfsummen festgelegt, minimale Rechte je Job, keine gespeicherten Git-Anmeldedaten, veröffentlicht wird nur vom Zweig `main`, je Workflow nur ein Lauf gleichzeitig, eine veröffentlichte Version wird nie überschrieben, `latest` zeigt immer auf die höchste Version (geprüft gegen die Releases und gegen das Image, auf das `latest` gerade zeigt). Jedes Image trägt seinen genauen Tag (`catalytix.tag`, z. B. `3.0.3-s1`) und den Commit, aus dem es gebaut wurde (`org.opencontainers.image.revision`; bei einem Sicherheitsupdate der Commit des Releases, dessen Programm es enthält): Das Release zeigt auf genau diesen Commit und enthält `update.sh`/`docker-compose.yml` aus dem Image, und `update.sh` geht bei einem Fehlstart auf genau diesen Tag zurück – ein Sicherheitsupdate wird dabei nicht zur Version ohne die Fixes. Trivy wird nicht als GitHub Action eingebunden (die Actions `trivy-action`/`setup-trivy` wurden im März 2026 kompromittiert, CVE-2026-33634), sondern als feste Version geladen und per SHA-256 geprüft (`tools/trivy.lock`, `tools/trivy_scan.py`). Gestoppt wird nur bei Schwachstellen HIGH/CRITICAL, für die es eine Korrektur gibt.
 
 **Erster Push:**
 

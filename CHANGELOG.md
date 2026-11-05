@@ -3,13 +3,52 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
-## 3.0.3 – 05.11.2026
+## 3.0.6 – 05.11.2026
 **Neu**
 - „Buy me a coffee“-Button unten in der Seitenleiste – nur für Admins sichtbar, öffnet die Unterstützerseite des
   Entwicklers in einem neuen Tab. Leser und Verwalter sehen ihn nicht.
 
 **Sicherheit**
-- Debian-Pakete auf den Stand vom 05.11.2026 (u. a. `apt` 3.0.3 → 3.0.4, Sicherheitslücke der Stufe HIGH).
+- Debian-Pakete auf den Stand vom 05.11.2026 (u. a. `apt` 3.0.3 → 3.0.4, CVE-2026-109518, Stufe HIGH). Die vorübergehende Ausnahme in `.trivyignore` aus 3.0.3 ist damit entfernt.
+
+## 3.0.5 – 05.11.2026
+**Barrierefreiheit**
+- Alle Formularfelder haben jetzt einen Namen für Screenreader: Rund 100 Beschriftungen sind mit ihrem Feld
+  verknüpft (ein Klick auf die Beschriftung setzt auch den Cursor ins Feld), Such- und Filterfelder ohne sichtbare
+  Beschriftung haben eine unsichtbare. Ein Test rendert die Seiten mit Formularen und prüft jedes Feld.
+
+## 3.0.4 – 05.11.2026
+**Sicherheit**
+- Active Directory: Ein bloßer Gruppenname bei den Rollen Administrator und Verwalter (z. B. `Bibliothek-Admins`)
+  passte auf jede gleichnamige Gruppe im ganzen Verzeichnis. Wer irgendwo Gruppen anlegen darf (z. B. Lehrkräfte in
+  ihrer OU), konnte sich so selbst Rechte geben. Beim Speichern wird ein solcher Name jetzt in den DN genau dieser
+  Gruppe umgewandelt (mit Dienstkonto). Gibt es den Namen mehrfach oder gar nicht, wird nicht gespeichert. Ohne
+  Dienstkonto, bei ausgeschaltetem oder nicht erreichbarem AD bleibt der Name stehen. Bestehende Einstellungen
+  funktionieren weiter; die Seite *Active Directory* weist auf bloße Namen hin, bis sie umgewandelt sind.
+
+## 3.0.3 – 05.11.2026
+**Sicherheit**
+- CVE-2026-109518 in apt (HIGH): vorübergehend in `.trivyignore` (bis 19.11.2026). apt wird nur beim Bau des Images
+  gebraucht, das laufende Programm ruft es nie auf. Die Korrektur (apt 3.0.4) ist noch nicht im verwendeten
+  Debian-Archivstand; das wöchentliche Sicherheitsupdate übernimmt sie.
+
+**Verbessert (Update-Weg und Build-Kette)**
+- Jedes Image trägt seinen genauen Tag (`catalytix.tag`, z. B. `3.0.3-s1`) und den Commit, aus dem es gebaut wurde
+  (`org.opencontainers.image.revision`; bei einem Sicherheitsupdate der Commit des zugrunde liegenden Releases). Das
+  wöchentliche Sicherheitsupdate legt den Tag dafür schon vor dem Bau fest.
+- update.sh geht nach einem Fehlstart auf genau den Tag des vorher laufenden Images zurück – auch wenn es ein
+  Sicherheitsupdate war, das nur als `latest` geholt wurde (bisher wurde daraus die Version ohne die Fixes). Bei
+  älteren Images ohne diese Angabe weist update.sh darauf hin.
+- Das GitHub-Release zeigt immer auf den Commit, aus dem das veröffentlichte Image gebaut wurde, und enthält
+  `update.sh`, `docker-compose.yml` und `env.example` aus dem Image selbst – auch wenn das Release erst in einem
+  späteren Lauf entsteht.
+- Build und Sicherheitsupdate begrenzen gleichzeitige Läufe jetzt je Workflow statt je Job (eine gemeinsame
+  Job-Gruppe ließ GitHub wartende Jobs abbrechen, z. B. das Release nach dem Veröffentlichen des Images). `latest`
+  wird nie auf eine niedrigere Version verschoben – geprüft gegen die Releases und gegen das Image, auf das `latest`
+  gerade zeigt.
+- Die 7-Tage-Wartezeit gilt jetzt für jede neue oder geänderte Paketversion – auch für Pakete, die als neue
+  Abhängigkeit hinzukommen, und für frisch hochgeladene ältere Versionen. Ist eine gewählte Version zu jung, nimmt
+  das Sicherheitsupdate die nächstältere statt ganz abzubrechen.
 
 ## 3.0.2 – 05.11.2026
 **Sicherheit**

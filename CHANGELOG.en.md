@@ -2,13 +2,50 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
-## 3.0.3 – 2026-11-05
+## 3.0.6 – 2026-11-05
 **New**
 - "Buy me a coffee" button at the bottom of the sidebar – visible to admins only, opens the developer's support
   page in a new tab. Readers and librarians don't see it.
 
 **Security**
-- Debian packages at the state of 2026-11-05 (including `apt` 3.0.3 → 3.0.4, HIGH severity vulnerability).
+- Debian packages at the state of 2026-11-05 (including `apt` 3.0.3 → 3.0.4, CVE-2026-109518, HIGH severity). The temporary exception in `.trivyignore` from 3.0.3 is removed with it.
+
+## 3.0.5 – 2026-11-05
+**Accessibility**
+- Every form field now has a name for screen readers: about 100 labels are linked to their field (clicking the label
+  also puts the cursor into the field), search and filter fields without a visible label have an invisible one. A
+  test renders the pages with forms and checks every field.
+
+## 3.0.4 – 2026-11-05
+**Security**
+- Active Directory: a bare group name for the administrator and librarian roles (e.g. `Bibliothek-Admins`) matched
+  every group of that name in the whole directory. Whoever may create groups somewhere (e.g. teachers in their OU)
+  could give themselves rights that way. When saving, such a name is now turned into the DN of exactly that group
+  (with a service account). If the name exists more than once or not at all, nothing is saved. Without a service
+  account, with AD switched off or not reachable, the name stays. Existing settings keep working; the *Active
+  Directory* page points out bare names until they have been converted.
+
+## 3.0.3 – 2026-11-05
+**Security**
+- CVE-2026-109518 in apt (HIGH): temporarily in `.trivyignore` (until 2026-11-19). apt is only used while building
+  the image, the running program never calls it. The fix (apt 3.0.4) is not yet in the Debian archive state the build
+  uses; the weekly security update takes it.
+
+**Improved (update path and build chain)**
+- Every image carries its exact tag (`catalytix.tag`, e.g. `3.0.3-s1`) and the commit it was built from
+  (`org.opencontainers.image.revision`; for a security update the commit of the underlying release). The weekly
+  security update chooses the tag before the build for that.
+- After a failed start, update.sh goes back to exactly the tag of the image that ran before – also when it was a
+  security update fetched only as `latest` (before, it became the version without the fixes). For older images
+  without this information, update.sh says so.
+- The GitHub release always points to the commit the published image was built from and contains `update.sh`,
+  `docker-compose.yml` and `env.example` from the image itself – also when the release is only created in a later run.
+- Build and security update now limit concurrent runs per workflow instead of per job (a shared job group let GitHub
+  cancel waiting jobs, e.g. the release after the image was published). `latest` is never moved to a lower version –
+  checked against the releases and against the image `latest` currently points to.
+- The 7-day cool-down now applies to every new or changed package version – also to packages that come in as a new
+  dependency, and to freshly uploaded older versions. If a chosen version is too young, the security update takes the
+  next older one instead of giving up.
 
 ## 3.0.2 – 2026-11-05
 **Security**

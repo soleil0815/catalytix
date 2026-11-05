@@ -14,7 +14,7 @@
       <h2>{{ _("ISBN scannen") }}</h2>
       <p class="muted">{{ _('Barcodescanner einfach auslösen – oder Nummer eintippen und <span class="kbd">Enter</span> drücken.') }}</p>
       <form data-quick-form autocomplete="off">
-        <input class="isbn-input" type="text" id="quick-isbn" inputmode="numeric" placeholder="ISBN" autofocus data-quick-input>
+        <input class="isbn-input" type="text" id="quick-isbn" inputmode="numeric" placeholder="ISBN" aria-label="ISBN" autofocus data-quick-input>
       </form>
       <div class="actions" style="justify-content: center; margin-top: 14px">
         <button type="button" class="btn" data-scanner-open data-scanner-target="#quick-isbn" data-scanner-submit>{{ icon("camera") }} {{ _("Mit Kamera scannen") }}</button>
@@ -28,19 +28,19 @@
   <div class="stack">
     <section class="card card-pad">
       <h3 style="margin-bottom: 14px">{{ _("Vorgaben für neue Titel") }}</h3>
-      <div class="field"><label>{{ _("Gruppe") }}</label>
-        <select data-quick-group>
+      <div class="field"><label for="quick-group">{{ _("Gruppe") }}</label>
+        <select id="quick-group" data-quick-group>
           <option value="">{{ _("Allgemein") }}</option>
           {% for g in groups %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
         </select></div>
-      <div class="field"><label>{{ _("Standort") }}</label>
+      <div class="field"><label for="quick-location">{{ _("Standort") }}</label>
         {% if location_names %}
-        <select data-quick-location>
+        <select id="quick-location" data-quick-location>
           <option value="">{{ _("– kein Standort –") }}</option>
           {% for n in location_names %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
         </select>
         {% else %}
-        <input type="text" data-quick-location placeholder="{{ _("z. B. Regal B3") }}">
+        <input id="quick-location" type="text" data-quick-location placeholder="{{ _("z. B. Regal B3") }}">
         <div class="hint">{{ _('<a href="{url}">Standorte festlegen</a>, um hier auszuwählen statt zu tippen.', url=url_for('locations.index')) }}</div>
         {% endif %}</div>
     </section>

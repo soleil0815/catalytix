@@ -148,6 +148,8 @@ def main():
             print(img["id"])
         elif "image.version" in fmt:
             print(img["version"])
+        elif "catalytix.tag" in fmt:          # images from 3.0.3 on carry their exact tag
+            print(img.get("tag", ""))
         return 0
     if cmd == "image" and args[1] == "ls":
         for ref in s["images"]:

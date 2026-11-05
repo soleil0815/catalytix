@@ -130,12 +130,12 @@
     <h3 id="verleihen" style="margin-bottom: 10px">{{ _("An Benutzer verleihen") }}</h3>
     <form method="post" action="{{ url_for('loans.borrow', book_id=book.id) }}" class="form-grid">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div class="field span-4"><label>{{ _("Benutzer") }}</label>
-        <div class="user-search"><input type="text" name="benutzer" required data-user-search autocomplete="off"{% if request.args.get("verleihen") %} autofocus{% endif %}
+      <div class="field span-4"><label for="f-benutzer">{{ _("Benutzer") }}</label>
+        <div class="user-search"><input id="f-benutzer" type="text" name="benutzer" required data-user-search autocomplete="off"{% if request.args.get("verleihen") %} autofocus{% endif %}
                placeholder="{{ _("Name, Benutzername oder E-Mail") }}" role="combobox" aria-autocomplete="list" aria-expanded="false"></div>
         <div class="hint">{% if directory_search %}{{ _("Findet auch Personen aus dem Active Directory, die sich noch nie angemeldet haben.") }} {% endif %}{{ _("Ob die Person dieses Buch ausleihen darf, wird beim Verleihen geprüft.") }}</div></div>
-      <div class="field span-2"><label>{{ _("Fällig am") }}</label><input type="date" name="due_at"></div>
-      <div class="field span-6"><label>{{ _("Notiz <small>(optional)</small>") }}</label><input type="text" name="note" maxlength="500"></div>
+      <div class="field span-2"><label for="f-due-at">{{ _("Fällig am") }}</label><input id="f-due-at" type="date" name="due_at"></div>
+      <div class="field span-6"><label for="f-note">{{ _("Notiz <small>(optional)</small>") }}</label><input id="f-note" type="text" name="note" maxlength="500"></div>
       <div class="span-6"><button class="btn primary">{{ icon("check") }} {{ _("Verleihen") }}</button></div>
     </form>
     {% endif %}

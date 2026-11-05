@@ -16,24 +16,24 @@
 </div>
 
 <form class="toolbar" method="get">
-  <input class="grow" type="search" name="q" value="{{ q }}" placeholder="{{ _("Suchen …") }}">
-  <select name="gruppe" data-autosubmit>
+  <input class="grow" type="search" name="q" value="{{ q }}" placeholder="{{ _("Suchen …") }}" aria-label="{{ _('Katalog durchsuchen') }}">
+  <select name="gruppe" data-autosubmit aria-label="{{ _('Gruppe') }}">
     <option value="">{{ _("Alle Gruppen") }}</option>
     <option value="allgemein" {{ 'selected' if group == 'allgemein' }}>{{ _("Allgemein") }}</option>
     {% for g in groups %}<option value="{{ g.id }}" {{ 'selected' if group == g.id|string }}>{{ g.name }}</option>{% endfor %}
   </select>
   {% if location_names %}
-  <select name="standort" data-autosubmit>
+  <select name="standort" data-autosubmit aria-label="{{ _('Standort') }}">
     <option value="">{{ _("Alle Standorte") }}</option>
     {% for n in location_names %}<option value="{{ n }}" {{ 'selected' if location == n }}>{{ n }}</option>{% endfor %}
   </select>
   {% endif %}
-  <select name="status" data-autosubmit>
+  <select name="status" data-autosubmit aria-label="{{ _('Status') }}">
     <option value="">{{ _("Jeder Status") }}</option>
     <option value="verfuegbar" {{ 'selected' if status == 'verfuegbar' }}>{{ _("Verfügbar") }}</option>
     <option value="ausgeliehen" {{ 'selected' if status == 'ausgeliehen' }}>{{ _("Ausgeliehen") }}</option>
   </select>
-  <select name="sort" data-autosubmit>
+  <select name="sort" data-autosubmit aria-label="{{ _('Sortierung') }}">
     <option value="title" {{ 'selected' if sort == 'title' }}>{{ _("Titel A–Z") }}</option>
     <option value="author" {{ 'selected' if sort == 'author' }}>{{ _("Autor A–Z") }}</option>
     <option value="new" {{ 'selected' if sort == 'new' }}>{{ _("Zuletzt erfasst") }}</option>

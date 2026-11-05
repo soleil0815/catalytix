@@ -65,6 +65,10 @@
       <a href="{{ url_for('main.about') }}" title="{{ _('Version, Lizenz und Quellcode') }}">{{ _("Version {version}", version=version) }}</a>
       <a class="side-news" href="{{ url_for('main.whats_new') }}">{{ _("Neuigkeiten") }}{% if news_unseen %}<span class="news-dot" title="{{ _('Es gibt Neuigkeiten') }}"></span><span class="sr-only">{{ _("(neu)") }}</span>{% endif %}</a>
     </div>
+    {% if current_user.is_admin %}{# admins only: link to support the developer (external site, opens in a new tab) #}
+    <a class="coffee-btn" href="{{ support_url }}" target="_blank" rel="noopener noreferrer"
+       title="{{ _('Die Weiterentwicklung unterstützen (nur für Admins sichtbar)') }}">{{ icon("coffee") }} Buy me a coffee</a>
+    {% endif %}
     <div class="side-foot">
       <a href="{{ url_for('main.profile') }}" class="avatar" title="{{ _('Profil') }}">{{ current_user.initials }}</a>
       <a class="who" href="{{ url_for('main.profile') }}" title="{{ _('Mein Profil') }}" style="text-decoration: none"><b>{{ current_user.name }}</b><span>{{ current_user.role_label }}{% if current_user.auth_source == 'ldap' %} · AD{% endif %}</span></a>

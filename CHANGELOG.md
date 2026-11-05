@@ -3,6 +3,11 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.0.3 – 05.11.2026
+**Neu**
+- „Buy me a coffee“-Button unten in der Seitenleiste – nur für Admins sichtbar, öffnet die Unterstützerseite des
+  Entwicklers in einem neuen Tab. Leser und Verwalter sehen ihn nicht.
+
 ## 3.0.2 – 05.11.2026
 **Sicherheit**
 - Bestätigungslinks für eine neue E-Mail-Adresse (selbst registrierte Konten) gelten nur noch, solange das Konto

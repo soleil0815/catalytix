@@ -171,7 +171,10 @@ def _change_serializer():
 
 def send_email_change(user: User, new_email: str) -> bool:
     """Apply the new address only after confirmation (link sent to the NEW address)."""
-    token = _change_serializer().dumps({"uid": user.id, "email": new_email, "epoch": user.auth_epoch or 0})
+    # "old": the link is only valid while the account still has the address it was requested from – after one
+    # change is confirmed, every other (older) link becomes invalid and none can be used twice
+    token = _change_serializer().dumps({"uid": user.id, "email": new_email, "old": user.email or "",
+                                        "epoch": user.auth_epoch or 0})
     link = _link("register.confirm_email_change", token=token)
     if not link:
         return False
@@ -193,9 +196,13 @@ def confirm_email_change(token):
     except BadSignature:
         abort(404)
     user = db.session.get(User, data.get("uid"))
-    if user is None or (user.auth_epoch or 0) != data.get("epoch"):
+    if (user is None or (user.auth_epoch or 0) != data.get("epoch") or user.auth_source != "local"
+            or data.get("old") != (user.email or "")):
         abort(404)
     new = (data.get("email") or "").strip()
+    if not _allowed_domain(new):                 # the allowed domains may have changed since the request
+        flash(_("Diese E-Mail-Adresse ist für dein Konto nicht erlaubt."), "error")
+        return redirect(url_for("main.profile"))
     taken = User.query.filter(func.lower(User.email) == new.lower(), User.id != user.id).first()
     if not new or taken is not None:
         flash(_("Diese E-Mail-Adresse wird bereits von einem anderen Konto verwendet."), "error")

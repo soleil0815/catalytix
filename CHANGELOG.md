@@ -3,6 +3,55 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.0.2 – 05.11.2026
+**Sicherheit**
+- Bestätigungslinks für eine neue E-Mail-Adresse (selbst registrierte Konten) gelten nur noch, solange das Konto
+  die Adresse hat, von der aus die Änderung angefordert wurde: Nach einer bestätigten Änderung sind alle älteren
+  Links ungültig, und kein Link funktioniert zweimal. Bisher konnte z. B. ein Link an eine vertippte Adresse noch
+  48 Stunden lang das Konto auf diese Adresse umstellen. Die erlaubten Domains werden beim Bestätigen erneut geprüft.
+- Impressum- und Datenschutz-Link: Angaben wie `//andere-seite.example` werden nicht mehr gespeichert. In E-Mails
+  stehen relative Pfade (`/datenschutz`) jetzt als vollständige Adresse auf Basis der eingestellten Programmadresse.
+- Gruppengebundene Verwalter bekommen für Bücher anderer Gruppen, die sie nicht sehen dürfen, „nicht gefunden“
+  (404) statt „verboten“ (403) – so lässt sich nicht mehr erkennen, welche Buchnummern es dort gibt.
+- Coverbilder werden nur noch als „private“ zwischengespeichert, nicht mehr in gemeinsam genutzten Proxys.
+
+**Behoben**
+- Update: Schlug ein Versionswechsel fehl und lief danach wieder die alte Version, machte der nächste Update-Versuch
+  keine neue Sicherung vor der Umstellung (es galt noch die alte vom ersten Versuch). Jetzt wird bei jedem
+  erfolgreichen Start zurückgesetzt, dass die Sicherung schon gemacht ist.
+- Schnellerfassung: Wird dieselbe ISBN zweimal gescannt (z. B. im Automatik-Modus kurz hintereinander), zählt der
+  Server die Exemplare beim vorhandenen Buch derselben Gruppe dazu, statt ein zweites Buch anzulegen.
+- Benutzer löschen: Hat das Konto in diesem Moment doch noch eine laufende Ausleihe, wird es nicht gelöscht
+  (bisher hätte die Ausleihe mit gelöscht werden können).
+- update.sh:
+  - prüft vor jeder Änderung, ob `.env` beschreibbar ist – bisher konnte ein Downgrade bei schreibgeschützter
+    `.env` mit gestopptem Container und schon zurückgesetzter Datenbank abbrechen;
+  - liest `.env` wie Docker Compose (`export CATALYTIX_TAG=…` und Kommentare hinter dem Wert);
+  - meldet keinen Erfolg mehr, wenn Compose ein anderes Image startet als das geholte (z. B. weil `CATALYTIX_TAG`
+    in der Shell gesetzt ist);
+  - entfernt „verwaiste“ Container (`--remove-orphans`) nur noch im Compose-Projekt dieses Ordners – nicht mehr in
+    einem fremden Stack, dessen Namen der Container trägt;
+  - entfernt den kurzzeitig angelegten Hilfscontainer samt seinem anonymen Volume;
+  - `--cleanup` bricht ab, wenn im Datenordner ein Dateiname mit Zeilenumbruch liegt (sonst wäre ein Link mit so
+    einem Namen nicht als geschützt erkannt worden).
+- Build: Die Paketliste im Image bricht den Bau bei einem Fehler ab, statt unvollständig zu bleiben;
+  `highest_release` wertet eine unlesbare Release-Liste nicht mehr als „noch keine Version“;
+  `tools/security_update.py changelog` schreibt nur, wenn beide CHANGELOGs vorhanden sind.
+- Zwei-Faktor-Anmeldung: Authenticator-App und Passkey zeigen bei unverändertem Bibliotheksnamen den Namen in der
+  Sprache der Oberfläche („Library“ statt „Bibliothek“ auf Englisch).
+
+**Oberfläche und Barrierefreiheit**
+- Handy: In der Ausleihliste brechen Namen nicht mehr Buchstabe für Buchstabe um.
+- Die zugeklappte Seitenleiste auf dem Handy ist mit der Tab-Taste nicht mehr erreichbar; der Menüknopf meldet,
+  ob sie offen ist.
+- „+ Buch“ (oben auf dem Handy) und die Kamera-Knöpfe an der Ausleihtheke haben einen Namen für Screenreader.
+- Mehr Kontrast für graue Hinweistexte, Tabellenköpfe und Messing-Schrift (WCAG AA).
+
+**Qualität**
+- Typprüfung: `dbversion.py`, `composefile.py` und `lockout.py` werden jetzt streng geprüft. Übrige Funde: 58.
+- Doku: `.env.example` nennt `CATALYTIX_COVER_VIA_PROXY`; README (englisch) sagt richtig, dass die Oberfläche
+  zweisprachig ist.
+
 ## 3.0.1-s1 – 02.11.2026 (Sicherheitsupdate)
 Gleiches Programm wie 3.0.1, nur aktualisierte Pakete (wöchentliches Sicherheitsupdate, automatisch gebaut, getestet und mit Trivy geprüft):
 - Basis-Image: `python:3.13.17-slim-trixie@sha256:d98cc29d3266e535dd9da1099688d9cb3ca4753813571e071763d17725460962 → python:3.13.18-slim-trixie@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1`

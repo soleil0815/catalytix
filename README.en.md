@@ -1,10 +1,10 @@
 # Catalytix
 
-**Version 3.0.1** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.0.2** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
-> **Note:** The user interface is in German. Menu names in this document are given in German with an English translation, e.g. *Administration → Einstellungen* (Settings).
+> **Note:** The user interface is bilingual – German and English (switch DE/EN at the top; the language of the browser is used first). Some menu names in this document are still given in German with the English label, e.g. *Administration → Einstellungen* (Settings).
 
 - **Catalogue** – add books by hand or by ISBN: USB/Bluetooth barcode scanner, phone/laptop camera or typing. Metadata and covers are fetched automatically from the German National Library (DNB), Open Library and Google Books.
 - **Locations** – fixed list of shelves and rooms; picked from a list instead of typed when adding books.
@@ -523,8 +523,8 @@ python -m unittest discover -s tests -v
 ```
 
 **Type checking (mypy):** introduced step by step. `mypy.ini` strictly checks the modules where errors do the most
-damage – currently `backup.py`, `netzone.py`, `proxy.py`, `models.py` (permission checks) and the build chain in
-`tools/`. This check must pass on every pull request. `mypy-report.ini` checks all modules and only lists the
+damage – currently `backup.py`, `netzone.py`, `proxy.py`, `models.py` (permission checks), `dbversion.py` (database version on
+updates), `composefile.py`, `lockout.py` (sign-in lock) and the build chain in `tools/`. This check must pass on every pull request. `mypy-report.ini` checks all modules and only lists the
 findings in the summary of the CI run, without failing it. Every audit and every version moves more modules into
 the strict list.
 

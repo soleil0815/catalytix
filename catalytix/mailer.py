@@ -217,6 +217,17 @@ def send_mail(to: str, subject: str, text: str, html: str | None = None, *, kind
 
 # ---------------------------------------------------------------- Content
 
+def _mail_link(url: str, base: str) -> str:
+    """Imprint/privacy link for a mail: absolute addresses as they are, a path ("/datenschutz") only together
+    with app_base_url (a mail has no page it could be relative to), anything else not at all."""
+    url = (url or "").strip()
+    if url.startswith(("https://", "http://")):
+        return url
+    if url.startswith("/") and not url.startswith(("//", "/\\")) and base:
+        return base + url
+    return ""
+
+
 def _ctx(**extra) -> dict:
     from .branding import mail_colors
     base = (get_setting("app_base_url") or "").rstrip("/")
@@ -227,7 +238,8 @@ def _ctx(**extra) -> dict:
             "mail_logo_url": logo_url, "mail_logo_plate": get_setting("brand_logo_plate") == "1",
             "mail_show_text": get_setting("brand_logo_text") != "0", **mail_colors(),
             "footer": get_setting("mail_footer"), "today": date.today(),
-            "imprint_url": get_setting("imprint_url"), "privacy_url": get_setting("privacy_url"),
+            "imprint_url": _mail_link(get_setting("imprint_url"), base),
+            "privacy_url": _mail_link(get_setting("privacy_url"), base),
             "max_ext": get_int("max_extensions", 2), "self_extend": get_bool("self_extend"), **extra}
 
 
@@ -572,11 +584,14 @@ def cleanup_unverified(days: int = 7) -> int:
     limit = datetime.now() - timedelta(days=days)
     stale = User.query.filter(User.self_registered.is_(True), User.email_verified.is_(False),
                               User.created_at < limit).all()
-    from .retention import delete_user
+    from .retention import OpenLoans, delete_user
     books = []
     for u in stale:
         if not u.active_loans:
-            books += delete_user(u)   # also with completed loans (otherwise IntegrityError)
+            try:
+                books += delete_user(u)   # also with completed loans (otherwise IntegrityError)
+            except OpenLoans:             # lent in the meantime: keep the account
+                continue
     if stale:
         db.session.commit()
         from .reservations import promote_after_delete

@@ -52,7 +52,7 @@ class GroupScopeTests(Base):
         self.assertFalse(bib.is_global_manager)
         self.assertFalse(bib.can_manage(self.pbook))
         self.login("bib")
-        self.assertEqual(self.c.get(f"/buecher/{self.pbook.id}/bearbeiten").status_code, 403)
+        self.assertIn(self.c.get(f"/buecher/{self.pbook.id}/bearbeiten").status_code, (403, 404))   # 404 if invisible
 
     def test_removed_by_directory_sync_does_not_escalate(self):
         bib = User.query.filter_by(username="bib").one()

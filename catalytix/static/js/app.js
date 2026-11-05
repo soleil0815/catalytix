@@ -29,11 +29,14 @@
 
   $$("[data-nav-toggle]").forEach((btn) => btn.addEventListener("click", (e) => {
     e.stopPropagation();
-    document.body.classList.toggle("nav-open");
+    const open = document.body.classList.toggle("nav-open");
+    $$("[data-nav-toggle]").forEach((b) => b.setAttribute("aria-expanded", open ? "true" : "false"));
+    if (open) { const first = $(".sidebar a"); if (first) first.focus(); }
   }));
   document.addEventListener("click", (e) => {
     if (document.body.classList.contains("nav-open") && !e.target.closest(".sidebar")) {
       document.body.classList.remove("nav-open");
+      $$("[data-nav-toggle]").forEach((b) => b.setAttribute("aria-expanded", "false"));
     }
     // Close the user menu when tapping outside it
     $$(".user-menu[open]").forEach((m) => { if (!m.contains(e.target)) m.removeAttribute("open"); });
@@ -561,7 +564,10 @@
     async function addBook(d) {
       const payload = { ...d, group_id: groupSel.value, location: locInput.value };
       const res = await api("/api/buecher", { method: "POST", body: JSON.stringify(payload) });
-      if (res.ok) {
+      if (res.ok && res.merged) {
+        log("accent", T("+1 Exemplar: <b>{title}</b> (jetzt {copies})", { title: esc(d.title), copies: esc(res.copies) }), res.url);
+        resultBox.innerHTML = `<div class="card-body"><div class="notice ok">✓ ${T("Jetzt {copies} Exemplare von „{title}“.", { copies: esc(res.copies), title: esc(d.title) })}</div></div>`;
+      } else if (res.ok) {
         log("ok", T("Neu: <b>{title}</b>", { title: esc(d.title) }), res.url);
         resultBox.innerHTML = `<div class="card-body"><div class="notice ok">✓ ${T("„{title}“ wurde angelegt. Bereit für die nächste ISBN.", { title: esc(d.title) })}</div></div>`;
       } else {

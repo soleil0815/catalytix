@@ -82,16 +82,21 @@ EXPOSE 9300
 COPY docker-compose.yml .env.example update.sh /app/dist/
 
 # What is inside (compared by the weekly security update; listed in the change log when something changed)
-RUN { echo "base ${PYTHON_IMAGE}"; \
+# set -eu and no pipe: a failing dpkg-query or python must stop the build instead of leaving a shortened list
+RUN set -eu; \
+    dpkg-query -W -f='deb ${Package} ${Version}\n' > /tmp/deb.txt; \
+    { echo "base ${PYTHON_IMAGE}"; \
       echo "python $(python -c 'import platform; print(platform.python_version())')"; \
-      dpkg-query -W -f='deb ${Package} ${Version}\n' | sort; \
+      sort /tmp/deb.txt; \
       python -c "import importlib.metadata as m; print('\n'.join(sorted('pip %s %s' % (d.metadata['Name'].lower(), d.version) for d in m.distributions())))"; \
-    } > /app/image-packages.txt \
- && ! command -v pip >/dev/null \
- && ! python -c "import pip" 2>/dev/null
+    } > /app/image-packages.txt; \
+    rm -f /tmp/deb.txt; \
+    grep -q '^deb ' /app/image-packages.txt; \
+    grep -q '^pip flask ' /app/image-packages.txt; \
+    if command -v pip >/dev/null || python -c "import pip" 2>/dev/null; then echo "pip must not be in the image" >&2; exit 1; fi
 
 # Version label late: a new version number doesn't invalidate the cached dependency layers above
-LABEL org.opencontainers.image.version="3.0.1" \
+LABEL org.opencontainers.image.version="3.0.2" \
       catalytix.compose="2"
 # start-period: the entrypoint may first adjust owners/permissions in a large ./data
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s CMD python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:9300/login')" || exit 1

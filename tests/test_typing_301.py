@@ -67,7 +67,8 @@ class BindRejectedTests(unittest.TestCase):
 
 
 class MypySetupTests(unittest.TestCase):
-    STRICT = ["catalytix.backup", "catalytix.netzone", "catalytix.proxy", "catalytix.models", "tools.*"]
+    STRICT = ["catalytix.backup", "catalytix.netzone", "catalytix.proxy", "catalytix.models", "catalytix.dbversion",
+              "catalytix.composefile", "catalytix.lockout", "tools.*"]
 
     def setUp(self):
         self.cfg = configparser.ConfigParser()

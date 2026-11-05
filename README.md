@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.0.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 3.0.2** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name eurer Bibliothek.
 
@@ -513,8 +513,8 @@ python -m unittest discover -s tests -v
 ```
 
 **Typprüfung (mypy):** wird Schritt für Schritt eingeführt. `mypy.ini` prüft die Module, bei denen Fehler am meisten
-schaden, streng – zurzeit `backup.py`, `netzone.py`, `proxy.py`, `models.py` (Rechteprüfung) und die Build-Kette in
-`tools/`. Diese Prüfung muss bei jedem Pull Request bestehen. `mypy-report.ini` prüft alle Module und listet die
+schaden, streng – zurzeit `backup.py`, `netzone.py`, `proxy.py`, `models.py` (Rechteprüfung), `dbversion.py` (Datenbank-Version
+beim Update), `composefile.py`, `lockout.py` (Anmeldesperre) und die Build-Kette in `tools/`. Diese Prüfung muss bei jedem Pull Request bestehen. `mypy-report.ini` prüft alle Module und listet die
 Funde nur in der Zusammenfassung des Prüflaufs auf, ohne ihn abzubrechen. Mit jedem Audit und jeder Version kommen
 weitere Module in die strenge Liste.
 

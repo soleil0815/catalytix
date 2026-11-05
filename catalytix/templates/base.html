@@ -78,7 +78,7 @@
 
   <div class="main">
     <header class="topbar">
-      <button class="icon-btn menu-btn" type="button" data-nav-toggle aria-label="{{ _('Menü') }}">{{ icon("menu") }}</button>
+      <button class="icon-btn menu-btn" type="button" data-nav-toggle aria-label="{{ _('Menü') }}" aria-controls="sidebar" aria-expanded="false">{{ icon("menu") }}</button>
       <form class="search" action="{{ url_for('books.index') }}" role="search">
         {{ icon("search") }}
         <input type="search" name="q" data-catalog-search autocomplete="off" placeholder="{{ _('Titel, Autor, ISBN, Schlagwort …') }}" value="{{ request.args.get('q', '') if ep == 'books.index' else '' }}" aria-label="{{ _('Katalog durchsuchen') }}">
@@ -86,7 +86,7 @@
       <a class="icon-btn help-btn" href="{{ help_url_for() }}" title="{{ _('Hilfe zu dieser Seite') }}" aria-label="{{ _('Hilfe') }}">{{ icon("help") }}</a>
       {{ lang_switch() }}
       {% if current_user.is_librarian %}
-      <a class="btn primary sm" href="{{ url_for('books.create') }}">{{ icon("plus") }} <span>{{ _("Buch") }}</span></a>
+      <a class="btn primary sm" href="{{ url_for('books.create') }}" aria-label="{{ _('Buch erfassen') }}">{{ icon("plus") }} <span>{{ _("Buch") }}</span></a>
       {% endif %}
       <details class="user-menu">
         <summary aria-label="{{ _('Benutzermenü') }}{% if news_unseen %} – {{ _('Es gibt Neuigkeiten') }}{% endif %}"><span class="avatar">{{ current_user.initials }}</span>{% if news_unseen %}<span class="news-dot on-avatar"></span>{% endif %}</summary>

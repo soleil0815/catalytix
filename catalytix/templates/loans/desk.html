@@ -47,7 +47,7 @@
         <div class="input-group user-search">
           <input class="isbn-input" id="desk-code" type="text" name="code" data-book-search="ausleihe"
                  placeholder="{{ _("ISBN scannen oder im Bestand suchen") }}" {{ "autofocus" if borrower }}>
-          <button type="button" class="btn" data-scanner-open data-scanner-target="#desk-code" data-scanner-submit>{{ icon("camera") }}</button>
+          <button type="button" class="btn" data-scanner-open data-scanner-target="#desk-code" data-scanner-submit title="{{ _('Mit Kamera scannen') }}" aria-label="{{ _('Mit Kamera scannen') }}">{{ icon("camera") }}</button>
           {% if borrower %}<button class="btn primary">{{ icon("check") }} {{ _("Verleihen") }}</button>
           {% else %}<button class="btn">{{ icon("search") }} {{ _("Suchen") }}</button>{% endif %}
         </div>
@@ -125,7 +125,7 @@
         <div class="input-group user-search">
           <input class="isbn-input" id="return-code" type="text" name="code" data-book-search="rueckgabe"
                  placeholder="{{ _("ISBN scannen oder im Bestand suchen") }}" autofocus value="">
-          <button type="button" class="btn" data-scanner-open data-scanner-target="#return-code" data-scanner-submit>{{ icon("camera") }}</button>
+          <button type="button" class="btn" data-scanner-open data-scanner-target="#return-code" data-scanner-submit title="{{ _('Mit Kamera scannen') }}" aria-label="{{ _('Mit Kamera scannen') }}">{{ icon("camera") }}</button>
           <button class="btn primary">{{ icon("return") }} {{ _("Suchen") }}</button>
         </div>
         <label class="check" style="margin-top: 12px"><input type="checkbox" name="auto" value="1" {{ "checked" if auto == "1" }}> {{ _("Bei genauem Treffer (ISBN, Signatur) sofort zurücknehmen") }}</label>

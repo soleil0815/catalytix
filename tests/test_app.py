@@ -175,7 +175,8 @@ class PermissionTests(BaseCase):
     def test_group_librarian_scope(self):
         self.login("lehrer7")
         self.assertEqual(self.c.get(f"/buecher/{self.b7.id}/bearbeiten").status_code, 200)
-        self.assertEqual(self.c.get(f"/buecher/{self.b8.id}/bearbeiten").status_code, 403)
+        # 3.0.2: a book of another group the librarian cannot see: 404 (do not reveal that it exists)
+        self.assertEqual(self.c.get(f"/buecher/{self.b8.id}/bearbeiten").status_code, 404)
         self.assertEqual(self.c.get("/admin/benutzer").status_code, 403)
         # must not move books into other groups
         r = self.c.post(f"/buecher/{self.b7.id}/bearbeiten", data={"title": "X", "group_id": self.g8.id, "copies": 1})

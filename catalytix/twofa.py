@@ -81,7 +81,8 @@ def check_totp(secret_b32: str, code: str, last_step: int = 0, at: float | None 
 
 
 def otpauth_uri(secret_b32: str, account: str) -> str:
-    issuer = get_setting("library_name") or "Bibliothek"
+    from .branding import library_name
+    issuer = library_name()           # unchanged default name in the user's language ("Library" in English)
     label = quote(f"{issuer}:{account}")
     return (f"otpauth://totp/{label}?secret={secret_b32}&issuer={quote(issuer)}"
             f"&algorithm=SHA1&digits={TOTP_DIGITS}&period={TOTP_PERIOD}")
@@ -215,7 +216,12 @@ def rp_id_for(host: str) -> str:
 def _server(rp_id: str):
     from fido2.server import Fido2Server
     from fido2.webauthn import PublicKeyCredentialRpEntity
-    return Fido2Server(PublicKeyCredentialRpEntity(id=rp_id, name=get_setting("library_name") or "Bibliothek"))
+    return Fido2Server(PublicKeyCredentialRpEntity(id=rp_id, name=_rp_name()))
+
+
+def _rp_name() -> str:
+    from .branding import library_name
+    return library_name()
 
 
 def _cred_data(cred: WebAuthnCredential):

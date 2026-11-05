@@ -18,6 +18,11 @@ The current version is shown at the bottom left of the sidebar after signing in.
   Directory* page points out bare names until they have been converted.
 
 ## 3.0.3 – 2026-11-05
+**Security**
+- CVE-2026-109518 in apt (HIGH): temporarily in `.trivyignore` (until 2026-11-19). apt is only used while building
+  the image, the running program never calls it. The fix (apt 3.0.4) is not yet in the Debian archive state the build
+  uses; the weekly security update takes it.
+
 **Improved (update path and build chain)**
 - Every image carries its exact tag (`catalytix.tag`, e.g. `3.0.3-s1`) and the commit it was built from
   (`org.opencontainers.image.revision`; for a security update the commit of the underlying release). The weekly

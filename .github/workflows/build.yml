@@ -9,8 +9,8 @@
 #   update.sh, docker-compose.yml and .env.example. Published versions are never overwritten.
 #
 # Security: actions pinned to full commit SHAs, permissions: {} by default and minimal per job, no Git credentials
-# stored in the checkout, publishing only from main, one publishing run at a time (concurrency group
-# "publish-build"; the weekly security update has its own group – a shared group let GitHub cancel waiting jobs),
+# stored in the checkout, publishing only from main, one publishing run at a time (workflow-level concurrency; the
+# weekly security update has its own – a job-level group shared by both let GitHub cancel waiting jobs),
 # :latest never moved to a lower version (checked against the releases AND the image :latest points to), Trivy NOT
 # as a GitHub action (see tools/trivy_scan.py), helpers with readable errors in tools/ci.sh.
 # Every published image carries its exact tag (catalytix.tag) and source commit (org.opencontainers.image.revision);
@@ -36,8 +36,11 @@ defaults:
   run:
     shell: bash
 
+# One run per branch and kind of start at a time. Concurrency on the WORKFLOW, not on single jobs: GitHub keeps only
+# one waiting entry per group and cancels the older one – at job level that could be the release job of a run whose
+# image was already pushed. A run started by hand (publishing) never waits behind or gets replaced by a push run.
 concurrency:
-  group: build-${{ github.ref }}
+  group: build-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -110,9 +113,6 @@ jobs:
     needs: check
     if: needs.check.outputs.new == 'true' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
-    concurrency:
-      group: publish-build
-      cancel-in-progress: false
     permissions:
       contents: read
       packages: write
@@ -199,9 +199,6 @@ jobs:
     name: GitHub release (image files, update.sh, docker-compose.yml)
     needs: [check, publish]
     runs-on: ubuntu-24.04
-    concurrency:
-      group: publish-build
-      cancel-in-progress: false
     permissions:
       contents: write
       packages: read

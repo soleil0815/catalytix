@@ -208,13 +208,13 @@ class WorkflowTests(unittest.TestCase):
     def test_publishing_jobs_never_concurrent_and_only_from_main(self):
         publishing = [("build.yml", "publish"), ("build.yml", "release"), ("security-update.yml", "update"),
                       ("security-update.yml", "record"), ("security-update.yml", "promote")]
+        # 3.0.3: concurrency per WORKFLOW, not per job – GitHub keeps one waiting entry per group and cancels the older
+        # one, at job level e.g. the release job after the image was pushed
         for name, job in publishing:
-            block = jobs(workflow(name))[job]
-            # 3.0.3: one group per workflow – a group shared by both let GitHub cancel a waiting job when a third
-            # one queued (e.g. the release job after the image was pushed)
-            group = "publish-build" if name == "build.yml" else "publish-security"
-            self.assertIn(f"group: {group}\n", block, f"{name}/{job}")
-            self.assertIn("cancel-in-progress: false", block, f"{name}/{job}")
+            self.assertNotIn("concurrency:", jobs(workflow(name))[job], f"{name}/{job}")
+        self.assertIn("concurrency:\n  group: build-${{ github.ref }}-${{ github.event_name }}\n"
+                      "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}", workflow("build.yml"))
+        self.assertIn("concurrency:\n  group: security-update\n  cancel-in-progress: false", workflow("security-update.yml"))
         self.assertIn("github.ref == 'refs/heads/main'", jobs(workflow("build.yml"))["publish"])
         self.assertIn("if: github.ref == 'refs/heads/main'", jobs(workflow("security-update.yml"))["update"])
 

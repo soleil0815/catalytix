@@ -16,7 +16,8 @@
 # record  7. New locks and a change log entry (list of changed packages) on main.
 # promote 8. Move :latest to the new security update (only if its version is the highest and :latest does not
 #            already point to a higher version).
-# Concurrency group "publish-security" (build.yml has its own: a shared group let GitHub cancel waiting jobs).
+# One run at a time (workflow-level concurrency; build.yml has its own – a job-level group shared by both let GitHub
+# cancel waiting jobs, e.g. the record job of a run whose image was already pushed).
 # If something fails, nothing more is published; GitHub sends an email and the cause is shown on the run.
 name: Security update
 
@@ -32,6 +33,10 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: security-update
+  cancel-in-progress: false
+
 # Explicit bash: GitHub then runs every step with "bash -eo pipefail" – without it a failing command in a pipe
 # (e.g. the tests piped into tee) would go unnoticed.
 defaults:
@@ -43,9 +48,6 @@ jobs:
     name: Update, build, test, scan, push
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    concurrency:                    # one security update at a time (build.yml: group publish-build)
-      group: publish-security
-      cancel-in-progress: false
     permissions:
       contents: read
       packages: write
@@ -198,9 +200,6 @@ jobs:
     needs: update
     if: needs.update.outputs.changed == 'true'
     runs-on: ubuntu-24.04
-    concurrency:
-      group: publish-security
-      cancel-in-progress: false
     permissions:
       contents: write
     steps:
@@ -238,9 +237,6 @@ jobs:
     name: Move latest
     needs: [update, record]
     runs-on: ubuntu-24.04
-    concurrency:
-      group: publish-security
-      cancel-in-progress: false
     permissions:
       contents: read
       packages: write

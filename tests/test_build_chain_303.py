@@ -78,6 +78,36 @@ class CooldownTests(unittest.TestCase):
             new, changes, _ = lock.plan_python(old, {"flask": "3.1.3"}, cutoff, "26.2.2")
         self.assertEqual(changes, [])
 
+    def test_too_young_new_dependency_is_capped_and_resolved_again(self):
+        # Before 3.0.3 a new dependency had no limit at all; aborting the whole run instead would block the weekly
+        # security update as long as that package releases more often than the cool-down
+        old = {"flask": {"name": "Flask", "version": "3.1.3", "marker": "", "hashes": ["a" * 64]}}
+        uploads = {"1.0": "2026-10-01T00:00:00Z", "1.1": "2026-11-08T00:00:00Z"}
+        seen = []
+
+        def resolve(constraints):
+            seen.append(constraints)
+            return {"flask": "3.1.3", "newdep": "1.0" if "newdep<=1.0" in constraints else "1.1"}
+        with mock.patch.object(lock, "pypi_release",
+                               side_effect=lambda n, v: self.release(uploads[v]) if n == "newdep" else
+                               self.release("2026-01-01T00:00:00Z")), \
+                mock.patch.object(lock, "pypi_project", return_value={"releases": {
+                    v: [{"upload_time_iso_8601": u}] for v, u in uploads.items()}}), \
+                mock.patch.object(lock, "newest_on_pypi", side_effect=lambda n, v, c: v), \
+                mock.patch("sys.stdout"):
+            resolved = lock.resolve_with_cooldown(resolve, old, self.NOW - dt.timedelta(days=7))
+        self.assertEqual(resolved["newdep"], "1.0")
+        self.assertEqual(len(seen), 2)
+
+    def test_no_older_release_stops_with_a_clear_message(self):
+        old = {}
+        with mock.patch.object(lock, "pypi_release", return_value=self.release("2026-11-08T00:00:00Z")), \
+                mock.patch.object(lock, "pypi_project", return_value={"releases": {
+                    "1.0": [{"upload_time_iso_8601": "2026-11-08T00:00:00Z"}]}}):
+            with self.assertRaises(SystemExit) as cm:
+                lock.resolve_with_cooldown(lambda c: {"newdep": "1.0"}, old, self.NOW - dt.timedelta(days=7))
+        self.assertIn("no release of newdep below 1.0", str(cm.exception))
+
     def test_cooldown_zero_takes_everything(self):
         old = {"flask": {"name": "Flask", "version": "3.1.3", "marker": "", "hashes": ["a" * 64]}}
         with mock.patch.object(lock, "pypi_release", return_value=self.release("2026-11-09T04:00:00Z")), \
@@ -108,6 +138,19 @@ class LabelTests(unittest.TestCase):
             env = dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}", GITHUB_REPOSITORY="o/r", INSPECT=str(out))
             return subprocess.run(["bash", "-c", f"set -e; . tools/ci.sh; {script}"], cwd=ROOT, env=env,
                                   capture_output=True, text=True)
+
+    def test_registry_error_is_not_a_higher_latest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Path(tmp) / "docker"
+            f.write_text("#!/bin/sh\ncase \"$*\" in *json*) echo 'HTTP 502' ; exit 1 ;; *) echo ok ;; esac\n")
+            f.chmod(0o755)
+            env = dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}", GITHUB_REPOSITORY="o/r")
+            r = subprocess.run(["bash", "-c", "set -e; . tools/ci.sh; if latest_allows 3.0.3; then echo MOVE; "
+                                "else echo KEEP; fi"], cwd=ROOT, env=env, capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertNotIn("KEEP", r.stdout)                 # before: read as ":latest is higher" – run stayed green
+        self.assertNotIn("MOVE", r.stdout)
+        self.assertIn("::error title=Registry not reachable", r.stdout)
 
     def test_latest_never_moved_down(self):
         labels = json.dumps({"config": {"Labels": {"org.opencontainers.image.version": "3.1.0"}}})

@@ -82,8 +82,11 @@ image_label() {   # image_label REF KEY
 latest_allows() {   # latest_allows VERSION
     local cur
     image_exists "$(image_name):latest" || return 0
-    cur="$(image_label "$(image_name):latest" org.opencontainers.image.version)"
+    # image_label runs in a subshell: its "fail" ends only that – pass the error on and stop here (also when this
+    # function is called in an "if", where set -e does not apply)
+    cur="$(image_label "$(image_name):latest" org.opencontainers.image.version)" || { printf '%s\n' "$cur"; exit 1; }
     [ -n "$cur" ] || return 0
+    [[ "$cur" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Registry answer unreadable" ":latest has the version label '$cur'."
     python3 tools/security_update.py is-highest "$1" "$cur"
 }
 

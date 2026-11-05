@@ -122,20 +122,24 @@ env_write() {   # replace .env with the content of file $1 – owner and permiss
     cat -- "$1" > .env || { rm -f -- "$1"; die "Cannot write .env."; }
     rm -f -- "$1"
 }
-env_set() {   # set KEY=VALUE: replace an existing (or commented-out) line, otherwise append
+# Active lines as Compose reads them: "KEY=…", also indented or as "export KEY=…" (same as env_get)
+ENV_AWK_ACTIVE='"^[ \t]*(export[ \t]+)?"k"="'
+env_set() {   # set KEY=VALUE: replace the first (or commented-out) line, comment out later active ones, else append
     printf '%s\n' "$2" | grep -Eq '^[A-Za-z0-9._/:-]+$' || die "Invalid value for $1: $2"
     _t="$(mktemp "$DIR/.catalytix-env.XXXXXX")" || die "Cannot write .env."
-    if grep -qE "^#?$1=" .env 2>/dev/null; then
-        awk -v k="$1" -v v="$2" 'BEGIN{done=0} { if (!done && ($0 ~ "^"k"=" || $0 ~ "^#"k"=")) { print k"="v; done=1 } else if ($0 ~ "^"k"=") { print "#"$0 } else print }' .env > "$_t"
+    if [ -f .env ]; then
+        awk -v k="$1" -v v="$2" 'BEGIN{done=0; a='"$ENV_AWK_ACTIVE"'; c="^#"k"="} { if (!done && ($0 ~ a || $0 ~ c)) { print k"="v; done=1 } else if ($0 ~ a) { print "#"$0 } else print } END { if (!done) print k"="v }' .env > "$_t" \
+            || { rm -f -- "$_t"; die "Cannot write .env."; }
     else
-        { cat .env 2>/dev/null; printf '%s=%s\n' "$1" "$2"; } > "$_t"
+        printf '%s=%s\n' "$1" "$2" > "$_t"
     fi
     env_write "$_t"
 }
-env_unset() {   # comment out KEY
-    grep -qE "^$1=" .env 2>/dev/null || return 0
+env_unset() {   # comment out KEY (every active line)
+    grep -qE "^[[:space:]]*(export[[:space:]]+)?$1=" .env 2>/dev/null || return 0
     _t="$(mktemp "$DIR/.catalytix-env.XXXXXX")" || die "Cannot write .env."
-    sed "s/^$1=/#$1=/" .env > "$_t" || { rm -f -- "$_t"; die "Cannot write .env."; }
+    awk -v k="$1" 'BEGIN{a='"$ENV_AWK_ACTIVE"'} { if ($0 ~ a) print "#"$0; else print }' .env > "$_t" \
+        || { rm -f -- "$_t"; die "Cannot write .env."; }
     env_write "$_t"
 }
 ensure_env() {   # docker-compose.yml reads .env – Compose aborts if it is missing
@@ -328,6 +332,11 @@ TMP="$(mktemp -d "$DIR/.catalytix-update.XXXXXX")" || die "No write access to $D
 COMPOSE_SWAPPED=0; DOWNGRADE=0; SAFETY=""
 
 ensure_env
+# CATALYTIX_TAG / CATALYTIX_IMAGE set in the shell win over .env in Compose – then another image would start
+# than the one this script fetches and checks (and on a downgrade after the database was put back)
+if [ -n "${CATALYTIX_TAG:-}" ] || [ -n "${CATALYTIX_IMAGE:-}" ]; then
+    die "CATALYTIX_TAG or CATALYTIX_IMAGE is set in your shell – it would win over .env. Run \"unset CATALYTIX_TAG CATALYTIX_IMAGE\" (or use --version=…) and start again. Nothing changed."
+fi
 # Check before anything is stopped or restored: a .env that cannot be written would otherwise only fail in
 # step 5 – after the database was already put back for a downgrade, with the container stopped
 [ -w .env ] || die "Cannot write .env (permissions, read-only mount?) – nothing changed."

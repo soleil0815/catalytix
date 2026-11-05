@@ -85,8 +85,9 @@ COPY docker-compose.yml .env.example update.sh /app/dist/
 # set -eu and no pipe: a failing dpkg-query or python must stop the build instead of leaving a shortened list
 RUN set -eu; \
     dpkg-query -W -f='deb ${Package} ${Version}\n' > /tmp/deb.txt; \
+    pyver="$(python -c 'import platform; print(platform.python_version())')"; \
     { echo "base ${PYTHON_IMAGE}"; \
-      echo "python $(python -c 'import platform; print(platform.python_version())')"; \
+      echo "python $pyver"; \
       sort /tmp/deb.txt; \
       python -c "import importlib.metadata as m; print('\n'.join(sorted('pip %s %s' % (d.metadata['Name'].lower(), d.version) for d in m.distributions())))"; \
     } > /app/image-packages.txt; \

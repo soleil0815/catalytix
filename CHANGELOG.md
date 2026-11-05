@@ -7,9 +7,10 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. E
 **Sicherheit**
 - Bestätigungslinks für eine neue E-Mail-Adresse (selbst registrierte Konten) gelten nur noch, solange das Konto
   die Adresse hat, von der aus die Änderung angefordert wurde: Nach einer bestätigten Änderung sind alle älteren
-  Links ungültig, und kein Link funktioniert zweimal. Bisher konnte z. B. ein Link an eine vertippte Adresse noch
+  Links ungültig, und kein Link funktioniert zweimal (vor dem Update verschickte Links müssen neu angefordert
+  werden). Bisher konnte z. B. ein Link an eine vertippte Adresse noch
   48 Stunden lang das Konto auf diese Adresse umstellen. Die erlaubten Domains werden beim Bestätigen erneut geprüft.
-- Impressum- und Datenschutz-Link: Angaben wie `//andere-seite.example` werden nicht mehr gespeichert. In E-Mails
+- Impressum- und Datenschutz-Link: Angaben wie `//andere-seite.example` (oder mit Leer-/Steuerzeichen) werden nicht mehr gespeichert. In E-Mails
   stehen relative Pfade (`/datenschutz`) jetzt als vollständige Adresse auf Basis der eingestellten Programmadresse.
 - Gruppengebundene Verwalter bekommen für Bücher anderer Gruppen, die sie nicht sehen dürfen, „nicht gefunden“
   (404) statt „verboten“ (403) – so lässt sich nicht mehr erkennen, welche Buchnummern es dort gibt.
@@ -17,8 +18,9 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. E
 
 **Behoben**
 - Update: Schlug ein Versionswechsel fehl und lief danach wieder die alte Version, machte der nächste Update-Versuch
-  keine neue Sicherung vor der Umstellung (es galt noch die alte vom ersten Versuch). Jetzt wird bei jedem
-  erfolgreichen Start zurückgesetzt, dass die Sicherung schon gemacht ist.
+  keine neue Sicherung vor der Umstellung (es galt noch die alte vom ersten Versuch). Ab 3.0.2 setzt jeder
+  erfolgreiche Start zurück, dass die Sicherung schon gemacht ist (wirkt also, wenn 3.0.2 oder neuer die Version ist,
+  zu der man zurückkehrt).
 - Schnellerfassung: Wird dieselbe ISBN zweimal gescannt (z. B. im Automatik-Modus kurz hintereinander), zählt der
   Server die Exemplare beim vorhandenen Buch derselben Gruppe dazu, statt ein zweites Buch anzulegen.
 - Benutzer löschen: Hat das Konto in diesem Moment doch noch eine laufende Ausleihe, wird es nicht gelöscht
@@ -26,9 +28,9 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. E
 - update.sh:
   - prüft vor jeder Änderung, ob `.env` beschreibbar ist – bisher konnte ein Downgrade bei schreibgeschützter
     `.env` mit gestopptem Container und schon zurückgesetzter Datenbank abbrechen;
-  - liest `.env` wie Docker Compose (`export CATALYTIX_TAG=…` und Kommentare hinter dem Wert);
-  - meldet keinen Erfolg mehr, wenn Compose ein anderes Image startet als das geholte (z. B. weil `CATALYTIX_TAG`
-    in der Shell gesetzt ist);
+  - liest und schreibt `.env` wie Docker Compose (`export CATALYTIX_TAG=…`, Kommentare hinter dem Wert);
+  - bricht ohne Änderung ab, wenn `CATALYTIX_TAG` oder `CATALYTIX_IMAGE` in der Shell gesetzt ist (Compose würde
+    sonst ein anderes Image starten), und meldet keinen Erfolg, wenn trotzdem ein anderes Image läuft als das geholte;
   - entfernt „verwaiste“ Container (`--remove-orphans`) nur noch im Compose-Projekt dieses Ordners – nicht mehr in
     einem fremden Stack, dessen Namen der Container trägt;
   - entfernt den kurzzeitig angelegten Hilfscontainer samt seinem anonymen Volume;

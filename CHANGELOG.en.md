@@ -6,9 +6,9 @@ The current version is shown at the bottom left of the sidebar after signing in.
 **Security**
 - Confirmation links for a new e-mail address (self-registered accounts) are only valid while the account still has
   the address the change was requested from: after one change is confirmed, all older links are invalid, and no
-  link works twice. Before, e.g. a link sent to a mistyped address could still switch the account to that address
+  link works twice (links sent before the update must be requested again). Before, e.g. a link sent to a mistyped address could still switch the account to that address
   for 48 hours. The allowed domains are checked again on confirmation.
-- Imprint and privacy link: values like `//other-site.example` are no longer stored. In e-mails, relative paths
+- Imprint and privacy link: values like `//other-site.example` (or with spaces/control characters) are no longer stored. In e-mails, relative paths
   (`/datenschutz`) now become a full address based on the configured program address.
 - Group-bound librarians get "not found" (404) instead of "forbidden" (403) for books of other groups they may not
   see – so they can no longer tell which book numbers exist there.
@@ -16,8 +16,8 @@ The current version is shown at the bottom left of the sidebar after signing in.
 
 **Fixed**
 - Update: if a version change failed and the old version ran again afterwards, the next update attempt made no new
-  backup before the change (the old one from the first attempt still counted). Now every successful start resets
-  the "backup already made" marker.
+  backup before the change (the old one from the first attempt still counted). From 3.0.2 on, every successful start
+  resets the "backup already made" marker (so it applies when the version you go back to is 3.0.2 or newer).
 - Quick capture: if the same ISBN is scanned twice (e.g. quickly in auto mode), the server adds the copies to the
   existing book of the same group instead of creating a second book.
 - Deleting a user: if the account does have an ongoing loan at that moment, it is not deleted (before, the loan
@@ -25,9 +25,9 @@ The current version is shown at the bottom left of the sidebar after signing in.
 - update.sh:
   - checks that `.env` is writable before changing anything – before, a downgrade with a read-only `.env` could
     stop with the container stopped and the database already put back;
-  - reads `.env` like Docker Compose (`export CATALYTIX_TAG=…` and comments after the value);
-  - no longer reports success when Compose starts another image than the one fetched (e.g. because
-    `CATALYTIX_TAG` is set in the shell);
+  - reads and writes `.env` like Docker Compose (`export CATALYTIX_TAG=…`, comments after the value);
+  - stops without changes when `CATALYTIX_TAG` or `CATALYTIX_IMAGE` is set in the shell (Compose would otherwise
+    start another image), and no longer reports success when another image than the one fetched runs anyway;
   - removes "orphan" containers (`--remove-orphans`) only in the Compose project of this folder – no longer in
     another stack whose name the container carries;
   - removes the temporary helper container together with its anonymous volume;

@@ -1,4 +1,5 @@
-"""3.0.2: findings of the monthly code audit (November 2026) – each test fails on 3.0.1."""
+"""3.0.2: findings of the monthly code audit (November 2026) – each test fails on 3.0.1 (except the guards
+that check what must stay as it was)."""
 import os
 import re
 import shutil
@@ -177,7 +178,7 @@ class EmailChangeTests(Base):
 class MailLinkTests(Base):
     def test_protocol_relative_links_never_in_mails(self):
         set_setting("app_base_url", "https://bib.firma.local")
-        for value, expect in (("//evil.example/x", ""), ("/\\evil.example/x", ""),
+        for value, expect in (("//evil.example/x", ""), ("/\\evil.example/x", ""), ("/\t/evil.example/x", ""),
                               ("/datenschutz", "https://bib.firma.local/datenschutz"),
                               ("https://firma.local/impressum", "https://firma.local/impressum")):
             set_setting("imprint_url", value)
@@ -238,8 +239,26 @@ class UpdatePathTests(UpdateBase):
         r = self.run_update(env={"CATALYTIX_TAG": "3.0.0"})        # exported in the shell: wins over .env
         self.assertNotEqual(r.returncode, 0, self.out)
         self.assertNotIn("Version 3.1.0 is running", self.out)
-        self.assertIn("another image", self.out)
+        self.assertIn("Nothing changed", self.out)
+        self.assertNotIn("docker pull", self.docker_log())
         self.assertEqual((self.inst / "update.sh").read_text(), before)
+
+    def test_shell_variable_stops_a_downgrade_before_the_database_is_touched(self):
+        self.installed("3.1.0")
+        self.publish("3.0.0")
+        r = self.run_update("-y", "--version=3.0.0", env={"CATALYTIX_TAG": "3.1.0"})
+        self.assertNotEqual(r.returncode, 0, self.out)
+        self.assertNotIn("restore-for-version", self.docker_log())
+        self.assertEqual(self.state["container"]["status"], "running")
+
+    def test_env_set_handles_export_lines(self):
+        self.installed("3.0.0", env="#CATALYTIX_TAG=latest\n  export CATALYTIX_TAG=3.0.0\nX=1\n")
+        self.state["registry"][f"{IMG}:3.0.0"] = img("3.0.0")
+        self.publish("3.1.0")
+        r = self.run_update("-y", "--version=3.1.0")
+        self.assertEqual(r.returncode, 0, self.out)
+        self.assertEqual(self.env(), "CATALYTIX_TAG=3.1.0\n#  export CATALYTIX_TAG=3.0.0\nX=1\n")
+        self.assertEqual(self.running_version(), "3.1.0")
 
     def test_remove_orphans_only_for_this_folders_project(self):
         self.installed("3.0.0")

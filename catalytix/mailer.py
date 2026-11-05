@@ -13,6 +13,7 @@ prevents duplicate sending – even when several server processes are running.
 from __future__ import annotations
 
 import logging
+import re
 import smtplib
 import ssl
 import threading
@@ -221,6 +222,8 @@ def _mail_link(url: str, base: str) -> str:
     """Imprint/privacy link for a mail: absolute addresses as they are, a path ("/datenschutz") only together
     with app_base_url (a mail has no page it could be relative to), anything else not at all."""
     url = (url or "").strip()
+    if re.search(r"[\x00-\x20\x7f]", url):     # browsers drop tabs/line breaks: "/<tab>/host" would be "//host"
+        return ""
     if url.startswith(("https://", "http://")):
         return url
     if url.startswith("/") and not url.startswith(("//", "/\\")) and base:

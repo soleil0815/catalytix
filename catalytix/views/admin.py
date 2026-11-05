@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user
@@ -531,7 +532,8 @@ def settings():
         for key in ("imprint_url", "privacy_url"):
             url = form_str(key, 500)
             # "//host/…" and "/\host/…" would be protocol-relative links to another server
-            ok = url.startswith(("https://", "http://", "/")) and not url.startswith(("//", "/\\"))
+            ok = (url.startswith(("https://", "http://", "/")) and not url.startswith(("//", "/\\"))
+                  and not re.search(r"[\x00-\x20\x7f]", url))   # browsers drop tabs inside URLs: "/<tab>/host"
             set_setting(key, url if ok else "")
         months = request.form.get("retention_months", "12")
         set_setting("retention_months", months if months in ("0", "3", "6", "12", "24", "36") else "12")

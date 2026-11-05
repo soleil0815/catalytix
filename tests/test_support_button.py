@@ -1,4 +1,4 @@
-"""3.0.3: "Buy me a coffee" button in the sidebar – visible to admins only."""
+"""3.0.6: "Buy me a coffee" button in the sidebar – visible to admins only."""
 import os
 import sys
 import tempfile

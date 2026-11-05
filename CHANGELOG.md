@@ -9,7 +9,8 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. E
   Entwicklers in einem neuen Tab. Leser und Verwalter sehen ihn nicht.
 
 **Sicherheit**
-- Debian-Pakete auf den Stand vom 05.11.2026 (u. a. `apt` 3.0.3 → 3.0.4, CVE-2026-109518, Stufe HIGH). Die vorübergehende Ausnahme in `.trivyignore` aus 3.0.3 ist damit entfernt.
+- Debian-Pakete auf den Stand vom 05.11.2026: enthält `apt` 3.0.4 (CVE-2026-109518, Stufe HIGH). Die vorübergehende
+  Ausnahme in `.trivyignore` aus 3.0.3 ist damit wieder entfernt.
 
 ## 3.0.5 – 05.11.2026
 **Barrierefreiheit**

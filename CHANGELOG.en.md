@@ -8,7 +8,8 @@ The current version is shown at the bottom left of the sidebar after signing in.
   page in a new tab. Readers and librarians don't see it.
 
 **Security**
-- Debian packages at the state of 2026-11-05 (including `apt` 3.0.3 → 3.0.4, CVE-2026-109518, HIGH severity). The temporary exception in `.trivyignore` from 3.0.3 is removed with it.
+- Debian packages at the state of 2026-11-05: includes `apt` 3.0.4 (CVE-2026-109518, HIGH). The temporary exception
+  in `.trivyignore` from 3.0.3 is removed again.
 
 ## 3.0.5 – 2026-11-05
 **Accessibility**

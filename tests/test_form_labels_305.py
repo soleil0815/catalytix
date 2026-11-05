@@ -1,5 +1,5 @@
 """3.0.5: every form field on every page has an accessible name – a <label for> linked by id, a label around it,
-aria-label/aria-labelledby or a title. Before, about 150 labels stood next to their field without being linked:
+aria-label/aria-labelledby or a title. Before, about 100 labels stood next to their field without being linked:
 screen readers announced the fields without a name, and clicking a label did not focus its field."""
 import os
 import sys
@@ -54,7 +54,7 @@ class FieldCollector(HTMLParser):
     def problems(self):
         out = []
         for tag, a, wrapped in self.fields:
-            if tag == "input" and (a.get("type") or "text") in UNNAMED_OK:
+            if tag == "input" and (a.get("type") or "text") in UNNAMED_OK or "hidden" in a:
                 continue
             named = (wrapped or (a.get("id") and a["id"] in self.label_for) or a.get("aria-label")
                      or a.get("aria-labelledby") or a.get("title"))
@@ -134,7 +134,9 @@ class FormLabelTests(unittest.TestCase):
 
     def test_admin_pages(self):
         self.login("chef")
-        with mock.patch("catalytix.twofa.step_up_needed", return_value=False, create=True):
+        # backups: the settings form only appears where backups are possible (SQLite file database)
+        with mock.patch("catalytix.backup.supported", return_value=True), \
+                mock.patch("catalytix.backup.list_backups", return_value=[]):
             self.check(["/admin/einstellungen", "/admin/verzeichnisdienst", "/admin/email", "/admin/benutzer",
                         "/admin/benutzer/neu", f"/admin/benutzer/{self.users['leser'].id}", "/admin/gruppen",
                         "/admin/gruppen/neu", f"/admin/gruppen/{self.group.id}", "/admin/erscheinungsbild",

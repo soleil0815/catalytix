@@ -6,7 +6,7 @@ The current version is shown at the bottom left of the sidebar after signing in.
 **Accessibility**
 - Every form field now has a name for screen readers: about 100 labels are linked to their field (clicking the label
   also puts the cursor into the field), search and filter fields without a visible label have an invisible one. A
-  test renders all pages and checks every field.
+  test renders the pages with forms and checks every field.
 
 ## 3.0.4 – 2026-11-05
 **Security**

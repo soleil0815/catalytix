@@ -7,7 +7,7 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. E
 **Barrierefreiheit**
 - Alle Formularfelder haben jetzt einen Namen für Screenreader: Rund 100 Beschriftungen sind mit ihrem Feld
   verknüpft (ein Klick auf die Beschriftung setzt auch den Cursor ins Feld), Such- und Filterfelder ohne sichtbare
-  Beschriftung haben eine unsichtbare. Ein Test rendert alle Seiten und prüft jedes Feld.
+  Beschriftung haben eine unsichtbare. Ein Test rendert die Seiten mit Formularen und prüft jedes Feld.
 
 ## 3.0.4 – 05.11.2026
 **Sicherheit**

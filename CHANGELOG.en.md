@@ -2,6 +2,16 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.0.7 – 2026-11-05
+**Security**
+- Slimmer image: what the running program never uses is removed at the end of the build – the package manager
+  (`apt`), Perl, user and login tools (`passwd`, `login`, PAM), `tar`, `gzip`, `mount` and more, 32 of the previous
+  87 Debian packages. Fewer packages mean fewer vulnerability warnings that do not concern the program, and an
+  intruder cannot install software in the container. The package database is kept, so security scanners still see
+  exactly what is inside (`docker/slim.sh`).
+- The CI run now also starts the finished image like a server does (entrypoint, switch to user 1000, login page
+  answers) and checks that the package manager and Perl are gone and Python finds the CA certificates.
+
 ## 3.0.6 – 2026-11-05
 **New**
 - "Buy me a coffee" button at the bottom of the sidebar – visible to admins only, opens the developer's support

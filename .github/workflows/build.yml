@@ -103,6 +103,9 @@ jobs:
       - name: Run the tests in the image
         run: . tools/ci.sh && test_in_image catalytix-ci:check "$PWD"
 
+      - name: Start the image like on a server
+        run: . tools/ci.sh && start_in_image catalytix-ci:check
+
       - name: Security scan (Trivy)
         run: |
           python3 tools/trivy_scan.py install
@@ -158,6 +161,10 @@ jobs:
       - name: Run the tests in the image (amd64)
         if: steps.state.outputs.published == 'false'
         run: . tools/ci.sh && test_in_image catalytix-ci:amd64 "$PWD"
+
+      - name: Start the image like on a server (amd64)
+        if: steps.state.outputs.published == 'false'
+        run: . tools/ci.sh && start_in_image catalytix-ci:amd64
 
       - name: Security scan of both platforms (Trivy)
         if: steps.state.outputs.published == 'false'

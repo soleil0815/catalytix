@@ -64,6 +64,10 @@ RUN pip install --no-cache-dir --require-hashes --no-deps -r pip.lock \
 # in the python-slim image). If it is missing, the build says so here and Catalytix at start-up.
 RUN test -e /usr/share/zoneinfo/Europe/Berlin \
  || echo "WARNING: /usr/share/zoneinfo is missing from the base image – TZ has no effect, times in UTC."
+# Remove what the running program never uses (package manager, Perl, login/user tools, PAM …) – fewer findings that
+# do not concern the program, nothing to install software with. dpkg stays, so scanners still see everything.
+COPY docker/slim.sh /tmp/slim.sh
+RUN sh /tmp/slim.sh && rm -f /tmp/slim.sh
 
 COPY catalytix ./catalytix
 COPY wsgi.py LICENSE ./
@@ -97,7 +101,7 @@ RUN set -eu; \
     if command -v pip >/dev/null || python -c "import pip" 2>/dev/null; then echo "pip must not be in the image" >&2; exit 1; fi
 
 # Version label late: a new version number doesn't invalidate the cached dependency layers above
-LABEL org.opencontainers.image.version="3.0.6" \
+LABEL org.opencontainers.image.version="3.0.7" \
       catalytix.compose="2"
 # Exact tag (e.g. 3.0.3-s1) and source commit, set by the GitHub workflows (empty in local builds): update.sh goes
 # back to exactly this tag, the release is created for exactly this commit

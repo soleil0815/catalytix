@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.0.6** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 3.0.7** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name eurer Bibliothek.
 
@@ -399,6 +399,7 @@ In die Datenschutzerklärung gehört, was Catalytix speichert: Name, Benutzernam
 - **Der Schlüssel gehört zur Datenbank:** Wird er geändert oder geht er verloren, schlagen alle 2FA-Anmeldungen fehl und die gespeicherten SMTP-/AD-Passwörter sind nicht mehr lesbar. Datenbank deshalb nur **zusammen mit ihrer `secret_key`** zurückspielen oder umziehen. Catalytix merkt sich beim ersten Start einen Prüfwert des Schlüssels (nicht den Schlüssel selbst) und **startet nicht**, wenn der Schlüssel nicht zur Datenbank passt – dann im Protokoll nachsehen und die passende `secret_key` zurückholen. Soll der neue Schlüssel bewusst gelten: einmalig mit `CATALYTIX_ACCEPT_NEW_KEY=1` starten (danach wieder entfernen), anschließend 2FA der Benutzer zurücksetzen und SMTP-/AD-Passwort neu eingeben.
 - **Browser-Schutz:** Strenge Content-Security-Policy (nur Skripte vom eigenen Server, keine eingebetteten Skripte), Schutz vor Einbettung in fremde Seiten, CSRF-Schutz für alle Formulare.
 - **Hochgeladene Cover** werden neu als JPEG gespeichert – versteckte Inhalte in Bilddateien bleiben nicht erhalten. Der **CSV-Export** markiert Zellen, die mit `=`, `+`, `-` oder `@` beginnen, damit Excel sie nicht als Formel ausführt.
+- **Schlankes Image:** Paketverwaltung, Perl, Anmeldewerkzeuge und weitere Pakete, die das laufende Programm nie braucht, werden beim Bau entfernt (`docker/slim.sh`) – weniger Angriffsfläche und weniger Sicherheitswarnungen. Die Paketdatenbank bleibt, Scanner wie Trivy sehen also weiter alles, was drin ist. Das Programm läuft im Container ohne root (Benutzer `PUID`:`PGID`, Standard 1000).
 
 ## Datensicherung
 

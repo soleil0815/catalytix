@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.0.7",
+  "date": "2026-11-05",
+  "items": [
+   {
+    "kind": "security",
+    "audience": "admin",
+    "de": {
+     "title": "Schlankeres, sichereres Image",
+     "text": "Das Image enthält nur noch, was das Programm zum Laufen braucht: Paketverwaltung, Perl, Anmeldewerkzeuge und weitere ungenutzte Pakete sind entfernt (32 von 87 Debian-Paketen). Das bedeutet weniger Sicherheitswarnungen und weniger Angriffsfläche. Am Betrieb ändert sich nichts."
+    },
+    "en": {
+     "title": "Slimmer, more secure image",
+     "text": "The image now only contains what the program needs to run: the package manager, Perl, login tools and other unused packages are removed (32 of 87 Debian packages). That means fewer security warnings and a smaller attack surface. Nothing changes in day-to-day use."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.0.6",
   "date": "2026-11-05",
   "items": [

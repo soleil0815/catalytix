@@ -9,7 +9,7 @@
 ARG PYTHON_IMAGE=python:3.13.18-slim-trixie@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1
 FROM ${PYTHON_IMAGE}
 ARG PYTHON_IMAGE
-ARG DEBIAN_SNAPSHOT=20261104T000000Z
+ARG DEBIAN_SNAPSHOT=20261105T000000Z
 
 LABEL org.opencontainers.image.title="Catalytix" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later" \

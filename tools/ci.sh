@@ -159,7 +159,7 @@ start_in_image() {   # start_in_image IMAGE
         echo "$out"
         fail "Image does not start" "The login page did not answer within 2 minutes – see the container log above."
     fi
-    docker exec "$name" sh -c 'for c in apt apt-get dpkg-deb perl tar passwd login; do command -v "$c" && exit 1; done; exit 0' \
+    docker exec "$name" sh -c 'for c in apt apt-get perl tar passwd login mount; do command -v "$c" && exit 1; done; exit 0' \
         || { docker rm -f "$name" >/dev/null; fail "Image not slim" "Package manager or tools left in the image (docker/slim.sh)."; }
     docker exec "$name" python -c "import ssl; n = ssl.create_default_context(cafile=ssl.get_default_verify_paths().openssl_cafile).cert_store_stats()['x509_ca']; assert n > 50, n" \
         || { docker rm -f "$name" >/dev/null; fail "CA certificates missing" "Python finds no CA certificates in the image."; }

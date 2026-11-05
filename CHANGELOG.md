@@ -3,6 +3,16 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.0.7 – 05.11.2026
+**Sicherheit**
+- Schlankeres Image: Was das laufende Programm nie braucht, wird am Ende des Baus entfernt – Paketverwaltung (`apt`),
+  Perl, Benutzer- und Anmeldewerkzeuge (`passwd`, `login`, PAM), `tar`, `gzip`, `mount` und weitere, zusammen 32 der
+  bisher 87 Debian-Pakete. Weniger Pakete heißt weniger Sicherheitswarnungen, die das Programm gar nicht betreffen, und
+  wer in den Container eindringt, kann dort keine Software nachinstallieren. Die Paketdatenbank bleibt erhalten,
+  Sicherheitsscanner sehen also weiterhin genau, was drin ist (`docker/slim.sh`).
+- Der Prüflauf startet das fertige Image jetzt zusätzlich wie auf einem Server (Startskript, Wechsel auf Benutzer
+  1000, Anmeldeseite antwortet) und prüft, dass Paketverwaltung und Perl fehlen und Python die CA-Zertifikate findet.
+
 ## 3.0.6 – 05.11.2026
 **Neu**
 - „Buy me a coffee“-Button unten in der Seitenleiste – nur für Admins sichtbar, öffnet die Unterstützerseite des

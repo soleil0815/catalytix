@@ -140,3 +140,31 @@ run_mypy() {
         fail "Type check failed" "mypy found errors in the strictly checked modules (mypy.ini) – see the log of this step."
     fi
 }
+
+# Start the image the way a server does (entrypoint as root → setpriv → gunicorn as 1000:1000) and wait until the
+# login page answers. Also checks what docker/slim.sh promises: no package manager, no Perl, CA certificates there.
+start_in_image() {   # start_in_image IMAGE
+    local name="catalytix-start-$$" ok="" uid out
+    docker run -d --name "$name" -p 127.0.0.1:19300:9300 "$1" >/dev/null \
+        || fail "Image does not start" "docker run failed for $1."
+    for _ in $(seq 1 60); do
+        if curl -fsS -o /dev/null http://127.0.0.1:19300/login 2>/dev/null; then ok=1; break; fi
+        [ "$(docker inspect -f '{{.State.Running}}' "$name")" = true ] || break
+        sleep 2
+    done
+    out="$(docker logs "$name" 2>&1 | tail -n 30)"
+    uid="$(docker exec "$name" sh -c "awk '/^Uid:/ {print \$2}' /proc/1/status" 2>/dev/null || true)"
+    if [ -z "$ok" ]; then
+        docker rm -f "$name" >/dev/null 2>&1 || true
+        echo "$out"
+        fail "Image does not start" "The login page did not answer within 2 minutes – see the container log above."
+    fi
+    docker exec "$name" sh -c 'for c in apt apt-get perl tar passwd login mount; do command -v "$c" && exit 1; done; exit 0' \
+        || { docker rm -f "$name" >/dev/null; fail "Image not slim" "Package manager or tools left in the image (docker/slim.sh)."; }
+    docker exec "$name" python -c "import ssl; n = ssl.create_default_context(cafile=ssl.get_default_verify_paths().openssl_cafile).cert_store_stats()['x509_ca']; assert n > 50, n" \
+        || { docker rm -f "$name" >/dev/null; fail "CA certificates missing" "Python finds no CA certificates in the image."; }
+    docker rm -f "$name" >/dev/null
+    [ "$uid" = 1000 ] || fail "Runs as the wrong user" "The app process runs as uid '$uid', expected 1000."
+    { echo "### Start like on a server"; echo "Login page answers, app runs as uid 1000, no package manager in the image."; } \
+        >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+}

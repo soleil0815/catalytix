@@ -577,5 +577,58 @@ class SecurityPolicyTests(unittest.TestCase):
         self.assertIn("SECURITY.md#deutsch", (ROOT / "README.md").read_text(encoding="utf-8"))
         self.assertIn("SECURITY.md#english", (ROOT / "README.en.md").read_text(encoding="utf-8"))
 
+
+class SlimImageTests(unittest.TestCase):
+    """3.0.7: docker/slim.sh removes what the running program never uses; the image is started like on a server."""
+
+    def setUp(self):
+        self.slim = (ROOT / "docker" / "slim.sh").read_text(encoding="utf-8")
+        self.dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+    def group(self, name):
+        m = re.search(rf'^{name}="([^"]*)"', self.slim, re.M)
+        self.assertIsNotNone(m, name)
+        return m.group(1).split()
+
+    def test_posix_sh(self):
+        import shutil
+        import subprocess
+        for sh in ("sh", "dash"):
+            if shutil.which(sh):
+                subprocess.run([sh, "-n", str(ROOT / "docker" / "slim.sh")], check=True)
+
+    def test_needed_packages_kept(self):
+        keep = self.group("KEEP")
+        removed = {p for g in ("G1", "G2", "G3", "G4", "G5") for p in self.group(g)}
+        # openssl owns /usr/lib/ssl/certs and cert.pem (CA certificates for Python), util-linux has setpriv
+        # (entrypoint), dpkg keeps the package database readable for scanners
+        for pkg in ("openssl", "ca-certificates", "tzdata", "util-linux", "dpkg", "dash", "coreutils", "findutils",
+                    "libssl3t64", "libsqlite3-0", "libc6", "libstdc++6"):
+            self.assertIn(pkg, keep)
+            self.assertNotIn(pkg, removed)
+        for pkg in ("apt", "perl-base", "debconf", "passwd", "login", "tar", "libpam0g", "libsystemd0"):
+            self.assertIn(pkg, removed)
+
+    def test_removal_details(self):
+        self.assertIn("dpkg --purge --force-remove-essential --force-remove-protected --force-depends", self.slim)
+        self.assertNotIn("apt-get purge", self.slim)       # apt would also remove needed packages
+        self.assertIn("tar", self.group("G5"))             # dpkg refuses to start without tar: last run only
+        self.assertIn("perl-base", self.group("G5"))       # maintainer scripts need perl until the end
+        self.assertIn("exit \"$fail\"", self.slim)
+
+    def test_dockerfile_order(self):
+        slim = self.dockerfile.index("RUN sh /tmp/slim.sh")
+        self.assertLess(self.dockerfile.index("apt-get -o Acquire::Retries=5"), slim)
+        self.assertLess(self.dockerfile.index("pip install --no-cache-dir --require-hashes"), slim)
+        self.assertLess(slim, self.dockerfile.index("> /app/image-packages.txt"))   # the list shows the slim state
+
+    def test_ci_starts_image_like_a_server(self):
+        build = (ROOT / ".github" / "workflows" / "build.yml").read_text(encoding="utf-8")
+        self.assertIn("start_in_image catalytix-ci:check", build)
+        self.assertIn("start_in_image catalytix-ci:amd64", build)
+        ci = (ROOT / "tools" / "ci.sh").read_text(encoding="utf-8")
+        self.assertIn("start_in_image() {", ci)
+        self.assertIn("/proc/1/status", ci)                 # app runs as 1000, not root
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.0.6** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.0.7** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -405,6 +405,7 @@ The privacy policy should list what Catalytix stores: name, username, e-mail add
 - **The key belongs to the database:** if it is changed or lost, all 2FA sign-ins fail and the stored SMTP/AD passwords can no longer be read. So restore or move a database only **together with its `secret_key`**. On first start Catalytix stores a check value of the key (not the key itself) and **refuses to start** if the key does not match the database – check the log and bring back the matching `secret_key`. To accept a new key deliberately, start once with `CATALYTIX_ACCEPT_NEW_KEY=1` (remove it afterwards), then reset users' 2FA and re-enter the SMTP/AD passwords.
 - **Browser protection:** strict Content Security Policy (scripts only from your own server, no inline scripts), protection against framing by other sites, CSRF protection on all forms.
 - **Uploaded covers** are re-saved as JPEG – hidden content in image files is not kept. The **CSV export** marks cells starting with `=`, `+`, `-` or `@` so Excel does not run them as formulas.
+- **Slim image:** the package manager, Perl, login tools and other packages the running program never uses are removed during the build (`docker/slim.sh`) – smaller attack surface and fewer security warnings. The package database is kept, so scanners like Trivy still see everything inside. The program runs without root in the container (user `PUID`:`PGID`, default 1000).
 
 ## Backups
 

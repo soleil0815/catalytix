@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.0.3** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 3.0.4** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name eurer Bibliothek.
 
@@ -223,6 +223,8 @@ Jedes Buch gehört entweder zu einer **Gruppe** oder ist **allgemein**. Allgemei
    ```
 
    Mit **„Gruppen laden“** zeigt Catalytix die Gruppen aus dem AD an; ein Klick auf *Admin*, *Verwalter* oder *Leser* übernimmt sie. Mitglieder verschachtelter Gruppen zählen mit. Die höchste passende Rolle gewinnt, wer in keiner Gruppe ist, wird abgewiesen. Rollen von AD-Benutzern werden bei jeder Anmeldung neu bestimmt – Änderungen im AD wirken also beim nächsten Login.
+
+   **Administratoren und Verwalter:** Ein bloßer Gruppenname passt auf jede gleichnamige Gruppe im AD – wer irgendwo Gruppen anlegen darf (z. B. Lehrkräfte in ihrer OU), könnte sich sonst selbst Rechte geben. Deshalb wandelt das Speichern bloße Namen bei diesen beiden Rollen in den DN genau dieser Gruppe um (mit Dienstkonto). Gibt es den Namen mehrfach oder gar nicht, wird nicht gespeichert. Ohne Dienstkonto oder wenn das AD nicht erreichbar ist, bleibt der Name mit einer Warnung stehen. Ältere Einstellungen mit bloßem Namen funktionieren weiter; die Seite *Active Directory* weist darauf hin, bis einmal gespeichert wurde.
 
    Statt des Namens geht auch der vollständige DN einer Gruppe (falls ein Name mehrfach vorkommt) oder eine OU (`OU=Schueler,DC=schule,DC=local` – dann zählen alle Benutzer darunter).
 5. **Login testen** zeigt DN, alle Gruppen und die Rolle, die der Benutzer bekäme – ohne vorher speichern zu müssen.

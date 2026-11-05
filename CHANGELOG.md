@@ -3,6 +3,15 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.0.4 – 05.11.2026
+**Sicherheit**
+- Active Directory: Ein bloßer Gruppenname bei den Rollen Administrator und Verwalter (z. B. `Bibliothek-Admins`)
+  passte auf jede gleichnamige Gruppe im ganzen Verzeichnis. Wer irgendwo Gruppen anlegen darf (z. B. Lehrkräfte in
+  ihrer OU), konnte sich so selbst Rechte geben. Beim Speichern wird ein solcher Name jetzt in den DN genau dieser
+  Gruppe umgewandelt (mit Dienstkonto). Gibt es den Namen mehrfach oder gar nicht, wird nicht gespeichert. Ohne
+  Dienstkonto oder bei nicht erreichbarem AD bleibt der Name mit einer Warnung stehen. Bestehende Einstellungen
+  funktionieren weiter; die Seite *Active Directory* weist auf bloße Namen hin, bis einmal gespeichert wurde.
+
 ## 3.0.3 – 05.11.2026
 **Verbessert (Update-Weg und Build-Kette)**
 - Jedes Image trägt seinen genauen Tag (`catalytix.tag`, z. B. `3.0.3-s1`) und den Commit, aus dem es gebaut wurde

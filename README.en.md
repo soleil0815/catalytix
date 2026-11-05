@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.0.3** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.0.4** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -227,6 +227,8 @@ Every book either belongs to a **group** or is **general**. General books can be
    **„Gruppen laden“** (Load groups) lists the groups from your AD; clicking *Admin*, *Verwalter* or *Leser* adds them to the matching role. Members of nested groups count as well. The highest matching role wins; anyone not in any of the groups is rejected. Roles of AD users are re-evaluated on every sign-in, so changes in AD take effect at the next login.
 
    Instead of a name you can also use the full DN of a group (if a name exists more than once) or an OU (`OU=Students,DC=school,DC=local` – then every user below it matches).
+
+   **Administrators and librarians:** a bare group name matches every group of that name in AD – whoever may create groups somewhere (e.g. teachers in their OU) could otherwise give themselves rights. That is why saving turns bare names for these two roles into the DN of exactly that group (with a service account). If the name exists more than once or not at all, nothing is saved. Without a service account, or if AD cannot be reached, the name stays with a warning. Older settings with a bare name keep working; the *Active Directory* page points it out until you save once.
 5. **„Login testen“** (Test login) shows the DN, all groups (with their origin: direct, primary or nested) and the role the user would get – without saving first.
 6. **Map library groups automatically**: for a library group (*Administration → Gruppen*), enter the name of an AD group, e.g. `Class7a`. Members are added or removed automatically at sign-in. Manually assigned groups without an AD link stay untouched.
 

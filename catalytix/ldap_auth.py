@@ -409,6 +409,23 @@ class Directory:
             conn.unbind()
         return sorted(groups, key=lambda g: g["name"].lower())
 
+    def find_groups_by_name(self, name: str) -> list[str]:
+        """DNs of all groups whose name (cn) is exactly `name` (case-insensitive) – used to turn a bare group name
+        in a role rule into the DN of exactly one group."""
+        from ldap3 import SUBTREE
+
+        flt = ("(&(|(objectClass=group)(objectClass=groupOfNames)(objectClass=groupOfUniqueNames)"
+               f"(objectClass=posixGroup))(cn={escape_filter(name.strip())}))")
+        conn = self.service_connection()
+        try:
+            entries = conn.extend.standard.paged_search(self.group_base(), flt, SUBTREE, attributes=["cn"],
+                                                        paged_size=500, generator=True)
+            want = name.strip().lower()
+            return sorted({e["dn"] for e in entries if e.get("type") == "searchResEntry"
+                           and group_cn(e["dn"]).lower() == want})
+        finally:
+            conn.unbind()
+
     # ---------------------------------------------------------------- Login
     def authenticate(self, username: str, password: str) -> LDAPUser:
         username = (username or "").strip()

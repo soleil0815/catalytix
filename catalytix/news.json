@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.0.4",
+  "date": "2026-11-05",
+  "items": [
+   {
+    "kind": "security",
+    "audience": "admin",
+    "de": {
+     "title": "AD-Rollen: eindeutige Gruppen für Administratoren und Verwalter",
+     "text": "Ein bloßer Gruppenname bei Administratoren oder Verwaltern passte auf jede gleichnamige Gruppe im AD. Beim Speichern wird er jetzt in den DN genau dieser Gruppe umgewandelt. Steht bei dir noch ein bloßer Name, weist die Seite Active Directory darauf hin – einmal speichern genügt."
+    },
+    "en": {
+     "title": "AD roles: unique groups for administrators and librarians",
+     "text": "A bare group name for administrators or librarians matched every group of that name in AD. When saving, it is now turned into the DN of exactly that group. If a bare name is still set, the Active Directory page points it out – saving once is enough."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.0.3",
   "date": "2026-11-05",
   "items": [

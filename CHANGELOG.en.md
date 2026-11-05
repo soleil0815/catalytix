@@ -2,6 +2,15 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.0.4 – 2026-11-05
+**Security**
+- Active Directory: a bare group name for the administrator and librarian roles (e.g. `Bibliothek-Admins`) matched
+  every group of that name in the whole directory. Whoever may create groups somewhere (e.g. teachers in their OU)
+  could give themselves rights that way. When saving, such a name is now turned into the DN of exactly that group
+  (with a service account). If the name exists more than once or not at all, nothing is saved. Without a service
+  account or with AD not reachable, the name stays with a warning. Existing settings keep working; the *Active
+  Directory* page points out bare names until you save once.
+
 ## 3.0.3 – 2026-11-05
 **Improved (update path and build chain)**
 - Every image carries its exact tag (`catalytix.tag`, e.g. `3.0.3-s1`) and the commit it was built from

@@ -610,12 +610,14 @@ def bare_names(text: str) -> list[str]:
     return [r for r in parse_rules(text) if is_group_name(r)]
 
 
-def _resolve_rule_names(cfg: dict) -> bool:
+def _resolve_rule_names(cfg: dict, target: dict | None = None) -> bool:
     """Replace bare group names in the administrator and librarian rules by the DN of exactly that group.
 
     Returns False (do not save) if a name is not found or exists more than once. Without a service account or with
     the directory not reachable the names stay as they are, with a warning – saving other settings must stay
-    possible."""
+    possible. The replaced rules go into `target` (default: `cfg`) – "trust certificate" looks up with the new
+    certificates but saves the form values."""
+    target = cfg if target is None else target
     names = {n for k in STRICT_RULES for n in bare_names(cfg.get(k, ""))}
     if not names or cfg.get("ldap_enabled") != "1":
         return True
@@ -643,7 +645,7 @@ def _resolve_rule_names(cfg: dict) -> bool:
     if not ok:
         return False
     for k in STRICT_RULES:
-        cfg[k] = "\n".join(found[r][0] if r in found else r for r in parse_rules(cfg.get(k, "")))
+        target[k] = "\n".join(found[r][0] if r in found else r for r in parse_rules(cfg.get(k, "")))
     n = len(found)
     flash(_n("{n} Gruppenname bei Administratoren/Verwaltern durch den eindeutigen DN ersetzt.",
              "{n} Gruppennamen bei Administratoren/Verwaltern durch den eindeutigen DN ersetzt.", n), "info")
@@ -690,7 +692,8 @@ def ldap():
                 certs = []
             if not certs:
                 flash(_("Keine gültigen Zertifikate zum Übernehmen."), "error")
-            elif _resolve_rule_names(cfg):
+            elif _resolve_rule_names({**cfg, "ldap_tls_certs": ldap_tls.to_pem(certs), "ldap_verify_cert": "1"},
+                                     target=cfg):
                 for k, v in cfg.items():
                     set_setting(k, v)
                 set_setting("ldap_tls_certs", ldap_tls.to_pem(certs))

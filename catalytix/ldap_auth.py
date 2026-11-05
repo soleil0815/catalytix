@@ -413,6 +413,10 @@ class Directory:
         """DNs of all groups whose name (cn) is exactly `name` (case-insensitive) – used to turn a bare group name
         in a role rule into the DN of exactly one group."""
         from ldap3 import SUBTREE
+        from ldap3.core.exceptions import LDAPException
+
+        def norm(x: str) -> str:      # same comparison as rule_matches (whitespace around commas, case)
+            return re.sub(r"\s*,\s*", ",", x.strip()).lower()
 
         flt = ("(&(|(objectClass=group)(objectClass=groupOfNames)(objectClass=groupOfUniqueNames)"
                f"(objectClass=posixGroup))(cn={escape_filter(name.strip())}))")
@@ -420,9 +424,17 @@ class Directory:
         try:
             entries = conn.extend.standard.paged_search(self.group_base(), flt, SUBTREE, attributes=["cn"],
                                                         paged_size=500, generator=True)
-            want = name.strip().lower()
-            return sorted({e["dn"] for e in entries if e.get("type") == "searchResEntry"
-                           and group_cn(e["dn"]).lower() == want})
+            found = {e["dn"] for e in entries if e.get("type") == "searchResEntry"
+                     and norm(group_cn(e["dn"])) == norm(name)}
+            # The connection does not raise on result codes: an incomplete answer (no access, time/size limit …)
+            # must not count as "not found" or as "unique"
+            code = (conn.result or {}).get("result", 0)
+            if code not in (0, None):
+                raise LDAPError(_("Gruppensuche im Verzeichnis unvollständig ({error}).",
+                                  error=(conn.result or {}).get("description") or code))
+            return sorted(found)
+        except LDAPException as exc:
+            raise LDAPError(_("LDAP-Fehler: {error}", error=exc)) from exc
         finally:
             conn.unbind()
 

@@ -8,8 +8,8 @@ The current version is shown at the bottom left of the sidebar after signing in.
   every group of that name in the whole directory. Whoever may create groups somewhere (e.g. teachers in their OU)
   could give themselves rights that way. When saving, such a name is now turned into the DN of exactly that group
   (with a service account). If the name exists more than once or not at all, nothing is saved. Without a service
-  account or with AD not reachable, the name stays with a warning. Existing settings keep working; the *Active
-  Directory* page points out bare names until you save once.
+  account, with AD switched off or not reachable, the name stays. Existing settings keep working; the *Active
+  Directory* page points out bare names until they have been converted.
 
 ## 3.0.3 – 2026-11-05
 **Improved (update path and build chain)**

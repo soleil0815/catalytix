@@ -9,8 +9,8 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. E
   passte auf jede gleichnamige Gruppe im ganzen Verzeichnis. Wer irgendwo Gruppen anlegen darf (z. B. Lehrkräfte in
   ihrer OU), konnte sich so selbst Rechte geben. Beim Speichern wird ein solcher Name jetzt in den DN genau dieser
   Gruppe umgewandelt (mit Dienstkonto). Gibt es den Namen mehrfach oder gar nicht, wird nicht gespeichert. Ohne
-  Dienstkonto oder bei nicht erreichbarem AD bleibt der Name mit einer Warnung stehen. Bestehende Einstellungen
-  funktionieren weiter; die Seite *Active Directory* weist auf bloße Namen hin, bis einmal gespeichert wurde.
+  Dienstkonto, bei ausgeschaltetem oder nicht erreichbarem AD bleibt der Name stehen. Bestehende Einstellungen
+  funktionieren weiter; die Seite *Active Directory* weist auf bloße Namen hin, bis sie umgewandelt sind.
 
 ## 3.0.3 – 05.11.2026
 **Verbessert (Update-Weg und Build-Kette)**

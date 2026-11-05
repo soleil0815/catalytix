@@ -195,7 +195,7 @@
           <div class="hint">{{ _("Sicherer mit vollständigem DN (z. B. <code>CN=Bibliothek-Admins,OU=Gruppen,DC=firma,DC=local</code>): Ein bloßer Name passt auf jede gleichnamige Gruppe im AD – wer irgendwo Gruppen anlegen darf, könnte sich sonst selbst zum Administrator machen. „Gruppen laden“ übernimmt den DN per Klick.") }}</div></div>
         <div class="field"><label>{{ icon("books") }} {{ _("Verwalter (Bibliothekspersonal)") }}</label>
           <textarea class="rule-box" name="ldap_librarian_rules" data-rule-box="librarian" placeholder="{{ _('Bibliothek-Verwalter') }}">{{ v.ldap_librarian_rules }}</textarea>
-          <div class="hint">{{ _("Beim Speichern werden bloße Gruppennamen bei Administratoren und Verwaltern in den DN genau dieser Gruppe umgewandelt (dafür ist das Dienstkonto nötig). Gibt es den Namen mehrfach, wird nicht gespeichert.") }}</div></div>
+          <div class="hint">{{ _("Beim Speichern werden bloße Gruppennamen bei Administratoren und Verwaltern in den DN genau dieser Gruppe umgewandelt (dafür ist das Dienstkonto nötig). Gibt es den Namen mehrfach oder gar nicht, wird nicht gespeichert.") }}</div></div>
         <div class="field"><label>{{ icon("user") }} {{ _("Leser (Anmeldung erlaubt)") }}</label>
           <textarea class="rule-box" name="ldap_login_rules" data-rule-box="reader" placeholder="{{ _('Bibliothek-Leser') }}&#10;{{ _('Domänen-Benutzer') }}">{{ v.ldap_login_rules }}</textarea></div>
         <details class="muted" style="font-size: 13px; margin-bottom: 14px">

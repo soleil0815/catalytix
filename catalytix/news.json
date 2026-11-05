@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.0.5",
+  "date": "2026-11-05",
+  "items": [
+   {
+    "kind": "improved",
+    "audience": "all",
+    "de": {
+     "title": "Formulare besser mit Screenreader und Tastatur",
+     "text": "Alle Formularfelder sind jetzt mit ihrer Beschriftung verknüpft: Screenreader lesen den Namen des Felds vor, und ein Klick auf die Beschriftung setzt den Cursor direkt ins Feld."
+    },
+    "en": {
+     "title": "Forms work better with screen readers and keyboard",
+     "text": "Every form field is now linked to its label: screen readers read out the field's name, and clicking the label puts the cursor straight into the field."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.0.4",
   "date": "2026-11-05",
   "items": [

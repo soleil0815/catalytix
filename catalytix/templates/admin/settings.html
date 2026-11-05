@@ -8,14 +8,14 @@
   <div class="grid grid-2">
     <section class="card card-pad">
       <h2 style="margin-bottom: 16px">{{ _("Allgemein") }}</h2>
-      <div class="field"><label>{{ _("Name der Bibliothek") }}</label><input type="text" name="library_name" value="{{ s('library_name') }}"></div>
-      <div class="field"><label>{{ _("Standardsprache") }}</label>
-        <select name="default_language">
+      <div class="field"><label for="f-library-name">{{ _("Name der Bibliothek") }}</label><input id="f-library-name" type="text" name="library_name" value="{{ s('library_name') }}"></div>
+      <div class="field"><label for="f-default-language">{{ _("Standardsprache") }}</label>
+        <select id="f-default-language" name="default_language">
           {% for code, label in LANGUAGES.items() %}<option value="{{ code }}" {{ 'selected' if s('default_language') == code }}>{{ label }}</option>{% endfor %}
         </select>
         <small class="muted">{{ _("Für Besucher, deren Browser keine der beiden Sprachen bevorzugt, und für E-Mails an Benutzer ohne eigene Wahl. Jeder kann die Sprache oben rechts selbst umstellen.") }}</small></div>
-      <div class="field"><label>{{ _("Katalog-Sichtbarkeit") }}</label>
-        <select name="catalog_visibility">
+      <div class="field"><label for="f-catalog-visibility">{{ _("Katalog-Sichtbarkeit") }}</label>
+        <select id="f-catalog-visibility" name="catalog_visibility">
           <option value="groups" {{ 'selected' if s('catalog_visibility') == 'groups' }}>{{ _("Leser sehen nur Bücher ihrer Gruppen und allgemeine Bücher") }}</option>
           <option value="all" {{ 'selected' if s('catalog_visibility') == 'all' }}>{{ _("Alle sehen den gesamten Katalog (Ausleihe bleibt eingeschränkt)") }}</option>
         </select></div>
@@ -23,20 +23,20 @@
 
       <h2 style="margin: 22px 0 6px">{{ icon("shield") }} {{ _("Rechtliches") }}</h2>
       <p class="muted" style="font-size: 13.5px">{{ _("Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in E-Mails. Bei Betrieb im Internet sind beide Angaben in der Regel Pflicht.") }}</p>
-      <div class="field"><label>{{ _("Impressum (Adresse)") }}</label>
-        <input type="url" name="imprint_url" value="{{ s('imprint_url') }}" placeholder="{{ _('https://www.institut.de/impressum') }}"></div>
-      <div class="field"><label>{{ _("Datenschutzerklärung (Adresse)") }}</label>
-        <input type="url" name="privacy_url" value="{{ s('privacy_url') }}" placeholder="{{ _('https://www.institut.de/datenschutz') }}">
+      <div class="field"><label for="f-imprint-url">{{ _("Impressum (Adresse)") }}</label>
+        <input id="f-imprint-url" type="url" name="imprint_url" value="{{ s('imprint_url') }}" placeholder="{{ _('https://www.institut.de/impressum') }}"></div>
+      <div class="field"><label for="f-privacy-url">{{ _("Datenschutzerklärung (Adresse)") }}</label>
+        <input id="f-privacy-url" type="url" name="privacy_url" value="{{ s('privacy_url') }}" placeholder="{{ _('https://www.institut.de/datenschutz') }}">
         <div class="hint">{{ _("Bei der Selbstregistrierung muss sie bestätigt werden.") }}</div></div>
     </section>
 
     <section class="card card-pad">
       <h2 style="margin-bottom: 16px">{{ _("Ausleihe") }}</h2>
       <div class="form-grid">
-        <div class="field span-3"><label>{{ _("Leihfrist (Tage)") }}</label><input type="number" name="loan_days" min="1" value="{{ s('loan_days') }}"></div>
-        <div class="field span-3"><label>{{ _("Verlängerung um (Tage)") }}</label><input type="number" name="extension_days" min="1" value="{{ s('extension_days') }}"></div>
-        <div class="field span-3"><label>{{ _("Max. Verlängerungen") }}</label><input type="number" name="max_extensions" min="0" value="{{ s('max_extensions') }}"></div>
-        <div class="field span-3"><label>{{ _("Max. gleichzeitige Ausleihen") }}</label><input type="number" name="max_loans" min="0" value="{{ s('max_loans') }}">
+        <div class="field span-3"><label for="f-loan-days">{{ _("Leihfrist (Tage)") }}</label><input id="f-loan-days" type="number" name="loan_days" min="1" value="{{ s('loan_days') }}"></div>
+        <div class="field span-3"><label for="f-extension-days">{{ _("Verlängerung um (Tage)") }}</label><input id="f-extension-days" type="number" name="extension_days" min="1" value="{{ s('extension_days') }}"></div>
+        <div class="field span-3"><label for="f-max-extensions">{{ _("Max. Verlängerungen") }}</label><input id="f-max-extensions" type="number" name="max_extensions" min="0" value="{{ s('max_extensions') }}"></div>
+        <div class="field span-3"><label for="f-max-loans">{{ _("Max. gleichzeitige Ausleihen") }}</label><input id="f-max-loans" type="number" name="max_loans" min="0" value="{{ s('max_loans') }}">
           <div class="hint">{{ _("0 = unbegrenzt") }}</div></div>
       </div>
       <label class="check"><input type="checkbox" name="self_checkout" value="1" {{ 'checked' if s('self_checkout') == '1' }}>
@@ -52,9 +52,9 @@
       <label class="check"><input type="checkbox" name="reservations_enabled" value="1" {{ 'checked' if s('reservations_enabled') == '1' }}>
         <span>{{ _("Vormerken verliehener Bücher") }}<small class="muted">{{ _("Sind alle Exemplare verliehen, kann man ein Buch vormerken. Wird eines frei, wird es für die erste Person in der Warteschlange zurückgelegt; sie bekommt eine E-Mail. Vorgemerkte Bücher können Leser nicht selbst verlängern. Ausschalten löscht alle offenen Vormerkungen.") }}</small></span></label>
       <div class="form-grid" style="margin-top: 12px">
-        <div class="field span-3"><label>{{ _("Abholfrist (Tage)") }}</label><input type="number" name="reservation_hold_days" min="1" max="60" value="{{ s('reservation_hold_days') }}">
+        <div class="field span-3"><label for="f-reservation-hold-days">{{ _("Abholfrist (Tage)") }}</label><input id="f-reservation-hold-days" type="number" name="reservation_hold_days" min="1" max="60" value="{{ s('reservation_hold_days') }}">
           <div class="hint">{{ _("So lange liegt ein frei gewordenes Exemplar bereit. Danach ist die nächste Person dran.") }}</div></div>
-        <div class="field span-3"><label>{{ _("Max. Vormerkungen je Person") }}</label><input type="number" name="reservation_max" min="0" max="100" value="{{ s('reservation_max') }}">
+        <div class="field span-3"><label for="f-reservation-max">{{ _("Max. Vormerkungen je Person") }}</label><input id="f-reservation-max" type="number" name="reservation_max" min="0" max="100" value="{{ s('reservation_max') }}">
           <div class="hint">{{ _("0 = unbegrenzt") }}</div></div>
       </div>
     </section>
@@ -62,8 +62,8 @@
     <section class="card card-pad">
       <h2 style="margin-bottom: 6px">{{ icon("user") }} {{ _("Selbstregistrierung") }}</h2>
       <p class="muted" style="font-size: 13.5px">{{ _("Dürfen sich Leser selbst ein Konto anlegen? Neue Konten sind immer <b>Leser</b>. Mit aktiver Registrierung erscheint auf der Anmeldeseite der Link „Jetzt registrieren“.") }}</p>
-      <div class="field"><label>{{ _("Registrierung") }}</label>
-        <select name="registration_mode">
+      <div class="field"><label for="f-registration-mode">{{ _("Registrierung") }}</label>
+        <select id="f-registration-mode" name="registration_mode">
           <option value="off" {{ 'selected' if s('registration_mode') == 'off' }}>{{ _("aus (Standard)") }}</option>
           <option value="approval" {{ 'selected' if s('registration_mode') == 'approval' }}>{{ _("erlaubt – Freigabe durch Administrator nötig") }}</option>
           <option value="open" {{ 'selected' if s('registration_mode') == 'open' }}>{{ _("erlaubt – Konto sofort aktiv") }}</option>
@@ -74,12 +74,12 @@
           {% if not s('app_base_url') %}<b style="color: var(--warn)">{{ _("Basis-Adresse für Links fehlt (Administration → E-Mail) – ohne sie ist die Registrierung mit Bestätigung gesperrt.") }}</b>{% endif %}</small></span></label>
       <label class="check"><input type="checkbox" name="registration_notify_admins" value="1" {{ 'checked' if s('registration_notify_admins') == '1' }}>
         <span>{{ _("Administratoren per E-Mail über neue Registrierungen informieren") }}</span></label>
-      <div class="field"><label>{{ _("Nur diese E-Mail-Domains zulassen") }} <small>{{ _("(optional)") }}</small></label>
-        <input type="text" name="registration_domains" value="{{ s('registration_domains') }}" placeholder="{{ _('z. B. schule.de, eltern.schule.de') }}">
+      <div class="field"><label for="f-registration-domains">{{ _("Nur diese E-Mail-Domains zulassen") }} <small>{{ _("(optional)") }}</small></label>
+        <input id="f-registration-domains" type="text" name="registration_domains" value="{{ s('registration_domains') }}" placeholder="{{ _('z. B. schule.de, eltern.schule.de') }}">
         <div class="hint">{{ _("Leer = alle Adressen. Subdomains sind eingeschlossen.") }}</div></div>
       <div class="form-grid">
-        <div class="field span-3"><label>{{ _("Gruppe für neue Leser") }}</label>
-          <select name="registration_group_id">
+        <div class="field span-3"><label for="f-registration-group-id">{{ _("Gruppe für neue Leser") }}</label>
+          <select id="f-registration-group-id" name="registration_group_id">
             <option value="">{{ _("keine (nur allgemeine Bücher)") }}</option>
             {% for g in groups %}<option value="{{ g.id }}" {{ 'selected' if s('registration_group_id') == g.id|string }}>{{ g.name }}</option>{% endfor %}
           </select></div>
@@ -91,8 +91,8 @@
     <section class="card card-pad" id="aufbewahrung">
       <h2 style="margin-bottom: 6px">{{ icon("clock") }} {{ _("Aufbewahrung") }}</h2>
       <p class="muted" style="font-size: 13.5px">{{ _("Abgeschlossene Ausleihen und das E-Mail-Protokoll werden nach Ablauf der Frist automatisch gelöscht (DSGVO: nur so lange speichern wie nötig). Pro Buch bleibt nur die Anzahl der Ausleihen erhalten. Laufende und überfällige Ausleihen werden nie gelöscht.") }}</p>
-      <div class="field"><label>{{ _("Abgeschlossene Ausleihen löschen nach") }}</label>
-        <select name="retention_months">
+      <div class="field"><label for="f-retention-months">{{ _("Abgeschlossene Ausleihen löschen nach") }}</label>
+        <select id="f-retention-months" name="retention_months">
           {% for m, label in [("3", _("3 Monaten")), ("6", _("6 Monaten")), ("12", _("12 Monaten (empfohlen)")), ("24", _("2 Jahren")), ("36", _("3 Jahren")), ("0", _("nie (nicht empfohlen)"))] %}
           <option value="{{ m }}" {{ 'selected' if s('retention_months') == m }}>{{ label }}</option>{% endfor %}
         </select>
@@ -104,15 +104,15 @@
     <section class="card card-pad">
       <h2 style="margin-bottom: 6px">{{ icon("shield") }} {{ _("Zwei-Faktor-Anmeldung") }}</h2>
       <p class="muted" style="font-size: 13.5px">{{ _("Authenticator-App (TOTP) oder Sicherheitsschlüssel (YubiKey/FIDO2). Jeder kann sie im Profil freiwillig einrichten; hier legst du fest, für wen sie Pflicht ist. Betroffene werden nach der nächsten Anmeldung zur Einrichtung geführt.") }}</p>
-      <div class="field"><label>{{ _("Pflicht bei Zugriff von außen (Internet)") }}</label>
-        <select name="mfa_policy">
+      <div class="field"><label for="f-mfa-policy">{{ _("Pflicht bei Zugriff von außen (Internet)") }}</label>
+        <select id="f-mfa-policy" name="mfa_policy">
           <option value="optional" {{ 'selected' if s('mfa_policy') == 'optional' }}>{{ _("niemanden (freiwillig)") }}</option>
           <option value="admins" {{ 'selected' if s('mfa_policy') == 'admins' }}>{{ _("Administratoren") }}</option>
           <option value="librarians" {{ 'selected' if s('mfa_policy') == 'librarians' }}>{{ _("Verwalter und Administratoren") }}</option>
           <option value="all" {{ 'selected' if s('mfa_policy') == 'all' }}>{{ _("alle Benutzer") }}</option>
         </select></div>
-      <div class="field"><label>{{ _("Im internen Netz") }}</label>
-        <select name="mfa_internal">
+      <div class="field"><label for="f-mfa-internal">{{ _("Im internen Netz") }}</label>
+        <select id="f-mfa-internal" name="mfa_internal">
           <option value="same" {{ 'selected' if s('mfa_internal') == 'same' }}>{{ _("wie von außen") }}</option>
           <option value="optional" {{ 'selected' if s('mfa_internal') == 'optional' }}>{{ _("keine Pflicht – wer 2FA eingerichtet hat, wird trotzdem gefragt") }}</option>
           <option value="skip" {{ 'selected' if s('mfa_internal') == 'skip' }}>{{ _("keine Zwei-Faktor-Abfrage") }}</option>
@@ -121,11 +121,11 @@
         {% if s('mfa_internal') != 'same' and config.TRUSTED_PROXIES_DEFAULT %}
         <div class="notice warn" style="display: block; font-size: 12.5px; margin-top: 8px">{{ _("Empfehlung: Ohne Zwei-Faktor im internen Netz entscheidet die vom Reverse-Proxy gemeldete Adresse, wer als intern gilt. Derzeit wird diese Angabe von jeder privaten Adresse angenommen. Trage in der <code>.env</code> die Adresse eures Proxys ein (<code>CATALYTIX_TRUSTED_PROXIES=…</code>) und sorge dafür, dass Port 9300 nur für den Proxy erreichbar ist (<code>CATALYTIX_BIND</code> oder gemeinsames Docker-Netz) – sonst kann sich jemand, der den Port direkt erreicht, als intern ausgeben.") }}</div>
         {% endif %}</div>
-      <div class="field"><label>{{ _("Internes Netz") }}</label>
-        <textarea name="internal_networks" rows="4" class="mono" placeholder="{{ default_networks }}">{{ s('internal_networks') }}</textarea>
+      <div class="field"><label for="f-internal-networks">{{ _("Internes Netz") }}</label>
+        <textarea id="f-internal-networks" name="internal_networks" rows="4" class="mono" placeholder="{{ default_networks }}">{{ s('internal_networks') }}</textarea>
         <div class="hint">{{ _("Ein Netz pro Zeile, z. B. <code>192.168.10.0/24</code>. Leer = 10.x und 192.168.x (siehe Platzhalter) – Docker-Netze 172.16–31.x zählen nur, wenn du sie einträgst. Am besten auf euer tatsächliches LAN eingrenzen.") }}</div></div>
-      <div class="field"><label>{{ _("Eigener Internetanschluss") }}</label>
-        <textarea name="own_public_hosts" rows="2" class="mono" placeholder="{{ _('meinebibliothek.dyndns.org') }}">{{ s('own_public_hosts') }}</textarea>
+      <div class="field"><label for="f-own-public-hosts">{{ _("Eigener Internetanschluss") }}</label>
+        <textarea id="f-own-public-hosts" name="own_public_hosts" rows="2" class="mono" placeholder="{{ _('meinebibliothek.dyndns.org') }}">{{ s('own_public_hosts') }}</textarea>
         <div class="hint">{% if connection.own_ips %}{{ _("Feste öffentliche IP oder DynDNS-Name, ein Eintrag pro Zeile. Wer über diese Adresse kommt, gilt als intern – nötig, wenn interne Rechner die öffentliche Domain aufrufen und der Router sie dabei als eigene öffentliche IP ausgibt. DynDNS-Namen werden alle 5 Minuten neu aufgelöst (derzeit: <code>{ips}</code>).", ips=connection.own_ips|join(', ')) }}{% else %}{{ _("Feste öffentliche IP oder DynDNS-Name, ein Eintrag pro Zeile. Wer über diese Adresse kommt, gilt als intern – nötig, wenn interne Rechner die öffentliche Domain aufrufen und der Router sie dabei als eigene öffentliche IP ausgibt. DynDNS-Namen werden alle 5 Minuten neu aufgelöst.") }}{% endif %}</div>
         <div class="notice warn" style="display: block; font-size: 12.5px; margin-top: 8px">{{ _("Achtung: Auch Geräte im <b>Gäste-WLAN</b> und alle anderen Geräte hinter eurem Router kommen mit dieser Adresse an und gelten dann als intern. Gäste-WLAN daher getrennt halten oder für die Bibliothek sperren.") }}</div></div>
       <div class="notice {{ 'ok' if connection.internal else 'accent' }}" style="display: block; font-size: 13px; margin-bottom: 12px">

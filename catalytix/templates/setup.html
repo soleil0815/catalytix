@@ -7,21 +7,21 @@
 <p class="muted">{{ _("Lege das lokale Administratorkonto an. Es funktioniert auch dann, wenn das Active Directory nicht erreichbar ist.") }}</p>
 <form method="post" style="margin-top: 22px">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <div class="field"><label>{{ _("Einrichtungscode") }}</label>
-    <input class="mono" type="text" name="setup_code" required autocomplete="off" autofocus placeholder="XXXX-XXXX-XXXX">
+  <div class="field"><label for="f-setup-code">{{ _("Einrichtungscode") }}</label>
+    <input id="f-setup-code" class="mono" type="text" name="setup_code" required autocomplete="off" autofocus placeholder="XXXX-XXXX-XXXX">
     <div class="hint">{{ _("Schutz davor, dass jemand anderes die Einrichtung übernimmt. Der Code steht im Protokoll des Containers und wird nach der Installation von update.sh angezeigt. Auf dem Server abrufen:") }}<br><code>docker compose exec catalytix docker-entrypoint.sh flask --app wsgi setup-code</code></div></div>
-  <div class="field"><label>{{ _("Name der Bibliothek") }}</label>
-    <input type="text" name="library_name" value="{{ request.form.get('library_name', '') }}" placeholder="{{ _('z. B. Bibliothek des Ausbildungsinstituts') }}"></div>
-  <div class="field"><label>{{ _("Admin-Benutzername") }}</label>
-    <input type="text" name="username" value="{{ request.form.get('username', 'admin') }}" required autocomplete="username"></div>
-  <div class="field"><label>{{ _("Anzeigename") }}</label>
-    <input type="text" name="display_name" value="{{ request.form.get('display_name', 'Administrator') }}"></div>
-  <div class="field"><label>{{ _("E-Mail <small>(optional)</small>") }}</label>
-    <input type="email" name="email" value="{{ request.form.get('email', '') }}"></div>
-  <div class="field"><label>{{ _("Passwort <small>(mind. 10 Zeichen)</small>") }}</label>
-    <input type="password" name="password" required minlength="10" autocomplete="new-password"></div>
-  <div class="field"><label>{{ _("Passwort wiederholen") }}</label>
-    <input type="password" name="password2" required minlength="10" autocomplete="new-password"></div>
+  <div class="field"><label for="f-library-name">{{ _("Name der Bibliothek") }}</label>
+    <input id="f-library-name" type="text" name="library_name" value="{{ request.form.get('library_name', '') }}" placeholder="{{ _('z. B. Bibliothek des Ausbildungsinstituts') }}"></div>
+  <div class="field"><label for="f-username">{{ _("Admin-Benutzername") }}</label>
+    <input id="f-username" type="text" name="username" value="{{ request.form.get('username', 'admin') }}" required autocomplete="username"></div>
+  <div class="field"><label for="f-display-name">{{ _("Anzeigename") }}</label>
+    <input id="f-display-name" type="text" name="display_name" value="{{ request.form.get('display_name', 'Administrator') }}"></div>
+  <div class="field"><label for="f-email">{{ _("E-Mail <small>(optional)</small>") }}</label>
+    <input id="f-email" type="email" name="email" value="{{ request.form.get('email', '') }}"></div>
+  <div class="field"><label for="f-password">{{ _("Passwort <small>(mind. 10 Zeichen)</small>") }}</label>
+    <input id="f-password" type="password" name="password" required minlength="10" autocomplete="new-password"></div>
+  <div class="field"><label for="f-password2">{{ _("Passwort wiederholen") }}</label>
+    <input id="f-password2" type="password" name="password2" required minlength="10" autocomplete="new-password"></div>
   <button class="btn primary lg block">{{ icon("check") }} {{ _("Einrichten") }}</button>
 </form>
 {% endblock %}

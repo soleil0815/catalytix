@@ -18,9 +18,9 @@
     <section class="card card-pad">
       <form method="get">
         <input type="hidden" name="modus" value="ausleihe">
-        <label>{{ _("1. Benutzer") }}</label>
+        <label for="f-benutzer">{{ _("1. Benutzer") }}</label>
         <div class="input-group user-search">
-          <input type="text" name="benutzer" value="{{ borrower.username if borrower else user_q }}" data-user-search data-user-search-submit
+          <input id="f-benutzer" type="text" name="benutzer" value="{{ borrower.username if borrower else user_q }}" data-user-search data-user-search-submit
                  placeholder="{{ _("Name, Benutzername oder E-Mail") }}" {{ "autofocus" if not borrower }} autocomplete="off"
                  role="combobox" aria-autocomplete="list" aria-expanded="false">
           <button class="btn">{{ icon("user") }} {{ _("Wählen") }}</button>
@@ -43,7 +43,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="modus" value="ausleihe">
         <input type="hidden" name="benutzer" value="{{ borrower.username if borrower else '' }}">
-        <label>{{ _("2. Buch (ISBN, Signatur, Titel, Autor oder #Buch-Nummer)") }}</label>
+        <label for="desk-code">{{ _("2. Buch (ISBN, Signatur, Titel, Autor oder #Buch-Nummer)") }}</label>
         <div class="input-group user-search">
           <input class="isbn-input" id="desk-code" type="text" name="code" data-book-search="ausleihe"
                  placeholder="{{ _("ISBN scannen oder im Bestand suchen") }}" {{ "autofocus" if borrower }}>
@@ -121,7 +121,7 @@
       <form method="post" autocomplete="off">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="modus" value="rueckgabe">
-        <label>{{ _("Buch scannen (ISBN, Signatur, Titel, Autor oder #Buch-Nummer)") }}</label>
+        <label for="return-code">{{ _("Buch scannen (ISBN, Signatur, Titel, Autor oder #Buch-Nummer)") }}</label>
         <div class="input-group user-search">
           <input class="isbn-input" id="return-code" type="text" name="code" data-book-search="rueckgabe"
                  placeholder="{{ _("ISBN scannen oder im Bestand suchen") }}" autofocus value="">

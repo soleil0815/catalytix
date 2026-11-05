@@ -64,9 +64,9 @@
     </div>
     <form method="post" action="{{ url_for('security.totp_confirm') }}" style="margin-top: 16px" autocomplete="off">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label>{{ _("Code aus der App") }}</label>
+      <label for="f-code">{{ _("Code aus der App") }}</label>
       <div class="input-group">
-        <input class="isbn-input" type="text" name="code" inputmode="numeric" maxlength="7" autocomplete="one-time-code" placeholder="123456" autofocus required>
+        <input id="f-code" class="isbn-input" type="text" name="code" inputmode="numeric" maxlength="7" autocomplete="one-time-code" placeholder="123456" autofocus required>
         <button class="btn primary">{{ icon("check") }} {{ _("Bestätigen") }}</button>
       </div>
     </form>
@@ -79,9 +79,9 @@
     {% elif current_user.totp_enabled %}
     <form method="post" action="{{ url_for('security.totp_disable') }}" style="margin-top: 14px" autocomplete="off">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label>{{ _("Entfernen – zur Bestätigung aktuellen Code eingeben") }}</label>
+      <label for="f-code-remove">{{ _("Entfernen – zur Bestätigung aktuellen Code eingeben") }}</label>
       <div class="input-group">
-        <input class="isbn-input" type="text" name="code" inputmode="numeric" maxlength="7" autocomplete="one-time-code" placeholder="123456" required>
+        <input id="f-code-remove" class="isbn-input" type="text" name="code" inputmode="numeric" maxlength="7" autocomplete="one-time-code" placeholder="123456" required>
         <button class="btn danger">{{ icon("trash") }} {{ _("Entfernen") }}</button>
       </div>
     </form>
@@ -115,9 +115,9 @@
     {% endfor %}
 
     <div data-webauthn-register-box style="margin-top: 14px">
-      <label>{{ _("Name des Schlüssels") }}</label>
+      <label for="f-key-name">{{ _("Name des Schlüssels") }}</label>
       <div class="input-group">
-        <input type="text" maxlength="100" data-webauthn-name placeholder="{{ _('z. B. YubiKey blau') }}" value="{{ 'YubiKey' if not keys else '' }}">
+        <input id="f-key-name" type="text" maxlength="100" data-webauthn-name placeholder="{{ _('z. B. YubiKey blau') }}" value="{{ 'YubiKey' if not keys else '' }}">
         <button type="button" class="btn primary" data-webauthn-register>{{ icon("plus") }} {{ _("Hinzufügen") }}</button>
       </div>
       <p class="muted" style="font-size: 13px; margin-top: 8px" data-webauthn-status>{{ _("Nach dem Klick den Schlüssel einstecken und berühren.") }}</p>

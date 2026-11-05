@@ -38,7 +38,7 @@
 <form class="toolbar" method="get">
   <input type="hidden" name="ansicht" value="{{ view }}">
   {% if nur %}<input type="hidden" name="nur" value="meine">{% endif %}
-  <input class="grow" type="search" name="q" value="{{ q }}" placeholder="{{ _('Titel, ISBN, Benutzer …') if scope == 'alle' else _('Titel, ISBN …') }}">
+  <input class="grow" type="search" name="q" value="{{ q }}" aria-label="{{ _('Suchen …') }}" placeholder="{{ _('Titel, ISBN, Benutzer …') if scope == 'alle' else _('Titel, ISBN …') }}">
   <button class="btn">{{ icon("search") }} {{ _("Suchen") }}</button>
 </form>
 

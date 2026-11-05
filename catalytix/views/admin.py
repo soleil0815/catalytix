@@ -600,6 +600,58 @@ def _ldap_form_cfg() -> dict:
     return cfg
 
 
+# Role rules where a bare group name would be dangerous: it matches EVERY group of that name in the directory –
+# whoever may create groups somewhere (e.g. teachers in their OU) could make themselves administrator
+STRICT_RULES = ("ldap_admin_rules", "ldap_librarian_rules")
+
+
+def bare_names(text: str) -> list[str]:
+    from ..ldap_auth import is_group_name
+    return [r for r in parse_rules(text) if is_group_name(r)]
+
+
+def _resolve_rule_names(cfg: dict, target: dict | None = None) -> bool:
+    """Replace bare group names in the administrator and librarian rules by the DN of exactly that group.
+
+    Returns False (do not save) if a name is not found or exists more than once. Without a service account or with
+    the directory not reachable the names stay as they are, with a warning – saving other settings must stay
+    possible. The replaced rules go into `target` (default: `cfg`) – "trust certificate" looks up with the new
+    certificates but saves the form values."""
+    target = cfg if target is None else target
+    names = {n for k in STRICT_RULES for n in bare_names(cfg.get(k, ""))}
+    if not names or cfg.get("ldap_enabled") != "1":
+        return True
+    if not cfg.get("ldap_bind_dn"):
+        flash(_("Gruppennamen bei Administratoren und Verwaltern konnten nicht in einen eindeutigen DN umgewandelt "
+                "werden (kein Dienstkonto). Ein bloßer Name passt auf jede gleichnamige Gruppe im AD – trage besser "
+                "den vollständigen DN ein."), "warning")
+        return True
+    try:
+        directory = Directory(cfg)
+        found = {n: directory.find_groups_by_name(n) for n in sorted(names)}
+    except LDAPError as exc:
+        flash(_("Gruppennamen bei Administratoren und Verwaltern konnten nicht in einen eindeutigen DN umgewandelt "
+                "werden ({error}). Beim nächsten Speichern wird es erneut versucht.", error=str(exc)), "warning")
+        return True
+    ok = True
+    for name, dns in found.items():
+        if not dns:
+            flash(_("Die Gruppe „{name}“ wurde im Verzeichnis nicht gefunden – nichts gespeichert.", name=name), "error")
+            ok = False
+        elif len(dns) > 1:
+            flash(_("Den Gruppennamen „{name}“ gibt es mehrfach ({dns}) – bitte den vollständigen DN der richtigen "
+                    "Gruppe eintragen. Nichts gespeichert.", name=name, dns="; ".join(dns)), "error")
+            ok = False
+    if not ok:
+        return False
+    for k in STRICT_RULES:
+        target[k] = "\n".join(found[r][0] if r in found else r for r in parse_rules(cfg.get(k, "")))
+    n = len(found)
+    flash(_n("{n} Gruppenname bei Administratoren/Verwaltern durch den eindeutigen DN ersetzt.",
+             "{n} Gruppennamen bei Administratoren/Verwaltern durch den eindeutigen DN ersetzt.", n), "info")
+    return True
+
+
 @bp.route("/verzeichnisdienst", methods=["GET", "POST"])
 @admin_required
 def ldap():
@@ -609,7 +661,7 @@ def ldap():
     if request.method == "POST":
         cfg = _ldap_form_cfg()
         action = request.form.get("action", "save")
-        if action == "save":
+        if action == "save" and _resolve_rule_names(cfg):
             for k, v in cfg.items():
                 set_setting(k, v)
             db.session.commit()
@@ -640,7 +692,8 @@ def ldap():
                 certs = []
             if not certs:
                 flash(_("Keine gültigen Zertifikate zum Übernehmen."), "error")
-            else:
+            elif _resolve_rule_names({**cfg, "ldap_tls_certs": ldap_tls.to_pem(certs), "ldap_verify_cert": "1"},
+                                     target=cfg):
                 for k, v in cfg.items():
                     set_setting(k, v)
                 set_setting("ldap_tls_certs", ldap_tls.to_pem(certs))
@@ -677,7 +730,7 @@ def ldap():
                 test_error = str(exc)
             except Exception as exc:  # noqa: BLE001
                 test_error = _("Zertifikat konnte nicht abgerufen werden: {error}", error=f"{exc.__class__.__name__}: {exc}")
-        else:
+        elif action != "save":             # "save" refused above: show the form again with the entered values
             try:
                 directory = Directory(cfg)
                 if action == "test_bind":
@@ -708,7 +761,8 @@ def ldap():
     return render_template("admin/ldap.html", v=values, cache=cache, has_pw=has_pw, test_result=test_result,
                            test_error=test_error, ROLES=ROLES, ldap_groups=ldap_groups,
                            stored_certs=stored, fetched=fetched, ad_groups=ad_groups,
-                           group_query=request.form.get("group_query", ""), group_cn=group_cn)
+                           group_query=request.form.get("group_query", ""), group_cn=group_cn,
+                           bare_strict=sorted({n for k in STRICT_RULES for n in bare_names(get_setting(k))}))
 
 
 # ---------------------------------------------------------------- Email

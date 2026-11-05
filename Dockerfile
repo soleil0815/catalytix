@@ -9,7 +9,7 @@
 ARG PYTHON_IMAGE=python:3.13.18-slim-trixie@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1
 FROM ${PYTHON_IMAGE}
 ARG PYTHON_IMAGE
-ARG DEBIAN_SNAPSHOT=20261101T000000Z
+ARG DEBIAN_SNAPSHOT=20261105T000000Z
 
 LABEL org.opencontainers.image.title="Catalytix" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later" \
@@ -97,7 +97,7 @@ RUN set -eu; \
     if command -v pip >/dev/null || python -c "import pip" 2>/dev/null; then echo "pip must not be in the image" >&2; exit 1; fi
 
 # Version label late: a new version number doesn't invalidate the cached dependency layers above
-LABEL org.opencontainers.image.version="3.0.5" \
+LABEL org.opencontainers.image.version="3.0.6" \
       catalytix.compose="2"
 # Exact tag (e.g. 3.0.3-s1) and source commit, set by the GitHub workflows (empty in local builds): update.sh goes
 # back to exactly this tag, the release is created for exactly this commit

@@ -5,7 +5,3 @@
 # Example:
 #   # libfoo in the base image: only used by apt at build time, not reachable at runtime – checked 2026-10-25
 #   CVE-2099-12345 exp:2027-04-25
-# apt/libapt-pkg 3.0.3 in the base image: apt is only used while building the image (package installation), the
-# running program never calls it and pip/apt are not reachable from the web app. Fix apt 3.0.4 is not yet in the
-# Debian archive state the build uses – the weekly security update takes it. Checked 2026-11-05.
-CVE-2026-109518 exp:2026-11-19

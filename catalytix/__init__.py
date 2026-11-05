@@ -27,13 +27,15 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "3.0.5"
+__version__ = "3.0.6"
 APP_NAME = "Catalytix"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Where the source code can be found (AGPL § 13). Anyone running a modified Catalytix enters the
 # address of their own modified source code here or in CATALYTIX_SOURCE_URL.
 DEFAULT_SOURCE_URL = ""
 AUTHOR_URL = "https://helfi.space"
+# "Buy me a coffee" button in the sidebar – shown to admins only
+SUPPORT_URL = "https://buymeacoffee.com/soleil0815"
 
 
 import hashlib as _hashlib
@@ -458,6 +460,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             "app_name": APP_NAME,
             "license_name": LICENSE_NAME,
             "author_url": AUTHOR_URL,
+            "support_url": SUPPORT_URL,
             "source_url": os.environ.get("CATALYTIX_SOURCE_URL", DEFAULT_SOURCE_URL),
             "imprint_url": get_setting("imprint_url"),
             "retention_months": get_int_setting("retention_months"),

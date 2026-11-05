@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.0.6",
+  "date": "2026-11-05",
+  "items": [
+   {
+    "kind": "new",
+    "audience": "admin",
+    "de": {
+     "title": "„Buy me a coffee“",
+     "text": "Unten in der Seitenleiste gibt es jetzt einen „Buy me a coffee“-Button, über den du die Weiterentwicklung unterstützen kannst. Nur Admins sehen ihn."
+    },
+    "en": {
+     "title": "\"Buy me a coffee\"",
+     "text": "There is now a \"Buy me a coffee\" button at the bottom of the sidebar to support further development. Only admins see it."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.0.5",
   "date": "2026-11-05",
   "items": [

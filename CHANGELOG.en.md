@@ -2,6 +2,15 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.0.6 – 2026-11-05
+**New**
+- "Buy me a coffee" button at the bottom of the sidebar – visible to admins only, opens the developer's support
+  page in a new tab. Readers and librarians don't see it.
+
+**Security**
+- Debian packages at the state of 2026-11-05: includes `apt` 3.0.4 (CVE-2026-109518, HIGH). The temporary exception
+  in `.trivyignore` from 3.0.3 is removed again.
+
 ## 3.0.5 – 2026-11-05
 **Accessibility**
 - Every form field now has a name for screen readers: about 100 labels are linked to their field (clicking the label

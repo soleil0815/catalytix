@@ -4,6 +4,11 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. E
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
 ## 3.0.3 – 05.11.2026
+**Sicherheit**
+- CVE-2026-109518 in apt (HIGH): vorübergehend in `.trivyignore` (bis 19.11.2026). apt wird nur beim Bau des Images
+  gebraucht, das laufende Programm ruft es nie auf. Die Korrektur (apt 3.0.4) ist noch nicht im verwendeten
+  Debian-Archivstand; das wöchentliche Sicherheitsupdate übernimmt sie.
+
 **Verbessert (Update-Weg und Build-Kette)**
 - Jedes Image trägt seinen genauen Tag (`catalytix.tag`, z. B. `3.0.3-s1`) und den Commit, aus dem es gebaut wurde
   (`org.opencontainers.image.revision`; bei einem Sicherheitsupdate der Commit des zugrunde liegenden Releases). Das

@@ -396,6 +396,8 @@ The privacy policy should list what Catalytix stores: name, username, e-mail add
 
 ## Security
 
+**Found a vulnerability?** Please report it confidentially, not as a public issue – see [SECURITY.md](SECURITY.md#english).
+
 - **Passwords** for local accounts: at least 10 characters. Repeated failures briefly lock the login; from outside also per user name, in case someone tries many addresses.
 - **Sign out everywhere:** *Profile → Security → Signed-in devices*. This also happens automatically when the password is changed or an admin resets two-factor authentication – the current device stays signed in.
 - **AD accounts** with an open session are re-checked every 4 hours (using the service account): anyone disabled, deleted or removed from the permitted group in AD is signed out; role and groups are updated. If AD is unreachable the session stays. Without a service account (direct bind) this check is not possible.

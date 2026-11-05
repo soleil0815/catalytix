@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.0.3",
+  "date": "2026-11-05",
+  "items": [
+   {
+    "kind": "improved",
+    "audience": "admin",
+    "de": {
+     "title": "Zurück zur richtigen Version nach einem Fehlstart",
+     "text": "Startet eine neue Version nicht, geht update.sh jetzt auf genau den Stand zurück, der vorher lief – auch wenn das ein Sicherheitsupdate war. Bisher konnte dabei die Version ohne die Sicherheitsfixes festgelegt werden."
+    },
+    "en": {
+     "title": "Back to the right version after a failed start",
+     "text": "If a new version does not start, update.sh now goes back to exactly what ran before – also when that was a security update. Before, the version without the security fixes could be pinned."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.0.2",
   "date": "2026-11-05",
   "items": [

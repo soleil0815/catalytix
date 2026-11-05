@@ -10,12 +10,15 @@
   is-highest VERSION LATEST    exit code 0 if VERSION >= LATEST (only then may :latest be set)
   highest                      read release tags (one per line) from stdin, print the highest version (not GitHub's
                                "latest" flag, which only marks the most recently created release)
+  label KEY                    read "imagetools inspect --format '{{json .Image}}'" from stdin, print label KEY
+                               (empty if missing; exit code 1 if unreadable)
 
 Package list format (one per line): "base <image>", "python <version>", "deb <name> <version>", "pip <name> <version>".
 """
 from __future__ import annotations
 
 import datetime as dt
+import json
 import re
 import sys
 from pathlib import Path
@@ -123,6 +126,23 @@ def vtuple(v: str) -> tuple[int, ...]:
     return tuple(int(x) for x in m.group(1).split("."))
 
 
+def image_label(inspect_json: str, key: str) -> str | None:
+    """Label `key` from "docker buildx imagetools inspect --format '{{json .Image}}'" – one image, or a map
+    platform → image for a multi-platform index (all platforms carry the same labels). "" if the label is missing,
+    None if the output is not readable."""
+    try:
+        data = json.loads(inspect_json)
+    except ValueError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    images = [data] if "config" in data else [v for v in data.values() if isinstance(v, dict) and "config" in v]
+    if not images:
+        return None
+    labels = (images[0].get("config") or {}).get("Labels") or {}
+    return str(labels.get(key, ""))
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     cmd = argv[0] if argv else ""
@@ -159,6 +179,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if cmd == "is-highest" and len(argv) == 3:
         return 0 if vtuple(argv[1]) >= vtuple(argv[2]) else 1
+    if cmd == "label" and len(argv) == 2:
+        value = image_label(sys.stdin.read(), argv[1])
+        if value is None:
+            return 1
+        print(value)
+        return 0
     print(__doc__)
     return 2
 

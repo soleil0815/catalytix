@@ -12,7 +12,8 @@ Rules ("foundation" = FOUNDATION below; raising it is a deliberate change, never
 - Python packages: newest version within the same major version (before 1.0: same minor version), and within the
   ranges of requirements.in. Calendar versions (e.g. certifi 2026.10.19, tzdata) have no upper limit.
 - Only releases at least COOLDOWN_DAYS old (protection against freshly uploaded malicious releases); a version that is
-  already locked is always allowed. 0 switches the cool-down off (e.g. for an urgent security fix).
+  already locked is always allowed. Checked for every new or changed version after resolving – also for packages that
+  are new as a dependency, and for older releases uploaded recently. 0 switches the cool-down off (e.g. for an urgent security fix).
 
 Usage:  python3 tools/lock.py update [--cooldown-days 7] [--report changes.json]
         python3 tools/lock.py check          # only verify the locks against the rules (used by the tests)
@@ -209,12 +210,32 @@ def pypi_project(name: str) -> Any:
     return data
 
 
-def file_hashes(name: str, version: str) -> list[str]:
-    files = pypi_release(name, version).get("urls") or []
-    hashes = [f["digests"]["sha256"] for f in files if not f.get("yanked")]
-    if not hashes:
+def _release_files(name: str, version: str) -> list[Any]:
+    files = [f for f in (pypi_release(name, version).get("urls") or []) if not f.get("yanked")]
+    if not files:
         raise SystemExit(f"lock: PyPI lists no files for {name} {version}")
-    return hashes
+    return files
+
+
+def file_hashes(name: str, version: str) -> list[str]:
+    return [str(f["digests"]["sha256"]) for f in _release_files(name, version)]
+
+
+def uploaded_at(files: list[Any]) -> dt.datetime:
+    """Upload time of a release: its first file (wheel or sdist)."""
+    return min(dt.datetime.fromisoformat(str(f["upload_time_iso_8601"]).replace("Z", "+00:00")) for f in files)
+
+
+def check_cooldown(name: str, version: str, cutoff: dt.datetime | None) -> None:
+    """Every NEW or CHANGED version must be older than the cool-down – also packages the resolver adds as new
+    dependencies (they have no constraint) and older releases uploaded recently (a fresh backport below the
+    allowed limit)."""
+    if cutoff is None:
+        return
+    when = uploaded_at(_release_files(name, version))
+    if when > cutoff:
+        raise SystemExit(f"lock: {name} {version} was uploaded {when:%Y-%m-%d %H:%M} UTC – newer than the cool-down "
+                         f"(before {cutoff:%Y-%m-%d}). The next run takes it; for an urgent fix: --cooldown-days 0")
 
 
 def newest_on_pypi(name: str, current: str, cutoff: dt.datetime | None) -> str:
@@ -228,7 +249,7 @@ def newest_on_pypi(name: str, current: str, cutoff: dt.datetime | None) -> str:
                 continue
         except ValueError:
             continue
-        uploaded = min(dt.datetime.fromisoformat(f["upload_time_iso_8601"].replace("Z", "+00:00")) for f in files)
+        uploaded = uploaded_at(files)
         if cutoff is None or uploaded <= cutoff:
             best = v
     return best
@@ -326,6 +347,8 @@ def plan_python(old: dict[str, LockEntry], resolved: dict[str, str], cutoff: dt.
             changes.append(f"pip {p['name']}: new {p['version']}")
         elif prev["version"] != p["version"]:
             changes.append(f"pip {p['name']}: {prev['version']} -> {p['version']}")
+        if prev is None or prev["version"] != p["version"]:
+            check_cooldown(p["name"], p["version"], cutoff)
         p["hashes"] = prev["hashes"] if prev and prev["version"] == p["version"] and prev["hashes"] \
             else file_hashes(p["name"], p["version"])
     for key, prev in old.items():

@@ -10,9 +10,13 @@
 #         4. Compare the package list with the published :latest – nothing changed: nothing happens.
 #         5. Tests IN the new image (amd64), Trivy scan of both platforms.
 #         6. Only if everything passed: push exactly these images as <version>-s<counter> (e.g. 2.19.0-s1; a new
-#            program version starts again at s1). Published tags are never overwritten.
+#            program version starts again at s1). The tag is chosen before the build and baked into the image
+#            (label catalytix.tag, plus the release commit as org.opencontainers.image.revision) – update.sh goes
+#            back to exactly this tag. Published tags are never overwritten.
 # record  7. New locks and a change log entry (list of changed packages) on main.
-# promote 8. Move :latest to the new security update (only if its version is the highest).
+# promote 8. Move :latest to the new security update (only if its version is the highest and :latest does not
+#            already point to a higher version).
+# Concurrency group "publish-security" (build.yml has its own: a shared group let GitHub cancel waiting jobs).
 # If something fails, nothing more is published; GitHub sends an email and the cause is shown on the run.
 name: Security update
 
@@ -39,8 +43,8 @@ jobs:
     name: Update, build, test, scan, push
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    concurrency:                    # never at the same time as another publishing job (shared with build.yml)
-      group: publish
+    concurrency:                    # one security update at a time (build.yml: group publish-build)
+      group: publish-security
       cancel-in-progress: false
     permissions:
       contents: read
@@ -49,7 +53,7 @@ jobs:
       changed: ${{ steps.compare.outputs.changed }}
       version: ${{ steps.release.outputs.version }}
       main_sha: ${{ steps.release.outputs.main_sha }}
-      tag: ${{ steps.push.outputs.tag }}
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -84,14 +88,34 @@ jobs:
             || fail "Locking failed" "Newer versions could not be determined (see log) – nothing is published."
           python3 release/tools/lock.py check || fail "Locking failed" "The new locks are incomplete."
 
-      # One build without cache for both platforms; everything below uses exactly these layers.
-      - name: Build both platforms (without cache)
+      # The tag goes into the image (label catalytix.tag), so it is chosen before the build
+      - name: Choose the tag
+        id: tag
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.release.outputs.version }}
         run: |
           . tools/ci.sh
-          docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64 release \
+          docker_login
+          image="$(image_name)"
+          tag="$(python3 tools/security_update.py next-tag "$VERSION")"
+          while image_exists "$image:$tag"; do n="${tag##*-s}"; tag="$VERSION-s$((n + 1))"; done
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "revision=$(git -C release rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "Tag: $tag"
+
+      # One build without cache for both platforms; everything below uses exactly these layers.
+      - name: Build both platforms (without cache)
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          REVISION: ${{ steps.tag.outputs.revision }}
+        run: |
+          . tools/ci.sh
+          args=(--build-arg "CATALYTIX_TAG=$TAG" --build-arg "CATALYTIX_REVISION=$REVISION")
+          docker buildx build --no-cache --pull "${args[@]}" --platform linux/amd64,linux/arm64 release \
             || fail "Image build failed" "See the log of this step – nothing is published."
-          docker buildx build --platform linux/amd64 --load -t catalytix-ci:amd64 release
-          docker buildx build --platform linux/arm64 --load -t catalytix-ci:arm64 release
+          docker buildx build "${args[@]}" --platform linux/amd64 --load -t catalytix-ci:amd64 release
+          docker buildx build "${args[@]}" --platform linux/arm64 --load -t catalytix-ci:arm64 release
 
       - name: Compare with the published image
         id: compare
@@ -138,16 +162,16 @@ jobs:
         id: push
         if: steps.compare.outputs.changed == 'true'
         env:
-          VERSION: ${{ steps.release.outputs.version }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          REVISION: ${{ steps.tag.outputs.revision }}
         run: |
           . tools/ci.sh
           image="$(image_name)"
-          tag="$(python3 tools/security_update.py next-tag "$VERSION")"
-          while image_exists "$image:$tag"; do n="${tag##*-s}"; tag="$VERSION-s$((n + 1))"; done
-          docker buildx build --platform linux/amd64,linux/arm64 --push -t "$image:$tag" release \
+          ! image_exists "$image:$TAG" || fail "Tag taken meanwhile" "$image:$TAG appeared during the run – never overwritten. Start the security update again."
+          docker buildx build --platform linux/amd64,linux/arm64 --push \
+            --build-arg "CATALYTIX_TAG=$TAG" --build-arg "CATALYTIX_REVISION=$REVISION" -t "$image:$TAG" release \
             || fail "Publishing failed" "See the log of this step."
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "### Pushed $image:$tag" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Pushed $image:$TAG" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Hand over the new locks
         if: steps.compare.outputs.changed == 'true'
@@ -175,7 +199,7 @@ jobs:
     if: needs.update.outputs.changed == 'true'
     runs-on: ubuntu-24.04
     concurrency:
-      group: publish
+      group: publish-security
       cancel-in-progress: false
     permissions:
       contents: write
@@ -215,7 +239,7 @@ jobs:
     needs: [update, record]
     runs-on: ubuntu-24.04
     concurrency:
-      group: publish
+      group: publish-security
       cancel-in-progress: false
     permissions:
       contents: read
@@ -237,6 +261,8 @@ jobs:
           python3 tools/security_update.py is-highest "$VERSION" "$highest" \
             || fail "Not the highest version" "$VERSION is lower than $highest – :latest stays."
           docker_login
+          latest_allows "$VERSION" \
+            || fail "Not the highest version" ":latest already points to a version higher than $VERSION – :latest stays."
           docker buildx imagetools create -t "$(image_name):latest" "$(image_name):$TAG" \
             || fail "Publishing failed" "Could not move :latest."
           docker logout ghcr.io >/dev/null

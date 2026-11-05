@@ -68,6 +68,28 @@ test_in_image() {   # test_in_image IMAGE SRC_DIR
     { echo "### Tests in the image"; echo '```'; tail -n 3 test-output.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 }
 
+# Label of a published image (empty if it has none); registry errors stop the run
+image_label() {   # image_label REF KEY
+    local out
+    out="$(docker buildx imagetools inspect "$1" --format '{{json .Image}}' 2>&1)" \
+        || fail "Registry not reachable" "Could not read $1: $(head -c 300 <<<"$out")"
+    python3 tools/security_update.py label "$2" <<<"$out" \
+        || fail "Registry answer unreadable" "Could not read the labels of $1."
+}
+
+# 0 if :latest may be moved to VERSION: :latest does not exist yet, or its version is not higher. Guards against
+# a downgrade when the build and the security update run close to each other (a release can lag behind the image).
+latest_allows() {   # latest_allows VERSION
+    local cur
+    image_exists "$(image_name):latest" || return 0
+    # image_label runs in a subshell: its "fail" ends only that – pass the error on and stop here (also when this
+    # function is called in an "if", where set -e does not apply)
+    cur="$(image_label "$(image_name):latest" org.opencontainers.image.version)" || { printf '%s\n' "$cur"; exit 1; }
+    [ -n "$cur" ] || return 0
+    [[ "$cur" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Registry answer unreadable" ":latest has the version label '$cur'."
+    python3 tools/security_update.py is-highest "$1" "$cur"
+}
+
 docker_login() {   # needs TOKEN in the environment
     echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin >/dev/null \
         || fail "Login failed" "Could not log in to ghcr.io."

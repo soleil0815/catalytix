@@ -9,9 +9,12 @@
 #   update.sh, docker-compose.yml and .env.example. Published versions are never overwritten.
 #
 # Security: actions pinned to full commit SHAs, permissions: {} by default and minimal per job, no Git credentials
-# stored in the checkout, publishing only from main and never at the same time as another publishing job
-# (concurrency group "publish", shared with the weekly security update), Trivy NOT as a GitHub action
-# (see tools/trivy_scan.py), helpers with readable errors in tools/ci.sh.
+# stored in the checkout, publishing only from main, one publishing run at a time (workflow-level concurrency; the
+# weekly security update has its own – a job-level group shared by both let GitHub cancel waiting jobs),
+# :latest never moved to a lower version (checked against the releases AND the image :latest points to), Trivy NOT
+# as a GitHub action (see tools/trivy_scan.py), helpers with readable errors in tools/ci.sh.
+# Every published image carries its exact tag (catalytix.tag) and source commit (org.opencontainers.image.revision);
+# the release is created for exactly that commit, with update.sh/docker-compose.yml/.env.example from the image.
 name: Build
 
 on:
@@ -33,8 +36,11 @@ defaults:
   run:
     shell: bash
 
+# One run per branch and kind of start at a time. Concurrency on the WORKFLOW, not on single jobs: GitHub keeps only
+# one waiting entry per group and cancels the older one – at job level that could be the release job of a run whose
+# image was already pushed. A run started by hand (publishing) never waits behind or gets replaced by a push run.
 concurrency:
-  group: build-${{ github.ref }}
+  group: build-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -90,7 +96,8 @@ jobs:
       - name: Build the image (without cache)
         run: |
           . tools/ci.sh
-          docker buildx build --no-cache --pull --platform linux/amd64 --load -t catalytix-ci:check . \
+          docker buildx build --no-cache --pull --build-arg "CATALYTIX_REVISION=$GITHUB_SHA" \
+            --platform linux/amd64 --load -t catalytix-ci:check . \
             || fail "Image build failed" "See the log of this step."
 
       - name: Run the tests in the image
@@ -106,12 +113,11 @@ jobs:
     needs: check
     if: needs.check.outputs.new == 'true' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
-    concurrency:
-      group: publish
-      cancel-in-progress: false
     permissions:
       contents: read
       packages: write
+    outputs:
+      pushed: ${{ steps.push.outputs.pushed }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -139,12 +145,15 @@ jobs:
       # One build without cache for both platforms; the steps below load and push exactly these layers.
       - name: Build both platforms (without cache)
         if: steps.state.outputs.published == 'false'
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
         run: |
           . tools/ci.sh
-          docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64 . \
+          args=(--build-arg "CATALYTIX_TAG=$VERSION" --build-arg "CATALYTIX_REVISION=$GITHUB_SHA")
+          docker buildx build --no-cache --pull "${args[@]}" --platform linux/amd64,linux/arm64 . \
             || fail "Image build failed" "See the log of this step – nothing is published."
-          docker buildx build --platform linux/amd64 --load -t catalytix-ci:amd64 .
-          docker buildx build --platform linux/arm64 --load -t catalytix-ci:arm64 .
+          docker buildx build "${args[@]}" --platform linux/amd64 --load -t catalytix-ci:amd64 .
+          docker buildx build "${args[@]}" --platform linux/arm64 --load -t catalytix-ci:arm64 .
 
       - name: Run the tests in the image (amd64)
         if: steps.state.outputs.published == 'false'
@@ -158,6 +167,7 @@ jobs:
           python3 tools/trivy_scan.py scan catalytix-ci:arm64
 
       - name: Publish
+        id: push
         if: steps.state.outputs.published == 'false'
         env:
           VERSION: ${{ needs.check.outputs.version }}
@@ -167,11 +177,17 @@ jobs:
           image="$(image_name)"
           ! image_exists "$image:$VERSION" || fail "Version already published" "$image:$VERSION appeared meanwhile – never overwritten."
           docker buildx build --platform linux/amd64,linux/arm64 --push \
+            --build-arg "CATALYTIX_TAG=$VERSION" --build-arg "CATALYTIX_REVISION=$GITHUB_SHA" \
             -t "$image:$VERSION" -t "$image:sha-${GITHUB_SHA::7}" . \
             || fail "Publishing failed" "See the log of this step."
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
           highest="$(highest_release)"
           if [ -z "$highest" ] || python3 tools/security_update.py is-highest "$VERSION" "$highest"; then
-            docker buildx imagetools create -t "$image:latest" "$image:$VERSION" || fail "Publishing failed" "Could not move :latest."
+            if latest_allows "$VERSION"; then
+              docker buildx imagetools create -t "$image:latest" "$image:$VERSION" || fail "Publishing failed" "Could not move :latest."
+            else
+              echo "::warning title=latest not moved::The tag latest already points to a higher version."
+            fi
           fi
           echo "### Published $image:$VERSION" >> "$GITHUB_STEP_SUMMARY"
 
@@ -183,9 +199,6 @@ jobs:
     name: GitHub release (image files, update.sh, docker-compose.yml)
     needs: [check, publish]
     runs-on: ubuntu-24.04
-    concurrency:
-      group: publish
-      cancel-in-progress: false
     permissions:
       contents: write
       packages: read
@@ -196,8 +209,12 @@ jobs:
 
       # Exactly the published images (pulled back from the registry), for installing without internet:
       # docker load -i catalytix-<version>-<arch>.tar.gz  (or: ./update.sh --load <file>)
+      # update.sh, docker-compose.yml and .env.example come from the image itself, and the release points to the
+      # commit the image was built from – also when the image was published by an earlier run (no mix of versions).
       - name: Image files and checksums
+        id: files
         env:
+          PUSHED: ${{ needs.publish.outputs.pushed }}
           VERSION: ${{ needs.check.outputs.version }}
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -205,6 +222,7 @@ jobs:
           docker_login
           image="$(image_name)"
           mkdir -p assets
+          revision=""
           for arch in amd64 arm64; do
             docker pull -q --platform "linux/$arch" "$image:$VERSION" >/dev/null \
               || fail "Image not available" "Could not pull $image:$VERSION for $arch."
@@ -214,6 +232,17 @@ jobs:
             # --platform where Docker knows it (containerd image store: otherwise an index with missing platforms)
             docker save --platform "linux/$arch" "$image:$VERSION" 2>/dev/null | gzip -6 > "$file" \
               || docker save "$image:$VERSION" | gzip -6 > "$file"
+            # Source commit (the same on both platforms) and the files for the release, from the image itself
+            rev="$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image:$VERSION")"
+            if [ "$arch" = amd64 ]; then
+              revision="$rev"
+              cid="$(docker create "$image:$VERSION")" || fail "Image not readable" "Could not create a container from $image:$VERSION."
+              mkdir -p dist
+              docker cp "$cid:/app/dist/." dist/ >/dev/null || fail "Image not readable" "No /app/dist in $image:$VERSION."
+              docker rm -f -v "$cid" >/dev/null
+            elif [ "$rev" != "$revision" ]; then
+              fail "Platforms differ" "amd64 was built from ${revision:-?}, arm64 from ${rev:-?}."
+            fi
             docker image rm "$image:$VERSION" >/dev/null
             # Check the file: it must load on its own and be exactly this version and platform
             docker load -q -i "$file" >/dev/null || fail "Image file broken" "$file cannot be loaded."
@@ -222,7 +251,19 @@ jobs:
             docker image rm "$image:$VERSION" >/dev/null
           done
           docker logout ghcr.io >/dev/null
-          cp update.sh docker-compose.yml .env.example assets/
+          if [ -z "$revision" ]; then
+            # Images from before 3.0.3 have no revision label: only safe if this run built and pushed it
+            [ "$PUSHED" = true ] || fail "Source commit unknown" \
+              "$image:$VERSION was published earlier and has no revision label – create release v$VERSION by hand for the commit it was built from."
+            revision="$GITHUB_SHA"
+          fi
+          [[ "$revision" =~ ^[0-9a-f]{40}$ ]] || fail "Source commit unknown" "Invalid revision label: $revision"
+          [ "$revision" = "$GITHUB_SHA" ] || echo "::notice title=Release for an earlier commit::$image:$VERSION was built from $revision – the release points there, not to $GITHUB_SHA."
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          for f in update.sh docker-compose.yml .env.example; do
+            [ -f "dist/$f" ] || fail "Image incomplete" "$f is missing in /app/dist of $image:$VERSION."
+            cp "dist/$f" assets/
+          done
           mv assets/.env.example assets/env.example     # release assets cannot start with a dot
           (cd assets && sha256sum -- * > SHA256SUMS)
           ls -l assets
@@ -231,6 +272,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.check.outputs.version }}
+          TARGET: ${{ steps.files.outputs.revision }}
         run: |
           . tools/ci.sh
           if release_exists "$VERSION"; then echo "Release v$VERSION exists already."; exit 0; fi
@@ -244,7 +286,7 @@ jobs:
           Changes: see CHANGELOG.en.md (English) or CHANGELOG.md (German).
           EOF
           gh release create "v$VERSION" assets/* \
-            --target "$GITHUB_SHA" \
+            --target "$TARGET" \
             --title "Catalytix $VERSION" \
             --notes-file notes.md \
             || fail "Release failed" "Could not create release v$VERSION."

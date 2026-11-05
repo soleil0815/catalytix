@@ -347,15 +347,22 @@ is_tag "${OLD_TAG:-latest}" || OLD_TAG=""
 WANT_TAG="${VERSION_ARG:-${OLD_TAG:-latest}}"
 
 PREV_IMG="$(running_image)"
-PREV_VER=""; PREV_TAG=""
+PREV_VER=""; PREV_TAG=""; PREV_TAG_GUESSED=0
 if [ -n "$PREV_IMG" ]; then
     PREV_VER="$(label_of "$PREV_IMG" org.opencontainers.image.version)"
     is_version "$PREV_VER" || PREV_VER=""
-    # Exact tag of the running image (a security update X.Y.Z-sN must not become the plain release X.Y.Z)
+    # Exact tag of the running image (a security update X.Y.Z-sN must not become the plain release X.Y.Z):
+    # 1. the tag baked into the image (from 3.0.3 on), 2. a matching local tag, 3. only then the plain version
     if [ -n "$PREV_VER" ]; then
-        PREV_TAG="$(docker image inspect -f '{{range .RepoTags}}{{.}}{{"\n"}}{{end}}' "$PREV_IMG" 2>/dev/null \
+        PREV_TAG="$(label_of "$PREV_IMG" catalytix.tag)"
+        case "$PREV_TAG" in
+            "$PREV_VER") ;;
+            "$PREV_VER"-s*) printf '%s\n' "${PREV_TAG#"$PREV_VER"-s}" | grep -Eq '^[0-9]+$' || PREV_TAG="" ;;
+            *) PREV_TAG="" ;;
+        esac
+        [ -n "$PREV_TAG" ] || PREV_TAG="$(docker image inspect -f '{{range .RepoTags}}{{.}}{{"\n"}}{{end}}' "$PREV_IMG" 2>/dev/null \
             | sed -n "s|^$IMAGE:\($PREV_VER\(-s[0-9][0-9]*\)\{0,1\}\)\$|\1|p" | sort -t s -k2,2n | tail -n1)"
-        PREV_TAG="${PREV_TAG:-$PREV_VER}"
+        if [ -z "$PREV_TAG" ]; then PREV_TAG="$PREV_VER"; PREV_TAG_GUESSED=1; fi
     fi
     docker tag "$PREV_IMG" "$IMAGE:previous" || die "Could not keep the running image as $IMAGE:previous."
 fi
@@ -537,6 +544,10 @@ if [ "$BACK_TAG" = latest ] && [ -n "$PREV_TAG" ]; then
     BACK_TAG="$PREV_TAG"
     env_set CATALYTIX_TAG "$BACK_TAG"
     warn "Fixed to $BACK_TAG for now. When a newer version is out: ./update.sh --version=latest"
+    if [ "$PREV_TAG_GUESSED" = 1 ]; then
+        warn "The exact tag of the previous image is unknown (an image from before 3.0.3) – it may have been a security"
+        warn "update $PREV_VER-sN. $BACK_TAG may lack those fixes: switch back soon with ./update.sh --version=latest."
+    fi
 fi
 docker tag "$IMAGE:previous" "$IMAGE:$BACK_TAG" || true
 dc up -d "$SERVICE" || true

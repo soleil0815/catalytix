@@ -2,6 +2,28 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.0.3 – 2026-11-05
+**Security**
+- CVE-2026-109518 in apt (HIGH): temporarily in `.trivyignore` (until 2026-11-19). apt is only used while building
+  the image, the running program never calls it. The fix (apt 3.0.4) is not yet in the Debian archive state the build
+  uses; the weekly security update takes it.
+
+**Improved (update path and build chain)**
+- Every image carries its exact tag (`catalytix.tag`, e.g. `3.0.3-s1`) and the commit it was built from
+  (`org.opencontainers.image.revision`; for a security update the commit of the underlying release). The weekly
+  security update chooses the tag before the build for that.
+- After a failed start, update.sh goes back to exactly the tag of the image that ran before – also when it was a
+  security update fetched only as `latest` (before, it became the version without the fixes). For older images
+  without this information, update.sh says so.
+- The GitHub release always points to the commit the published image was built from and contains `update.sh`,
+  `docker-compose.yml` and `env.example` from the image itself – also when the release is only created in a later run.
+- Build and security update now limit concurrent runs per workflow instead of per job (a shared job group let GitHub
+  cancel waiting jobs, e.g. the release after the image was published). `latest` is never moved to a lower version –
+  checked against the releases and against the image `latest` currently points to.
+- The 7-day cool-down now applies to every new or changed package version – also to packages that come in as a new
+  dependency, and to freshly uploaded older versions. If a chosen version is too young, the security update takes the
+  next older one instead of giving up.
+
 ## 3.0.2 – 2026-11-05
 **Security**
 - Confirmation links for a new e-mail address (self-registered accounts) are only valid while the account still has

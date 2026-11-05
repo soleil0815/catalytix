@@ -208,10 +208,13 @@ class WorkflowTests(unittest.TestCase):
     def test_publishing_jobs_never_concurrent_and_only_from_main(self):
         publishing = [("build.yml", "publish"), ("build.yml", "release"), ("security-update.yml", "update"),
                       ("security-update.yml", "record"), ("security-update.yml", "promote")]
+        # 3.0.3: concurrency per WORKFLOW, not per job – GitHub keeps one waiting entry per group and cancels the older
+        # one, at job level e.g. the release job after the image was pushed
         for name, job in publishing:
-            block = jobs(workflow(name))[job]
-            self.assertIn("group: publish\n", block, f"{name}/{job}")
-            self.assertIn("cancel-in-progress: false", block, f"{name}/{job}")
+            self.assertNotIn("concurrency:", jobs(workflow(name))[job], f"{name}/{job}")
+        self.assertIn("concurrency:\n  group: build-${{ github.ref }}-${{ github.event_name }}\n"
+                      "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}", workflow("build.yml"))
+        self.assertIn("concurrency:\n  group: security-update\n  cancel-in-progress: false", workflow("security-update.yml"))
         self.assertIn("github.ref == 'refs/heads/main'", jobs(workflow("build.yml"))["publish"])
         self.assertIn("if: github.ref == 'refs/heads/main'", jobs(workflow("security-update.yml"))["update"])
 
@@ -234,9 +237,9 @@ class WorkflowTests(unittest.TestCase):
     def test_security_update_order(self):
         wf = jobs(workflow("security-update.yml"))
         upd = wf["update"]
-        order = ["highest_release", "same-build", "lock.py update", "--no-cache", "Compare with the published",
-                 "test_in_image", "scan catalytix-ci:amd64", "scan catalytix-ci:arm64", "next-tag", "--push",
-                 "upload-artifact"]
+        order = ["highest_release", "same-build", "lock.py update", "next-tag", "--no-cache",
+                 "Compare with the published", "test_in_image", "scan catalytix-ci:amd64", "scan catalytix-ci:arm64",
+                 "--push", "upload-artifact"]
         positions = [upd.index(o) for o in order]
         self.assertEqual(positions, sorted(positions), order)
         for step in ("Run the tests", "Security scan", "Push the security update"):
@@ -273,8 +276,9 @@ class PublishByHandTests(unittest.TestCase):
         self.assertNotIn(".zip", rel)
         self.assertNotIn("git archive", rel)
         for part in ("for arch in amd64 arm64", 'docker save "$image:$VERSION"', "SHA256SUMS",
-                     "cp update.sh docker-compose.yml .env.example assets/", "env.example"):
+                     'docker cp "$cid:/app/dist/." dist/', 'cp "dist/$f" assets/', "env.example"):
             self.assertIn(part, rel)
+        self.assertNotIn("cp update.sh", rel)              # 3.0.3: from the image, not from the checkout
         self.assertIn("packages: read", rel)
 
 

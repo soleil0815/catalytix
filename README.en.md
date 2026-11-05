@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.0.2** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.0.3** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -144,6 +144,7 @@ gunicorn -w 2 --threads 4 -b 0.0.0.0:9300 wsgi:app   # Windows: waitress-serve -
 
 | Run / message | Meaning | What to do |
 |---|---|---|
+| *Security update* – "lock: no release of … / no resolution … older than the cool-down" | A new or changed package (also a dependency that is new) is younger than 7 days and there is no older fitting version (otherwise the run takes the next older one automatically) | Wait – a later run takes it. For an urgent fix: *Run workflow* with `cooldown_days` = `0` |
 | *Security update* – "Trivy: … blocking finding(s)" | A package has a serious vulnerability with a fix, but the fix is not in the image yet – usually because it is younger than 7 days | Wait (next Monday) or start *Actions → Security update → Run workflow* with `cooldown_days` = `0`. If that does not help, the fix is outside the foundation (e.g. only in a new major version) – raise that package deliberately |
 | *Daily scan* red | A new vulnerability became known for the published image | Same: start *Security update* by hand; if it is not exploitable, add it to `.trivyignore` with a reason and an expiry date |
 | "Tests failed in the new image" | A package update does not work with the program | Check the log, adapt the program or limit the package in `requirements.in`, new program version |
@@ -496,7 +497,7 @@ The repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) c
 | Daily | **Scan** of the published `latest` (`scan.yml`) |
 | Mondays | **Foundation check** (`foundation.yml`) |
 
-For all workflows: actions pinned to commit SHAs, minimal permissions per job, no stored Git credentials, publishing only from the `main` branch and never twice at the same time, a published version is never overwritten, `latest` always points to the highest version. Trivy is not used as a GitHub action (the actions `trivy-action`/`setup-trivy` were compromised in March 2026, CVE-2026-33634) but loaded as a fixed version and checked by SHA-256 (`tools/trivy.lock`, `tools/trivy_scan.py`). Only HIGH/CRITICAL vulnerabilities with an available fix stop a release.
+For all workflows: actions pinned to commit SHAs, minimal permissions per job, no stored Git credentials, publishing only from the `main` branch, one run per workflow at a time, a published version is never overwritten, `latest` always points to the highest version (checked against the releases and against the image `latest` currently points to). Every image carries its exact tag (`catalytix.tag`, e.g. `3.0.3-s1`) and the commit it was built from (`org.opencontainers.image.revision`; for a security update the commit of the release whose program it contains): the release points to exactly that commit and contains `update.sh`/`docker-compose.yml` from the image, and `update.sh` goes back to exactly that tag after a failed start – a security update does not turn into the version without the fixes. Trivy is not used as a GitHub action (the actions `trivy-action`/`setup-trivy` were compromised in March 2026, CVE-2026-33634) but loaded as a fixed version and checked by SHA-256 (`tools/trivy.lock`, `tools/trivy_scan.py`). Only HIGH/CRITICAL vulnerabilities with an available fix stop a release.
 
 **First push:**
 

@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.0.8** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.0.9** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -497,7 +497,7 @@ The repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) c
 
 | Event | What GitHub does |
 |---|---|
-| Pull request and push to `main` | check the locks, build the image **without cache**, run **all tests in the finished image**, **Trivy scan** (`build.yml`) – **nothing** is published |
+| Pull request | check the locks, build the image **without cache**, run **all tests in the finished image**, **Trivy scan** (`build.yml`) – **nothing** is published. No extra run after merging into `main` (saves Actions minutes in the private repository) – `main` is checked again in full when publishing, nothing untested is ever published |
 | *Actions → Build → Run workflow* on `main` with **publish** | only for a **new version number** and only if everything passed: image `ghcr.io/soleil0815/catalytix:<version>` (and `latest` if it is the highest version) for `linux/amd64` and `linux/arm64`, then the release `v<version>` with the image files for the way without internet, `SHA256SUMS`, `update.sh`, `docker-compose.yml` and `env.example` |
 | Mondays early (or by hand) | **Security update** (`security-update.yml`) – see [Pinned versions and automatic security updates](#pinned-versions-and-automatic-security-updates); publishes `<version>-s<counter>` and `latest` |
 | Daily | **Scan** of the published `latest` (`scan.yml`) |

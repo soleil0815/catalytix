@@ -1,6 +1,6 @@
 # Program release: tests, container image (GitHub Container Registry) and the GitHub release.
 #
-# pull request / push to main → check the locks, build the image WITHOUT cache, run the tests IN the image, Trivy.
+# pull request → check the locks, build the image WITHOUT cache, run the tests IN the image, Trivy.
 #   Nothing is published – a merged pull request only gets checked.
 # Publishing ONLY by hand: Actions → Build → Run workflow (branch main) with "publish" ticked, and only for a NEW
 #   version (higher than every release). Then: build amd64 + arm64 once without cache, test (amd64) and scan (both)
@@ -17,9 +17,10 @@
 # the release is created for exactly that commit, with update.sh/docker-compose.yml/.env.example from the image.
 name: Build
 
+# CI minutes (private repository): no run on push to main. Each pull request is checked merged into main as it was
+# at that moment; main itself is checked again in full when publishing (build, tests, start, Trivy of exactly the
+# images that are published) – nothing untested is ever published. The check job skips that part when publishing.
 on:
-  push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
     inputs:
@@ -38,7 +39,7 @@ defaults:
 
 # One run per branch and kind of start at a time. Concurrency on the WORKFLOW, not on single jobs: GitHub keeps only
 # one waiting entry per group and cancels the older one – at job level that could be the release job of a run whose
-# image was already pushed. A run started by hand (publishing) never waits behind or gets replaced by a push run.
+# image was already pushed. A run started by hand (publishing) never waits behind or gets replaced by a PR run.
 concurrency:
   group: build-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -80,9 +81,6 @@ jobs:
               echo "::warning title=Not published::Version $v is lower than the highest release $highest – nothing is published."
             fi
           fi
-          if [ "$new" = false ] && [ "$GITHUB_EVENT_NAME" = push ] && ! release_exists "$v"; then
-            echo "::notice title=Not published yet::Version $v is checked. Publish it with Actions → Build → Run workflow (main, tick publish)."
-          fi
           echo "version=$v" >> "$GITHUB_OUTPUT"
           echo "new=$new" >> "$GITHUB_OUTPUT"
           echo "Version $v – publish now: $new"
@@ -91,9 +89,11 @@ jobs:
         run: . tools/ci.sh && run_mypy
 
       - name: Prepare Docker
+        if: steps.version.outputs.new != 'true'      # publishing does all of this itself
         run: . tools/ci.sh && prepare_builder
 
       - name: Build the image (without cache)
+        if: steps.version.outputs.new != 'true'      # publishing does all of this itself
         run: |
           . tools/ci.sh
           docker buildx build --no-cache --pull --build-arg "CATALYTIX_REVISION=$GITHUB_SHA" \
@@ -101,12 +101,15 @@ jobs:
             || fail "Image build failed" "See the log of this step."
 
       - name: Run the tests in the image
+        if: steps.version.outputs.new != 'true'      # publishing does all of this itself
         run: . tools/ci.sh && test_in_image catalytix-ci:check "$PWD"
 
       - name: Start the image like on a server
+        if: steps.version.outputs.new != 'true'      # publishing does all of this itself
         run: . tools/ci.sh && start_in_image catalytix-ci:check
 
       - name: Security scan (Trivy)
+        if: steps.version.outputs.new != 'true'      # publishing does all of this itself
         run: |
           python3 tools/trivy_scan.py install
           python3 tools/trivy_scan.py scan catalytix-ci:check

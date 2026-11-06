@@ -153,9 +153,10 @@ _DUMMY_HASH = None
 
 def _dummy_password_check(password: str) -> None:
     global _DUMMY_HASH
-    from werkzeug.security import check_password_hash, generate_password_hash
+    from werkzeug.security import check_password_hash
+    from ..models import hash_secret
     if _DUMMY_HASH is None:
-        _DUMMY_HASH = generate_password_hash("timing-equaliser")
+        _DUMMY_HASH = hash_secret("timing-equaliser")
     check_password_hash(_DUMMY_HASH, password or "")
 
 

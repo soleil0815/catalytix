@@ -269,7 +269,7 @@ class PublishByHandTests(unittest.TestCase):
         self.assertIn("publish:", wf.split("workflow_dispatch:")[1].split("permissions:")[0])
         self.assertIn('[ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$PUBLISH" = true ]', j["check"])
         self.assertIn("github.event_name == 'workflow_dispatch'", j["publish"])
-        self.assertIn("Not published yet", j["check"])
+        self.assertNotIn("push:", wf.split("permissions:")[0])          # 3.0.9: no run on push (CI minutes)
 
     def test_release_without_zip_with_image_files(self):
         rel = jobs(workflow("build.yml"))["release"]

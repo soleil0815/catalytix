@@ -21,9 +21,9 @@ from urllib.parse import quote
 
 from cryptography.fernet import Fernet, InvalidToken
 from flask import current_app
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import check_password_hash
 
-from .models import ROLE_ADMIN, ROLE_LIBRARIAN, User, WebAuthnCredential, db, get_setting
+from .models import ROLE_ADMIN, ROLE_LIBRARIAN, User, WebAuthnCredential, db, get_setting, hash_secret
 
 TOTP_PERIOD = 30
 TOTP_DIGITS = 6
@@ -121,7 +121,7 @@ def new_recovery_codes(user: User, count: int = 10) -> list[str]:
     alphabet = "abcdefghjkmnpqrstuvwxyz23456789"
     codes = ["".join(secrets.choice(alphabet) for _ in range(4)) + "-" +
              "".join(secrets.choice(alphabet) for _ in range(4)) for _ in range(count)]
-    user.recovery_codes = json.dumps([generate_password_hash(c) for c in codes])
+    user.recovery_codes = json.dumps([hash_secret(c) for c in codes])
     db.session.commit()
     return codes
 

@@ -320,7 +320,7 @@
     "audience": "admin",
     "de": {
      "title": "Präsenzbestand: Gruppen ohne Verleih",
-     "text": "Eine Gruppe lässt sich als Präsenzbestand markieren (Administration → Gruppen). Ihre Bücher bleiben im Katalog sichtbar, werden aber an der Ausleihtheke nicht angeboten und können weder ausgeliehen noch vorgemerkt werden."
+     "text": "Eine Gruppe lässt sich als Präsenzbestand markieren (Administration → Gruppen). Die Bücher der Gruppe bleiben im Katalog sichtbar, werden aber an der Ausleihtheke nicht angeboten und können weder ausgeliehen noch vorgemerkt werden."
     },
     "en": {
      "title": "Reference only: groups without lending",
@@ -416,7 +416,7 @@
     "audience": "all",
     "de": {
      "title": "Sicherheitsupdate für Bilder",
-     "text": "Die Bibliothek, die Cover und Logos verarbeitet, hatte mehrere schwere Sicherheitslücken. Sie ist jetzt auf dem neuesten Stand."
+     "text": "Die Bibliothek, die Cover und Logos verarbeitet, hatte mehrere schwere Sicherheitslücken. Die Bibliothek ist jetzt auf dem neuesten Stand."
     },
     "en": {
      "title": "Security update for images",

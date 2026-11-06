@@ -1,6 +1,6 @@
 <p>Ein zweiter Faktor schützt Ihr Konto, selbst wenn jemand Ihr Passwort kennt. Sie finden alles unter <span class="ui">Sicherheit</span> in der Seitenleiste.</p>
 {% if f.has_2fa %}
-<p><b>Status:</b> Bei Ihnen ist die Zwei-Faktor-Anmeldung bereits <b>eingerichtet</b>.{% if f.mfa_required %} Sie ist für Ihr Konto vorgeschrieben – den letzten Faktor können Sie deshalb erst entfernen, wenn ein anderer eingerichtet ist.{% endif %}</p>
+<p><b>Status:</b> Bei Ihnen ist die Zwei-Faktor-Anmeldung bereits <b>eingerichtet</b>.{% if f.mfa_required %} Die Zwei-Faktor-Anmeldung ist für Ihr Konto vorgeschrieben – den letzten Faktor können Sie deshalb erst entfernen, wenn ein anderer eingerichtet ist.{% endif %}</p>
 {% elif f.mfa_required %}
 <p><b>Status:</b> Für Ihr Konto ist ein zweiter Faktor <b>vorgeschrieben</b>{% if f.mfa_internal != "same" %} (beim Zugriff von außen){% endif %}. Nach der Anmeldung führt Sie das Programm hierher, bis er eingerichtet ist.</p>
 {% else %}
@@ -14,4 +14,4 @@
 </ol>
 <p><b>Sicherheitsschlüssel</b> (YubiKey, Passkey): Namen eingeben, <span class="ui">Hinzufügen</span>, Schlüssel berühren. Funktioniert nur über HTTPS und nur unter der Adresse, unter der er eingerichtet wurde. Am besten gleich einen Ersatzschlüssel registrieren.{% if not f.https %} <i>Sie sind gerade nicht über HTTPS verbunden – hier geht nur die App.</i>{% endif %}</p>
 <p>Gehen die Codes zur Neige, erzeugt <span class="ui">Neue Codes erzeugen</span> frische – die alten werden ungültig.</p>
-<p><b>Handy verloren?</b> Unter <span class="ui">Angemeldete Geräte</span> meldet <span class="ui">Auf allen anderen Geräten abmelden</span> Sie überall sonst ab, auch bei „Angemeldet bleiben“. Anmelden können Sie sich dann mit einem Wiederherstellungscode – oder ein Administrator setzt die Zwei-Faktor-Anmeldung zurück.</p>
+<p><b>Handy verloren?</b> Unter <span class="ui">Angemeldete Geräte</span> beendet <span class="ui">Auf allen anderen Geräten abmelden</span> Ihre Anmeldung überall sonst, auch bei „Angemeldet bleiben“. Anmelden können Sie sich dann mit einem Wiederherstellungscode – oder ein Administrator setzt die Zwei-Faktor-Anmeldung zurück.</p>

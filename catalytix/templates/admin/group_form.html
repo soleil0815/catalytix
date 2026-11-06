@@ -14,7 +14,7 @@
         <div class="field span-6"><label for="f-description">{{ _("Beschreibung") }}</label><input id="f-description" type="text" name="description" value="{{ group.description or '' }}"></div>
         <div class="field span-6"><label for="f-ldap-dn">{{ _("AD-Gruppe (optional)") }}</label>
           <input id="f-ldap-dn" class="mono" type="text" name="ldap_dn" value="{{ group.ldap_dn or '' }}" placeholder="{{ _('Klasse7a  oder  CN=Klasse7a,OU=Gruppen,DC=schule,DC=local') }}">
-          <div class="hint">{{ _("Name oder DN einer AD-Gruppe. Ihre Mitglieder werden bei der Anmeldung automatisch dieser Bibliotheksgruppe zugeordnet (und bei Austritt wieder entfernt).") }}</div></div>
+          <div class="hint">{{ _("Name oder DN einer AD-Gruppe. Deren Mitglieder werden bei der Anmeldung automatisch dieser Bibliotheksgruppe zugeordnet (und bei Austritt wieder entfernt).") }}</div></div>
         <div class="field span-6">
           <label class="check"><input type="checkbox" name="not_lendable" value="1" {{ "checked" if group.lendable is false }}>
             <span>{{ _("Präsenzbestand – Bücher dieser Gruppe werden nicht verliehen") }}</span></label>
@@ -41,7 +41,7 @@
 </form>
 {% if not is_new %}
 <form id="delete-form" method="post" action="{{ url_for('admin.group_delete', group_id=group.id) }}"
-      data-confirm="{{ _('Gruppe {name} löschen? Ihre Bücher werden zu allgemeinen Büchern.', name=group.name) }}">
+      data-confirm="{{ _('Gruppe {name} löschen? Die Bücher der Gruppe werden zu allgemeinen Büchern.', name=group.name) }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 </form>
 {% endif %}

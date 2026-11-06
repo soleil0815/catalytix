@@ -29,7 +29,7 @@
 <section class="card card-pad" style="margin-bottom: 18px; border-color: var(--brass)">
   <h2 style="margin-bottom: 6px">{{ icon("lock") }} {{ _("Ihre Wiederherstellungscodes") }}</h2>
   <p class="muted">{{ _("Falls Handy oder Schlüssel verloren gehen, kommen Sie mit einem dieser Codes noch einmal herein. Jeder Code gilt <b>einmal</b>.") }}
-    {{ _("Bewahren Sie sie sicher auf (ausdrucken oder im Passwort-Manager) – sie werden <b>nur jetzt</b> angezeigt.") }}</p>
+    {{ _("Bewahren Sie die Codes sicher auf (ausdrucken oder im Passwort-Manager) – sie werden <b>nur jetzt</b> angezeigt.") }}</p>
   <div class="mono" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin: 16px 0; font-size: 17px" data-codes>
     {% for c in codes %}<div style="padding: 8px 12px; border: 1px dashed var(--line-2); border-radius: 8px; text-align: center">{{ c }}</div>{% endfor %}
   </div>

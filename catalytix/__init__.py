@@ -298,6 +298,9 @@ def create_app(test_config: dict | None = None) -> Flask:
         # Upper bound for the session cookie; the actual limit (time without activity) is checked on every
         # request, see autologout.py
         PERMANENT_SESSION_LIFETIME=timedelta(hours=168),
+        # Write the session cookie only when it changed (autologout.touch: at most once a minute) – otherwise a
+        # slow response that started before signing out would bring the old session back
+        SESSION_REFRESH_EACH_REQUEST=False,
         WTF_CSRF_TIME_LIMIT=None,
     )
     if test_config:
@@ -419,7 +422,13 @@ def create_app(test_config: dict | None = None) -> Flask:
         user = current_user._get_current_object()
         left = autologout.seconds_left(user, internal)
         expired = left is not None and left <= 0
-        restored = left is None and not login_fresh() and not autologout.remember_allowed(user, internal)
+        # Restored from Flask-Login's remember cookie (only sign-ins from before 3.0.8 have one): continue as a
+        # "stay signed in" session where that is allowed, otherwise sign in again
+        restored = left is None and not login_fresh()
+        if restored and autologout.remember_allowed(user, internal):
+            session[autologout.STAY_KEY] = True
+            session["_remember"] = "clear"      # Flask-Login deletes the old remember cookie
+            restored = False
         if expired or restored:
             if expired:
                 n, unit = autologout.describe_limit(autologout.limit_seconds(user, internal))
@@ -436,8 +445,8 @@ def create_app(test_config: dict | None = None) -> Flask:
             if request.path.startswith("/api/"):
                 return jsonify(ok=False, error=msg, signed_out=True), 401
             return redirect(login_url("main.login", request.url if request.method == "GET" else None))
-        session.permanent = not autologout.browser_close()
-        if request.endpoint != "main.session_status":     # the warning dialog's query is not activity
+        autologout.apply_cookie_mode(user, internal)
+        if request.endpoint not in autologout.NO_ACTIVITY:
             autologout.touch()
         return None
 

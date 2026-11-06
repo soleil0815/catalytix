@@ -389,16 +389,18 @@ class RememberLoopTests(Base):
         self.settings(ldap_enabled="1", ldap_bind_dn="CN=svc", ldap_server="dc", ldap_base_dn="DC=x")
         info = LDAPUser(username="adu", dn="CN=adu,DC=x", role="reader")
         with mock.patch("catalytix.views.main.authenticate", return_value=info):
-            self.c.post("/login", data={"username": "adu", "password": "pw", "remember": "1"})
-        self.assertIsNotNone(self.c.get_cookie("remember_token"))
+            r = self.c.post("/login", data={"username": "adu", "password": "pw", "remember": "1"})
+        # 3.0.8: "stay signed in" = long-lived session cookie (autologout.py), no separate remember cookie
+        session_cookie = " ".join(h for h in r.headers.getlist("Set-Cookie") if h.startswith("session="))
+        self.assertIn("Expires=", session_cookie)
         with mock.patch.object(catalytix, "LDAP_RECHECK_SECONDS", 0), \
                 mock.patch("catalytix.ldap_auth.Directory.__init__", return_value=None), \
                 mock.patch("catalytix.ldap_auth.Directory.check_account", return_value=None):
             r = self.c.get("/")
             self.assertEqual(r.headers["Location"], "/login")
-            self.assertTrue(any(h.startswith("remember_token=;") for h in r.headers.getlist("Set-Cookie")))
             self.assertIsNone(self.c.get_cookie("remember_token"))
             self.assertEqual(self.c.get("/login").status_code, 200)
+            self.assertIn("/login", self.c.get("/").headers.get("Location", ""))     # really signed out
 
     def test_skipped_session_outside_remember_cookie_deleted(self):
         self.settings(mfa_internal="skip")

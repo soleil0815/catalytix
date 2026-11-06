@@ -15,7 +15,9 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. E
   bleiben“ entfällt.
 
 **Geändert**
-- „Angemeldet bleiben“ gibt es nur noch, wo keine kürzere Frist gilt – also nicht mehr für Admins und nicht von außen,
+- „Angemeldet bleiben“ hält die Anmeldung über einen Browser-Neustart hinweg, aber nur noch so lange, wie die Frist
+  ohne Aktivität nicht abgelaufen ist (bisher pauschal 14 Tage). Ohne den Haken endet die Anmeldung wie bisher mit dem
+  Browser. Die Option gibt es nur noch, wo keine kürzere Frist gilt – also nicht mehr für Admins und nicht von außen,
   wenn dort eine eigene Frist eingestellt ist. Bestehende „Angemeldet bleiben“-Anmeldungen von Admins enden mit diesem
   Update einmalig.
 

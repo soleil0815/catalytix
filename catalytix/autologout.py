@@ -8,10 +8,18 @@ Settings (Administration → Settings → "Automatische Abmeldung"):
 - session_browser_close    sign out when the browser is closed: session cookie without expiry date and no
                            "stay signed in" (remember cookie)
 
-"Activity" is any request of the signed-in user except the status query of the warning dialog. The server decides
-(timestamp in the signed session cookie) – an open, forgotten tab does not keep the session alive by itself.
-Where a shorter limit applies (admins, sign-ins from outside), "stay signed in" is not offered, otherwise the
-remember cookie would bypass the limit after a browser restart.
+"Activity" is any request of the signed-in user except the status query of the warning dialog and image loads.
+The server decides (timestamp in the signed session cookie) – an open, forgotten tab does not keep the session
+alive by itself.
+
+"Stay signed in" makes the session cookie itself long-lived (session.permanent) instead of using Flask-Login's
+separate remember cookie: the activity timestamp travels with it, so the limit also holds after a browser restart
+and deleting the session cookie only signs out. Without "stay signed in" the session ends with the browser, as
+before. Where a shorter limit applies (admins, sign-ins from outside) or "sign out when the browser is closed" is
+on, "stay signed in" is not available.
+
+The session cookie is written at most once a minute for activity (TOUCH_EVERY): a slow response that started
+before signing out (e.g. a cover image) then carries no cookie that could restore the old session.
 """
 from __future__ import annotations
 
@@ -29,6 +37,10 @@ MIN_MINUTES = 5
 MAX_MINUTES = 720           # 12 hours
 WARN_SECONDS = 120          # the warning appears 2 minutes before the limit
 SEEN_KEY = "seen_at"
+STAY_KEY = "stay"           # "stay signed in" chosen at sign-in
+TOUCH_EVERY = 60            # seconds – activity is recorded at most this often
+# Requests that are not user activity: the warning dialog's status query and images loaded by a page
+NO_ACTIVITY = frozenset({"main.session_status", "books.cover", "books.cover_remote", "books.cover_preview"})
 
 
 def env_hours() -> int:
@@ -86,16 +98,30 @@ def limit_seconds(user: Any, internal: bool) -> int:
 
 
 def remember_allowed(user: Any, internal: bool) -> bool:
-    """May this sign-in use "stay signed in"? Not where a shorter limit applies – the remember cookie would
-    otherwise restore the session after a browser restart and bypass the limit."""
+    """May this sign-in use "stay signed in"? Not where a shorter limit applies or the session is to end with the
+    browser."""
     if browser_close():
         return False
     return limit_seconds(user, internal) >= general_hours() * 3600
 
 
-def touch(now: float | None = None) -> None:
-    """Record activity now (called on every request of a signed-in user and right after signing in)."""
-    session[SEEN_KEY] = int(now if now is not None else time.time())
+def touch(now: float | None = None, force: bool = False) -> None:
+    """Record activity – right after signing in (force) and on requests of a signed-in user, but at most every
+    TOUCH_EVERY seconds, so the session cookie is not rewritten on every request."""
+    now = now if now is not None else time.time()
+    seen = session.get(SEEN_KEY)
+    if force or not isinstance(seen, int) or now - seen >= TOUCH_EVERY:
+        session[SEEN_KEY] = int(now)
+
+
+def apply_cookie_mode(user: Any, internal: bool) -> None:
+    """Long-lived session cookie only with "stay signed in" and only where that is (still) allowed – e.g. not after
+    the admin limit was introduced or when the same session is used from outside."""
+    stay = bool(session.get(STAY_KEY)) and remember_allowed(user, internal)
+    if not stay and session.get(STAY_KEY):
+        session[STAY_KEY] = False
+    if session.permanent != stay:
+        session.permanent = stay
 
 
 def seconds_left(user: Any, internal: bool, now: float | None = None) -> int | None:

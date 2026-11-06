@@ -38,6 +38,10 @@ class AutoLogoutCase(BaseCase):
             return s.get(autologout.SEEN_KEY)
 
     def signed_in(self, **kw):
+        # BaseCase keeps one app context for the whole test, so Flask-Login's per-request user cache (g) would
+        # survive between requests – a real server starts every request without it
+        from flask import g
+        g.pop("_login_user", None)
         r = self.c.get("/", **kw)
         return r.status_code == 200, r
 
@@ -131,53 +135,108 @@ class ApiTests(AutoLogoutCase):
         self.assertFalse(self.signed_in()[0])          # really signed out
 
 
+def session_cookie(r):
+    return " ".join(h for h in r.headers.getlist("Set-Cookie") if h.startswith("session="))
+
+
 class RememberTests(AutoLogoutCase):
-    def login_remember(self, name, **kw):
+    """"Stay signed in" = long-lived session cookie with the activity time inside (no separate remember cookie)."""
+
+    def login_remember(self, name, remember=True, **kw):
         self.c.post("/logout")
-        return self.c.post("/login", data={"username": name, "password": "geheim123", "remember": "1"}, **kw)
+        data = {"username": name, "password": "geheim123"}
+        if remember:
+            data["remember"] = "1"
+        return self.c.post("/login", data=data, **kw)
 
     def test_reader_may_stay_signed_in(self):
-        self.login_remember("leser")
-        self.assertIsNotNone(self.c.get_cookie("remember_token"))
+        r = self.login_remember("leser")
+        self.assertIn("Expires=", session_cookie(r))
+        self.assertIsNone(self.c.get_cookie("remember_token"))
+
+    def test_without_stay_the_session_ends_with_the_browser(self):
+        # as before 3.0.8: closing the browser signs out unless "stay signed in" was ticked
+        r = self.login_remember("leser", remember=False)
+        self.assertIn("session=", session_cookie(r))
+        self.assertNotIn("Expires=", session_cookie(r))
 
     def test_admin_with_own_limit_may_not(self):
-        self.login_remember("admin")
-        self.assertIsNone(self.c.get_cookie("remember_token"))
+        self.assertNotIn("Expires=", session_cookie(self.login_remember("admin")))
 
     def test_outside_with_own_limit_may_not(self):
         self.set(session_external_minutes="30")
-        self.login_remember("leser", environ_base=OUTSIDE)
-        self.assertIsNone(self.c.get_cookie("remember_token"))
+        self.assertNotIn("Expires=", session_cookie(self.login_remember("leser", environ_base=OUTSIDE)))
 
-    def test_restored_admin_session_is_ended(self):
-        # remember cookie from before the admin limit was set
-        self.set(session_admin_minutes="")
-        self.login_remember("admin")
-        self.assertIsNotNone(self.c.get_cookie("remember_token"))
-        self.set(session_admin_minutes="60")
-        self.c.delete_cookie("session")                # browser restart: only the remember cookie is left
+    def test_stay_ends_when_used_from_outside_with_own_limit(self):
+        self.set(session_external_minutes="30")
+        self.login_remember("leser")
+        r = self.c.get("/", environ_base=OUTSIDE)
+        self.assertEqual(r.status_code, 200)
+        self.assertNotIn("Expires=", session_cookie(r))
+
+    def test_limit_holds_after_browser_restart(self):
+        self.login_remember("leser")
+        self.idle(12 * 3600 + 10)                      # the long-lived cookie still carries the time
+        self.assertFalse(self.signed_in()[0])
+
+    def test_deleting_the_session_cookie_only_signs_out(self):
+        # review finding: a remember cookie must not restore the session with a fresh limit
+        self.login_remember("leser")
+        self.idle(13 * 3600)
+        self.c.delete_cookie("session")
+        self.assertFalse(self.signed_in()[0])
+
+    def legacy_remember_cookie(self, name):
+        from flask_login.utils import encode_cookie
+        from catalytix.models import User
+        user = User.query.filter_by(username=name).first()
+        self.c.post("/logout")
+        self.c.delete_cookie("session")
+        self.c.set_cookie("remember_token", encode_cookie(user.get_id()))
+
+    def test_legacy_remember_cookie_reader_is_converted(self):
+        self.legacy_remember_cookie("leser")
+        ok, r = self.signed_in()
+        self.assertTrue(ok)
+        self.assertIn("Expires=", session_cookie(r))
+        self.assertTrue(any(h.startswith("remember_token=;") for h in r.headers.getlist("Set-Cookie")))
+
+    def test_legacy_remember_cookie_admin_is_ended(self):
+        self.legacy_remember_cookie("admin")
         ok, r = self.signed_in()
         self.assertFalse(ok)
         self.assertIn("/login", r.headers["Location"])
 
-    def test_restored_reader_session_continues(self):
-        self.login_remember("leser")
-        self.c.delete_cookie("session")
-        self.assertTrue(self.signed_in()[0])
-
     def test_browser_close_option(self):
         self.set(session_browser_close="1")
         self.assertNotIn('name="remember"', self.c.get("/login").get_data(as_text=True))
-        r = self.login_remember("leser")
-        self.assertIsNone(self.c.get_cookie("remember_token"))
-        cookie = " ".join(v for k, v in r.headers.items() if k == "Set-Cookie" and v.startswith("session="))
-        self.assertNotIn("Expires=", cookie)            # ends with the browser
+        self.assertNotIn("Expires=", session_cookie(self.login_remember("leser")))
 
-    def test_session_cookie_has_expiry_by_default(self):
-        r = self.login_remember("leser")
-        cookie = " ".join(v for k, v in r.headers.items() if k == "Set-Cookie" and v.startswith("session="))
-        self.assertIn("Expires=", cookie)
-        self.assertIn('name="remember"', (self.c.post("/logout"), self.c.get("/login"))[1].get_data(as_text=True))
+    def test_checkbox_offered_by_default(self):
+        self.assertIn('name="remember"', self.c.get("/login").get_data(as_text=True))
+
+
+class CookieWriteTests(AutoLogoutCase):
+    """Review finding: the session cookie must not be rewritten on every request – a slow response (e.g. a cover)
+    that started before signing out would otherwise restore the old session."""
+
+    def test_not_rewritten_within_a_minute(self):
+        self.login("leser")
+        self.c.get("/")
+        self.assertEqual(session_cookie(self.c.get("/")), "")
+        self.assertEqual(session_cookie(self.c.get("/covers/buch/999")), "")
+
+    def test_rewritten_after_a_minute(self):
+        self.login("leser")
+        self.idle(61)
+        self.assertIn("session=", session_cookie(self.c.get("/")))
+
+    def test_cover_is_not_activity(self):
+        self.login("leser")
+        self.idle(3600)
+        before = self.seen()
+        self.c.get("/covers/buch/999")
+        self.assertEqual(self.seen(), before)
 
 
 class PageTests(AutoLogoutCase):

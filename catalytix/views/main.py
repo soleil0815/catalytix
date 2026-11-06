@@ -427,12 +427,11 @@ def _apply_email(mail: str) -> bool:
 
 def _stay_signed_in(user: User):
     """Keep the current device signed in after a session generation change."""
-    from .. import autologout, netzone
-    remembered = bool(request.cookies.get("remember_token"))
+    from .. import autologout
     mfa_skipped = session.get("mfa_skipped")
-    allowed = autologout.remember_allowed(user, netzone.is_internal())
-    login_user(user, remember=remembered and not mfa_skipped and allowed)
-    autologout.touch()
+    # "stay signed in" lives in the session (autologout.STAY_KEY) and is kept as it is
+    login_user(user, remember=False)
+    autologout.touch(force=True)
     if mfa_skipped:
         session["mfa_skipped"] = True
 

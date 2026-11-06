@@ -14,8 +14,10 @@ The current version is shown at the bottom left of the sidebar after signing in.
   is not offered.
 
 **Changed**
-- "Stay signed in" is only available where no shorter limit applies – so no longer for admins, and not from outside
-  when an own limit is set there. Existing "stay signed in" sign-ins of admins end once with this update.
+- "Stay signed in" keeps the sign-in across a browser restart, but only as long as the limit without activity has not
+  passed (before: a flat 14 days). Without it, the sign-in ends with the browser as before. The option is only
+  available where no shorter limit applies – so no longer for admins, and not from outside when an own limit is set
+  there. Existing "stay signed in" sign-ins of admins end once with this update.
 
 ## 3.0.7 – 2026-11-05
 **Security**

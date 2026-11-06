@@ -54,9 +54,10 @@ def _sign_in(user: User, remember: bool, internal: bool) -> None:
     """login_user with the rules of the automatic sign-out: no "stay signed in" where a shorter limit
     applies or the session is to end with the browser; activity counts from now."""
     from .. import autologout
-    login_user(user, remember=remember and autologout.remember_allowed(user, internal))
-    session.permanent = not autologout.browser_close()
-    autologout.touch()
+    login_user(user, remember=False)     # "stay signed in" = long-lived session cookie, see autologout.py
+    session[autologout.STAY_KEY] = bool(remember) and autologout.remember_allowed(user, internal)
+    autologout.apply_cookie_mode(user, internal)
+    autologout.touch(force=True)
 
 
 def _pending_user() -> User | None:

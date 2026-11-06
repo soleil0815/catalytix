@@ -106,18 +106,17 @@ jobs:
           echo "revision=$(git -C release rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "Tag: $tag"
 
-      # One build without cache for both platforms; everything below uses exactly these layers.
-      - name: Build both platforms (without cache)
+      # amd64 first, without cache (fresh builder of this run): enough to see whether anything changed. arm64 (emulated,
+      # by far the slowest part) is only built when something changed – most weeks nothing does (CI minutes).
+      - name: Build amd64 (without cache)
         env:
           TAG: ${{ steps.tag.outputs.tag }}
           REVISION: ${{ steps.tag.outputs.revision }}
         run: |
           . tools/ci.sh
-          args=(--build-arg "CATALYTIX_TAG=$TAG" --build-arg "CATALYTIX_REVISION=$REVISION")
-          docker buildx build --no-cache --pull "${args[@]}" --platform linux/amd64,linux/arm64 release \
+          docker buildx build --no-cache --pull --build-arg "CATALYTIX_TAG=$TAG" --build-arg "CATALYTIX_REVISION=$REVISION" \
+            --platform linux/amd64 --load -t catalytix-ci:amd64 release \
             || fail "Image build failed" "See the log of this step – nothing is published."
-          docker buildx build "${args[@]}" --platform linux/amd64 --load -t catalytix-ci:amd64 release
-          docker buildx build "${args[@]}" --platform linux/arm64 --load -t catalytix-ci:arm64 release
 
       - name: Compare with the published image
         id: compare
@@ -148,6 +147,20 @@ jobs:
           [ "$rc" = 0 ] || fail "Comparison failed" "See the log of this step."
           echo "changed=true" >> "$GITHUB_OUTPUT"
           { echo "### Changed packages"; head -c 60000 changes.txt; } >> "$GITHUB_STEP_SUMMARY"
+
+      # Same builder: amd64 comes from the layers built above (exactly the image that was compared and gets tested),
+      # arm64 is built now – also without any older cache.
+      - name: Build arm64
+        if: steps.compare.outputs.changed == 'true'
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          REVISION: ${{ steps.tag.outputs.revision }}
+        run: |
+          . tools/ci.sh
+          args=(--build-arg "CATALYTIX_TAG=$TAG" --build-arg "CATALYTIX_REVISION=$REVISION")
+          docker buildx build "${args[@]}" --platform linux/amd64,linux/arm64 release \
+            || fail "Image build failed" "See the log of this step – nothing is published."
+          docker buildx build "${args[@]}" --platform linux/arm64 --load -t catalytix-ci:arm64 release
 
       - name: Run the tests in the new image (amd64)
         if: steps.compare.outputs.changed == 'true'

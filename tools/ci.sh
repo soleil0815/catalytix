@@ -48,7 +48,10 @@ highest_release() {
 
 prepare_builder() {   # prepare_builder [multi] – buildx builder; "multi" also enables arm64 emulation
     if [ "${1:-}" = multi ]; then
-        sudo apt-get update -qq >/dev/null && sudo apt-get install -y -qq qemu-user-static >/dev/null \
+        # Without the man page index update (the runner rebuilds it on every install – that took up to 7 minutes)
+        sudo rm -f /var/lib/man-db/auto-update
+        sudo apt-get update -qq >/dev/null \
+            && sudo apt-get install -y -qq --no-install-recommends qemu-user-static >/dev/null \
             || fail "Preparation failed" "Could not install qemu-user-static for arm64 builds."
     fi
     docker buildx create --name ci --driver docker-container --use >/dev/null

@@ -16,6 +16,16 @@ if TYPE_CHECKING:
 
 db = SQLAlchemy()
 
+
+def hash_secret(value: str) -> str:
+    """Hash for passwords and recovery codes: scrypt. Only in the self-tests (app config TESTING, never set in
+    operation) a cheap PBKDF2 – scrypt took more than half of the test time and with it of the CI minutes.
+    check_password_hash reads the method from the hash, so both kinds are checked the same way."""
+    from flask import current_app, has_app_context
+    if has_app_context() and current_app.config.get("TESTING"):
+        return generate_password_hash(value, method="pbkdf2:sha256:1000")
+    return generate_password_hash(value)
+
 # Base class of all tables. For mypy it is (still) Any: the columns are written in the old db.Column(...) style;
 # only with Mapped[...] columns does mypy know their types. The relationships are already typed (Mapped[...] below).
 Model: Any = db.Model
@@ -132,7 +142,7 @@ class User(UserMixin, Model):
 
     # --- Passwords ---
     def set_password(self, password: str) -> None:
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = hash_secret(password)
         if self.id is not None:   # existing account: log out other devices
             self.end_all_sessions()
 

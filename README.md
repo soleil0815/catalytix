@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.0.8** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 3.0.9** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name eurer Bibliothek.
 
@@ -487,7 +487,7 @@ Das Repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) e
 
 | Ereignis | Was GitHub macht |
 |---|---|
-| Pull Request und Push auf `main` | Locks prüfen, Image **ohne Zwischenspeicher** bauen, **alle Tests im fertigen Image**, **Trivy-Scan** (`build.yml`) – veröffentlicht wird dabei **nichts** |
+| Pull Request | Locks prüfen, Image **ohne Zwischenspeicher** bauen, **alle Tests im fertigen Image**, **Trivy-Scan** (`build.yml`) – veröffentlicht wird dabei **nichts**. Kein eigener Lauf nach dem Mergen (geprüft ist schon das Ergebnis des Merges), keiner bei reinen Doku-Änderungen (`*.md`, `docs/`) – spart Actions-Minuten im privaten Repository |
 | *Actions → Build → Run workflow* auf `main` mit **publish** | nur für eine **neue Versionsnummer** und nur wenn alles bestanden ist: Image `ghcr.io/soleil0815/catalytix:<version>` (und `latest`, wenn es die höchste Version ist) für `linux/amd64` und `linux/arm64`, danach das Release `v<version>` mit den Image-Dateien für den Weg ohne Internet, `SHA256SUMS`, `update.sh`, `docker-compose.yml` und `env.example` |
 | Montags früh (oder von Hand) | **Sicherheitsupdate** (`security-update.yml`) – siehe [Feste Versionen und automatische Sicherheitsupdates](#feste-versionen-und-automatische-sicherheitsupdates); veröffentlicht `<version>-s<Zähler>` und `latest` |
 | Täglich | **Scan** des veröffentlichten `latest` (`scan.yml`) |

@@ -2,6 +2,18 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.0.9 – 2026-11-06
+**Internal (fewer GitHub Actions minutes, same checks)**
+- No CI run after merging into `main` any more – the pull request already checked exactly that result. Pull requests
+  that only change documentation (`*.md`, `docs/`) start no run.
+- When publishing, the check job no longer builds, tests and scans the image in addition – the publish job does that
+  anyway, with exactly the images that are published.
+- Weekly security update: build only amd64 first and compare; the slow (emulated) arm64 build only runs when
+  something changed.
+- Setting up arm64 emulation without rebuilding the man page index (took up to 7 minutes).
+- Self-tests: passwords are hashed with a fast method there (still scrypt in operation) – the tests run in a little
+  over half the time.
+
 ## 3.0.8 – 2026-11-06
 **New**
 - Automatic sign-out after a time without activity (*Administration → Settings → Automatic sign-out*): one limit

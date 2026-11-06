@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.0.9",
+  "date": "2026-11-06",
+  "items": [
+   {
+    "kind": "improved",
+    "audience": "admin",
+    "de": {
+     "title": "Schnellere Prüfläufe",
+     "text": "Die automatischen Prüfungen auf GitHub brauchen deutlich weniger Rechenzeit – bei gleichen Tests und Sicherheitsscans. Im Programm ändert sich nichts."
+    },
+    "en": {
+     "title": "Faster CI runs",
+     "text": "The automatic checks on GitHub need much less computing time – with the same tests and security scans. Nothing changes in the program."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.0.8",
   "date": "2026-11-06",
   "items": [

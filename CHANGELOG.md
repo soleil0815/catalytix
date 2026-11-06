@@ -3,6 +3,18 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.0.9 – 06.11.2026
+**Intern (weniger GitHub-Actions-Minuten, gleiche Prüfungen)**
+- Kein Prüflauf mehr nach dem Mergen auf `main` – der Pull Request hat genau dieses Ergebnis schon geprüft. Pull
+  Requests, die nur Doku ändern (`*.md`, `docs/`), lösen keinen Lauf aus.
+- Beim Veröffentlichen baut, testet und scannt der Prüf-Job das Image nicht mehr zusätzlich – das macht der
+  Veröffentlichungs-Job ohnehin mit genau den Images, die veröffentlicht werden.
+- Wöchentliches Sicherheitsupdate: erst nur amd64 bauen und vergleichen; das langsame (emulierte) arm64 wird nur
+  gebaut, wenn sich etwas geändert hat.
+- Einrichtung der arm64-Emulation ohne den Neuaufbau des Handbuch-Index (dauerte bis zu 7 Minuten).
+- Selbsttests: Passwörter werden dort mit einem schnellen Verfahren gehasht (im Betrieb weiter scrypt) – die Tests
+  laufen in gut der halben Zeit.
+
 ## 3.0.8 – 06.11.2026
 **Neu**
 - Automatische Abmeldung nach einer Zeit ohne Aktivität (*Administration → Einstellungen → Automatische

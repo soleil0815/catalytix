@@ -2,6 +2,15 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.1.0 – 2026-11-06
+**Changed**
+- The German interface now addresses users formally ("Sie") instead of informally ("du") – on all pages and messages,
+  in the e-mails, the help, the news, the manual (PDF) and the README. The English interface is unchanged. A test
+  keeps informal forms from coming back.
+- If the login page's welcome text was saved unchanged, it also appears in the new form.
+- The German manual now has a source in the repository (`docs/manual/`, built with `python3 tools/build_manual.py`)
+  and describes the automatic sign-out.
+
 ## 3.0.9 – 2026-11-06
 **Internal (fewer GitHub Actions minutes, same checks)**
 - No CI run after merging into `main` any more – every pull request is already checked, and `main` is built, tested

@@ -3,6 +3,15 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.1.0 – 06.11.2026
+**Geändert**
+- Die deutsche Oberfläche spricht Nutzerinnen und Nutzer jetzt mit „Sie“ an statt mit „du“ – in allen Seiten und
+  Meldungen, in den E-Mails, in der Hilfe, in den Neuigkeiten, im Handbuch (PDF) und in der README. Die englische
+  Oberfläche ist unverändert. Ein Test verhindert, dass Du-Formen zurückkommen.
+- Wurde der Begrüßungstext der Anmeldeseite unverändert gespeichert, erscheint er ebenfalls in der neuen Form.
+- Das deutsche Handbuch hat jetzt eine Quelle im Repository (`docs/manual/`, Bau mit `python3 tools/build_manual.py`)
+  und beschreibt die automatische Abmeldung.
+
 ## 3.0.9 – 06.11.2026
 **Intern (weniger GitHub-Actions-Minuten, gleiche Prüfungen)**
 - Kein Prüflauf mehr nach dem Mergen auf `main` – jeder Pull Request ist bereits geprüft, und `main` wird beim

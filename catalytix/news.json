@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.1.0",
+  "date": "2026-11-06",
+  "items": [
+   {
+    "kind": "improved",
+    "audience": "all",
+    "de": {
+     "title": "Neue Anrede: „Sie“",
+     "text": "Die Bibliothek spricht Sie jetzt in der Sie-Form an – auf allen Seiten, in E-Mails, in der Hilfe und im Handbuch. Die englische Oberfläche bleibt unverändert."
+    },
+    "en": {
+     "title": "Formal German",
+     "text": "The German interface now uses the formal form of address (“Sie”) – on all pages, in e-mails, the help and the manual. The English interface is unchanged."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.0.9",
   "date": "2026-11-06",
   "items": [

@@ -45,7 +45,7 @@ def start_login(user: User, remember: bool, next_url: str | None):
         session["mfa_skipped"] = True
     if twofa.must_set_up(user, internal):
         session["mfa_setup"] = True
-        flash(_("Bitte richte jetzt einen zweiten Faktor ein (Authenticator-App oder Sicherheitsschlüssel)."), "warning")
+        flash(_("Bitte richten Sie jetzt einen zweiten Faktor ein (Authenticator-App oder Sicherheitsschlüssel)."), "warning")
         return redirect(url_for("security.settings"))
     return redirect(safe_next(next_url) or url_for("main.dashboard"))
 
@@ -127,10 +127,10 @@ def challenge():
     mode = request.values.get("modus", "")
     if request.method == "POST":
         if _too_many_mfa_fails(user):
-            flash(_("Zu viele Fehlversuche beim zweiten Faktor. Bitte melde dich erneut an."), "error")
+            flash(_("Zu viele Fehlversuche beim zweiten Faktor. Bitte melden Sie sich erneut an."), "error")
             return redirect(url_for("main.login"))
         if lockout.throttled(key) or _account_throttled(user):
-            flash(_("Zu viele Fehlversuche. Bitte warte einige Minuten."), "error")
+            flash(_("Zu viele Fehlversuche. Bitte warten Sie einige Minuten."), "error")
             return render_template("security/challenge.html", user=user, mode=mode), 429
         code = form_str("code", 40)
         ok = False
@@ -172,8 +172,9 @@ def challenge_key_complete():
         return jsonify({"ok": False, "error": _("Anmeldung abgelaufen.")}), 400
     key = _fail_key(user)
     if _too_many_mfa_fails(user):
-        flash(_("Zu viele Fehlversuche beim zweiten Faktor. Bitte melde dich erneut an."), "error")
-        return jsonify({"ok": False, "error": _("Zu viele Fehlversuche beim zweiten Faktor. Bitte melde dich erneut an."),
+        flash(_("Zu viele Fehlversuche beim zweiten Faktor. Bitte melden Sie sich erneut an."), "error")
+        return jsonify({"ok": False, "error": _("Zu viele Fehlversuche beim zweiten Faktor. Bitte melden Sie sich "
+                                                "erneut an."),
                         "redirect": url_for("main.login")}), 429
     if lockout.throttled(key) or _account_throttled(user):
         return jsonify({"ok": False, "error": _("Zu viele Fehlversuche.")}), 429
@@ -210,8 +211,8 @@ def _may_manage() -> bool:
 
 
 def _stepup_msg() -> str:
-    return _("Bitte bestätige zuerst deinen zweiten Faktor (Authenticator-App, Sicherheitsschlüssel oder "
-             "Wiederherstellungscode) – du hast dich in dieser Sitzung ohne ihn angemeldet.")
+    return _("Bitte bestätigen Sie zuerst Ihren zweiten Faktor (Authenticator-App, Sicherheitsschlüssel oder "
+             "Wiederherstellungscode) – Sie haben sich in dieser Sitzung ohne ihn angemeldet.")
 
 
 def _refuse_manage():
@@ -292,7 +293,7 @@ def totp_disable():
     if not _may_manage():
         return _refuse_manage()
     if _last_factor("totp"):
-        flash(_("Ein zweiter Faktor ist Pflicht. Richte zuerst einen Sicherheitsschlüssel ein."), "error")
+        flash(_("Ein zweiter Faktor ist Pflicht. Richten Sie zuerst einen Sicherheitsschlüssel ein."), "error")
     elif not twofa.totp_unreadable(current_user) and not twofa.verify_user_totp(current_user, form_str("code", 20)):
         flash(_("Zum Entfernen bitte einen aktuellen Code aus der App eingeben."), "error")
     else:
@@ -361,7 +362,7 @@ def key_delete(cred_id):
     if not _may_manage():
         return _refuse_manage()
     if _last_factor("key", cred.id):
-        flash(_("Ein zweiter Faktor ist Pflicht. Das ist dein letzter – richte zuerst einen anderen ein."), "error")
+        flash(_("Ein zweiter Faktor ist Pflicht. Das ist Ihr letzter – richten Sie zuerst einen anderen ein."), "error")
     else:
         db.session.delete(cred)
         db.session.commit()

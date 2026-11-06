@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-head">
   <div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("E-Mail-Benachrichtigungen") }}</h1>
-    <p>{{ _("Versand über euren SMTP-Server: Ausleihbestätigungen, Erinnerungen vor Fälligkeit und Mahnungen.") }}</p></div>
+    <p>{{ _("Versand über Ihren SMTP-Server: Ausleihbestätigungen, Erinnerungen vor Fälligkeit und Mahnungen.") }}</p></div>
   <div class="actions">
     {% if v.mail_enabled == '1' and v.smtp_host %}<span class="badge ok">{{ icon("check") }} {{ _("aktiv") }}</span>
     {% else %}<span class="badge">{{ _("nicht aktiv") }}</span>{% endif %}

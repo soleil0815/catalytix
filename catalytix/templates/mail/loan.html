@@ -1,7 +1,7 @@
 {% extends "mail/_layout.html" %}{% from "mail/_book.html" import book_row with context %}
 {% block content %}
 <p style="margin:0 0 12px;">{{ _("Hallo {name},", name=user.name) }}</p>
-<p style="margin:0 0 6px;">{{ _("du hast folgendes Buch ausgeliehen:") }}</p>
+<p style="margin:0 0 6px;">{{ _("Sie haben folgendes Buch ausgeliehen:") }}</p>
 {{ book_row(loan) }}
 <p style="margin:14px 0;">{{ _("Viel Freude beim Lesen!") }}</p>
 {% if base_url %}<p style="margin:18px 0 10px;"><a href="{{ base_url }}/ausleihen" style="background:{{ mail_accent }};color:{{ mail_accent_ink }};padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:600;display:inline-block;">{{ _("Meine Ausleihen") }}</a></p>{% endif %}

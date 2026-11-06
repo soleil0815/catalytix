@@ -532,7 +532,7 @@ DEFAULT_SETTINGS = {
     "brand_side": "",
     "login_show_shelf": "1",
     "login_eyebrow": "Willkommen",
-    "login_text": "Stöbern, ausleihen, weiterlesen – der Katalog deiner Bibliothek.",
+    "login_text": "Stöbern, ausleihen, weiterlesen – der Katalog Ihrer Bibliothek.",
 }
 
 

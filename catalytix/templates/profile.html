@@ -40,7 +40,7 @@
         <input type="hidden" name="action" value="data">
         <div class="field"><label for="f-display-name">{{ _("Anzeigename") }}</label><input id="f-display-name" type="text" name="display_name" maxlength="200" required value="{{ current_user.display_name or '' }}" autocomplete="name"></div>
         <div class="field"><label for="f-email">{{ _("E-Mail-Adresse") }}</label><input id="f-email" type="email" name="email" maxlength="200" value="{{ current_user.email or '' }}" autocomplete="email">
-          {% if current_user.self_registered %}<div class="hint">{{ _("Eine neue Adresse gilt erst, wenn du den Link in der Bestätigungsmail öffnest (falls die Bibliothek das verlangt).") }}</div>{% endif %}</div>
+          {% if current_user.self_registered %}<div class="hint">{{ _("Eine neue Adresse gilt erst, wenn Sie den Link in der Bestätigungsmail öffnen (falls die Bibliothek das verlangt).") }}</div>{% endif %}</div>
         <button class="btn">{{ icon("check") }} {{ _("Speichern") }}</button>
       </form>
     </section>
@@ -52,7 +52,7 @@
         <h3>{{ icon("globe") }} {{ _("Sprache") }}</h3>
         {{ lang_switch() }}
       </div>
-      <p class="muted" style="font-size: 13px; margin: 8px 0 0">{{ _("Gilt für die Oberfläche und für E-Mails an dich.") }}</p>
+      <p class="muted" style="font-size: 13px; margin: 8px 0 0">{{ _("Gilt für die Oberfläche und für E-Mails an Sie.") }}</p>
     </section>
     <section class="card card-pad">
       <div class="actions" style="justify-content: space-between">
@@ -69,9 +69,9 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="action" value="notify">
         {% if current_user.auth_source == "local" and not current_user.email %}
-        <div class="notice warn" style="margin-bottom: 12px">{{ _("Trag oben unter „Meine Daten“ eine E-Mail-Adresse ein, um Benachrichtigungen zu erhalten.") }}</div>
+        <div class="notice warn" style="margin-bottom: 12px">{{ _("Tragen Sie oben unter „Meine Daten“ eine E-Mail-Adresse ein, um Benachrichtigungen zu erhalten.") }}</div>
         {% elif current_user.auth_source != "local" and not current_user.email %}
-        <div class="notice warn" style="margin-bottom: 12px">{{ _("Im Active Directory ist für dich keine E-Mail-Adresse hinterlegt.") }}</div>
+        <div class="notice warn" style="margin-bottom: 12px">{{ _("Im Active Directory ist für Sie keine E-Mail-Adresse hinterlegt.") }}</div>
         {% endif %}
         <label class="check"><input type="checkbox" name="email_notifications" value="1" {{ 'checked' if current_user.email_notifications }}>
           <span>{{ _("Bestätigungen, Erinnerungen und Mahnungen per E-Mail erhalten") }}</span></label>
@@ -91,7 +91,7 @@
       </form>
     </section>
     {% else %}
-    <div class="notice">{{ icon("server") }}<div>{{ _("Dein Passwort wird im Active Directory verwaltet.") }}</div></div>
+    <div class="notice">{{ icon("server") }}<div>{{ _("Ihr Passwort wird im Active Directory verwaltet.") }}</div></div>
     {% endif %}
   </div>
 </div>

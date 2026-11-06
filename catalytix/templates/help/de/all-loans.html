@@ -1,7 +1,7 @@
-<p>Unter <span class="ui">Verwaltung → Alle Ausleihen</span> siehst du alle laufenden Ausleihen {% if current_user.is_global_manager %}der Bibliothek{% else %}deiner Gruppen und der allgemeinen Bücher{% endif %}. Die Reiter <span class="ui">Aktiv</span>, <span class="ui">Überfällig</span> und <span class="ui">Verlauf</span> filtern, das Suchfeld findet Titel, ISBN und Benutzer. Die rote Zahl in der Seitenleiste zählt die überfälligen Ausleihen.</p>
+<p>Unter <span class="ui">Verwaltung → Alle Ausleihen</span> sehen Sie alle laufenden Ausleihen {% if current_user.is_global_manager %}der Bibliothek{% else %}Ihrer Gruppen und der allgemeinen Bücher{% endif %}. Die Reiter <span class="ui">Aktiv</span>, <span class="ui">Überfällig</span> und <span class="ui">Verlauf</span> filtern, das Suchfeld findet Titel, ISBN und Benutzer. Die rote Zahl in der Seitenleiste zählt die überfälligen Ausleihen.</p>
 <p><b>Aktionen pro Zeile:</b></p>
 <ul>
-  <li><span class="ui">Verlängern</span> – um {{ f.extension_days }} {{ "Tag" if f.extension_days == 1 else "Tage" }}. Als Verwalter darfst du auch über die Höchstzahl von {{ f.max_extensions }} {{ "Verlängerung" if f.max_extensions == 1 else "Verlängerungen" }} hinaus verlängern.</li>
+  <li><span class="ui">Verlängern</span> – um {{ f.extension_days }} {{ "Tag" if f.extension_days == 1 else "Tage" }}. Als Verwalter dürfen Sie auch über die Höchstzahl von {{ f.max_extensions }} {{ "Verlängerung" if f.max_extensions == 1 else "Verlängerungen" }} hinaus verlängern.</li>
   {% if f.mail_on %}<li><b>Briefumschlag</b> – schickt sofort eine Erinnerung per E-Mail. Ausgegraut, wenn für die Person keine Adresse hinterlegt ist.</li>{% endif %}
   <li><span class="ui">Rückgabe</span> – bucht das Buch zurück.</li>
 </ul>
@@ -12,4 +12,4 @@ Mehrere Bücher einer Person landen in einer Mail.{% if f.mail_digest %} Verwalt
 {% else %}
 <p><b>E-Mail ist nicht eingerichtet</b> – es gehen weder Erinnerungen noch Mahnungen raus, und der Briefumschlag fehlt. Die Administration kann den Versand unter <span class="ui">Administration → E-Mail</span> einrichten.</p>
 {% endif %}
-<p>Deine eigenen Ausleihen findest du unter <span class="ui">Meine Ausleihen</span>.</p>
+<p>Ihre eigenen Ausleihen finden Sie unter <span class="ui">Meine Ausleihen</span>.</p>

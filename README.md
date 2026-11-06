@@ -1,15 +1,15 @@
 # Catalytix
 
-**Version 3.0.9** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 3.1.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
-Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name eurer Bibliothek.
+Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name Ihrer Bibliothek.
 
 - **Bestand pflegen** – manuell oder per ISBN: USB-/Bluetooth-Barcodescanner, Handy-/Laptop-Kamera oder Eintippen. Daten und Cover kommen automatisch von der Deutschen Nationalbibliothek, Open Library und Google Books.
 - **Standorte** – feste Liste der Regale und Räume; beim Erfassen wird ausgewählt statt getippt.
 - **Schnellerfassung** – ISBN für ISBN scannen; neue Titel mit einem Klick übernehmen, vorhandene um ein Exemplar erhöhen. Wird ein vorhandenes Buch (gleiche ISBN, gleiche Gruppe) noch einmal erfasst, werden die Exemplare dort hinzugezählt statt einen zweiten Eintrag anzulegen.
 - **Suche mit Vorschlägen** – schon beim Tippen erscheinen passende Bücher (Suchfeld oben) und Personen (Ausleihtheke).
 - **Ausleihe** – Selbstausleihe per Klick, Verleihen direkt aus dem Katalog, Ausleihtheke für den Scanner, Rückgabe, Verlängerung, Überfälligkeiten, Höchstzahl an Ausleihen, optional **Vormerken** verliehener Bücher mit Warteschlange und Abholfrist.
-- **Gruppen** – jede Gruppe hat ihren Bestand; Mitglieder leihen nur Bücher ihrer Gruppen (plus „allgemeine“ Bücher). Eine Gruppe kann **Präsenzbestand** sein: Ihre Bücher stehen im Katalog, werden aber nicht verliehen und nicht vorgemerkt.
+- **Gruppen** – jede Gruppe hat ihren Bestand; Mitglieder leihen nur Bücher ihrer Gruppen (plus „allgemeine“ Bücher). Eine Gruppe kann **Präsenzbestand** sein: Die Bücher der Gruppe stehen im Katalog, werden aber nicht verliehen und nicht vorgemerkt.
 - **Rollen** – Leser, Verwalter (Bibliothekspersonal), Administrator. Lokales Admin-Konto funktioniert immer.
 - **Selbstregistrierung** (optional, standardmäßig aus) – mit Freigabe durch Admins, E-Mail-Bestätigung und Domain-Beschränkung.
 - **Eigenes Erscheinungsbild** – Logo, Hintergrundbild der Anmeldeseite, Farben und Begrüßungstexte.
@@ -45,7 +45,7 @@ chmod 600 .env                # kann später Passwörter enthalten (z. B. DATABA
 docker compose up -d          # ältere Installationen (z. B. Synology): docker-compose up -d
 ```
 
-In der `.env` ist alles optional (Port, Zeitzone, Datenbank …) – ohne Eintrag gilt die Vorgabe. Dann `http://SERVER:9300` öffnen (z. B. `http://bibliothek.firma.local:9300`). Beim ersten Aufruf legst du das lokale Administratorkonto an; dafür fragt die Seite den **Einrichtungscode** ab. Er steht im Protokoll des Containers (`docker compose logs catalytix`) und lässt sich jederzeit so anzeigen: `docker compose exec catalytix docker-entrypoint.sh flask --app wsgi setup-code`. So kann niemand, der den Port zufällig erreicht, die Einrichtung übernehmen.
+In der `.env` ist alles optional (Port, Zeitzone, Datenbank …) – ohne Eintrag gilt die Vorgabe. Dann `http://SERVER:9300` öffnen (z. B. `http://bibliothek.firma.local:9300`). Beim ersten Aufruf legen Sie das lokale Administratorkonto an; dafür fragt die Seite den **Einrichtungscode** ab. Er steht im Protokoll des Containers (`docker compose logs catalytix`) und lässt sich jederzeit so anzeigen: `docker compose exec catalytix docker-entrypoint.sh flask --app wsgi setup-code`. So kann niemand, der den Port zufällig erreicht, die Einrichtung übernehmen.
 
 Der Container setzt beim Start selbst die Rechte an `./data` und läuft danach als Benutzer `PUID:PGID` (Standard `1000:1000`) – nicht als root. Zusätzliches (z. B. ein NAS-Laufwerk für Sicherungen oder eine MariaDB) kommt in eine eigene `docker-compose.override.yml`; die wird nie angefasst.
 
@@ -75,7 +75,7 @@ docker compose pull && docker compose up -d
 
 Läuft mit `/bin/sh` (auch dash/BusyBox) und auf einem NAS; braucht Docker Compose als `docker compose` oder `docker-compose` ab 1.27. Ohne Terminal (cron, `ssh` ohne `-t`) und ohne `-y` entscheidet es nichts von selbst.
 
-**Was das Programm bei jedem Versionswechsel selbst tut:** Bevor eine neue Version die Datenbank anpasst, sichert sie sie (Sicherung `catalytix-…-vor-<Version>.db` in *Administration → Datensicherung*; die letzten drei bleiben unabhängig von den täglichen erhalten). Startet eine **ältere** Version auf einer Datenbank, die schon eine neuere benutzt hat, bricht sie mit einer klaren Meldung ab (welche Version bzw. welche Sicherung) – statt mit Folgefehlern weiterzulaufen. Bei MySQL/PostgreSQL sichert ihr vor Updates selbst (`mysqldump`/`pg_dump`).
+**Was das Programm bei jedem Versionswechsel selbst tut:** Bevor eine neue Version die Datenbank anpasst, sichert sie sie (Sicherung `catalytix-…-vor-<Version>.db` in *Administration → Datensicherung*; die letzten drei bleiben unabhängig von den täglichen erhalten). Startet eine **ältere** Version auf einer Datenbank, die schon eine neuere benutzt hat, bricht sie mit einer klaren Meldung ab (welche Version bzw. welche Sicherung) – statt mit Folgefehlern weiterzulaufen. Bei MySQL/PostgreSQL sichern Sie vor Updates selbst (`mysqldump`/`pg_dump`).
 
 Ist die `docker-compose.yml` auf dem Server für eine neue Version zu alt, steht das im Protokoll und für Administratoren auf der Übersicht – dann einmal `./update.sh` ausführen oder die Datei aus dem Release ersetzen.
 
@@ -109,7 +109,7 @@ Ohne `update.sh`: `sha256sum -c SHA256SUMS --ignore-missing`, `docker load -i ca
 Bis 2.20 lagen Programmdateien auf dem Server (Zip-Paket, lokal gebaut). Ab 3.0.0 steckt alles im Image. Einmalig im bisherigen Programmordner:
 
 1. Sicherung anlegen: *Administration → Datensicherung → Jetzt sichern* (das Programm sichert beim ersten Start von 3.0.0 zusätzlich selbst).
-2. Mit dem **bisherigen** Skript einmal auf das Image umstellen: `./update.sh --pull`. Es holt 3.0.0, legt die neue `docker-compose.yml`, `.env.example` und das neue `update.sh` ab und startet. (Kennt euer Skript `--pull` noch nicht – vor 2.16 –, legt stattdessen das neue `update.sh` aus dem Release in den Ordner und startet `./update.sh`; die alte `docker-compose.yml` bleibt dann als `docker-compose.yml.alt`.)
+2. Mit dem **bisherigen** Skript einmal auf das Image umstellen: `./update.sh --pull`. Es holt 3.0.0, legt die neue `docker-compose.yml`, `.env.example` und das neue `update.sh` ab und startet. (Kennt Ihr Skript `--pull` noch nicht – vor 2.16 –, legen Sie stattdessen das neue `update.sh` aus dem Release in den Ordner und starten Sie `./update.sh`; die alte `docker-compose.yml` bleibt dann als `docker-compose.yml.alt`.)
 3. Alte Programmdateien wegräumen: `./update.sh --cleanup`. Es zeigt die Liste (nur bekannte Programmdateien wie `catalytix/`, `Dockerfile`, `wsgi.py`, alte Zip-Pakete, Arbeitsordner abgebrochener Updates und lokal gebaute `catalytix:X.Y.Z`-Images), fragt und löscht nur diese. **Nie** angefasst werden `data/`, Sicherungen, `.env`, `docker-compose.yml` (samt `.alt`/`.override`) und alles, was ein Container eingebunden hat – auch nicht über Verknüpfungen.
 
 Danach liegen im Ordner nur noch `docker-compose.yml`, `.env`, `.env.example`, `update.sh` und `data/`.
@@ -165,7 +165,7 @@ Zum Ausprobieren reicht `python wsgi.py` (nur `127.0.0.1:9300`). Das Image selbs
 **Hilfe im Programm** (*Hilfe* in der Seitenleiste oder **?** oben rechts):
 - Jeder sieht nur die Themen seiner Rolle – Leser 7, Verwalter zusätzlich 7, Administratoren alle 25.
 - Das **?** springt direkt zum Abschnitt der aktuellen Seite (z. B. von der Ausleihtheke zur Hilfe für die Theke).
-- Die Texte richten sich nach euren Einstellungen: Leihfrist, Verlängerungen, Selbstausleihe, E-Mail-Erinnerungen, Registrierung, Zwei-Faktor-Pflicht, AD-Konto oder lokales Konto …
+- Die Texte richten sich nach Ihren Einstellungen: Leihfrist, Verlängerungen, Selbstausleihe, E-Mail-Erinnerungen, Registrierung, Zwei-Faktor-Pflicht, AD-Konto oder lokales Konto …
 - Suchfeld über alle Themen; das **Handbuch als PDF** (Deutsch bzw. Englisch, je nach Sprache) ist dort verlinkt.
 
 **Neuigkeiten:** Unten in der Seitenleiste (neben der Versionsnummer) und im Benutzermenü steht *Neuigkeiten* – kurze, verständliche Hinweise zu neuen Funktionen, Verbesserungen und Sicherheitsupdates, je nach Rolle (Leser sehen keine reinen Admin-Themen). Gibt es nach einem Update etwas Neues, zeigt ein kleiner Punkt das an, und auf der Übersicht erscheint eine Zeile, die sich wegklicken lässt. Neue Konten starten ohne alte Meldungen. Die Texte stehen in `catalytix/news.json` (je Version, deutsch und englisch, Art `security`/`new`/`improved`/`fixed`, Zielgruppe `all`/`librarian`/`admin`).
@@ -176,10 +176,10 @@ Zum Ausprobieren reicht `python wsgi.py` (nur `127.0.0.1:9300`). Das Image selbs
 
 ## Standorte
 
-*Verwaltung → Standorte* (Verwalter und Administratoren). Hier legt ihr die Regale, Räume oder Schränke einmal fest – auch mehrere auf einmal, einer pro Zeile. Sobald es mindestens einen gibt, wird der Standort beim **Erfassen, in der Schnellerfassung und beim Bearbeiten aus einer Liste gewählt** statt getippt. Groß-/Kleinschreibung und doppelte Leerzeichen werden dabei angeglichen.
+*Verwaltung → Standorte* (Verwalter und Administratoren). Hier legen Sie die Regale, Räume oder Schränke einmal fest – auch mehrere auf einmal, einer pro Zeile. Sobald es mindestens einen gibt, wird der Standort beim **Erfassen, in der Schnellerfassung und beim Bearbeiten aus einer Liste gewählt** statt getippt. Groß-/Kleinschreibung und doppelte Leerzeichen werden dabei angeglichen.
 
 - **Umbenennen** ändert den Standort bei allen betroffenen Büchern mit. **Löschen** geht erst, wenn dort kein Buch mehr steht.
-- **Früher frei getippte Standorte** erscheinen unter *Im Bestand, aber nicht festgelegt*. Ihr könnt sie als Standort übernehmen oder durch einen festgelegten ersetzen – die Bücher werden mit umgestellt. Bei anderer Schreibweise („regal a2“) oder einem Tippfehler („Regl A1“) ist der passende Standort schon vorausgewählt.
+- **Früher frei getippte Standorte** erscheinen unter *Im Bestand, aber nicht festgelegt*. Sie können sie als Standort übernehmen oder durch einen festgelegten ersetzen – die Bücher werden mit umgestellt. Bei anderer Schreibweise („regal a2“) oder einem Tippfehler („Regl A1“) ist der passende Standort schon vorausgewählt.
 - Gruppen-Verwalter können Standorte anlegen; Umbenennen und Ersetzen, das Bücher anderer Gruppen betrifft, bleibt Administratoren und Verwaltern ohne Gruppe vorbehalten.
 - Im **Katalog** lässt sich nach Standort filtern.
 - Ohne festgelegte Standorte bleibt das Feld ein freies Textfeld wie bisher.
@@ -188,7 +188,7 @@ Zum Ausprobieren reicht `python wsgi.py` (nur `127.0.0.1:9300`). Das Image selbs
 
 Optional unter *Einstellungen → Vormerken* (standardmäßig aus):
 - Sind alle Exemplare eines Buchs verliehen, kann man es auf der Buchseite **vormerken** und steht in einer Warteschlange. Unter *Meine Ausleihen* sieht man seine Vormerkungen samt Platz und kann sie löschen.
-- Wird ein Exemplar frei (Rückgabe, zusätzliches Exemplar, Vormerkung gelöscht oder abgelaufen), wird es für die erste Person **zurückgelegt**: Sie bekommt eine E-Mail, auf der Übersicht steht „liegt für dich bereit“, an der Theke meldet die Rückgabe „Bitte zurücklegen – vorgemerkt für …“. Für alle anderen gilt das Exemplar als nicht verfügbar.
+- Wird ein Exemplar frei (Rückgabe, zusätzliches Exemplar, Vormerkung gelöscht oder abgelaufen), wird es für die erste Person **zurückgelegt**: Diese Person bekommt eine E-Mail, auf der Übersicht steht „liegt für Sie bereit“, an der Theke meldet die Rückgabe „Bitte zurücklegen – vorgemerkt für …“. Für alle anderen gilt das Exemplar als nicht verfügbar.
 - Holt die Person es nicht innerhalb der **Abholfrist** (Standard 7 Tage) ab, ist die nächste dran. Mit der Ausleihe an sie ist die Vormerkung erledigt.
 - Vorgemerkte Bücher können Leser nicht selbst verlängern (Verwalter schon). Verwalter sehen die Warteschlange auf der Buchseite und können Vormerkungen löschen.
 - Abgeschlossene Vormerkungen werden mit der Aufbewahrungsfrist der Ausleihen gelöscht. Ausschalten löscht alle offenen Vormerkungen.
@@ -201,7 +201,7 @@ Optional unter *Einstellungen → Vormerken* (standardmäßig aus):
 | **Verwalter** | Bücher erfassen/bearbeiten/löschen, an Benutzer verleihen, Rücknahme, Ausleihtheke – für die Bücher **seiner Gruppen** und allgemeine Bücher. Ein Verwalter **ohne** Gruppe verwaltet den gesamten Bestand. Verliert ein Gruppen-Verwalter seine letzte Gruppe (Gruppe gelöscht, im AD entfernt), verwaltet er nur noch allgemeine Bücher – den gesamten Bestand bekommt er erst, wenn ein Admin das im Benutzerkonto ausdrücklich ankreuzt. |
 | **Administrator** | Alles, dazu Benutzer, Gruppen, Einstellungen und Active Directory |
 
-Jedes Buch gehört entweder zu einer **Gruppe** oder ist **allgemein**. Allgemeine Bücher kann jeder ausleihen, Gruppenbücher nur Mitglieder der Gruppe. Unter *Einstellungen* legst du fest, ob Leser im Katalog nur ihre Bücher sehen oder den ganzen Bestand (Ausleihe bleibt trotzdem beschränkt).
+Jedes Buch gehört entweder zu einer **Gruppe** oder ist **allgemein**. Allgemeine Bücher kann jeder ausleihen, Gruppenbücher nur Mitglieder der Gruppe. Unter *Einstellungen* legen Sie fest, ob Leser im Katalog nur ihre Bücher sehen oder den ganzen Bestand (Ausleihe bleibt trotzdem beschränkt).
 
 ---
 
@@ -239,13 +239,13 @@ Jedes Buch gehört entweder zu einer **Gruppe** oder ist **allgemein**. Allgemei
 - **Sicherheitsbremse:** Würde ein Abgleich mehr als 30 % der AD-Konten auf einmal sperren, sperrt er keines und meldet das (meist Basis-DN oder Filter falsch). Ist die AD-Suche unvollständig oder das AD nicht erreichbar, bleibt alles unverändert.
 - Verschachtelte Gruppen löst der Abgleich nur neu auf, wenn sich die direkten Gruppen einer Person geändert haben, sonst einmal täglich – das schont das AD. Der Abgleich läuft immer nur einmal gleichzeitig, auch bei mehreren Server-Prozessen.
 
-**Verschlüsselung:** Windows-DCs (LDAP-Signing) und Samba (`ldap server require strong auth = yes`, Standard) lehnen einfache Anmeldungen über unverschlüsseltes LDAP häufig ab. Nutze daher **LDAPS** (Port 636) oder **StartTLS**.
+**Verschlüsselung:** Windows-DCs (LDAP-Signing) und Samba (`ldap server require strong auth = yes`, Standard) lehnen einfache Anmeldungen über unverschlüsseltes LDAP häufig ab. Nutzen Sie daher **LDAPS** (Port 636) oder **StartTLS**.
 
 **Zertifikat automatisch holen:** Unter *TLS-Zertifikat* auf **„Zertifikat vom DC abrufen“** klicken. Catalytix liest die Zertifikate aller eingetragenen DCs aus und ergänzt die Stamm-CA automatisch – über die AIA-Adresse im Zertifikat (AD-Zertifikatsdienste) oder aus dem AD selbst (*Public Key Services*, mit Dienstkonto). Angezeigt werden Inhaber, Aussteller, Gültigkeit und SHA-256-Fingerabdruck; mit **„Vertrauen & speichern“** wird es übernommen. Gespeichert wird bevorzugt die Stamm-CA, damit die Verbindung auch nach einer Erneuerung des DC-Zertifikats weiter funktioniert. Wird keine Stamm-CA gefunden (z. B. bei Samba mit selbst erzeugtem Zertifikat), wird das Server-Zertifikat selbst vertraut – nach einer Erneuerung dann einfach erneut abrufen.
 
-Den Fingerabdruck kannst du zur Sicherheit auf dem DC vergleichen, z. B. Windows: `certutil -store My`, Samba: `openssl x509 -in /var/lib/samba/private/tls/cert.pem -noout -fingerprint -sha256`.
+Den Fingerabdruck können Sie zur Sicherheit auf dem DC vergleichen, z. B. Windows: `certutil -store My`, Samba: `openssl x509 -in /var/lib/samba/private/tls/cert.pem -noout -fingerprint -sha256`.
 
-Als Server am besten den **DNS-Namen** des DCs eintragen (so wie er im Zertifikat steht). Sprichst du den DC per IP-Adresse an, schalte „Hostname prüfen“ ab.
+Als Server am besten den **DNS-Namen** des DCs eintragen (so wie er im Zertifikat steht). Sprechen Sie den DC per IP-Adresse an, schalten Sie „Hostname prüfen“ ab.
 
 Dienstkonto in Samba anlegen:
 
@@ -292,7 +292,7 @@ Jeder Benutzer richtet sie unter **Profil → Sicherheit** (oder im Benutzermen�
 - **Sicherheitsschlüssel (WebAuthn/FIDO2):** YubiKey einstecken, berühren – fertig. Auch Fingerabdruck/Face-ID des Geräts (Passkey) funktioniert. Erfordert **HTTPS** und ist an die Adresse gebunden, unter der der Schlüssel registriert wurde (z. B. `bibliothek.schule.de`). Mehrere Schlüssel pro Konto sind möglich – am besten einen Ersatzschlüssel registrieren.
 - **Wiederherstellungscodes:** Beim Einrichten werden 10 Einmal-Codes angezeigt (nur einmal!). Damit kommt man ohne Handy/Schlüssel noch herein.
 
-Unter **Administration → Einstellungen** legst du fest, für wen 2FA bei **Zugriff von außen Pflicht** ist (niemand, Administratoren, Verwalter + Admins, alle). Betroffene werden nach der nächsten Anmeldung zur Einrichtung geführt und können erst danach weiterarbeiten.
+Unter **Administration → Einstellungen** legen Sie fest, für wen 2FA bei **Zugriff von außen Pflicht** ist (niemand, Administratoren, Verwalter + Admins, alle). Betroffene werden nach der nächsten Anmeldung zur Einrichtung geführt und können erst danach weiterarbeiten.
 
 **Internes Netz anders behandeln** (*Im internen Netz*):
 
@@ -302,13 +302,13 @@ Unter **Administration → Einstellungen** legst du fest, für wen 2FA bei **Zug
 | keine Pflicht | niemand muss 2FA einrichten; wer sie eingerichtet hat, wird trotzdem gefragt |
 | keine Zwei-Faktor-Abfrage | im LAN reicht das Passwort |
 
-- **Was „intern“ ist**, legst du unter *Internes Netz* fest (ein Netz pro Zeile, z. B. `192.168.10.0/24`). Leer bedeutet `10.0.0.0/8`, `192.168.0.0/16`, `fc00::/7` und Loopback – **ohne** `172.16.0.0/12`, weil Docker seine Netze dort anlegt (sonst sähe z. B. jeder über das Docker-Gateway ankommende Zugriff intern aus). Nutzt euer LAN 172.16–31.x, tragt es ausdrücklich ein. Am besten ohnehin auf euer tatsächliches LAN eingrenzen. *Seit dieser Version:* Wer das Feld leer gelassen hat und Clients aus 172.16/12 hat, muss das Netz jetzt eintragen.
+- **Was „intern“ ist**, legen Sie unter *Internes Netz* fest (ein Netz pro Zeile, z. B. `192.168.10.0/24`). Leer bedeutet `10.0.0.0/8`, `192.168.0.0/16`, `fc00::/7` und Loopback – **ohne** `172.16.0.0/12`, weil Docker seine Netze dort anlegt (sonst sähe z. B. jeder über das Docker-Gateway ankommende Zugriff intern aus). Nutzt Ihr LAN 172.16–31.x, tragen Sie es ausdrücklich ein. Am besten ohnehin auf Ihr tatsächliches LAN eingrenzen. *Seit dieser Version:* Wer das Feld leer gelassen hat und Clients aus 172.16/12 hat, muss das Netz jetzt eintragen.
 - Hinter dem Reverse-Proxy zählt die **echte Adresse des Besuchers**. Der Proxy muss dafür `X-Forwarded-For` mitschicken (Nginx Proxy Manager, Caddy und Traefik tun das von sich aus). Fehlt die Angabe, gilt der Zugriff aus Sicherheitsgründen als **extern**. Gefälschte Angaben aus dem Internet werden ignoriert.
-- **Wichtig – Port 9300 nur für den Proxy:** Standardmäßig gelten alle privaten Netze als vertrauenswürdige Proxys (`CATALYTIX_TRUSTED_PROXIES=private`). Jeder Rechner im LAN, der Catalytix **direkt** auf Port 9300 erreicht, kann daher eine gefälschte `X-Forwarded-For`-Angabe mitschicken (z. B. um als „intern“ zu gelten oder die Anmeldesperre je Adresse zu umgehen). Veröffentlicht den Port daher nur für den Proxy – mit `CATALYTIX_BIND=127.0.0.1` in der `.env` (Proxy direkt auf dem Server) oder über ein gemeinsames Docker-Netz mit dem Proxy (in `docker-compose.override.yml`; `docker-compose.yml` selbst wird bei Updates ersetzt) – **oder** setzt `CATALYTIX_TRUSTED_PROXIES` auf die Adresse des Proxys (z. B. `172.18.0.5` bzw. das Docker-Netz des Proxys). Das gilt auch für Zugriffe aus dem Internet: Erreicht jemand Port 9300 z. B. über **IPv6** und Docker leitet das intern weiter, kommt die Anfrage scheinbar vom Docker-Gateway (172.x.0.1) – und dem wird mit der Standardeinstellung vertraut.
-- Die Einstellungsseite zeigt, wie deine aktuelle Verbindung eingestuft wird. Zum Prüfen einmal vom Handy über mobile Daten aufrufen – dort muss „extern“ stehen.
+- **Wichtig – Port 9300 nur für den Proxy:** Standardmäßig gelten alle privaten Netze als vertrauenswürdige Proxys (`CATALYTIX_TRUSTED_PROXIES=private`). Jeder Rechner im LAN, der Catalytix **direkt** auf Port 9300 erreicht, kann daher eine gefälschte `X-Forwarded-For`-Angabe mitschicken (z. B. um als „intern“ zu gelten oder die Anmeldesperre je Adresse zu umgehen). Veröffentlichen Sie den Port daher nur für den Proxy – mit `CATALYTIX_BIND=127.0.0.1` in der `.env` (Proxy direkt auf dem Server) oder über ein gemeinsames Docker-Netz mit dem Proxy (in `docker-compose.override.yml`; `docker-compose.yml` selbst wird bei Updates ersetzt) – **oder** setzen Sie `CATALYTIX_TRUSTED_PROXIES` auf die Adresse des Proxys (z. B. `172.18.0.5` bzw. das Docker-Netz des Proxys). Das gilt auch für Zugriffe aus dem Internet: Erreicht jemand Port 9300 z. B. über **IPv6** und Docker leitet das intern weiter, kommt die Anfrage scheinbar vom Docker-Gateway (172.x.0.1) – und dem wird mit der Standardeinstellung vertraut.
+- Die Einstellungsseite zeigt, wie Ihre aktuelle Verbindung eingestuft wird. Zum Prüfen einmal vom Handy über mobile Daten aufrufen – dort muss „extern“ stehen.
 - Eine im LAN **ohne** zweiten Faktor begonnene Sitzung gilt nur intern: Wer damit von außen zugreift (Laptop zu Hause), muss sich neu anmelden. „Angemeldet bleiben“ wirkt in diesem Fall nicht.
 - Interne Geräte mit eigener öffentlicher IPv6-Adresse gelten als extern, solange ihr Präfix nicht eingetragen ist.
-- **Interne Rechner über die öffentliche Domain:** Rufen sie die Internet-Adresse auf, gibt der Router (z. B. FritzBox) sie oft mit eurer eigenen öffentlichen IP aus – dann sähen sie extern aus. Trage dafür unter *Eigener Internetanschluss* eure feste IP oder euren **DynDNS-Namen** ein; der Name wird alle 5 Minuten neu aufgelöst, eine wechselnde IP wird also mitverfolgt. **Achtung:** Auch das Gäste-WLAN und alle anderen Geräte hinter dem Router kommen mit dieser Adresse an und gelten dann als intern. Die sauberere Alternative ist ein interner DNS-Eintrag (Split-DNS), der die Domain im LAN auf die interne Adresse des Servers zeigen lässt.
+- **Interne Rechner über die öffentliche Domain:** Rufen sie die Internet-Adresse auf, gibt der Router (z. B. FritzBox) sie oft mit Ihrer eigenen öffentlichen IP aus – dann sähen sie extern aus. Tragen Sie dafür unter *Eigener Internetanschluss* Ihre feste IP oder Ihren **DynDNS-Namen** ein; der Name wird alle 5 Minuten neu aufgelöst, eine wechselnde IP wird also mitverfolgt. **Achtung:** Auch das Gäste-WLAN und alle anderen Geräte hinter dem Router kommen mit dieser Adresse an und gelten dann als intern. Die sauberere Alternative ist ein interner DNS-Eintrag (Split-DNS), der die Domain im LAN auf die interne Adresse des Servers zeigen lässt.
 
 **Probleme bei der Anmeldung – ohne Kommandozeile:** Unter *Benutzer* → Konto öffnen → *Anmeldung und Sicherheit*:
 - **Zwei-Faktor-Anmeldung zurücksetzen** – entfernt App und Sicherheitsschlüssel, die Anmeldung geht dann wieder mit dem Passwort (ist 2FA Pflicht, wird die Neueinrichtung verlangt).
@@ -347,7 +347,7 @@ Technisch: TOTP nach RFC 6238 (Geheimnisse verschlüsselt gespeichert, Codes nic
 
 - **USB-/Bluetooth-Scanner** (Tastatur-Emulation) funktionieren ohne Einrichtung: Feld anklicken, scannen – der Scanner sendet die ISBN plus Enter.
 - An der **Ausleihtheke** wird ein Code der Reihe nach als Signatur (genau, ohne Groß/Klein), ISBN und Titel gesucht. Reine Ziffern gelten **nicht mehr** als interne Buch-Nummer (bis 2.9 schon – Signaturen aus Ziffern fanden dann das falsche Buch); die Buch-Nummer gibt man jetzt mit `#` ein, z. B. `#12`.
-- **Kamera-Scan** nutzt die eingebaute Barcode-Erkennung des Browsers (Chrome, Edge, Android), in Firefox und Safari die mitgelieferte eigene EAN-13-Erkennung – es wird nichts von fremden Servern nachgeladen. Browser erlauben die Kamera **nur über HTTPS** (oder `localhost`). Betreibe Catalytix dafür hinter einem Reverse-Proxy mit Zertifikat.
+- **Kamera-Scan** nutzt die eingebaute Barcode-Erkennung des Browsers (Chrome, Edge, Android), in Firefox und Safari die mitgelieferte eigene EAN-13-Erkennung – es wird nichts von fremden Servern nachgeladen. Browser erlauben die Kamera **nur über HTTPS** (oder `localhost`). Betreiben Sie Catalytix dafür hinter einem Reverse-Proxy mit Zertifikat.
 
 Beispiel mit Caddy (holt Zertifikate automatisch bzw. nutzt intern `tls internal`):
 
@@ -363,7 +363,7 @@ Mehr ist nicht nötig: Catalytix erkennt den Reverse-Proxy automatisch. Die Weit
 **Empfehlungen für den Betrieb im Internet** (Ergebnis der Sicherheitsprüfung zu 2.15):
 - **Port 9300 nur für den Proxy erreichbar machen.** Docker veröffentlicht Ports an der Host-Firewall (ufw/firewalld) vorbei. Läuft Nginx Proxy Manager auf demselben Rechner, `CATALYTIX_BIND=127.0.0.1` setzen oder beide Container in ein gemeinsames Docker-Netz hängen und den Port gar nicht veröffentlichen.
 - **`CATALYTIX_TRUSTED_PROXIES` auf die Adresse des Proxys setzen** (z. B. `172.18.0.5` oder das Docker-Netz des Proxys). Standard ist „jede private Adresse“ – wer den Port direkt aus dem LAN erreicht, könnte sonst eine beliebige Absenderadresse vortäuschen. Das ist besonders wichtig, wenn im internen Netz keine Zwei-Faktor-Abfrage nötig ist; die Einstellungsseite weist dann darauf hin.
-- Nginx Proxy Manager lädt beim Start die Adressbereiche von Cloudflare und CloudFront, um bei Anfragen von dort die echte Besucheradresse zu übernehmen. Nutzt ihr kein solches CDN, im NPM-Container `IP_RANGES_FETCH_ENABLED=false` setzen – dann kann niemand über diese Dienste eine fremde Absenderadresse einschleusen.
+- Nginx Proxy Manager lädt beim Start die Adressbereiche von Cloudflare und CloudFront, um bei Anfragen von dort die echte Besucheradresse zu übernehmen. Nutzen Sie kein solches CDN, setzen Sie im NPM-Container `IP_RANGES_FETCH_ENABLED=false` – dann kann niemand über diese Dienste eine fremde Absenderadresse einschleusen.
 - Hinter HTTPS `CATALYTIX_SECURE_COOKIES=1` setzen und HSTS im Proxy einschalten („HSTS Enabled“ in NPM).
 - **Basis-Adresse für E-Mail-Links** (*Administration → E-Mail*) eintragen – Links in Mails entstehen nur daraus, nie aus der Anfrage. Ohne sie ist die Selbstregistrierung mit E-Mail-Bestätigung gesperrt.
 - `PUID`/`PGID` auf einen eigenen Dienstbenutzer setzen (Standard 1000 ist meist der erste echte Benutzer des Hosts – dem gehören dann Datenbank und Schlüssel). Datenbank, Schlüssel und Sicherungen sind nur für diesen Benutzer lesbar.
@@ -374,7 +374,7 @@ Bei Freigabe ins Internet (z. B. mit Nginx Proxy Manager) *Force SSL* und *HSTS*
 
 ## Datenschutz und Betrieb im Internet
 
-Catalytix ist darauf ausgelegt, dass die Browser der Nutzer **nur mit eurem eigenen Server** sprechen:
+Catalytix ist darauf ausgelegt, dass die Browser der Nutzer **nur mit Ihrem eigenen Server** sprechen:
 
 - **Schriften** (Inter, Fraunces) liegen im Programm – keine Verbindung zu Google Fonts.
 - **Coverbilder** lädt der Server einmal von DNB, Open Library oder Google Books, speichert sie und liefert sie selbst aus. Auch die Vorschau beim Erfassen läuft über den eigenen Server. Dabei werden nur öffentliche Adressen abgerufen – interne Server sind über diese Funktion nicht erreichbar. Die Prüfung erfolgt beim Verbindungsaufbau für genau die Adresse, zu der verbunden wird (Schutz vor DNS-Rebinding); ein Abruf dauert höchstens 10 Sekunden. Ist ein ausgehender Proxy über `HTTPS_PROXY`/`HTTP_PROXY` gesetzt, löst der Proxy die Namen auf – dann sollte er selbst keine internen Ziele zulassen.
@@ -382,9 +382,9 @@ Catalytix ist darauf ausgelegt, dass die Browser der Nutzer **nur mit eurem eige
 - **ISBN-Abfragen** stellt der Server; übertragen wird nur die ISBN, nie Daten über Personen.
 - **Cookies:** nur technisch notwendige (Anmeldung, Formularschutz) – kein Cookie-Banner nötig. Kein Tracking, keine Werbung.
 
-**Impressum und Datenschutzerklärung** trägst du unter *Administration → Einstellungen → Rechtliches* ein (Adressen der Seiten, z. B. auf der Website des Instituts). Die Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in jeder E-Mail; bei der Selbstregistrierung muss die Datenschutzerklärung bestätigt werden.
+**Impressum und Datenschutzerklärung** tragen Sie unter *Administration → Einstellungen → Rechtliches* ein (Adressen der Seiten, z. B. auf der Website des Instituts). Die Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in jeder E-Mail; bei der Selbstregistrierung muss die Datenschutzerklärung bestätigt werden.
 
-In die Datenschutzerklärung gehört, was Catalytix speichert: Name, Benutzername, E-Mail-Adresse, Gruppenzugehörigkeit, Ausleihen mit Datum, Protokoll der versendeten E-Mails, bei Zwei-Faktor-Anmeldung die registrierten Schlüssel. Mit dem **AD-Personen-Cache** (siehe Active Directory) zusätzlich Name, Benutzername, E-Mail und Gruppen aller AD-Personen, die die Bibliothek nutzen dürfen – auch ohne Ausleihe; sie werden beim Abgleich gelöscht, sobald jemand im AD deaktiviert, gelöscht oder nicht mehr berechtigt ist, und sofort beim Abschalten. Wird der Server von jemand anderem als der Einrichtung selbst betrieben, braucht ihr einen Vertrag zur Auftragsverarbeitung (Art. 28 DSGVO).
+In die Datenschutzerklärung gehört, was Catalytix speichert: Name, Benutzername, E-Mail-Adresse, Gruppenzugehörigkeit, Ausleihen mit Datum, Protokoll der versendeten E-Mails, bei Zwei-Faktor-Anmeldung die registrierten Schlüssel. Mit dem **AD-Personen-Cache** (siehe Active Directory) zusätzlich Name, Benutzername, E-Mail und Gruppen aller AD-Personen, die die Bibliothek nutzen dürfen – auch ohne Ausleihe; sie werden beim Abgleich gelöscht, sobald jemand im AD deaktiviert, gelöscht oder nicht mehr berechtigt ist, und sofort beim Abschalten. Wird der Server von jemand anderem als der Einrichtung selbst betrieben, brauchen Sie einen Vertrag zur Auftragsverarbeitung (Art. 28 DSGVO).
 
 **Aufbewahrungsfristen** (*Einstellungen → Aufbewahrung*, Standard **12 Monate**): Abgeschlossene Ausleihen werden die eingestellte Zeit nach der Rückgabe automatisch gelöscht, ebenso Einträge im E-Mail-Protokoll. Pro Buch bleibt nur die Anzahl der Ausleihen erhalten, damit die Statistik stimmt. Laufende und überfällige Ausleihen sowie die Mahn-Einträge dazu werden nie gelöscht. Der Lauf erfolgt einmal täglich automatisch; „Jetzt bereinigen“ oder `flask --app wsgi apply-retention` startet ihn sofort. Wird ein Benutzer gelöscht, verschwinden seine Ausleihen sofort (die Anzahl pro Buch bleibt). Nicht bestätigte Selbstregistrierungen werden nach 7 Tagen gelöscht. Die Frist gehört ebenfalls in die Datenschutzerklärung.
 
@@ -409,7 +409,7 @@ In die Datenschutzerklärung gehört, was Catalytix speichert: Name, Benutzernam
 - **„Jetzt sichern“** legt sofort eine Sicherung an (auch vor größeren Änderungen sinnvoll). Einzelne Sicherungen lassen sich herunterladen oder löschen.
 - **Schlägt eine Sicherung fehl**, erscheint ein Warnzeichen am Menüpunkt *Datensicherung*, und Administratoren bekommen eine E-Mail (wenn der E-Mail-Versand eingerichtet ist).
 - Gesichert wird die **Datenbank** (Bücher, Benutzer, Ausleihen, Einstellungen). Coverbilder, Logo und `secret_key` liegen als Dateien in `./data` – für einen kompletten Umzug den ganzen Ordner mitnehmen. Eine Datenbank immer **mit ihrer `secret_key`** zurückspielen, sonst funktionieren 2FA und gespeicherte SMTP-/AD-Passwörter nicht (siehe [Sicherheit](#sicherheit)).
-- Wichtig: Sicherungen auf demselben Server schützen vor Bedienfehlern und defekten Updates, **nicht** vor einem Festplattenausfall. Kopiert den Ordner regelmäßig an einen anderen Ort.
+- Wichtig: Sicherungen auf demselben Server schützen vor Bedienfehlern und defekten Updates, **nicht** vor einem Festplattenausfall. Kopieren Sie den Ordner regelmäßig an einen anderen Ort.
 - **Vor jedem Versionswechsel** sichert das Programm beim Start selbst (`catalytix-…-vor-X.Y.Z.db`, „vor Update auf X.Y.Z“). Die letzten drei dieser Sicherungen bleiben zusätzlich zu den täglichen erhalten – sie sind der Weg zurück (siehe [Eine Version festlegen und zurückgehen](#eine-version-festlegen-und-zurückgehen)).
 - Nur für SQLite. Bei MySQL/MariaDB oder PostgreSQL mit `mysqldump` bzw. `pg_dump` sichern.
 
@@ -444,11 +444,11 @@ Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewa
 | `CATALYTIX_LOGLEVEL` | `INFO` (Standard), `DEBUG` für LDAP-Fehlersuche |
 | `CATALYTIX_BACKUP_DIR` | Ordner für die automatischen Sicherungen (Standard: `backups` im Datenverzeichnis). Muss als Volume eingebunden sein – sonst warnt der Container beim Start |
 | `CATALYTIX_COVER_VIA_PROXY` | `1` = Coverbilder über den in `HTTPS_PROXY` gesetzten Proxy laden (Standard: direkt, damit die Prüfung auf interne Adressen greift) |
-| `CATALYTIX_SOURCE_URL` | Link zum Quellcode auf der Seite *Über dieses Programm* (z. B. dein GitHub-Repository) – siehe [Lizenz](#lizenz) |
+| `CATALYTIX_SOURCE_URL` | Link zum Quellcode auf der Seite *Über dieses Programm* (z. B. Ihr GitHub-Repository) – siehe [Lizenz](#lizenz) |
 
-Alles Weitere (Leihfrist, Verlängerungen, Selbstausleihe, ISBN-Quellen, AD) stellst du in der Oberfläche ein.
+Alles Weitere (Leihfrist, Verlängerungen, Selbstausleihe, ISBN-Quellen, AD) stellen Sie in der Oberfläche ein.
 
-**Zur Datenbankwahl:** SQLite reicht für Schul- und Vereinsbibliotheken mit zehntausenden Titeln und vielen gleichzeitigen Lesern problemlos – und ein Backup ist einfach eine Dateikopie. MariaDB/MySQL oder PostgreSQL lohnen sich, wenn ihr ohnehin einen Datenbankserver mit Backup-Routine betreibt oder mehrere App-Server parallel laufen sollen.
+**Zur Datenbankwahl:** SQLite reicht für Schul- und Vereinsbibliotheken mit zehntausenden Titeln und vielen gleichzeitigen Lesern problemlos – und ein Backup ist einfach eine Dateikopie. MariaDB/MySQL oder PostgreSQL lohnen sich, wenn Sie ohnehin einen Datenbankserver mit Backup-Routine betreiben oder mehrere App-Server parallel laufen sollen.
 
 ---
 
@@ -471,7 +471,7 @@ flask --app wsgi list-backups
 flask --app wsgi restore-backup catalytix-2026-10-19_020012.db
 ```
 
-Die Ersteinrichtung im Browser (`/setup`) ist nur einmal möglich. Gibt es später kein Administratorkonto mehr (z. B. versehentlich gelöscht), legst du eines mit `create-admin` auf dem Server an – im Web geht das aus Sicherheitsgründen nicht mehr.
+Die Ersteinrichtung im Browser (`/setup`) ist nur einmal möglich. Gibt es später kein Administratorkonto mehr (z. B. versehentlich gelöscht), legen Sie eines mit `create-admin` auf dem Server an – im Web geht das aus Sicherheitsgründen nicht mehr.
 
 Im Docker-Container über den Entrypoint, damit der Befehl wie die App als `PUID:PGID` läuft (sonst entstehen z. B. Sicherungen, die root gehören und die die App nicht anbieten kann):
 
@@ -566,7 +566,7 @@ Catalytix ist freie Software unter der **GNU Affero General Public License, Vers
 
 Kurz gesagt: Jeder darf Catalytix nutzen, weitergeben und verändern, auch kommerziell. Wer eine **veränderte Fassung** weitergibt **oder im Netz für andere betreibt**, muss den Quellcode dieser Fassung unter derselben Lizenz zugänglich machen. Catalytix wird ohne jede Gewährleistung bereitgestellt.
 
-Version, Lizenz, Entwickler ([helfi.space](https://helfi.space)) und Quellcode-Link stehen nach der Anmeldung auf der Seite *Über dieses Programm* (Klick auf die Versionsnummer unten in der Seitenleiste) – die einzige Stelle, an der der Projektname „Catalytix“ erscheint. Den Link legst du mit `CATALYTIX_SOURCE_URL` in der `.env` fest.
+Version, Lizenz, Entwickler ([helfi.space](https://helfi.space)) und Quellcode-Link stehen nach der Anmeldung auf der Seite *Über dieses Programm* (Klick auf die Versionsnummer unten in der Seitenleiste) – die einzige Stelle, an der der Projektname „Catalytix“ erscheint. Den Link legen Sie mit `CATALYTIX_SOURCE_URL` in der `.env` fest.
 
 Verwendete Bibliotheken (eigene Lizenzen, werden bei der Installation geladen): Flask, Flask-SQLAlchemy, Flask-Login, Flask-WTF, SQLAlchemy, ldap3, cryptography, fido2, segno, Pillow, requests, gunicorn/waitress.
 

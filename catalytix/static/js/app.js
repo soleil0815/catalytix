@@ -264,7 +264,7 @@
     const status = $("[data-webauthn-status]", box);
     if (!webauthnOk()) {
       btn.disabled = true;
-      status.textContent = T("Sicherheitsschlüssel gehen nur über HTTPS (z. B. über deinen Reverse-Proxy), nicht per http://IP.");
+      status.textContent = T("Sicherheitsschlüssel gehen nur über HTTPS (z. B. über Ihren Reverse-Proxy), nicht per http://IP.");
       return;
     }
     btn.addEventListener("click", async () => {
@@ -348,7 +348,7 @@
     try { data = await res.json(); } catch (e) { /* not JSON */ }
     if (res.status === 401 || res.redirected || (res.ok && typeof data.ok === "undefined" && !Object.keys(data).length)) {
       // Session expired: the server redirects to the login (HTML instead of JSON)
-      return { ok: false, results: [], error: T("Deine Sitzung ist abgelaufen – bitte die Seite neu laden und erneut anmelden.") };
+      return { ok: false, results: [], error: T("Ihre Sitzung ist abgelaufen – bitte die Seite neu laden und erneut anmelden.") };
     }
     if (!res.ok && !data.error) data.error = T("Fehler {status}", { status: res.status });
     return data;
@@ -397,7 +397,7 @@
   async function openScanner(onCode) {
     const status = $("[data-scanner-status]", dialog);
     const video = $("video", dialog);
-    status.textContent = T("Halte den EAN-/ISBN-Barcode in den Rahmen.");
+    status.textContent = T("Halten Sie den EAN-/ISBN-Barcode in den Rahmen.");
     dialog.showModal();
     if (!window.isSecureContext || !navigator.mediaDevices) {
       status.innerHTML = T("Die Kamera funktioniert nur über <b>HTTPS</b> (oder localhost). Bitte die Seite per HTTPS aufrufen oder einen USB-Barcodescanner verwenden.");
@@ -497,7 +497,7 @@
       isbnInput.value = res.isbn;
       let html = "";
       if (res.existing && res.existing.length) {
-        html += `<div class="notice warn" style="margin-bottom:10px">${T("Bereits im Bestand: {books} – speicherst du das Buch in derselben Gruppe, werden die Exemplare dort hinzugezählt.", { books: res.existing.map((b) =>
+        html += `<div class="notice warn" style="margin-bottom:10px">${T("Bereits im Bestand: {books} – speichern Sie das Buch in derselben Gruppe, werden die Exemplare dort hinzugezählt.", { books: res.existing.map((b) =>
           `<a href="${esc(b.url)}"><b>${esc(b.title)}</b></a> (${esc(b.group)}, ${T("{n} Expl.", { n: esc(b.copies) })})`).join(", ") })}</div>`;
       }
       const d = res.data || {};

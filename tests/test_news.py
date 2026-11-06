@@ -109,7 +109,7 @@ class NewsTests(unittest.TestCase):
             self.assertIn("und 1 weitere Neuigkeit", html)
             self.assertIn("news-dot", html)
             page = self.c.get("/neuigkeiten").get_data(as_text=True)
-            self.assertIn("neu für dich", page)
+            self.assertIn("neu für Sie", page)
             self.assertEqual(self.user("leser").news_seen, __version__)
             html = self.c.get("/").get_data(as_text=True)
             self.assertNotIn("news-hint", html)

@@ -1,7 +1,7 @@
 {% if not f.backup_supported %}
-<p><b>Diese Installation nutzt keine SQLite-Datenbank</b> – die eingebaute Datensicherung ist deshalb nicht verfügbar. Sichert die Datenbank mit den Werkzeugen des Datenbankservers (z. B. <code>mysqldump</code> oder <code>pg_dump</code>) und zusätzlich den Ordner <code>./data</code>.</p>
+<p><b>Diese Installation nutzt keine SQLite-Datenbank</b> – die eingebaute Datensicherung ist deshalb nicht verfügbar. Sichern Sie die Datenbank mit den Werkzeugen des Datenbankservers (z. B. <code>mysqldump</code> oder <code>pg_dump</code>) und zusätzlich den Ordner <code>./data</code>.</p>
 {% else %}
-<p>Unter <span class="ui">Administration → Datensicherung</span> wird die Datenbank {% if f.backup_enabled %}<b>jeden Tag automatisch</b> ab {{ "%02d"|format(f.backup_hour) }}:00 Uhr gesichert{% else %}derzeit <b>nicht automatisch</b> gesichert – schalte <span class="ui">Täglich automatisch sichern</span> ein{% endif %}. Das läuft im laufenden Betrieb, jede Sicherung wird auf Beschädigung geprüft. Aufbewahrt werden {{ "die neueste" if f.backup_keep == 1 else "die neuesten" }} <b>{{ f.backup_keep }}</b> (einstellbar 1–100), ältere werden gelöscht.</p>
+<p>Unter <span class="ui">Administration → Datensicherung</span> wird die Datenbank {% if f.backup_enabled %}<b>jeden Tag automatisch</b> ab {{ "%02d"|format(f.backup_hour) }}:00 Uhr gesichert{% else %}derzeit <b>nicht automatisch</b> gesichert – schalten Sie <span class="ui">Täglich automatisch sichern</span> ein{% endif %}. Das läuft im laufenden Betrieb, jede Sicherung wird auf Beschädigung geprüft. Aufbewahrt werden {{ "die neueste" if f.backup_keep == 1 else "die neuesten" }} <b>{{ f.backup_keep }}</b> (einstellbar 1–100), ältere werden gelöscht.</p>
 {% endif %}
 <ul>
   <li><span class="ui">Jetzt sichern</span> legt sofort eine Sicherung an – sinnvoll vor größeren Änderungen oder einem Update.</li>
@@ -9,7 +9,7 @@
   <li>Schlägt eine Sicherung fehl, erscheint ein Warnzeichen am Menüpunkt und Administratoren bekommen eine E-Mail{% if not f.mail_on %} (sobald der E-Mail-Versand aktiv ist){% endif %}.</li>
   <li>Gesichert wird die Datenbank. Cover, Logo und <code>secret_key</code> liegen als Dateien in <code>./data</code> – für einen Umzug den ganzen Ordner mitnehmen. Eine Datenbank immer zusammen mit ihrer <code>secret_key</code> zurückspielen: Ohne den passenden Schlüssel funktionieren 2FA-Anmeldungen und gespeicherte SMTP-/AD-Passwörter nicht, und das Programm startet nicht.</li>
 </ul>
-<p><b>Wichtig:</b> Die Sicherungen liegen auf demselben Server und schützen nicht vor einem Festplattenausfall. Kopiert den Ordner regelmäßig an einen anderen Ort.</p>
+<p><b>Wichtig:</b> Die Sicherungen liegen auf demselben Server und schützen nicht vor einem Festplattenausfall. Kopieren Sie den Ordner regelmäßig an einen anderen Ort.</p>
 <p><b>Wiederherstellen</b> (auf dem Server; der aktuelle Stand wird vorher automatisch gesichert):</p>
 <pre><code>docker compose stop catalytix
 docker compose run --rm catalytix flask --app wsgi list-backups

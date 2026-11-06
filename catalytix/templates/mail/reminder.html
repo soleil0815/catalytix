@@ -2,7 +2,7 @@
 {% block content %}
 <p style="margin:0 0 12px;">{{ _("Hallo {name},", name=user.name) }}</p>
 {% if overdue %}
-<p style="margin:0 0 6px;">{{ _n("die Leihfrist für dieses Buch ist abgelaufen – bitte gib es bald zurück:", "die Leihfrist für diese Bücher ist abgelaufen – bitte gib sie bald zurück:", overdue|length) }}</p>
+<p style="margin:0 0 6px;">{{ _n("die Leihfrist für dieses Buch ist abgelaufen – bitte geben Sie es bald zurück:", "die Leihfrist für diese Bücher ist abgelaufen – bitte geben Sie diese bald zurück:", overdue|length) }}</p>
 {% for l in overdue %}{{ book_row(l) }}{% endfor %}
 {% endif %}
 {% if due_soon %}

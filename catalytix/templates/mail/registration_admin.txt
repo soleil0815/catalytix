@@ -7,7 +7,7 @@
   {{ _("Benutzername") }}: {{ new_user.username }}
   {{ _("E-Mail") }}: {{ new_user.email }}
 {% if approval %}
-{{ _("Das Konto wartet auf deine Freigabe:") }}
+{{ _("Das Konto wartet auf Ihre Freigabe:") }}
 {% else %}
 {{ _("Das Konto ist bereits aktiv. Übersicht:") }}
 {% endif %}{% if link %}{{ link }}{% endif %}

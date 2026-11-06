@@ -6,7 +6,7 @@
   <div>
     <div class="eyebrow">{{ today|de_day }}</div>
     <h1>{{ _("Hallo, {name}.", name=current_user.name.split(" ")[0]) }}</h1>
-    <p>{% if my_loans %}{{ _n("Du hast {n} Buch ausgeliehen.", "Du hast {n} Bücher ausgeliehen.", my_loans|length) }}{% else %}{{ _("Du hast gerade nichts ausgeliehen.") }}{% endif %}</p>
+    <p>{% if my_loans %}{{ _n("Sie haben {n} Buch ausgeliehen.", "Sie haben {n} Bücher ausgeliehen.", my_loans|length) }}{% else %}{{ _("Sie haben gerade nichts ausgeliehen.") }}{% endif %}</p>
   </div>
   {% if current_user.is_librarian %}
   <div class="actions">
@@ -29,11 +29,11 @@
 {% endif %}
 {% for r in ready %}
 <a class="notice ok" href="{{ url_for('books.detail', book_id=r.book.id) }}" style="margin-bottom: 12px; color: inherit; text-decoration: none">
-  {{ icon("check") }}<div>{{ _("<b>{title}</b> liegt für dich bereit – bitte bis {date} abholen.", title=r.book.title, date=r.hold_until|de_day) }}</div></a>
+  {{ icon("check") }}<div>{{ _("<b>{title}</b> liegt für Sie bereit – bitte bis {date} abholen.", title=r.book.title, date=r.hold_until|de_day) }}</div></a>
 {% endfor %}
 {% if compose_old is not none %}
 <a class="notice warn" href="{{ url_for('help.index', thema='maintenance') }}" style="margin-bottom: 18px; color: inherit; text-decoration: none">
-  {{ icon("server") }}<div>{{ _("<b>Die docker-compose.yml auf dem Server ist veraltet</b> (Version {have}, nötig {need}). Führe im Programmordner einmal <code>./update.sh</code> aus – oder lade die neue docker-compose.yml aus dem Release, ersetze die alte und starte mit <code>docker compose up -d</code>. .env und Daten bleiben unverändert. Mehr in der Hilfe →", have=compose_old or "–", need=compose_min) }}</div></a>
+  {{ icon("server") }}<div>{{ _("<b>Die docker-compose.yml auf dem Server ist veraltet</b> (Version {have}, nötig {need}). Führen Sie im Programmordner einmal <code>./update.sh</code> aus – oder laden Sie die neue docker-compose.yml aus dem Release, ersetzen Sie die alte und starten Sie mit <code>docker compose up -d</code>. .env und Daten bleiben unverändert. Mehr in der Hilfe →", have=compose_old or "–", need=compose_min) }}</div></a>
 {% endif %}
 {% if pending_registrations %}
 <a class="notice warn" href="{{ url_for('admin.users', status='neu') }}" style="margin-bottom: 18px; color: inherit; text-decoration: none">

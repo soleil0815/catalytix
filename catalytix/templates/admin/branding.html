@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-head">
   <div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("Erscheinungsbild") }}</h1>
-    <p>{{ _("Logo, Hintergrundbild der Anmeldeseite, Farben und Begrüßungstext – für euer eigenes Corporate Design.") }}</p></div>
+    <p>{{ _("Logo, Hintergrundbild der Anmeldeseite, Farben und Begrüßungstext – für Ihr eigenes Corporate Design.") }}</p></div>
   <div class="actions"><a class="btn" href="{{ url_for('admin.branding_preview') }}" target="_blank" rel="noopener">{{ icon("image") }} {{ _("Anmeldeseite ansehen") }}</a></div>
 </div>
 
@@ -30,7 +30,7 @@
         <div class="field" style="margin-top: 14px"><label for="f-logo">{{ _("Logo hochladen") }}</label>
           <input id="f-logo" type="file" name="logo" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*" data-file-preview="logo"></div>
         <label class="check"><input type="checkbox" name="brand_logo_text" value="1" {{ 'checked' if s('brand_logo_text') != '0' }}>
-          <span>{{ _("Namen der Bibliothek neben dem Logo anzeigen") }}<small class="muted">{{ _("Ausschalten, wenn euer Logo den Namen schon enthält. Den Namen legst du unter <i>Einstellungen</i> fest.") }}</small></span></label>
+          <span>{{ _("Namen der Bibliothek neben dem Logo anzeigen") }}<small class="muted">{{ _("Ausschalten, wenn Ihr Logo den Namen schon enthält. Den Namen legen Sie unter <i>Einstellungen</i> fest.") }}</small></span></label>
         <label class="check"><input type="checkbox" name="brand_logo_plate" value="1" {{ 'checked' if s('brand_logo_plate') == '1' }} data-plate-toggle>
           <span>{{ _("Logo auf hellem Feld anzeigen") }}<small class="muted">{{ _("Für dunkle Logos, die auf der dunklen Seitenleiste sonst schlecht zu sehen sind.") }}</small></span></label>
         {% if brand.logo_url %}<label class="check"><input type="checkbox" name="remove_logo" value="1"> <span>{{ _("Logo entfernen") }}</span></label>{% endif %}

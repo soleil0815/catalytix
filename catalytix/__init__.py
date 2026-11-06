@@ -27,7 +27,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "3.0.9"
+__version__ = "3.1.0"
 APP_NAME = "Catalytix"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Where the source code can be found (AGPL § 13). Anyone running a modified Catalytix enters the
@@ -318,7 +318,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     csrf.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "main.login"
-    login_manager.login_message = "Bitte melde dich an."
+    login_manager.login_message = "Bitte melden Sie sich an."
     from .i18n import gettext as _gettext
     login_manager.localize_callback = _gettext
     login_manager.login_message_category = "info"
@@ -432,13 +432,13 @@ def create_app(test_config: dict | None = None) -> Flask:
         if expired or restored:
             if expired:
                 n, unit = autologout.describe_limit(autologout.limit_seconds(user, internal))
-                msg = (_n("Du wurdest nach {n} Stunde ohne Aktivität automatisch abgemeldet.",
-                                 "Du wurdest nach {n} Stunden ohne Aktivität automatisch abgemeldet.", n)
+                msg = (_n("Sie wurden nach {n} Stunde ohne Aktivität automatisch abgemeldet.",
+                                 "Sie wurden nach {n} Stunden ohne Aktivität automatisch abgemeldet.", n)
                        if unit == "h" else
-                       _n("Du wurdest nach {n} Minute ohne Aktivität automatisch abgemeldet.",
-                                 "Du wurdest nach {n} Minuten ohne Aktivität automatisch abgemeldet.", n))
+                       _n("Sie wurden nach {n} Minute ohne Aktivität automatisch abgemeldet.",
+                                 "Sie wurden nach {n} Minuten ohne Aktivität automatisch abgemeldet.", n))
             else:
-                msg = _("Deine Anmeldung ist abgelaufen. Bitte melde dich erneut an.")
+                msg = _("Ihre Anmeldung ist abgelaufen. Bitte melden Sie sich erneut an.")
             session.clear()     # first – logout_user() records in it that the remember cookie is to be deleted
             logout_user()
             flash(msg, "info")     # also for /api/: the login page the browser goes to next shows why
@@ -488,7 +488,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             log.info("LDAP account %s no longer entitled – session ended", current_user.username)
             session.clear()     # first – logout_user() records in it that the remember cookie is to be deleted
             logout_user()
-            flash(_("Deine Anmeldung ist abgelaufen. Bitte melde dich erneut an."), "info")
+            flash(_("Ihre Anmeldung ist abgelaufen. Bitte melden Sie sich erneut an."), "info")
             return redirect(url_for("main.login"))
         from .views.main import sync_ldap_user
         sync_ldap_user(info, current_user._get_current_object())
@@ -571,7 +571,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     @app.errorhandler(403)
     def forbidden(_e):
         return render_template("error.html", code=403, title=_("Kein Zugriff"),
-                               text=_("Dafür fehlt dir die Berechtigung.")), 403
+                               text=_("Dafür fehlt Ihnen die Berechtigung.")), 403
 
     @app.errorhandler(OverflowError)
     def too_large_number(_e):
@@ -587,7 +587,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     @app.errorhandler(CSRFError)
     def csrf_error(_e):
         return render_template("error.html", code=400, title=_("Sitzung abgelaufen"),
-                               text=_("Bitte lade die Seite neu und versuche es noch einmal.")), 400
+                               text=_("Bitte laden Sie die Seite neu und versuchen Sie es noch einmal.")), 400
 
     # ------------------------------------------------------------ CLI
     @app.cli.command("reset-password")

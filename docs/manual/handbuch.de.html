@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Handbuch Bibliotheksverwaltung</title>
+<!--
+  Quelle des deutschen Handbuchs (docs/Handbuch-Catalytix.pdf).
+  PDF bauen: python3 tools/build_manual.py
+  Seitenzahlen im Inhaltsverzeichnis trägt das Skript ein: Die Seite der Überschrift mit dem
+  Attribut data-mark (Schlüssel) landet im span des Inhaltsverzeichnisses mit gleichem data-toc.
+  Screenshots liegen in img/.
+  Anrede: durchgehend „Sie“; Bezeichnungen von Knöpfen und Menüs genau wie in der Oberfläche.
+-->
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+
+<!-- ============================================================ TITEL -->
+<section class="cover">
+  <div class="inner">
+    <div class="eyebrow">Handbuch</div>
+    <h1>Bibliotheks&shy;verwaltung</h1>
+    <div class="sub">Bücher suchen, ausleihen und verwalten – für Leserinnen und Leser, Verwalter und Administratoren.</div>
+  </div>
+  <div class="shelf">
+    <i style="height:46mm;background:#8d3b2c"></i><i style="height:54mm;background:#2f6f62"></i><i style="height:40mm;background:#c2a15a"></i>
+    <i style="height:50mm;background:#3d4f73"></i><i style="height:57mm;background:#6b3d58"></i><i style="height:43mm;background:#2f5a3f"></i>
+    <i style="height:53mm;background:#a65d2e"></i><i style="height:38mm;background:#475a55"></i><i style="height:55mm;background:#7a2e2e;transform:rotate(-8deg) translateX(2mm);transform-origin:bottom left"></i>
+    <i style="height:47mm;background:#b0802f"></i><i style="height:42mm;background:#2a4a6b"></i><i style="height:51mm;background:#5a6b3d"></i>
+  </div>
+  <div class="board"></div>
+  <div class="meta"><span>Programmversion 3.1 · Stand: November 2026</span><span>Projekt Catalytix · entwickelt von helfi.space · freie Software (GNU AGPL v3)</span></div>
+</section>
+
+<!-- ============================================================ INHALT -->
+<section class="toc">
+  <h2>Inhalt</h2>
+  <ol>
+    <li><div class="c"><span class="n">1</span><span class="t">Überblick</span><span class="pg" data-toc="c1"></span></div>
+      <ol><li><span class="t">Die drei Rollen</span><span class="pg" data-toc="s-rollen"></span></li>
+          <li><span class="t">Aufbau der Oberfläche</span><span class="pg" data-toc="s-aufbau"></span></li>
+          <li><span class="t">Sprache, Hilfe und Neuigkeiten</span><span class="pg" data-toc="s-sprache"></span></li></ol></li>
+    <li><div class="c"><span class="n">2</span><span class="t">Anmelden</span><span class="pg" data-toc="c2"></span></div>
+      <ol><li><span class="t">Mit Benutzername und Passwort</span><span class="pg" data-toc="s-login"></span></li>
+          <li><span class="t">Der zweite Faktor</span><span class="pg" data-toc="s-2fa-login"></span></li>
+          <li><span class="t">Automatische Abmeldung</span><span class="pg" data-toc="s-abmeldung"></span></li>
+          <li><span class="t">Auf dem Smartphone</span><span class="pg" data-toc="s-handy"></span></li>
+          <li><span class="t">Wenn die Anmeldung nicht klappt</span><span class="pg" data-toc="s-login-probleme"></span></li></ol></li>
+    <li><div class="c"><span class="n">3</span><span class="t">Für alle: Suchen und Ausleihen</span><span class="pg" data-toc="c3"></span></div>
+      <ol><li><span class="t">Die Übersicht</span><span class="pg" data-toc="s-uebersicht"></span></li>
+          <li><span class="t">Im Katalog suchen</span><span class="pg" data-toc="s-katalog"></span></li>
+          <li><span class="t">Ein Buch ausleihen</span><span class="pg" data-toc="s-ausleihen"></span></li>
+          <li><span class="t">Vormerken</span><span class="pg" data-toc="s-vormerken"></span></li>
+          <li><span class="t">Meine Ausleihen</span><span class="pg" data-toc="s-meine"></span></li>
+          <li><span class="t">Profil und E-Mails</span><span class="pg" data-toc="s-profil"></span></li>
+          <li><span class="t">Zwei-Faktor-Anmeldung einrichten</span><span class="pg" data-toc="s-2fa-einrichten"></span></li>
+          <li><span class="t">Selbst registrieren</span><span class="pg" data-toc="s-registrieren"></span></li></ol></li>
+    <li><div class="c"><span class="n">4</span><span class="t">Für Verwalter: Bestand und Ausleihe</span><span class="pg" data-toc="c4"></span></div>
+      <ol><li><span class="t">Ein Buch erfassen</span><span class="pg" data-toc="s-erfassen"></span></li>
+          <li><span class="t">Schnellerfassung</span><span class="pg" data-toc="s-schnell"></span></li>
+          <li><span class="t">Standorte</span><span class="pg" data-toc="s-standorte"></span></li>
+          <li><span class="t">Bücher bearbeiten und löschen</span><span class="pg" data-toc="s-bearbeiten"></span></li>
+          <li><span class="t">Verleihen aus dem Katalog</span><span class="pg" data-toc="s-katalog-verleihen"></span></li>
+          <li><span class="t">Die Ausleihtheke</span><span class="pg" data-toc="s-theke"></span></li>
+          <li><span class="t">Vormerkungen verwalten</span><span class="pg" data-toc="s-vormerkungen"></span></li>
+          <li><span class="t">Alle Ausleihen und Mahnungen</span><span class="pg" data-toc="s-alle"></span></li>
+          <li><span class="t">Gruppen-Verwalter</span><span class="pg" data-toc="s-gruppenverwalter"></span></li></ol></li>
+    <li><div class="c"><span class="n">5</span><span class="t">Für Administratoren</span><span class="pg" data-toc="c5"></span></div>
+      <ol><li><span class="t">Benutzer</span><span class="pg" data-toc="s-benutzer"></span></li>
+          <li><span class="t">Anmeldeprobleme lösen</span><span class="pg" data-toc="s-entsperren"></span></li>
+          <li><span class="t">Gruppen und Präsenzbestand</span><span class="pg" data-toc="s-gruppen"></span></li>
+          <li><span class="t">Active Directory</span><span class="pg" data-toc="s-ad"></span></li>
+          <li><span class="t">E-Mail</span><span class="pg" data-toc="s-email"></span></li>
+          <li><span class="t">Erscheinungsbild</span><span class="pg" data-toc="s-design"></span></li>
+          <li><span class="t">Einstellungen</span><span class="pg" data-toc="s-einstellungen"></span></li>
+          <li><span class="t">Zwei-Faktor und internes Netz</span><span class="pg" data-toc="s-netz"></span></li>
+          <li><span class="t">Aufbewahrung und Datenschutz</span><span class="pg" data-toc="s-aufbewahrung"></span></li>
+          <li><span class="t">Datensicherung</span><span class="pg" data-toc="s-backup"></span></li></ol></li>
+    <li><div class="c"><span class="n">6</span><span class="t">Betrieb für die IT</span><span class="pg" data-toc="c6"></span></div>
+      <ol><li><span class="t">Installation</span><span class="pg" data-toc="s-install"></span></li>
+          <li><span class="t">Update</span><span class="pg" data-toc="s-update"></span></li>
+          <li><span class="t">Version festlegen und zurückgehen</span><span class="pg" data-toc="s-zurueck"></span></li>
+          <li><span class="t">Umstieg von Versionen vor 3.0</span><span class="pg" data-toc="s-umstieg"></span></li>
+          <li><span class="t">Wiederherstellen</span><span class="pg" data-toc="s-restore"></span></li>
+          <li><span class="t">Befehle für den Notfall</span><span class="pg" data-toc="s-befehle"></span></li></ol></li>
+    <li><div class="c"><span class="n">7</span><span class="t">Häufige Fragen</span><span class="pg" data-toc="c7"></span></div></li>
+  </ol>
+</section>
+
+<!-- ============================================================ 1 -->
+<h2 class="chapter" data-mark="c1"><span class="num">Kapitel 1</span>Überblick</h2>
+<p class="lead">Die Bibliotheksverwaltung läuft im Browser – am PC, am Laptop und auf dem Smartphone. Es muss nichts installiert werden. Dieses Handbuch erklärt alle Funktionen, sortiert nach dem, was Sie im Programm dürfen.</p>
+
+<h3 data-mark="s-rollen">Die drei Rollen</h3>
+<p>Jedes Konto hat genau eine Rolle. Sie bestimmt, welche Menüpunkte Sie sehen.</p>
+<div class="roles">
+  <div class="role"><h4>Leser</h4><p>Bücher suchen, selbst ausleihen, verlängern und die eigenen Ausleihen im Blick behalten.</p><span class="ch">Kapitel 2 und 3</span></div>
+  <div class="role"><h4>Verwalter</h4><p>Bücher erfassen und pflegen, an der Ausleihtheke verleihen und zurücknehmen, Überfälliges nachhalten.</p><span class="ch">Kapitel 2 bis 4</span></div>
+  <div class="role"><h4>Administrator</h4><p>Alles – dazu Benutzer, Gruppen, Anmeldung über Active Directory, E-Mail, Sicherheit und Datensicherung.</p><span class="ch">Alle Kapitel</span></div>
+</div>
+<p><b>Gruppen</b> ordnen Bücher und Menschen einander zu, zum Beispiel <i>IT-Ausbildung</i> oder <i>Kaufleute</i>. Ein Buch gehört entweder einer Gruppe oder ist <b>allgemein</b>. Allgemeine Bücher können alle ausleihen, Gruppenbücher nur die Mitglieder dieser Gruppe.</p>
+
+<h3 data-mark="s-aufbau">Aufbau der Oberfläche</h3>
+<p>Links steht die <b>Seitenleiste</b> mit allen Bereichen, oben die <b>Suchleiste</b> für den Katalog. Ganz unten in der Seitenleiste finden Sie Ihren Namen, den Schalter für hellen und dunklen Modus und das <b>Abmelden</b>. Zahlen in roten Kreisen weisen auf etwas hin, das Aufmerksamkeit braucht – etwa überfällige Ausleihen oder neue Registrierungen.</p>
+<figure><img src="img/01-uebersicht-verwalter.jpg"><figcaption><b>Abb. 1</b> – Die Übersicht aus Sicht eines Verwalters: Seitenleiste links, Kennzahlen und Überfälliges auf einen Blick.</figcaption></figure>
+<div class="box tip"><span class="label">Tipp</span>Unter der Seitenleiste stehen die Links zu Impressum und Datenschutzerklärung sowie die Programmversion. Ein Klick auf die Version zeigt Lizenz und Quellcode-Hinweise.</div>
+
+<h3 data-mark="s-sprache">Sprache, Hilfe und Neuigkeiten</h3>
+<p>Das Programm gibt es auf <b>Deutsch und Englisch</b>. Oben rechts schalten Sie mit <span class="ui">DE</span> / <span class="ui">EN</span> um – auch schon auf der Anmeldeseite. Nach der Anmeldung wird die Wahl in Ihrem Profil gespeichert und gilt dann auf jedem Gerät und für alle E-Mails an Sie. Wer nichts wählt, bekommt die Sprache seines Browsers; passt keine, gilt die Standardsprache, die der Administrator unter <span class="path">Einstellungen → Allgemein</span> festlegt.</p>
+<p>Die <b>Hilfe</b> öffnen Sie über <span class="ui">Hilfe</span> in der Seitenleiste oder das <span class="ui">?</span> oben rechts. Das Fragezeichen springt direkt zum Abschnitt für die Seite, auf der Sie gerade sind. Die Hilfe zeigt nur, was zu Ihrer Rolle gehört, und richtet sich nach den Einstellungen Ihrer Bibliothek – steht dort etwa „Leihfrist 28 Tage“, ist das auch wirklich Ihre Leihfrist. Über das Suchfeld finden Sie schnell das passende Thema; dieses Handbuch gibt es dort als PDF zum Herunterladen.</p>
+<figure><img src="img/02-hilfe.jpg"><figcaption><b>Abb. 2</b> – Die Hilfe aus Sicht eines Verwalters: links die Themen seiner Rolle, rechts der Abschnitt zur Ausleihtheke.</figcaption></figure>
+<p>Unter <span class="ui">Neuigkeiten</span> (unten in der Seitenleiste neben der Versionsnummer und im Benutzermenü) steht kurz und verständlich, was sich in den letzten Versionen geändert hat – neue Funktionen, Verbesserungen und Sicherheitsupdates. Jeder sieht nur, was seine Rolle betrifft. Nach einem Update weisen ein kleiner Punkt und eine schmale Zeile auf der Übersicht auf Neues hin; einmal angesehen oder weggeklickt, verschwinden sie bis zum nächsten Update.</p>
+<figure><img src="img/03-neuigkeiten.jpg"><figcaption><b>Abb. 3</b> – Neuigkeiten aus Sicht einer Leserin.</figcaption></figure>
+
+<!-- ============================================================ 2 -->
+<h2 class="chapter" data-mark="c2"><span class="num">Kapitel 2</span>Anmelden</h2>
+<p class="lead">Die Bibliothek ist im Hausnetz und über das Internet erreichbar. Je nachdem, von wo Sie zugreifen und welche Rolle Sie haben, wird zusätzlich ein zweiter Faktor abgefragt.</p>
+
+<h3 data-mark="s-login">Mit Benutzername und Passwort</h3>
+<ol class="steps">
+  <li>Öffnen Sie die Adresse der Bibliothek im Browser (die genaue Adresse erhalten Sie von der Bibliothek).</li>
+  <li>Geben Sie Ihren <b>Benutzernamen</b> und Ihr <b>Passwort</b> ein. Haben Sie ein Konto im Netzwerk des Instituts, sind das dieselben Zugangsdaten wie für die PC-Anmeldung.</li>
+  <li>Setzen Sie bei Bedarf den Haken <span class="ui">Angemeldet bleiben</span> – dann bleiben Sie auf diesem Gerät auch nach einem Neustart des Browsers angemeldet, aber nur so lange, bis die Frist ohne Aktivität abgelaufen ist (siehe Abschnitt 2.3). Ohne den Haken endet die Anmeldung mit dem Browser. Auf fremden oder gemeinsam genutzten Geräten bitte nicht anhaken. Für Administratoren gibt es diese Möglichkeit nicht, je nach Einstellung auch nicht beim Zugriff von außen.</li>
+  <li>Klicken Sie auf <span class="ui">Anmelden</span>.</li>
+</ol>
+<figure><img src="img/04-anmeldung.jpg"><figcaption><b>Abb. 4</b> – Die Anmeldeseite.</figcaption></figure>
+
+<h3 data-mark="s-2fa-login">Der zweite Faktor</h3>
+<p>Haben Sie eine Authenticator-App oder einen Sicherheitsschlüssel eingerichtet (siehe Abschnitt 3.7), folgt nach dem Passwort ein zweiter Schritt:</p>
+<ul>
+  <li><b>Authenticator-App:</b> Öffnen Sie die App auf dem Handy und tippen Sie den aktuellen 6-stelligen Code ein.</li>
+  <li><b>Sicherheitsschlüssel (z. B. YubiKey):</b> Klicken Sie auf <span class="ui">Mit Sicherheitsschlüssel bestätigen</span>, stecken Sie den Schlüssel ein und berühren Sie ihn, wenn er blinkt.</li>
+  <li><b>Kein Zugriff?</b> Über <span class="ui">Wiederherstellungscode verwenden</span> melden Sie sich mit einem Ihrer Notfallcodes an.</li>
+</ul>
+<figure><img src="img/05-zweiter-faktor.jpg"><figcaption><b>Abb. 5</b> – Zweiter Schritt der Anmeldung mit Code aus der Authenticator-App.</figcaption></figure>
+<div class="box note"><span class="label">Gut zu wissen</span>Je nach Einstellung wird der zweite Faktor nur bei Zugriff <b>von außen</b> (Internet) abgefragt, im Hausnetz aber nicht. Melden Sie sich im Haus ohne zweiten Faktor an und nehmen den Laptop dann mit nach Hause, müssen Sie sich dort neu anmelden – diesmal mit zweitem Faktor.</div>
+
+<h3 data-mark="s-abmeldung">Automatische Abmeldung</h3>
+<p>Nach einer Zeit ohne Aktivität meldet die Bibliothek Sie automatisch ab – zum Beispiel, wenn jemand den Platz an der Ausleihtheke verlässt, ohne sich abzumelden. Wie lange das dauert, legt die Administration fest (Standard: 12 Stunden, für Administratoren 60 Minuten). Ist die Warnung eingeschaltet, erscheint zwei Minuten vorher ein Hinweis; ein Klick auf <span class="ui">Weiterarbeiten</span> genügt, und Sie bleiben angemeldet. Aktivität in einem anderen Tab der Bibliothek zählt mit.</p>
+<figure class="third"><img src="img/39-abmeldehinweis.jpg" style="width:62%"><figcaption><b>Abb. 6</b> – Hinweis zwei Minuten vor der automatischen Abmeldung.</figcaption></figure>
+<div class="box note"><span class="label">Angemeldet bleiben</span>Auch mit <span class="ui">Angemeldet bleiben</span> gilt die Frist: Der Haken hält die Anmeldung nur über einen Neustart des Browsers hinweg, nicht über die Frist ohne Aktivität hinaus.</div>
+
+<h3 data-mark="s-handy">Auf dem Smartphone</h3>
+<p>Auf dem Handy passt sich die Seite automatisch an. Die Seitenleiste öffnen Sie über das Menüsymbol <b>☰</b> oben links; Profil, Hell/Dunkel und Abmelden finden Sie im runden Symbol mit Ihren Initialen oben rechts.</p>
+<figure class="phones"><img src="img/06a-handy-anmeldung.jpg"><img src="img/06b-handy-uebersicht.jpg"><img src="img/06c-handy-menue.jpg"><figcaption>Smartphone</figcaption></figure>
+<p style="text-align:center;font-size:8pt;color:var(--muted);margin-top:-3mm"><b style="color:var(--ink-2)">Abb. 7</b> – Anmeldung, Übersicht und geöffnetes Menü auf dem Smartphone.</p>
+
+<h3 data-mark="s-login-probleme">Wenn die Anmeldung nicht klappt</h3>
+<table>
+  <tr><th style="width:38%">Meldung / Situation</th><th>Was tun?</th></tr>
+  <tr><td>„Benutzername oder Passwort ist falsch.“</td><td>Schreibweise prüfen (Feststelltaste?). Aus Sicherheitsgründen verrät die Seite nicht, ob es das Konto gibt oder ob es gesperrt ist.</td></tr>
+  <tr><td>„Zu viele Fehlversuche“</td><td>Nach 8 Fehlversuchen ist die Anmeldung 5 Minuten gesperrt. Warten – oder ein Administrator hebt die Sperre sofort auf.</td></tr>
+  <tr><td>Passwort vergessen</td><td>Bei Netzwerk-Konten des Instituts setzt die IT das Passwort zurück. Bei lokalen Konten vergibt ein Administrator ein neues Passwort. Wer sein Passwort noch kennt, ändert es selbst unter <span class="path">Mein Profil</span>. Eine „Passwort vergessen“-Funktion gibt es bewusst nicht.</td></tr>
+  <tr><td>Handy mit Authenticator-App verloren</td><td>Mit einem Wiederherstellungscode anmelden oder einen Administrator bitten, die Zwei-Faktor-Anmeldung zurückzusetzen.</td></tr>
+  <tr><td>„Die Authenticator-App muss neu eingerichtet werden“</td><td>Mit Wiederherstellungscode oder Sicherheitsschlüssel anmelden und die App unter <span class="path">Sicherheit</span> neu einrichten; den alten Eintrag in der App löschen.</td></tr>
+</table>
+
+<!-- ============================================================ 3 -->
+<h2 class="chapter" data-mark="c3"><span class="num">Kapitel 3</span>Für alle: Suchen und Ausleihen</h2>
+<p class="lead">Dieses Kapitel gilt für alle Rollen. Leser sehen nur die hier beschriebenen Bereiche.</p>
+
+<h3 data-mark="s-uebersicht">Die Übersicht</h3>
+<p>Nach der Anmeldung landen Sie auf der <span class="ui">Übersicht</span>. Sie zeigt Ihre aktuellen Ausleihen mit Fälligkeitsdatum und die zuletzt neu aufgenommenen Bücher. Die Farbe des Fälligkeits-Hinweises verrät den Stand: <b>grün</b> = noch Zeit, <b>gelb</b> = bald fällig, <b>rot</b> = überfällig.</p>
+<figure><img src="img/07-uebersicht-leser.jpg"><figcaption><b>Abb. 8</b> – Die Übersicht einer Leserin.</figcaption></figure>
+
+<h3 data-mark="s-katalog">Im Katalog suchen</h3>
+<p>Unter <span class="ui">Katalog</span> finden Sie alle Bücher, die Sie sehen dürfen. Das Suchfeld oben durchsucht Titel, Untertitel, Autor, Verlag, Schlagwörter, Kategorie, Signatur, Standort und ISBN – Sie können auch direkt eine ISBN eintippen oder scannen. Schon beim Tippen (ab zwei Zeichen) erscheinen passende Bücher mit Autor, Signatur und freien Exemplaren; ein Klick oder Pfeiltasten und <kbd>Enter</kbd> öffnen das Buch direkt, <kbd>Enter</kbd> ohne Auswahl zeigt alle Treffer.</p>
+<ul>
+  <li><b>Filter:</b> nach Gruppe, Standort und Status (<i>verfügbar</i> / <i>ausgeliehen</i>). Bücher im <b>Präsenzbestand</b> sind markiert – sie stehen nur zur Nutzung vor Ort bereit und werden nicht verliehen.</li>
+  <li><b>Sortierung:</b> Titel, Autor, zuletzt erfasst oder Erscheinungsjahr.</li>
+  <li><b>Ansicht:</b> rechts zwischen Kacheln mit Buchcovern und einer kompakten Liste umschalten. Die Wahl merkt sich der Browser.</li>
+</ul>
+<figure><img src="img/08-katalog.jpg"><figcaption><b>Abb. 9</b> – Der Katalog in der Kachelansicht mit Filtern.</figcaption></figure>
+<div class="box note"><span class="label">Hinweis</span>Ob Sie alle Bücher sehen oder nur die Ihrer Gruppen und die allgemeinen, legt die Bibliothek fest. Ausleihen können Sie in jedem Fall nur Bücher Ihrer Gruppen und allgemeine Bücher.</div>
+
+<h3 data-mark="s-ausleihen">Ein Buch ausleihen</h3>
+<ol class="steps">
+  <li>Öffnen Sie das Buch mit einem Klick auf Cover oder Titel. Die Buchseite zeigt alle Angaben, den Standort im Regal und wie viele Exemplare frei sind.</li>
+  <li>Klicken Sie auf <span class="ui">Für mich ausleihen</span>. Die Leihfrist steht direkt darüber (Standard: 28 Tage).</li>
+  <li>Nehmen Sie das Buch am angegebenen Standort aus dem Regal. Ist der E-Mail-Versand eingerichtet, bekommen Sie eine Bestätigung.</li>
+</ol>
+<figure><img src="img/09-buchseite.jpg"><figcaption><b>Abb. 10</b> – Buchseite mit Angaben, Standort und dem Knopf zum Ausleihen.</figcaption></figure>
+<div class="box note"><span class="label">Wenn der Knopf fehlt</span>
+<ul><li>Alle Exemplare sind gerade verliehen – dann können Sie das Buch <b>vormerken</b> (nächster Abschnitt).</li><li>Das Buch gehört einer Gruppe, in der Sie nicht Mitglied sind.</li><li>Das Buch gehört zum <b>Präsenzbestand</b>: Es wird nicht verliehen, nur vor Ort genutzt.</li>
+<li>Sie haben das Buch schon ausgeliehen oder die Höchstzahl an Ausleihen erreicht.</li><li>Die Selbstausleihe ist ausgeschaltet – dann verleiht die Bibliothek an der Ausleihtheke.</li></ul></div>
+
+<h3 data-mark="s-vormerken">Vormerken</h3>
+<p>Sind alle Exemplare verliehen, steht auf der Buchseite <span class="ui">Vormerken</span> (wenn die Bibliothek Vormerkungen eingeschaltet hat). Sie kommen in eine Warteschlange und sehen Ihren Platz.</p>
+<ol class="steps">
+  <li>Wird ein Exemplar zurückgegeben, wird es für die erste Person in der Warteschlange <b>zurückgelegt</b>. Sie bekommen eine E-Mail, und auf der <span class="ui">Übersicht</span> steht „liegt für Sie bereit“.</li>
+  <li>Holen Sie das Buch innerhalb der Abholfrist (Standard 7 Tage) ab – selbst ausleihen oder an der Theke. Danach ist die nächste Person an der Reihe.</li>
+  <li>Ihre Vormerkungen mit Platz sehen Sie unter <span class="ui">Meine Ausleihen</span>; dort können Sie sie auch löschen.</li>
+</ol>
+<figure><img src="img/10-vorgemerkt.jpg"><figcaption><b>Abb. 11</b> – Ein vorgemerktes Buch: Platz 1 in der Warteschlange.</figcaption></figure>
+<div class="box note"><span class="label">Gut zu wissen</span>Ein vorgemerktes Buch können Sie nicht selbst verlängern – andere warten darauf. Gilt eine Vormerkung nicht mehr (Konto gesperrt, nicht mehr in der Gruppe des Buchs, Buch im Präsenzbestand), wird sie automatisch beendet und das Exemplar geht an die nächste Person. An der Warteschlange vorbei kann niemand ein frei gewordenes Exemplar ausleihen.</div>
+
+<h3 data-mark="s-meine">Meine Ausleihen</h3>
+<p>Unter <span class="ui">Meine Ausleihen</span> sehen Sie alles, was Sie gerade ausgeliehen haben, mit Ausleihdatum und Fälligkeit. Die Reiter oben zeigen nur Überfälliges oder Ihren bisherigen Verlauf.</p>
+<ul>
+  <li><span class="ui">Verlängern</span> schiebt die Rückgabe um 14 Tage hinaus – höchstens zweimal pro Ausleihe (Standardwerte, die Bibliothek kann sie ändern). Gezählt wird ab dem späteren der beiden Daten: heutiges Datum oder bisherige Fälligkeit.</li>
+  <li><span class="ui">Rückgabe</span> erscheint nur, wenn die Bibliothek die Selbst-Rückgabe erlaubt. Sonst bringen Sie das Buch zur Ausleihtheke.</li>
+</ul>
+<figure><img src="img/11-meine-ausleihen.jpg"><figcaption><b>Abb. 12</b> – Eigene Ausleihen und Vormerkungen mit Fälligkeit, Verlängern und Rückgabe.</figcaption></figure>
+
+<h3 data-mark="s-profil">Profil und E-Mails</h3>
+<p>Unter <span class="ui">Mein Profil</span> stehen Ihr Ausleihverlauf und Ihre Kontodaten. Hier schalten Sie auch die <b>E-Mail-Benachrichtigungen</b> ein oder aus: Bestätigungen, Erinnerung kurz vor der Fälligkeit und Mahnungen. Lokale und selbst registrierte Konten ändern unter <span class="ui">Meine Daten</span> ihren Anzeigenamen und ihre E-Mail-Adresse selbst (bei Selbstregistrierung gilt eine neue Adresse erst nach Bestätigung per Link) und vergeben unter <span class="ui">Passwort ändern</span> ein neues Passwort (mindestens 10 Zeichen). Bei Netzwerk-Konten (Active Directory) kommen Name, E-Mail und Passwort aus dem Verzeichnis des Instituts und werden dort gepflegt.</p>
+<div class="box tip"><span class="label">Handy verloren?</span>Unter <span class="path">Profil → Sicherheit → Angemeldete Geräte</span> melden Sie sich mit <span class="ui">Auf allen anderen Geräten abmelden</span> überall sonst ab. Das passiert auch automatisch, wenn Sie Ihr Passwort ändern.</div>
+<figure><img src="img/12-profil.jpg"><figcaption><b>Abb. 13</b> – Das Profil eines lokalen Kontos mit Ausleihverlauf, Kontodaten und „Meine Daten“.</figcaption></figure>
+<div class="box tip"><span class="label">Datenschutz</span>Abgeschlossene Ausleihen werden nach einer festen Frist (Standard: 12 Monate nach der Rückgabe) automatisch gelöscht. Der Hinweis unter Ihrem Verlauf nennt die aktuelle Frist.</div>
+
+<h3 data-mark="s-2fa-einrichten">Zwei-Faktor-Anmeldung einrichten</h3>
+<p>Ein zweiter Faktor schützt Ihr Konto, selbst wenn jemand Ihr Passwort kennt. Für Verwalter und Administratoren kann er vorgeschrieben sein – dann führt Sie das Programm nach der Anmeldung automatisch hierher. Sie finden den Bereich unter <span class="ui">Sicherheit</span> in der Seitenleiste.</p>
+<h4>Authenticator-App (empfohlen für alle)</h4>
+<ol class="steps">
+  <li>Installieren Sie eine Authenticator-App auf dem Handy, z. B. Microsoft Authenticator, Google Authenticator, Aegis oder 2FAS.</li>
+  <li>Klicken Sie unter <span class="path">Sicherheit</span> auf <span class="ui">App einrichten</span>.</li>
+  <li>Scannen Sie den QR-Code mit der App. Geht das nicht, tippen Sie den angezeigten Schlüssel ab.</li>
+  <li>Geben Sie den 6-stelligen Code aus der App ein und klicken Sie auf <span class="ui">Bestätigen</span>.</li>
+  <li><b>Wichtig:</b> Notieren oder drucken Sie die angezeigten <b>10 Wiederherstellungscodes</b> und bewahren Sie sie sicher auf. Jeder Code funktioniert genau einmal.</li>
+</ol>
+<figure class="half"><img src="img/13-authenticator.jpg"><figcaption><b>Abb. 14</b> – Einrichtung der Authenticator-App mit QR-Code.</figcaption></figure>
+<h4>Sicherheitsschlüssel (YubiKey, Passkey)</h4>
+<p>Geben Sie dem Schlüssel einen Namen (z. B. „YubiKey blau“), klicken Sie auf <span class="ui">Hinzufügen</span> und berühren Sie ihn, wenn er blinkt. Am besten registrieren Sie gleich einen <b>Ersatzschlüssel</b>. Sicherheitsschlüssel funktionieren nur über die verschlüsselte Adresse der Bibliothek (https) – und nur unter der Adresse, unter der sie eingerichtet wurden.</p>
+<div class="box note"><span class="label">Codes nachbestellen</span>Gehen die Wiederherstellungscodes zur Neige, erzeugen Sie unter <span class="path">Sicherheit</span> neue. Die alten werden dabei ungültig.</div>
+
+<h3 data-mark="s-registrieren">Selbst registrieren</h3>
+<p>Wenn die Bibliothek es erlaubt, steht auf der Anmeldeseite ein Link <span class="ui">Jetzt registrieren</span>. Neue Konten sind immer Leser-Konten. Je nach Einstellung müssen Sie Ihre E-Mail-Adresse über einen Link bestätigen (48 Stunden gültig) und/oder auf die Freigabe durch die Bibliothek warten – Sie bekommen dann eine E-Mail. Das Passwort muss mindestens 10 Zeichen lang sein.</p>
+
+<!-- ============================================================ 4 -->
+<h2 class="chapter" data-mark="c4"><span class="num">Kapitel 4</span>Für Verwalter: Bestand und Ausleihe</h2>
+<p class="lead">Verwalter pflegen den Bestand und verleihen Bücher. Die zusätzlichen Menüpunkte stehen in der Seitenleiste unter <i>Verwaltung</i>.</p>
+
+<h3 data-mark="s-erfassen">Ein Buch erfassen</h3>
+<ol class="steps">
+  <li>Klicken Sie auf <span class="ui">Buch erfassen</span> (oder oben auf <span class="ui">+ Buch</span>).</li>
+  <li>Geben Sie die <b>ISBN</b> ein – per Tastatur, mit einem <b>USB- oder Bluetooth-Barcodescanner</b> (einfach ins Feld klicken und scannen) oder mit der <b>Kamera</b> über den Knopf <span class="ui">Kamera</span>.</li>
+  <li>Klicken Sie auf <span class="ui">Daten abrufen</span>. Titel, Autor, Verlag, Jahr, Seitenzahl und Cover werden automatisch aus der Deutschen Nationalbibliothek, Open Library und Google Books geholt. Bitte kurz prüfen.</li>
+  <li>Rechts unter <b>Bestand</b> wählen Sie die <b>Gruppe</b> (oder <i>Allgemein</i> für alle), die Zahl der <b>Exemplare</b>, die <b>Signatur</b> und den <b>Standort</b>.</li>
+  <li><span class="ui">Speichern</span> – oder <span class="ui">Speichern &amp; nächstes</span>, um gleich das nächste Buch zu erfassen.</li>
+</ol>
+<figure><img src="img/14-buch-erfassen.jpg"><figcaption><b>Abb. 15</b> – Buch erfassen: ISBN eingeben, Daten abrufen, Gruppe und Standort wählen.</figcaption></figure>
+<div class="box tip"><span class="label">Tipps</span><ul>
+  <li>Gibt es die ISBN schon im Bestand, weist das Programm darauf hin. Speichern Sie das Buch trotzdem in <b>derselben Gruppe</b>, entsteht kein zweiter Eintrag: Die Exemplare werden beim vorhandenen Buch hinzugezählt (die übrigen Angaben des Formulars werden dabei nicht übernommen). In einer anderen Gruppe entsteht ein eigener Eintrag.</li>
+  <li>Die Kamera funktioniert nur über die verschlüsselte Adresse (https). Ein USB-Barcodescanner geht immer und ist an der Theke am schnellsten.</li>
+  <li>Ein eigenes Coverfoto können Sie im Bereich <i>Cover</i> hochladen.</li>
+</ul></div>
+
+<h3 data-mark="s-schnell">Schnellerfassung</h3>
+<p>Für viele Bücher auf einmal – etwa beim Einrichten oder bei einer Lieferung. Rechts legen Sie <b>Gruppe</b> und <b>Standort</b> für alle folgenden Bücher fest. Dann scannen Sie eine ISBN nach der anderen:</p>
+<ul>
+  <li><b>Neuer Titel:</b> Das Programm zeigt die gefundenen Daten, <kbd>Enter</kbd> übernimmt ihn. Mit <span class="ui">Neue Titel automatisch übernehmen</span> geht es ganz ohne Rückfrage.</li>
+  <li><b>Schon vorhanden:</b> Ein Klick auf <span class="ui">+1 Exemplar</span> erhöht die Anzahl.</li>
+  <li><b>Nichts gefunden:</b> <span class="ui">Manuell erfassen</span> öffnet das normale Formular mit der ISBN.</li>
+</ul>
+<p>Das Protokoll rechts listet alle Vorgänge der Sitzung mit Links zu den Büchern.</p>
+<figure><img src="img/15-schnellerfassung.jpg"><figcaption><b>Abb. 16</b> – Schnellerfassung: scannen, Enter, nächstes Buch. Hier ist der Titel schon vorhanden.</figcaption></figure>
+
+<h3 data-mark="s-standorte">Standorte</h3>
+<p>Unter <span class="ui">Standorte</span> legen Sie Ihre Regale, Räume und Schränke einmal fest – mehrere auf einmal, einen pro Zeile. Sobald es mindestens einen Standort gibt, wird er beim Erfassen, in der Schnellerfassung und beim Bearbeiten <b>aus einer Liste gewählt</b> statt getippt. So gibt es keine Tippfehler mehr.</p>
+<ul>
+  <li><b>Umbenennen:</b> Namen im Feld ändern und mit ✓ speichern – alle Bücher an diesem Standort werden mit umgestellt.</li>
+  <li><b>Löschen</b> geht erst, wenn dort kein Buch mehr steht.</li>
+  <li><b>Im Bestand, aber nicht festgelegt:</b> Hier stehen frei getippte Standorte aus früheren Erfassungen. Übernehmen Sie sie als Standort oder ersetzen Sie sie durch einen festgelegten. Bei anderen Schreibweisen („regal a2“) und Tippfehlern („Regl A1“) ist der passende Standort schon vorausgewählt – ein Klick auf <span class="ui">Ausführen</span> genügt.</li>
+  <li>Die Zahl neben jedem Standort führt direkt zu den Büchern dort.</li>
+</ul>
+<figure><img src="img/16-standorte.jpg"><figcaption><b>Abb. 17</b> – Standorte anlegen und verwalten; unten ein frei getippter Standort mit Tippfehler.</figcaption></figure>
+
+<h3 data-mark="s-bearbeiten">Bücher bearbeiten und löschen</h3>
+<p>Auf der Buchseite finden Sie <span class="ui">Bearbeiten</span> und <span class="ui">Löschen</span>. Ein Buch, das gerade ausgeliehen ist, lässt sich nicht löschen. Die Zahl der Exemplare kann nicht unter die Zahl der verliehenen sinken. Unten auf der Buchseite steht der <b>Verlauf</b> aller Ausleihen dieses Buchs; ältere Vorgänge ohne Einzeldaten werden nur noch gezählt.</p>
+<p>Über <span class="ui">CSV</span> oben im Katalog laden Sie den ganzen Bestand als Tabelle herunter (öffnet sich in Excel).</p>
+
+<h3 data-mark="s-katalog-verleihen">Verleihen aus dem Katalog</h3>
+<p>Unter jedem freien Buch, das Sie verwalten, steht im Katalog der Knopf <span class="ui">Verleihen</span> (in der Listenansicht rechts in der Zeile). Er öffnet die Buchseite direkt beim Formular <span class="ui">An Benutzer verleihen</span>, der Cursor steht schon im Feld <span class="ui">Benutzer</span>: Name, Benutzername oder E-Mail eintippen, Person aus der Liste wählen, bei Bedarf Fälligkeit und Notiz, <span class="ui">Verleihen</span>.</p>
+<div class="two">
+  <figure><img src="img/17-katalog-verleihen.jpg"><figcaption><b>Abb. 18</b> – Katalog aus Sicht eines Verwalters: „Verleihen“ unter jedem freien Buch.</figcaption></figure>
+  <figure><img src="img/18-verleihen-formular.jpg" style="width:72%;margin:0 auto"><figcaption><b>Abb. 19</b> – Das Formular auf der Buchseite.</figcaption></figure>
+</div>
+
+<h3 data-mark="s-theke">Die Ausleihtheke</h3>
+<p>Die <span class="ui">Ausleihtheke</span> ist für den Tresen gemacht: Das Eingabefeld bleibt aktiv, Sie scannen einfach nacheinander.</p>
+<h4>Ausleihe</h4>
+<ol class="steps">
+  <li><b>Benutzer wählen:</b> Name, Benutzername oder E-Mail eintippen – passende Personen erscheinen sofort in einer Liste (mit Pfeiltasten und <kbd>Enter</kbd> oder per Klick wählen). Ist das Active Directory angebunden, findet die Suche auch Personen, die sich noch nie angemeldet haben; ihr Konto entsteht beim ersten Verleihen. Rechts sehen Sie, was die Person bereits ausgeliehen hat und was für sie zurückgelegt ist.</li>
+  <li><b>Buch scannen oder suchen:</b> ISBN oder Signatur scannen – oder Titel, Autor, Schlagwort tippen: Passende Bücher Ihres Bestands erscheinen mit Standort und freien Exemplaren. Die interne Buch-Nummer geben Sie mit <code>#</code> davor ein (z. B. <code>#12</code>) – reine Ziffern gelten als Signatur.</li>
+  <li>Mit <span class="ui">Bei genauem Treffer (ISBN, Signatur) sofort verleihen</span> wird jedes gescannte Buch ohne weiteren Klick verliehen – ideal mit Barcodescanner. Ein getippter Titel verleiht nie automatisch.</li>
+</ol>
+<figure><img src="img/19-theke.jpg"><figcaption><b>Abb. 20</b> – Ausleihtheke: Person gewählt, Buch scannen.</figcaption></figure>
+<p>Das Programm prüft dabei automatisch, ob die Person das Buch ausleihen darf (Gruppe, Höchstzahl, Konto aktiv), ob ein Exemplar frei ist und nicht für eine Vormerkung zurückgelegt, und meldet den Grund, falls nicht. Bücher im <b>Präsenzbestand</b> werden an der Theke gar nicht erst zum Verleihen angeboten.</p>
+<h4>Rückgabe</h4>
+<p>Im Reiter <span class="ui">Rückgabe</span> genügt es, das zurückgebrachte Buch zu scannen. Ist genau ein Exemplar verliehen, wird es bei einem genauen Treffer (ISBN, Signatur) direkt zurückgebucht; sonst wählen Sie die passende Ausleihe aus der Liste. Ist das Buch vorgemerkt, meldet die Theke „Bitte zurücklegen – vorgemerkt für …“ – dann das Buch beiseitelegen, statt es ins Regal zu stellen.</p>
+<figure><img src="img/20-rueckgabe.jpg"><figcaption><b>Abb. 21</b> – Rückgabe an der Theke.</figcaption></figure>
+
+<h3 data-mark="s-vormerkungen">Vormerkungen verwalten</h3>
+<p>Auf der Buchseite sehen Sie die <b>Warteschlange</b> mit Namen, Datum und Status (<i>wartet</i> oder <i>zurückgelegt bis …</i>) und können einzelne Vormerkungen löschen. Kommt eine Person mit zurückgelegtem Buch an die Theke, steht es nach ihrer Auswahl oben unter „Für … zurückgelegt“ – ein Klick verleiht es. Vormerkungen schaltet ein Administrator unter <span class="path">Einstellungen → Vormerken</span> ein; dort stehen auch Abholfrist und Höchstzahl je Person.</p>
+<figure class="half"><img src="img/21-warteschlange.jpg"><figcaption><b>Abb. 22</b> – Warteschlange auf der Buchseite.</figcaption></figure>
+
+<h3 data-mark="s-alle">Alle Ausleihen und Mahnungen</h3>
+<p>Unter <span class="ui">Alle Ausleihen</span> sehen Sie alle laufenden Ausleihen Ihres Bereichs, mit Reitern für <i>Überfällig</i> und den <i>Verlauf</i>. Die rote Zahl in der Seitenleiste zählt die überfälligen Ausleihen.</p>
+<ul>
+  <li><span class="ui">Verlängern</span> – Verwalter dürfen auch über die Höchstzahl hinaus verlängern.</li>
+  <li><b>Briefumschlag</b> – schickt sofort eine Erinnerung per E-Mail.</li>
+  <li><span class="ui">Rückgabe</span> – bucht das Buch zurück.</li>
+</ul>
+<figure><img src="img/22-alle-ausleihen.jpg"><figcaption><b>Abb. 23</b> – Alle Ausleihen mit überfälligen Einträgen (rot).</figcaption></figure>
+<p>Erinnerungen vor der Fälligkeit und Mahnungen verschickt das Programm außerdem automatisch einmal täglich, wenn der E-Mail-Versand eingerichtet ist (siehe Abschnitt 5.5).</p>
+
+<h3 data-mark="s-gruppenverwalter">Gruppen-Verwalter</h3>
+<p>Ist ein Verwalter einer oder mehreren Gruppen zugeordnet, pflegt er nur die Bücher <b>dieser Gruppen</b> und die allgemeinen Bücher und sieht nur deren Ausleihen. Ein Verwalter <b>ohne</b> Gruppe ist für den ganzen Bestand zuständig. Standorte dürfen alle Verwalter anlegen; Umbenennungen, die Bücher fremder Gruppen betreffen würden, bleiben Administratoren und Verwaltern ohne Gruppe vorbehalten.</p>
+
+<!-- ============================================================ 5 -->
+<h2 class="chapter" data-mark="c5"><span class="num">Kapitel 5</span>Für Administratoren</h2>
+<p class="lead">Administratoren richten die Bibliothek ein und kümmern sich um Konten, Sicherheit und Betrieb. Alle Bereiche stehen in der Seitenleiste unter <i>Administration</i>.</p>
+
+<h3 data-mark="s-benutzer">Benutzer</h3>
+<p>Die Benutzerliste zeigt alle lokalen Konten und alle Netzwerk-Konten, die sich schon einmal angemeldet haben – mit Rolle, Herkunft (<i>lokal</i> oder <i>AD</i>), Gruppen, laufenden Ausleihen und letzter Anmeldung. Markierungen weisen auf Besonderheiten hin: <i>wartet auf Freigabe</i>, <i>gesperrt</i>, <i>Anmeldesperre</i>, <i>2FA</i>. Über das Auswahlfeld lässt sich danach filtern.</p>
+<figure><img src="img/23-benutzer.jpg"><figcaption><b>Abb. 24</b> – Benutzerliste mit einer Registrierung, die auf Freigabe wartet.</figcaption></figure>
+<ul>
+  <li><span class="ui">Lokaler Benutzer</span> legt ein Konto ohne Netzwerk-Anmeldung an – etwa für Gäste oder als Notfall-Admin.</li>
+  <li><span class="ui">Freigeben</span> / <span class="ui">Ablehnen</span> erscheinen bei Selbstregistrierungen, die auf Freigabe warten.</li>
+  <li><span class="ui">Bearbeiten</span> öffnet das Konto: Name, E-Mail, <b>Rolle</b>, <b>Gruppen</b>, neues Passwort (nur lokale Konten), Benachrichtigungen und <b>Konto aktiv</b>. Ein deaktiviertes Konto kann sich nicht anmelden und nichts ausleihen.</li>
+</ul>
+<figure><img src="img/24-konto-bearbeiten.jpg"><figcaption><b>Abb. 25</b> – Ein Konto bearbeiten.</figcaption></figure>
+<div class="box note"><span class="label">Hinweis</span>Bei Netzwerk-Konten werden Rolle, Name, E-Mail und (falls eingerichtet) Gruppen bei jeder Anmeldung aus dem Active Directory übernommen. Änderungen daran also besser im AD vornehmen.</div>
+
+<h3 data-mark="s-entsperren">Anmeldeprobleme lösen – ohne Kommandozeile</h3>
+<p>Unten im Konto steht der Bereich <b>Anmeldung und Sicherheit</b>:</p>
+<ul>
+  <li><span class="ui">Zurücksetzen</span> bei der Zwei-Faktor-Anmeldung entfernt Authenticator-App und Sicherheitsschlüssel. Die Person meldet sich danach wieder nur mit dem Passwort an; ist ein zweiter Faktor Pflicht, wird sie zur Neueinrichtung geführt.</li>
+  <li><span class="ui">Sperre aufheben</span> gibt ein Konto nach zu vielen Fehlversuchen sofort wieder frei (sonst nach 5 Minuten von selbst).</li>
+</ul>
+<figure class="half"><img src="img/25-anmeldung-sicherheit.jpg"><figcaption><b>Abb. 26</b> – Bereich „Anmeldung und Sicherheit“ im Benutzerkonto.</figcaption></figure>
+<div class="box warn"><span class="label">Alle Admins ausgesperrt?</span>Ist im internen Netz „keine Zwei-Faktor-Abfrage“ eingestellt, kommt ein Admin vom Hausnetz aus ohne zweiten Faktor hinein. Sonst hilft die IT mit einem Befehl auf dem Server (Kapitel 6.6). Am sichersten: <b>zwei</b> Administratoren und Wiederherstellungscodes gut verwahren.</div>
+
+<h3 data-mark="s-gruppen">Gruppen und Präsenzbestand</h3>
+<p>Unter <span class="ui">Gruppen</span> legen Sie Gruppen an, z. B. pro Ausbildungsgang. Jede Gruppe hat ihren eigenen Bestand; Mitglieder leihen nur Bücher ihrer Gruppen und allgemeine Bücher. Mitglieder fügen Sie in der Gruppe hinzu – oder Sie verknüpfen die Gruppe mit einer <b>AD-Gruppe</b>, dann werden Mitglieder bei jeder Anmeldung automatisch hinzugefügt und entfernt.</p>
+<figure><img src="img/26-gruppen.jpg"><figcaption><b>Abb. 27</b> – Gruppen mit Mitgliedern und Bestand.</figcaption></figure>
+<p><b>Präsenzbestand:</b> Mit dem Haken <span class="ui">Präsenzbestand – Bücher dieser Gruppe werden nicht verliehen</span> bleiben die Bücher der Gruppe im Katalog sichtbar (mit Hinweis), werden aber nirgends mehr zum Verleihen angeboten – nicht an der Theke, nicht auf der Buchseite, nicht zum Selbst-Ausleihen und nicht zum Vormerken. Offene Vormerkungen dieser Bücher werden beim Speichern beendet; schon verliehene Exemplare werden ganz normal zurückgegeben. Beim Speichern übernimmt die Gruppe genau die angehakten Mitglieder.</p>
+<div class="two">
+  <figure><img src="img/27-gruppe-praesenz.jpg"><figcaption><b>Abb. 28</b> – Eine Gruppe als Präsenzbestand.</figcaption></figure>
+  <figure><img src="img/28-buch-praesenz.jpg"><figcaption><b>Abb. 29</b> – Buchseite eines Buchs im Präsenzbestand.</figcaption></figure>
+</div>
+
+<h3 data-mark="s-ad">Active Directory</h3>
+<p>Mit dem Active Directory des Instituts (Windows Server oder Samba) melden sich alle mit ihren gewohnten Zugangsdaten an. Die Einrichtung übernimmt in der Regel die IT:</p>
+<ol class="steps">
+  <li><b>Verbindung:</b> Server (z. B. <code>ldaps://dc1.firma.local</code>), Verschlüsselung, Basis-DN und ein Dienstkonto mit Leserechten eintragen.</li>
+  <li><b>Zertifikat:</b> Bei LDAPS/StartTLS holt <span class="ui">Zertifikat vom DC abrufen</span> das Zertifikat automatisch; Fingerabdruck prüfen und <span class="ui">Vertrauen &amp; speichern</span>.</li>
+  <li><b>Rollen:</b> Unter <i>Wer darf was?</i> die Namen der AD-Gruppen für Administratoren, Verwalter und Leser eintragen. <span class="ui">Gruppen laden</span> listet die AD-Gruppen zum Anklicken auf. Verschachtelte Gruppen zählen mit; wer in keiner Gruppe ist, wird abgewiesen.</li>
+  <li><b>Testen:</b> <span class="ui">Login testen</span> zeigt für ein Konto alle Gruppen und die Rolle, die es bekäme – ohne vorher zu speichern.</li>
+</ol>
+<div class="two">
+  <figure><img src="img/29-ad-verbindung.jpg"><figcaption><b>Abb. 30</b> – Verbindung zum Active Directory.</figcaption></figure>
+  <figure><img src="img/30-ad-rollen.jpg" style="width:70%;margin:0 auto"><figcaption><b>Abb. 31</b> – Rollen über AD-Gruppen.</figcaption></figure>
+</div>
+<p><b>AD-Abgleich und Personen-Cache:</b> Mit Dienstkonto holt das Programm im Hintergrund (standardmäßig stündlich) alle Personen, die die Bibliothek nutzen dürfen. Die Personensuche an der Theke findet sie dann sofort. Im AD deaktivierte, gelöschte oder nicht mehr berechtigte Konten werden gesperrt (nicht gelöscht) und automatisch wieder freigegeben, wenn die Person zurückkommt; Umbenennungen im AD werden erkannt. Eine Sicherheitsbremse verhindert, dass ein fehlerhafter Abgleich viele Konten auf einmal sperrt.</p>
+<div class="box note"><span class="label">Hinweis</span>Lokale Konten haben immer Vorrang. Das lokale Administratorkonto funktioniert deshalb auch dann, wenn das Active Directory nicht erreichbar ist.</div>
+
+<h3 data-mark="s-email">E-Mail</h3>
+<p>Unter <span class="ui">E-Mail</span> tragen Sie den Mailserver (SMTP) ein und wählen, welche Nachrichten verschickt werden. <span class="ui">Testmail senden</span> prüft die Einstellungen.</p>
+<table>
+  <tr><th style="width:32%">Nachricht</th><th>Wann</th></tr>
+  <tr><td>Ausleihbestätigung</td><td>sofort bei der Ausleihe, mit Titel und Fälligkeit</td></tr>
+  <tr><td>Rückgabebestätigung</td><td>sofort bei der Rückgabe (standardmäßig aus)</td></tr>
+  <tr><td>Erinnerung</td><td>einige Tage vor der Fälligkeit (Standard: 2), einmal je Ausleihe</td></tr>
+  <tr><td>Mahnung</td><td>ab dem ersten überfälligen Tag, alle 7 Tage wiederholt, höchstens 3-mal (einstellbar)</td></tr>
+  <tr><td>Übersicht für Verwalter</td><td>täglich, nur wenn es in ihren Gruppen Überfälliges gibt (standardmäßig aus)</td></tr>
+  <tr><td>Fehlgeschlagene Datensicherung</td><td>an alle Administratoren</td></tr>
+</table>
+<p>Erinnerungen und Mahnungen laufen einmal täglich ab der eingestellten Uhrzeit; mehrere Bücher einer Person landen in <b>einer</b> E-Mail. Wichtig ist die <b>Adresse der Bibliothek</b>, damit Links in den E-Mails funktionieren. Unten auf der Seite steht das <b>Versandprotokoll</b> – es wird nach der Aufbewahrungsfrist automatisch geleert.</p>
+<figure><img src="img/31-email.jpg"><figcaption><b>Abb. 32</b> – E-Mail-Einstellungen.</figcaption></figure>
+
+<h3 data-mark="s-design">Erscheinungsbild</h3>
+<p>Unter <span class="ui">Erscheinungsbild</span> passen Sie die Bibliothek an Ihr Haus an – mit Live-Vorschau:</p>
+<ul>
+  <li><b>Logo</b> (PNG mit transparentem Hintergrund oder SVG) – erscheint in der Seitenleiste, auf der Anmeldeseite, in E-Mails und als Browser-Symbol.</li>
+  <li><b>Hintergrundbild</b> der Anmeldeseite, mit einstellbarer Abdunkelung.</li>
+  <li><b>Farben</b> für Knöpfe, Akzente und Seitenleiste – Schriftfarben werden automatisch lesbar gewählt.</li>
+  <li><b>Texte</b> der Anmeldeseite. Den <b>Namen der Bibliothek</b> stellen Sie unter <span class="path">Einstellungen</span> ein.</li>
+</ul>
+<figure><img src="img/32-erscheinungsbild.jpg"><figcaption><b>Abb. 33</b> – Erscheinungsbild mit Vorschau der Anmeldeseite.</figcaption></figure>
+<div class="box note"><span class="label">Hinweis</span>Logo und Hintergrundbild sind öffentlich abrufbar, weil sie schon auf der Anmeldeseite gebraucht werden – also nichts Vertrauliches verwenden.</div>
+
+<h3 data-mark="s-einstellungen">Einstellungen</h3>
+<figure><img src="img/33-einstellungen.jpg"><figcaption><b>Abb. 34</b> – Allgemeine Einstellungen und Ausleihregeln.</figcaption></figure>
+<table>
+  <tr><th style="width:32%">Bereich</th><th>Was Sie festlegen</th></tr>
+  <tr><td>Allgemein</td><td>Name der Bibliothek, Standardsprache; ob Leser den ganzen Katalog sehen oder nur ihre Gruppen und allgemeine Bücher.</td></tr>
+  <tr><td>Rechtliches</td><td>Adressen von <b>Impressum</b> und <b>Datenschutzerklärung</b> (z. B. auf der Website des Instituts). Sie erscheinen auf der Anmeldeseite, in der Seitenleiste und in jeder E-Mail. Bei Betrieb im Internet in der Regel Pflicht.</td></tr>
+  <tr><td>Ausleihe</td><td>Leihfrist (Standard 28 Tage), Verlängerung (14 Tage, höchstens 2-mal), Höchstzahl gleichzeitiger Ausleihen (0 = unbegrenzt), Selbstausleihe, selbst verlängern, selbst zurückgeben.</td></tr>
+  <tr><td>Vormerken</td><td>ein/aus (Standard aus), Abholfrist (Standard 7 Tage), Höchstzahl offener Vormerkungen je Person (Standard 5). Ausschalten beendet alle offenen Vormerkungen.</td></tr>
+  <tr><td>Selbstregistrierung</td><td>aus (Standard) / mit Freigabe durch Administratoren / sofort aktiv; E-Mail-Bestätigung, erlaubte E-Mail-Domains, Gruppe für neue Leser.</td></tr>
+  <tr><td>Aufbewahrung</td><td>Löschfrist für abgeschlossene Ausleihen und E-Mail-Protokoll (siehe 5.9).</td></tr>
+  <tr><td>Zwei-Faktor-Anmeldung</td><td>Pflicht von außen, Regel im internen Netz (siehe 5.8).</td></tr>
+  <tr><td>Automatische Abmeldung</td><td>Fristen ohne Aktivität für alle, für Admins und von außen; Warnung vorher, Abmelden beim Schließen des Browsers (siehe unten).</td></tr>
+  <tr><td>ISBN-Datenquellen</td><td>Welche Kataloge in welcher Reihenfolge abgefragt werden.</td></tr>
+</table>
+<figure class="third"><img src="img/34-selbstregistrierung.jpg"><figcaption><b>Abb. 35</b> – Selbstregistrierung.</figcaption></figure>
+
+<h4>Automatische Abmeldung</h4>
+<div class="two">
+  <div>
+    <p>Wer so lange nichts mehr in der Bibliothek aufruft, wird abgemeldet. Es gilt jeweils die <b>kürzeste passende Frist</b>:</p>
+    <ul>
+      <li><span class="ui">Für alle (Stunden)</span> – Standard 12 Stunden (1–168). Der Startwert kommt aus <code>CATALYTIX_SESSION_HOURS</code> in der <code>.env</code>, danach gilt, was hier eingestellt ist.</li>
+      <li><span class="ui">Für Admins (Minuten)</span> – eine eigene, kürzere Frist, Standard 60 Minuten (5–720; leer = wie für alle).</li>
+      <li><span class="ui">Anmeldungen von außen (Minuten)</span> – optional eine eigene Frist für Zugriffe aus dem Internet. Was „außen“ ist, legt das interne Netz fest (Abschnitt 5.8).</li>
+      <li><span class="ui">Vorher warnen</span> – zwei Minuten vorher erscheint „Sie werden in 2 Minuten abgemeldet – weiterarbeiten?“ (Standard: an).</li>
+      <li><span class="ui">Beim Schließen des Browsers abmelden</span> – keine Anmeldung übersteht einen Neustart des Browsers; „Angemeldet bleiben“ wird dann nicht mehr angeboten (Standard: aus).</li>
+    </ul>
+    <p>„Angemeldet bleiben“ gibt es nur, wo keine kürzere Frist gilt – also nicht für Admins und nicht von außen, wenn dafür eine eigene Frist eingestellt ist.</p>
+  </div>
+  <figure><img src="img/38-automatische-abmeldung.jpg" style="width:88%;margin:0 auto"><figcaption><b>Abb. 36</b> – Bereich „Automatische Abmeldung“.</figcaption></figure>
+</div>
+
+<h3 data-mark="s-netz">Zwei-Faktor und internes Netz</h3>
+<p>Die Zwei-Faktor-Regeln lassen sich für Zugriffe aus dem Internet und aus dem Hausnetz getrennt festlegen:</p>
+<ul>
+  <li><b>Pflicht bei Zugriff von außen:</b> niemand, Administratoren, Verwalter und Administratoren oder alle.</li>
+  <li><b>Im internen Netz:</b> <i>wie von außen</i> (Standard), <i>keine Pflicht</i> (wer 2FA hat, wird trotzdem gefragt) oder <i>keine Zwei-Faktor-Abfrage</i>.</li>
+  <li><b>Internes Netz:</b> Ihre Netze, ein Eintrag pro Zeile, z. B. <code>10.0.10.0/24</code>. Leer bedeutet 10.x und 192.168.x; Docker-Netze (172.16–31.x) zählen nur, wenn Sie sie eintragen. Besser auf das echte LAN eingrenzen.</li>
+  <li><b>Eigener Internetanschluss:</b> feste IP oder DynDNS-Name. Nötig, wenn interne Rechner die öffentliche Adresse der Bibliothek aufrufen und der Router sie dabei mit der eigenen öffentlichen IP weiterreicht. DynDNS-Namen werden alle 5 Minuten neu aufgelöst.</li>
+</ul>
+<div class="two">
+  <figure><img src="img/35-zwei-faktor.jpg" style="width:82%;margin:0 auto"><figcaption><b>Abb. 37</b> – Zwei-Faktor-Regeln und internes Netz.</figcaption></figure>
+  <div>
+    <div class="box tip" style="margin-top:3mm"><span class="label">Richtig eingestellt?</span>Unten im Bereich steht, ob <b>Ihre aktuelle Verbindung</b> als intern oder extern gilt. Rufen Sie die Seite einmal vom Handy über mobile Daten auf (WLAN aus): Dort muss <b>„extern“</b> stehen. Vom Rechner im Haus sollte <b>„intern“</b> stehen.</div>
+    <div class="box warn"><span class="label">Gäste-WLAN</span>Ist der eigene Internetanschluss eingetragen, gelten auch Geräte im Gäste-WLAN als intern, denn sie gehen über dieselbe öffentliche Adresse ins Netz. Gäste bräuchten dann nur noch ein Passwort. Sauberer ist ein interner DNS-Eintrag, der die Bibliotheksadresse im Haus auf den Server im LAN zeigen lässt.</div>
+    <div class="box note"><span class="label">Sicherheit</span>Eine im Haus <b>ohne</b> zweiten Faktor begonnene Sitzung gilt nicht von außen. „Angemeldet bleiben“ wirkt in diesem Fall nicht.</div>
+  </div>
+</div>
+
+<h3 data-mark="s-aufbewahrung">Aufbewahrung und Datenschutz</h3>
+<p>Nach der Datenschutz-Grundverordnung dürfen personenbezogene Daten nur so lange gespeichert werden wie nötig. Deshalb löscht das Programm automatisch:</p>
+<ul>
+  <li><b>abgeschlossene Ausleihen</b> die eingestellte Zeit nach der Rückgabe (3, 6, <b>12</b>, 24 oder 36 Monate). Pro Buch bleibt nur die Anzahl erhalten.</li>
+  <li><b>Einträge im E-Mail-Protokoll</b> nach derselben Frist – außer solche zu noch laufenden Ausleihen, denn daran erkennt das Programm, wie oft schon gemahnt wurde.</li>
+  <li><b>unbestätigte Selbstregistrierungen</b> nach 7 Tagen.</li>
+</ul>
+<p>Laufende und überfällige Ausleihen werden nie gelöscht. Der Lauf erfolgt einmal täglich; <span class="ui">Jetzt bereinigen</span> startet ihn sofort.</p>
+<figure class="third"><img src="img/36-aufbewahrung.jpg" style="width:62%"><figcaption><b>Abb. 38</b> – Aufbewahrungsfrist.</figcaption></figure>
+<div class="box note"><span class="label">Für die Datenschutzerklärung</span>Gespeichert werden: Name, Benutzername, E-Mail-Adresse, Gruppenzugehörigkeit, Ausleihen mit Datum, das E-Mail-Protokoll und – bei Zwei-Faktor-Anmeldung – die registrierten Schlüssel. Die Aufbewahrungsfrist und die Dauer der Datensicherungen (bei 10 täglichen Sicherungen bis zu 10 Tage länger) gehören mit hinein. Das Programm lädt keine Inhalte von fremden Servern: Schriften, Cover und Barcode-Erkennung kommen vom eigenen Server, es gibt kein Tracking und nur technisch notwendige Cookies.</div>
+
+<h3 data-mark="s-backup">Datensicherung</h3>
+<p>Die Datenbank wird <b>jeden Tag automatisch gesichert</b> (Standard ab 2 Uhr nachts), im laufenden Betrieb und mit einer Prüfung jeder Sicherung auf Beschädigung. Aufbewahrt werden die <b>neuesten 10 Sicherungen</b>; die Anzahl ist von 1 bis 100 einstellbar, ältere werden automatisch gelöscht.</p>
+<ul>
+  <li><span class="ui">Jetzt sichern</span> legt sofort eine Sicherung an – sinnvoll vor größeren Änderungen oder einem Update.</li>
+  <li>Jede Sicherung lässt sich herunterladen oder löschen.</li>
+  <li>Schlägt eine Sicherung fehl, erscheint ein <b>!</b> am Menüpunkt und alle Administratoren bekommen eine E-Mail.</li>
+  <li><b>Vor jedem Versionswechsel</b> sichert das Programm beim Start selbst („vor Update auf X.Y.Z“). Die letzten drei dieser Sicherungen bleiben zusätzlich zu den täglichen erhalten – sie sind der Weg zurück zu einer früheren Version (Kapitel 6.3).</li>
+</ul>
+<figure><img src="img/37-datensicherung.jpg"><figcaption><b>Abb. 39</b> – Datensicherung mit Einstellungen, Status und vorhandenen Sicherungen.</figcaption></figure>
+<div class="box warn"><span class="label">Wichtig</span>Die Sicherungen liegen auf demselben Server. Sie schützen vor Bedienfehlern und missglückten Updates, nicht vor einem Festplattenausfall. Lassen Sie den Sicherungsordner regelmäßig an einen anderen Ort kopieren, z. B. auf ein NAS.</div>
+
+<!-- ============================================================ 6 -->
+<h2 class="chapter" data-mark="c6"><span class="num">Kapitel 6</span>Betrieb für die IT</h2>
+<p class="lead">Kurzfassung für die Einrichtung auf dem Server. Alle Einzelheiten stehen in der README im Repository (github.com/soleil0815/catalytix).</p>
+
+<h3 data-mark="s-install">Installation</h3>
+<p>Das Programm steckt komplett im fertigen Image <code>ghcr.io/soleil0815/catalytix</code> (für Intel/AMD und ARM, z. B. Synology oder Raspberry Pi) und hört auf Port <b>9300</b>. Auf dem Server liegen nur <code>docker-compose.yml</code>, <code>.env</code> und der Datenordner <code>./data</code> – kein Programmordner, nichts zu entpacken oder zu bauen.</p>
+<pre>mkdir -p /opt/catalytix &amp;&amp; cd /opt/catalytix
+curl -fsSLO https://github.com/soleil0815/catalytix/releases/latest/download/docker-compose.yml
+curl -fsSL  https://github.com/soleil0815/catalytix/releases/latest/download/env.example -o .env
+chmod 600 .env
+docker compose up -d</pre>
+<ul>
+  <li><b>Eigene Werte</b> (Port, Zeitzone, Datenbank, Frist für die automatische Abmeldung …) gehören in die <code>.env</code> – alles darin ist optional. Ergänzungen wie ein NAS-Laufwerk für Sicherungen kommen in eine eigene <code>docker-compose.override.yml</code>. Beide werden bei Updates nie angefasst.</li>
+  <li><b>Erster Aufruf:</b> <code>http://SERVER:9300</code> öffnen (z. B. <code>http://bibliothek.firma.local:9300</code>) und das lokale Administratorkonto anlegen. Dafür wird der <b>Einrichtungscode</b> abgefragt: <code>docker compose exec catalytix docker-entrypoint.sh flask --app wsgi setup-code</code>.</li>
+  <li><b>HTTPS:</b> Für den Betrieb im Internet, die Kamera und Sicherheitsschlüssel hinter einen Reverse-Proxy mit Zertifikat stellen (z. B. Nginx Proxy Manager, Caddy). Der Proxy muss <code>X-Forwarded-For</code> mitschicken – das tun die genannten von sich aus. Port 9300 am Router <b>nicht</b> freigeben.</li>
+  <li><b>Sicher gebaut:</b> Basis-Image, Betriebssystem- und Python-Pakete sind auf exakte Versionen mit Prüfsummen festgelegt. Jedes Image wird vor der Veröffentlichung getestet und auf Schwachstellen geprüft; jeden Montag erscheint bei Bedarf automatisch ein Sicherheitsupdate (<code>X.Y.Z-s1</code>, <code>-s2</code> …).</li>
+</ul>
+
+<h3 data-mark="s-update">Update</h3>
+<p><b>Mit einer Container-Verwaltung</b> (Dockhand, Watchtower, Tugtainer …) wird die Bibliothek wie jeder andere Container aktualisiert. Empfehlung: die Update-Zeit <b>nachts</b> legen – beim Start einer neuen Version ist die Bibliothek kurz nicht erreichbar. <b>Von Hand:</b></p>
+<pre>docker compose pull &amp;&amp; docker compose up -d</pre>
+<p><b>Oder mit <code>update.sh</code></b> (liegt im Release; in denselben Ordner legen). Es macht dasselbe und zusätzlich: Es merkt sich das laufende Image als <code>previous</code> und wartet, bis die neue Version gesund gemeldet wird. <b>Startet sie nicht</b>, spielt es die Sicherung von vor dem Update zurück und startet wieder die vorige Version (mit Nachfrage, mit <code>-y</code> automatisch). Bringt das Image eine neuere <code>docker-compose.yml</code> mit, legt es sie ab und behält die alte als <code>docker-compose.yml.alt</code>.</p>
+<pre>./update.sh                     # neueste Version (oder die in der .env festgelegte)
+./update.sh --version=3.1.0     # genau diese Version (auch ein Sicherheitsupdate 3.1.0-s1)
+./update.sh --load catalytix-3.1.0-amd64.tar.gz   # ohne Internet: Image-Datei aus dem Release</pre>
+<div class="box note"><span class="label">Was das Programm selbst tut</span>Bevor eine neue Version die Datenbank anpasst, sichert sie sie („vor Update auf X.Y.Z“, bei MySQL/PostgreSQL bitte selbst sichern). Startet eine <b>ältere</b> Version auf einer Datenbank, die schon eine neuere benutzt hat, bricht sie mit einer klaren Meldung ab, statt mit Folgefehlern weiterzulaufen. Ist die <code>docker-compose.yml</code> auf dem Server zu alt, steht das im Protokoll und für Administratoren auf der Übersicht.</div>
+<p><b>Ohne Internet:</b> Im Release liegen die Images als Dateien (<code>catalytix-X.Y.Z-amd64.tar.gz</code>, für ARM <code>-arm64</code>) mit <code>SHA256SUMS</code>. <code>update.sh --load</code> prüft die Prüfsumme, lädt das Image und startet es.</p>
+
+<h3 data-mark="s-zurueck">Version festlegen und zurückgehen</h3>
+<p><b>Festlegen:</b> In der <code>.env</code> <code>CATALYTIX_TAG=3.1.0</code> eintragen (oder <code>./update.sh --version=3.1.0</code>) – dann bleibt es bei dieser Version, auch mit Container-Verwaltung. <code>CATALYTIX_TAG=latest</code> folgt wieder jeder neuen Version.</p>
+<p><b>Zurückgehen:</b> Eine ältere Version braucht die Datenbank von damals. <code>./update.sh --version=X.Y.Z</code> spielt die neueste Sicherung zurück, die diese Version lesen kann, und startet sie – es fragt vorher, denn alles seitdem Eingetragene geht verloren. Von Hand:</p>
+<pre>docker compose stop catalytix
+docker compose run --rm -e CATALYTIX_SKIP_DB_CHECK=1 catalytix flask --app wsgi restore-for-version 3.0.0
+# in der .env: CATALYTIX_TAG=3.0.0
+docker compose up -d</pre>
+
+<h3 data-mark="s-umstieg">Umstieg von Versionen vor 3.0</h3>
+<p>Bis 2.20 lagen Programmdateien auf dem Server (Zip-Paket, lokal gebaut). Einmalig im bisherigen Programmordner:</p>
+<ol class="steps">
+  <li>Sicherung anlegen: <span class="path">Administration → Datensicherung → Jetzt sichern</span>.</li>
+  <li>Mit dem <b>bisherigen</b> Skript auf das Image umstellen: <code>./update.sh --pull</code>. Es holt 3.0, legt die neue <code>docker-compose.yml</code>, <code>.env.example</code> und das neue <code>update.sh</code> ab und startet.</li>
+  <li>Alte Programmdateien wegräumen: <code>./update.sh --cleanup</code>. Es zeigt die Liste (nur bekannte Programmdateien wie <code>catalytix/</code>, <code>Dockerfile</code>, alte Zip-Pakete und lokal gebaute Images), fragt nach und löscht nur diese. <b>Nie</b> angefasst werden <code>data/</code>, Sicherungen, <code>.env</code>, <code>docker-compose.yml</code> und alles, was ein Container eingebunden hat – auch nicht über Verknüpfungen.</li>
+</ol>
+<p>Danach liegen im Ordner nur noch <code>docker-compose.yml</code>, <code>.env</code>, <code>.env.example</code>, <code>update.sh</code> und <code>data/</code>.</p>
+
+<h3 data-mark="s-restore">Wiederherstellen</h3>
+<p>Zum Zurückspielen einer Sicherung wird die Bibliothek kurz angehalten. Der aktuelle Stand wird vorher automatisch als „vor Wiederherstellung“ gesichert, ein Fehlgriff lässt sich also rückgängig machen:</p>
+<pre>docker compose stop catalytix
+docker compose run --rm catalytix flask --app wsgi list-backups
+docker compose run --rm catalytix flask --app wsgi restore-backup catalytix-2026-11-05_020012.db
+docker compose start catalytix</pre>
+<p>Für einen kompletten Umzug auf einen anderen Server den ganzen Ordner <code>./data</code> mitnehmen – er enthält neben der Datenbank auch Cover, Logo, Zertifikate und den Schlüssel, mit dem die Zwei-Faktor-Daten und die gespeicherten AD- und Mail-Passwörter verschlüsselt sind. Datenbank und <code>secret_key</code> gehören immer zusammen: Passt der Schlüssel nicht zur Datenbank, startet das Programm nicht und meldet das im Protokoll.</p>
+
+<h3 data-mark="s-befehle">Befehle für den Notfall</h3>
+<p>Alle Befehle im Container mit vorangestelltem <code>docker compose exec catalytix docker-entrypoint.sh</code> ausführen – so laufen sie mit den Rechten der App und nicht als root:</p>
+<table class="plain">
+  <tr><th style="width:52%">Befehl</th><th>Wirkung</th></tr>
+  <tr><td><code>flask --app wsgi reset-password admin</code></td><td>neues Passwort für ein lokales Konto setzen</td></tr>
+  <tr><td><code>flask --app wsgi reset-2fa admin</code></td><td>zweiten Faktor eines Kontos zurücksetzen</td></tr>
+  <tr><td><code>flask --app wsgi create-admin notfall</code></td><td>zusätzliches lokales Administratorkonto anlegen</td></tr>
+  <tr><td><code>flask --app wsgi backup</code></td><td>Datenbank sofort sichern</td></tr>
+  <tr><td><code>flask --app wsgi list-backups</code></td><td>Sicherungen anzeigen (auch „vor Update auf …“)</td></tr>
+  <tr><td><code>flask --app wsgi send-reminders</code></td><td>Erinnerungen und Mahnungen sofort versenden</td></tr>
+  <tr><td><code>flask --app wsgi apply-retention</code></td><td>Aufbewahrungsfrist sofort anwenden</td></tr>
+</table>
+<div class="box tip"><span class="label">Version und Lizenz</span>Die Seite <span class="path">Über dieses Programm</span> (Klick auf die Versionsnummer in der Seitenleiste) zeigt Version, Lizenz, den Entwickler (<a href="https://helfi.space">helfi.space</a>) und den Link zum Quellcode. Das Programm ist freie Software unter der GNU AGPL v3.</div>
+
+<!-- ============================================================ 7 -->
+<h2 class="chapter" data-mark="c7"><span class="num">Kapitel 7</span>Häufige Fragen</h2>
+<p class="lead">Kurze Antworten auf Fragen, die im Alltag am häufigsten auftauchen.</p>
+<table>
+  <tr><th style="width:38%">Frage</th><th>Antwort</th></tr>
+  <tr><td>Warum kann ich ein Buch nicht ausleihen?</td><td>Es ist vergriffen (dann vormerken), gehört einer anderen Gruppe oder zum Präsenzbestand, ist für eine Vormerkung zurückgelegt, Sie haben es schon oder die Höchstzahl erreicht – oder die Selbstausleihe ist aus. Die Buchseite nennt den Grund; im Zweifel an der Ausleihtheke fragen.</td></tr>
+  <tr><td>Wie oft kann ich verlängern?</td><td>Standardmäßig zweimal um je 14 Tage. Danach kann die Bibliothek noch einmal verlängern.</td></tr>
+  <tr><td>Ich bekomme keine E-Mails.</td><td>Unter <span class="path">Mein Profil</span> prüfen, ob eine E-Mail-Adresse hinterlegt und Benachrichtigungen eingeschaltet sind. Auch den Spam-Ordner ansehen.</td></tr>
+  <tr><td>Warum werde ich abgemeldet?</td><td>Nach einer Zeit ohne Aktivität meldet die Bibliothek automatisch ab (Abschnitt 2.3). Mit <span class="ui">Weiterarbeiten</span> im Hinweis davor bleiben Sie angemeldet.</td></tr>
+  <tr><td>Die Kamera startet nicht.</td><td>Die Kamera geht nur über die https-Adresse und braucht Ihre Erlaubnis im Browser. An der Theke ist ein USB-Barcodescanner zuverlässiger.</td></tr>
+  <tr><td>Der YubiKey wird nicht angenommen.</td><td>Sicherheitsschlüssel gelten nur für die Adresse, unter der sie eingerichtet wurden. Über eine andere Adresse (z. B. die IP) mit der Authenticator-App oder einem Wiederherstellungscode anmelden.</td></tr>
+  <tr><td>Im Haus werde ich trotzdem nach dem zweiten Faktor gefragt.</td><td>Unter <span class="path">Einstellungen → Zwei-Faktor-Anmeldung</span> zeigt die Seite, welche Adresse der Server sieht. Steht dort Ihre öffentliche IP, den eigenen Internetanschluss eintragen oder einen internen DNS-Eintrag anlegen (siehe 5.8).</td></tr>
+  <tr><td>Ein Standort ist falsch geschrieben.</td><td>Unter <span class="path">Standorte</span> umbenennen – alle Bücher dort werden mit umgestellt. Alte Tippfehler stehen unter „Im Bestand, aber nicht festgelegt“ und lassen sich per Klick ersetzen.</td></tr>
+  <tr><td>Ein Buch steht doppelt im Bestand.</td><td>Beim Original die Zahl der Exemplare erhöhen und den doppelten Eintrag löschen (geht nur, wenn er nicht ausgeliehen ist). Neu erfasste Bücher mit derselben ISBN in derselben Gruppe werden seit 2.20 automatisch hinzugezählt.</td></tr>
+  <tr><td>Mein vorgemerktes Buch liegt bereit – was nun?</td><td>Innerhalb der Abholfrist ausleihen (selbst oder an der Theke). Die Frist steht auf der Übersicht; danach ist die nächste Person an der Reihe.</td></tr>
+  <tr><td>Nach einem Update startet die Bibliothek nicht.</td><td>Mit <code>update.sh</code> geht es automatisch zurück zur vorigen Version. Sonst im Protokoll nachsehen (<code>docker compose logs catalytix</code>) und bei Bedarf zurückgehen (Kapitel 6.3).</td></tr>
+  <tr><td>Etwas wurde versehentlich gelöscht.</td><td>Eine Sicherung vom Vortag zurückspielen (Kapitel 6.5). Bitte beachten: Alles, was seitdem passiert ist, geht dabei verloren.</td></tr>
+  <tr><td>Wer sieht meine Ausleihen?</td><td>Sie selbst, die Verwalter Ihrer Gruppen und die Administratoren. Abgeschlossene Ausleihen werden nach der Aufbewahrungsfrist gelöscht.</td></tr>
+</table>
+</body>
+</html>

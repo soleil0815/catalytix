@@ -101,7 +101,7 @@ RUN set -eu; \
     if command -v pip >/dev/null || python -c "import pip" 2>/dev/null; then echo "pip must not be in the image" >&2; exit 1; fi
 
 # Version label late: a new version number doesn't invalidate the cached dependency layers above
-LABEL org.opencontainers.image.version="3.0.9" \
+LABEL org.opencontainers.image.version="3.1.0" \
       catalytix.compose="2"
 # Exact tag (e.g. 3.0.3-s1) and source commit, set by the GitHub workflows (empty in local builds): update.sh goes
 # back to exactly this tag, the release is created for exactly this commit

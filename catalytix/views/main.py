@@ -172,7 +172,7 @@ def login():
         from .. import netzone
         if (lockout.throttled(key) or lockout.user_throttled(username, internal=netzone.is_internal())
                 or lockout.ip_throttled()):
-            flash(_("Zu viele Fehlversuche. Bitte warte einige Minuten."), "error")
+            flash(_("Zu viele Fehlversuche. Bitte warten Sie einige Minuten."), "error")
             return render_template("login.html", username=username), 429
 
         user = User.query.filter(func.lower(User.username) == username.lower()).first()
@@ -212,12 +212,12 @@ def login():
                 mismatch = True
                 log.warning("LDAP sign-in %s: account %s belongs to a different person by AD identifier and "
                             "cannot be moved – sign-in refused", username, exc)
-                error = _("Anmeldung derzeit nicht möglich. Bitte versuche es später erneut.")
+                error = _("Anmeldung derzeit nicht möglich. Bitte versuchen Sie es später erneut.")
             except LDAPError as exc:
                 log.warning("LDAP sign-in %s failed: %s", username, exc)
             except Exception:  # noqa: BLE001 – never give details to the client
                 log.exception("Unexpected error during LDAP sign-in")
-                error = _("Anmeldung derzeit nicht möglich. Bitte versuche es später erneut.")
+                error = _("Anmeldung derzeit nicht möglich. Bitte versuchen Sie es später erneut.")
 
         # Self-registered accounts: password is correct, but not yet confirmed/approved.
         # Only someone who knows the correct password sees these notices.
@@ -225,7 +225,7 @@ def login():
             session["resend_uid"] = ok_user.id
             return render_template("login.html", username=username, unverified=True), 403
         if ok_user is not None and ok_user.pending_approval:
-            flash(_("Dein Konto wartet noch auf die Freigabe durch die Bibliothek."), "info")
+            flash(_("Ihr Konto wartet noch auf die Freigabe durch die Bibliothek."), "info")
             return render_template("login.html", username=username), 403
 
         if ok_user is not None and not ok_user.active:
@@ -254,7 +254,7 @@ def logout():
               "webauthn_state", "webauthn_reg_state", "ldap_ok_at"):
         session.pop(k, None)
     logout_user()
-    flash(_("Du wurdest abgemeldet."), "info")
+    flash(_("Sie wurden abgemeldet."), "info")
     return redirect(url_for("main.login"))
 
 
@@ -267,8 +267,8 @@ def setup():
         # a new admin account here via the web.
         return render_template(
             "error.html", code=403, title=_("Einrichtung bereits abgeschlossen"),
-            text=_("Es gibt kein Administratorkonto mehr. Lege auf dem Server eines an: "
-                   "docker compose exec catalytix docker-entrypoint.sh flask --app wsgi create-admin NAME")), 403
+            text=_("Es gibt kein Administratorkonto mehr. Legen Sie auf dem Server eines an: docker compose exec "
+                   "catalytix docker-entrypoint.sh flask --app wsgi create-admin NAME")), 403
     from .. import setupcode
     setupcode.ensure()
     if request.method == "POST":
@@ -276,7 +276,7 @@ def setup():
         password = request.form.get("password") or ""
         key = f"setup|{request.remote_addr}"
         if lockout.throttled(key):
-            flash(_("Zu viele Fehlversuche. Bitte warte einige Minuten."), "error")
+            flash(_("Zu viele Fehlversuche. Bitte warten Sie einige Minuten."), "error")
             return render_template("setup.html"), 429
         if not setupcode.check(request.form.get("setup_code", "")):
             lockout.fail(key, "setup")
@@ -356,7 +356,7 @@ def profile():
         current_user.display_name = name
         if _apply_email(form_str("email", 200)):
             db.session.commit()
-            flash(_("Deine Daten wurden gespeichert."), "success")
+            flash(_("Ihre Daten wurden gespeichert."), "success")
         return redirect(url_for("main.profile"))
     if action == "notify":
         current_user.email_notifications = bool(request.form.get("email_notifications"))
@@ -410,14 +410,14 @@ def _apply_email(mail: str) -> bool:
         if not _allowed_domain(mail):
             # same rule as for registration
             db.session.rollback()
-            flash(_("Diese E-Mail-Adresse ist für dein Konto nicht erlaubt."), "error")
+            flash(_("Diese E-Mail-Adresse ist für Ihr Konto nicht erlaubt."), "error")
             return False
         if needs_verification():
             # as with registration: only after confirmation via the new address (other changes apply immediately)
             db.session.commit()
             if send_email_change(current_user._get_current_object(), mail):
-                flash(_("Wir haben einen Bestätigungslink an {email} geschickt. Die neue Adresse gilt, "
-                        "sobald du ihn öffnest.", email=mail), "info")
+                flash(_("Wir haben einen Bestätigungslink an {email} geschickt. Die neue Adresse gilt, sobald Sie "
+                        "ihn öffnen.", email=mail), "info")
             else:
                 flash(_("Die Bestätigungsmail konnte nicht gesendet werden – die Adresse bleibt unverändert."),
                       "error")

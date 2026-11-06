@@ -17,7 +17,7 @@
   <tr><td style="padding:8px 24px 24px;font-size:12px;color:#7b817c;line-height:1.5;border-top:1px solid #ece5d6;">
     {% if footer %}{{ footer|replace("\n", "<br>"|safe) }}<br><br>{% endif %}
     {{ _("Diese Nachricht wurde automatisch von {library} versendet.", library=library_name) }}
-    {% if base_url %}{{ _("Benachrichtigungen kannst du in deinem <a href=\"{url}\" style=\"color:{color};\">Profil</a> abschalten.", url=base_url ~ "/profil", color=mail_accent) }}{% endif %}
+    {% if base_url %}{{ _("Benachrichtigungen können Sie in Ihrem <a href=\"{url}\" style=\"color:{color};\">Profil</a> abschalten.", url=base_url ~ "/profil", color=mail_accent) }}{% endif %}
     {% if imprint_url or privacy_url %}<br><br>
       {%- if imprint_url %}<a href="{{ imprint_url }}" style="color:#7b817c;">{{ _("Impressum") }}</a>{% endif %}
       {%- if imprint_url and privacy_url %} · {% endif %}

@@ -191,7 +191,7 @@ def confirm_email_change(token):
     try:
         data = _change_serializer().loads(token, max_age=VERIFY_MAX_AGE)
     except SignatureExpired:
-        flash(_("Der Bestätigungslink ist abgelaufen. Bitte ändere die Adresse im Profil erneut."), "error")
+        flash(_("Der Bestätigungslink ist abgelaufen. Bitte ändern Sie die Adresse im Profil erneut."), "error")
         return redirect(url_for("main.profile"))
     except BadSignature:
         abort(404)
@@ -201,7 +201,7 @@ def confirm_email_change(token):
         abort(404)
     new = (data.get("email") or "").strip()
     if not _allowed_domain(new):                 # the allowed domains may have changed since the request
-        flash(_("Diese E-Mail-Adresse ist für dein Konto nicht erlaubt."), "error")
+        flash(_("Diese E-Mail-Adresse ist für Ihr Konto nicht erlaubt."), "error")
         return redirect(url_for("main.profile"))
     taken = User.query.filter(func.lower(User.email) == new.lower(), User.id != user.id).first()
     if not new or taken is not None:
@@ -211,7 +211,7 @@ def confirm_email_change(token):
     user.email_verified = True
     db.session.commit()
     log.info("Email address of %s changed (confirmed)", user.username)
-    flash(_("Deine neue E-Mail-Adresse ist bestätigt."), "success")
+    flash(_("Ihre neue E-Mail-Adresse ist bestätigt."), "success")
     return redirect(url_for("main.profile"))
 
 
@@ -229,7 +229,7 @@ def register():
         log.error("Self-registration with email confirmation but without a base address for links – disabled "
                   "until the base address is entered under Administration → E-mail")
         return render_template("error.html", code=503, title=_("Registrierung derzeit nicht möglich"),
-                               text=_("Bitte wende dich an die Bibliothek.")), 503
+                               text=_("Bitte wenden Sie sich an die Bibliothek.")), 503
     if request.method == "POST":
         ip = request.remote_addr or "?"
         values = {k: form_str(k, 200) for k in ("username", "display_name", "email")}
@@ -240,10 +240,10 @@ def register():
             return render_template("register_done.html", state="check_mail" if needs_verification() else "approval")
         if not started:  # session expired or similar – simply show the form again
             session["reg_started"] = time.time() - MIN_FILL_SECONDS
-            flash(_("Bitte sende das Formular noch einmal ab."), "info")
+            flash(_("Bitte senden Sie das Formular noch einmal ab."), "info")
             return render_template("register.html", v=values, privacy=privacy), 400
         if _rate_limited(ip):
-            flash(_("Zu viele Registrierungen von deinem Anschluss. Bitte versuche es später erneut."), "error")
+            flash(_("Zu viele Registrierungen von Ihrem Anschluss. Bitte versuchen Sie es später erneut."), "error")
             return render_template("register.html", v=values, privacy=privacy), 429
 
         username, name, email = values["username"], values["display_name"], values["email"].lower()
@@ -254,9 +254,9 @@ def register():
         elif username.lower() in RESERVED:
             error = _("Dieser Benutzername ist nicht verfügbar.")
         elif not name:
-            error = _("Bitte gib deinen Namen an.")
+            error = _("Bitte geben Sie Ihren Namen an.")
         elif not __import__("catalytix.mailer", fromlist=["valid_email"]).valid_email(email):
-            error = _("Bitte gib eine gültige E-Mail-Adresse an.")
+            error = _("Bitte geben Sie eine gültige E-Mail-Adresse an.")
         elif not _allowed_domain(email):
             error = _("Mit dieser E-Mail-Adresse ist keine Registrierung möglich.")
         elif len(password) < MIN_PASSWORD_LENGTH:
@@ -266,11 +266,11 @@ def register():
         elif password != request.form.get("password2"):
             error = _("Die Passwörter stimmen nicht überein.")
         elif privacy and not request.form.get("privacy"):
-            error = _("Bitte bestätige die Datenschutzhinweise.")
+            error = _("Bitte bestätigen Sie die Datenschutzhinweise.")
         elif _probe_limited(ip):
             # Every "name/address already taken?" check counts – otherwise accounts and AD names could be probed
             # arbitrarily often (the form is accepted again immediately after each error)
-            flash(_("Zu viele Registrierungen von deinem Anschluss. Bitte versuche es später erneut."), "error")
+            flash(_("Zu viele Registrierungen von Ihrem Anschluss. Bitte versuchen Sie es später erneut."), "error")
             return render_template("register.html", v=values, privacy=privacy), 429
         elif User.query.filter(func.lower(User.username) == username.lower()).first():
             error = _("Dieser Benutzername ist bereits vergeben.")
@@ -279,7 +279,7 @@ def register():
         else:
             in_ad = _exists_in_directory(username)
             if in_ad is None:
-                error = _("Die Registrierung ist gerade nicht möglich. Bitte versuche es später erneut.")
+                error = _("Die Registrierung ist gerade nicht möglich. Bitte versuchen Sie es später erneut.")
             elif in_ad:
                 error = _("Dieser Benutzername ist bereits vergeben.")
         if error:
@@ -306,13 +306,13 @@ def register():
                  username, email, user.pending_approval, verify)
         if verify:
             if not send_verification(user):
-                flash(_("Die Bestätigungs-E-Mail konnte gerade nicht gesendet werden. Melde dich später an – "
-                        "dort kannst du sie erneut anfordern."), "warning")
+                flash(_("Die Bestätigungs-E-Mail konnte gerade nicht gesendet werden. Melden Sie sich später an – "
+                        "dort können Sie sie erneut anfordern."), "warning")
             return render_template("register_done.html", state="check_mail", email=email)
         notify_admins(user)
         if user.active:
             from .security import start_login
-            flash(_("Willkommen! Dein Konto ist eingerichtet."), "success")
+            flash(_("Willkommen! Ihr Konto ist eingerichtet."), "success")
             return start_login(user, False, None)
         return render_template("register_done.html", state="approval")
 

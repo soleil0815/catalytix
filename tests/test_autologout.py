@@ -244,7 +244,7 @@ class PageTests(AutoLogoutCase):
         self.login("admin")
         html = self.c.get("/").get_data(as_text=True)
         self.assertIn('id="idle-dialog" data-idle-seconds="3600" data-idle-warn="120"', html)
-        self.assertIn("Du wirst in 2 Minuten abgemeldet – weiterarbeiten?", html)
+        self.assertIn("Sie werden in 2 Minuten abgemeldet – weiterarbeiten?", html)
         self.set(session_warning="0")
         self.assertNotIn("idle-dialog", self.c.get("/").get_data(as_text=True))
 

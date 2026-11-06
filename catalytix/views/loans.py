@@ -86,7 +86,7 @@ def lend_book(book: Book, borrower: User, due: date | None = None, note: str = "
         return False, _("{name} hat dieses Buch bereits ausgeliehen.", name=borrower.name)
     except OperationalError:  # e.g. database locked for too long
         db.session.rollback()
-        return False, _("Die Datenbank ist gerade beschäftigt. Bitte versuch es gleich noch einmal.")
+        return False, _("Die Datenbank ist gerade beschäftigt. Bitte versuchen Sie es gleich noch einmal.")
     notify_loan(loan)
     return True, _("„{title}“ an {name} verliehen – fällig am {date}.", title=book.title, name=borrower.name,
                    date=format_day(loan.due_at))
@@ -171,7 +171,8 @@ def extend(loan_id):
         abort(403)
     max_ext, days = get_int("max_extensions", 2), get_int("extension_days", 14)
     if not manager and reservations.enabled() and any(r.status == "waiting" for r in loan.book.reservations):
-        msg = _("Dieses Buch ist vorgemerkt und kann deshalb nicht verlängert werden. Bitte gib es bis zur Frist zurück.")
+        msg = _("Dieses Buch ist vorgemerkt und kann deshalb nicht verlängert werden. Bitte geben Sie es bis zur "
+                "Frist zurück.")
         flash(msg, "error")
         return _back(url_for("loans.index"))
     for _attempt in range(3):
@@ -179,7 +180,7 @@ def extend(loan_id):
             flash(_("Diese Ausleihe ist bereits abgeschlossen."), "info")
             break
         if not manager and loan.extensions >= max_ext:
-            flash(_("Die maximale Anzahl an Verlängerungen ist erreicht. Bitte wende dich an die Bibliothek."), "error")
+            flash(_("Die maximale Anzahl an Verlängerungen ist erreicht. Bitte wenden Sie sich an die Bibliothek."), "error")
             break
         old_ext = loan.extensions
         new_due = max(loan.due_at, date.today()) + timedelta(days=days)

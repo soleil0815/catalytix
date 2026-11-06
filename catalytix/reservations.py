@@ -71,24 +71,24 @@ def reserve(book: Book, user: User) -> tuple[bool, str]:
     if not user.active:
         return False, _("{name} ist gesperrt.", name=user.name)
     if not user.can_borrow(book):
-        return False, _("Dieses Buch darfst du nicht ausleihen – deshalb auch nicht vormerken.")
+        return False, _("Dieses Buch dürfen Sie nicht ausleihen – deshalb auch nicht vormerken.")
     limit = get_int("reservation_max", 5)
     try:
         _lock(book.id)
         if db.session.query(Loan.id).filter(Loan.book_id == book.id, Loan.user_id == user.id,
                                             Loan.returned_at.is_(None)).first():
             db.session.rollback()
-            return False, _("Du hast dieses Buch bereits ausgeliehen.")
+            return False, _("Sie haben dieses Buch bereits ausgeliehen.")
         if db.session.query(Reservation.id).filter(Reservation.book_id == book.id, Reservation.user_id == user.id,
                                                    Reservation.status.in_((RES_WAITING, RES_READY))).first():
             db.session.rollback()
-            return False, _("Du hast dieses Buch bereits vorgemerkt.")
+            return False, _("Sie haben dieses Buch bereits vorgemerkt.")
         if _free_copies(book.id) > 0:
             db.session.rollback()
-            return False, _("Es ist gerade ein Exemplar frei – du kannst das Buch direkt ausleihen.")
+            return False, _("Es ist gerade ein Exemplar frei – Sie können das Buch direkt ausleihen.")
         if limit and count_open(user.id) >= limit:
             db.session.rollback()
-            return False, _("Du hast bereits {n} Bücher vorgemerkt – mehr sind nicht möglich.", n=limit)
+            return False, _("Sie haben bereits {n} Bücher vorgemerkt – mehr sind nicht möglich.", n=limit)
         db.session.add(Reservation(book_id=book.id, user_id=user.id))
         db.session.commit()
     except Exception:
@@ -96,7 +96,8 @@ def reserve(book: Book, user: User) -> tuple[bool, str]:
         raise
     db.session.refresh(book)
     res = open_for(user, book)
-    return True, _("„{title}“ ist vorgemerkt – du bist auf Platz {n}. Wir melden uns, sobald ein Exemplar frei ist.",
+    return True, _("„{title}“ ist vorgemerkt – Sie sind auf Platz {n}. Wir melden uns, sobald ein Exemplar frei "
+                   "ist.",
                    title=book.title, n=position(res) if res else 1)
 
 

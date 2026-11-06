@@ -1,0 +1,107 @@
+/* Print stylesheet of the German user manual (handbuch.de.html).
+   Rendered to docs/Handbuch-Catalytix.pdf by tools/build_manual.py (headless Chromium, A4). */
+/* Fonts come from the app itself (catalytix/static/fonts) – no CDN, the build works offline. */
+@font-face { font-family: "Inter"; font-weight: 100 900; src: url("../../catalytix/static/fonts/inter-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 100 900; src: url("../../catalytix/static/fonts/inter-latin-ext-wght-normal.woff2") format("woff2");
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "Fraunces"; font-weight: 100 900; src: url("../../catalytix/static/fonts/fraunces-latin-standard-normal.woff2") format("woff2"); }
+@font-face { font-family: "Fraunces"; font-weight: 100 900; src: url("../../catalytix/static/fonts/fraunces-latin-ext-standard-normal.woff2") format("woff2");
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+
+:root {
+  --ink: #1d2421; --ink-2: #3c4642; --muted: #6b736f; --line: #e2dbcb; --paper: #fbf8f1;
+  --green: #1c3a33; --green-2: #2c6e62; --brass: #a8792b; --brass-soft: #f4ead6; --accent-soft: #e3efeb;
+  --warn: #f8ecd1; --warn-line: #e3c88d; --danger: #b2452f;
+}
+@page {
+  size: A4; margin: 20mm 18mm 18mm 20mm;
+  @bottom-left { content: "Handbuch Bibliotheksverwaltung"; font: 400 7.5pt "Inter"; color: #8a918d; }
+  @bottom-right { content: "Seite " counter(page); font: 500 7.5pt "Inter"; color: #8a918d; }
+}
+@page :first { margin: 0; @bottom-left { content: none } @bottom-right { content: none } }
+@page toc { @bottom-left { content: none } @bottom-right { content: none } }
+
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; font: 400 9.6pt/1.55 "Inter", sans-serif; color: var(--ink); hyphens: auto; }
+h1, h2, h3, h4 { font-family: "Fraunces", Georgia, serif; font-weight: 600; color: var(--green); line-height: 1.2; hyphens: manual; }
+h2.chapter { font-size: 24pt; margin: 0 0 4mm; break-before: page; letter-spacing: -.01em; }
+h2.chapter .num { display: block; font: 600 8.5pt "Inter"; letter-spacing: .14em; color: var(--brass); text-transform: uppercase; margin-bottom: 2mm; }
+.lead { font-size: 10.8pt; color: var(--ink-2); margin: 0 0 7mm; max-width: 150mm; }
+h3 { font-size: 13.5pt; margin: 8mm 0 2.5mm; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 5mm 0 1.5mm; break-after: avoid; font-family: "Inter"; font-weight: 650; color: var(--ink); }
+p { margin: 0 0 2.6mm; }
+ul, ol { margin: 0 0 3mm; padding-left: 5.5mm; }
+li { margin: 0 0 1.2mm; }
+li::marker { color: var(--brass); }
+b, strong { font-weight: 640; }
+code, .mono { font-family: "DejaVu Sans Mono", Consolas, monospace; font-size: 8.3pt; background: #f2ede2; padding: .2mm 1.2mm; border-radius: 1mm; color: #3b3f3d; hyphens: none; }
+pre { font-family: "DejaVu Sans Mono", Consolas, monospace; font-size: 8pt; line-height: 1.5; background: #f4efe4; border: 0.3mm solid var(--line); border-radius: 2mm; padding: 3mm 4mm; margin: 2mm 0 4mm; white-space: pre-wrap; break-inside: avoid; hyphens: none; }
+.ui { font-weight: 600; color: var(--green-2); }
+.path { font-style: italic; color: var(--ink-2); }
+kbd { font: 600 7.8pt "Inter"; border: .3mm solid #cfc6b3; border-bottom-width: .7mm; border-radius: 1mm; padding: 0 1.3mm; background: #fffdf8; }
+
+figure { margin: 3mm 0 6mm; break-inside: avoid; }
+figure img { display: block; width: auto; max-width: 100%; max-height: 92mm; margin: 0 auto; border: .3mm solid var(--line); border-radius: 2.2mm; box-shadow: 0 1.2mm 3.5mm rgba(30, 40, 35, .10); }
+figure.half img { max-height: 100mm; margin: 0 auto; }
+figure.third img { max-height: 70mm; margin: 0 auto; }
+figure.phones { display: flex; gap: 6mm; justify-content: center; }
+figure.phones img { width: 42mm; max-height: none; margin: 0; }
+figure.phones figcaption { display: none; }
+figcaption { font-size: 8pt; color: var(--muted); margin-top: 2mm; text-align: center; }
+figcaption b { color: var(--ink-2); }
+
+.box { border-radius: 2.5mm; padding: 3mm 4mm; margin: 3mm 0 4.5mm; break-inside: avoid; font-size: 9.2pt; }
+.box p:last-child, .box ul:last-child { margin-bottom: 0; }
+.tip { background: var(--accent-soft); border-left: 1.2mm solid var(--green-2); }
+.note { background: var(--warn); border-left: 1.2mm solid var(--brass); }
+.warn { background: #f6e1db; border-left: 1.2mm solid var(--danger); }
+.box .label { font: 700 7.5pt "Inter"; letter-spacing: .12em; text-transform: uppercase; display: block; margin-bottom: 1mm; }
+.tip .label { color: var(--green-2); } .note .label { color: var(--brass); } .warn .label { color: var(--danger); }
+
+table { width: 100%; border-collapse: collapse; margin: 2mm 0 5mm; font-size: 8.8pt; }
+tr { break-inside: avoid; }
+th { text-align: left; font: 650 7.6pt "Inter"; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); background: #f1ebde; padding: 2mm 2.5mm; }
+td { padding: 2mm 2.5mm; border-bottom: .3mm solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; }
+table.plain td:first-child { font-weight: 400; }
+
+.steps { counter-reset: s; list-style: none; padding: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 9mm; margin-bottom: 2.4mm; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: -.2mm; width: 6mm; height: 6mm; border-radius: 50%;
+  background: var(--green); color: #fff; font: 700 8pt/6mm "Inter"; text-align: center; }
+
+.roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; margin: 4mm 0 6mm; }
+.role { border: .3mm solid var(--line); border-radius: 2.5mm; padding: 3.5mm 4mm; background: var(--paper); break-inside: avoid; }
+.role h4 { margin: 0 0 1.5mm; font-family: "Fraunces"; font-size: 12pt; color: var(--green); }
+.role p { font-size: 8.6pt; color: var(--ink-2); margin: 0 0 2mm; }
+.role .ch { font: 600 7.6pt "Inter"; color: var(--brass); letter-spacing: .04em; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; align-items: start; }
+.keep { break-inside: avoid; }
+
+/* Titelseite */
+.cover { height: 297mm; width: 210mm; background: radial-gradient(120% 80% at 10% 0%, #3c5a3f 0%, var(--green) 45%, #10221d 100%);
+  color: #f3ead7; position: relative; overflow: hidden; break-after: page; }
+.cover .inner { position: absolute; left: 22mm; right: 22mm; top: 48mm; }
+.cover .eyebrow { font: 600 9pt "Inter"; letter-spacing: .22em; text-transform: uppercase; color: #d5a957; }
+.cover h1 { font-size: 42pt; color: #f8f0dd; margin: 5mm 0 4mm; letter-spacing: -.015em; line-height: 1.05; }
+.cover .sub { font-size: 13pt; color: #cfd8d2; max-width: 135mm; line-height: 1.45; }
+.cover .shelf { position: absolute; left: 22mm; bottom: 46mm; display: flex; align-items: flex-end; gap: 2.4mm; }
+.cover .shelf i { display: block; width: 8.5mm; border-radius: 1mm 1mm 0 0; box-shadow: inset -1.2mm 0 0 rgba(0,0,0,.15), inset 0 2mm 0 rgba(255,255,255,.12); }
+.cover .board { position: absolute; left: 22mm; right: 22mm; bottom: 42mm; height: 4mm; background: #b0802f; border-radius: 1mm; }
+.cover .meta span:first-child { white-space: nowrap; margin-right: 10mm; }
+.cover .meta { position: absolute; left: 22mm; right: 22mm; bottom: 18mm; display: flex; justify-content: space-between; font-size: 8.5pt; color: #a9b8b0; }
+
+/* Inhaltsverzeichnis */
+.toc { page: toc; break-after: page; }
+.toc h2 { font-size: 24pt; margin: 0 0 8mm; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc > ol > li { margin: 0 0 3.2mm; }
+.toc .c { display: flex; font: 600 10.5pt "Fraunces"; color: var(--green); border-bottom: .3mm solid var(--line); padding-bottom: 1.2mm; }
+.toc .c .n { width: 8mm; color: var(--brass); font-family: "Inter"; font-size: 9pt; padding-top: .6mm; }
+.toc .c span.t { flex: 1; }
+.toc ol ol { padding-left: 8mm; margin-top: 1.3mm; columns: 2; column-gap: 8mm; }
+.toc ol ol li { display: flex; font-size: 8.6pt; color: var(--ink-2); margin: 0 0 .9mm; break-inside: avoid; }
+.toc ol ol li span.t { flex: 1; }
+.toc .pg { font-variant-numeric: tabular-nums; color: var(--muted); padding-left: 2mm; }

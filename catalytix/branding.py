@@ -260,11 +260,21 @@ def mail_colors() -> dict:
 
 # ---------------------------------------------------------------- For the templates
 
+# Earlier default texts: installations may have stored them unchanged (e.g. by saving the branding page) – they
+# are treated like the current default (3.1.0: informal "du" → formal "Sie")
+PREVIOUS_DEFAULTS = {
+    "login_text": ("Stöbern, ausleihen, weiterlesen – der Katalog deiner Bibliothek.",),
+}
+
+
 def _default_text(key: str) -> str:
     """Show unchanged default texts (stored in German) in the UI language."""
     from .models import DEFAULT_SETTINGS
     value = get_setting(key)
-    return _(value) if value and value == DEFAULT_SETTINGS.get(key) else value
+    default = DEFAULT_SETTINGS.get(key)
+    if value and default and value in PREVIOUS_DEFAULTS.get(key, ()):
+        value = default
+    return _(value) if value and value == default else value
 
 
 def library_name() -> str:

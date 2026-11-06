@@ -1,7 +1,7 @@
 {% extends "mail/_layout.html" %}
 {% block content %}
 <p style="margin:0 0 12px;">{{ _("Hallo {name},", name=user.name) }}</p>
-<p style="margin:0 0 6px;">{{ _("ein von dir vorgemerktes Buch ist jetzt für dich zurückgelegt:") }}</p>
+<p style="margin:0 0 6px;">{{ _("ein von Ihnen vorgemerktes Buch ist jetzt für Sie zurückgelegt:") }}</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:10px 0;border:1px solid #e0d8c6;border-radius:10px;">
 <tr><td style="padding:12px 14px;">
   <div style="font-weight:600;font-size:15px;">{% if base_url %}<a href="{{ base_url }}/buecher/{{ book.id }}" style="color:#1d2421;text-decoration:none;">{{ book.title }}</a>{% else %}{{ book.title }}{% endif %}</div>
@@ -11,6 +11,6 @@
     {% if book.location %}<span style="color:#7b817c;"> · {{ _("Standort {location}", location=book.location) }}</span>{% endif %}
   </div>
 </td></tr></table>
-<p style="margin:14px 0;">{{ _("Holst du es bis dahin nicht ab, ist die nächste Person in der Warteschlange dran.") }}</p>
+<p style="margin:14px 0;">{{ _("Holen Sie es bis dahin nicht ab, ist die nächste Person in der Warteschlange dran.") }}</p>
 {% if base_url %}<p style="margin:18px 0 10px;"><a href="{{ base_url }}/buecher/{{ book.id }}" style="background:{{ mail_accent }};color:{{ mail_accent_ink }};padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:600;display:inline-block;">{{ _("Zum Buch") }}</a></p>{% endif %}
 {% endblock %}

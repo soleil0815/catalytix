@@ -9,5 +9,6 @@
   <li><span class="ui">Self-registration</span> – see its own topic.</li>
   <li><span class="ui">Retention</span> – deletion period for completed loans, currently {% if f.retention_months %}{{ f.retention_months }} {{ "month" if f.retention_months == 1 else "months" }}{% else %}<b>never</b>{% endif %}.</li>
   <li><span class="ui">Two-factor authentication</span> – requirement and internal network, see its own topic.</li>
+  <li><span class="ui">Automatic sign-out</span> – after how many hours without activity everyone is signed out (default 12), an own, shorter limit for admins (default 60 minutes) and optionally for sign-ins from outside. The shortest applicable limit applies. If enabled, “You will be signed out in 2 minutes – keep working?” appears two minutes before. With <span class="ui">Sign out when the browser is closed</span>, every sign-in ends with the browser and “Stay signed in” is no longer offered. Where a shorter limit applies (admins, from outside), “Stay signed in” is not available anyway.</li>
   <li><span class="ui">ISBN data sources</span> – German National Library, Open Library, Google Books: tick or untick. They are queried in this order and missing fields are filled from the next source. The server needs internet access for this; only the ISBN is sent.</li>
 </ul>

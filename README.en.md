@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.0.7** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.0.8** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -446,6 +446,7 @@ Privacy: backups contain all data, including data already deleted by the retenti
 | `PUID` / `PGID` | User/group owning `./data` (default `1000`) |
 | `CATALYTIX_TRUSTED_PROXIES` | Who may send proxy headers: `private` (default), `none` or a list such as `172.18.0.0/16,192.168.0.11` |
 | `CATALYTIX_SECURE_COOKIES` | `auto` (default: over HTTPS), `1` (always), `0` (never) |
+| `CATALYTIX_SESSION_HOURS` | Automatic sign-out after this many hours without activity (1–168, default 12) – start value only, afterwards under *Settings → Automatic sign-out* |
 | `CATALYTIX_LOGLEVEL` | `INFO` (default), `DEBUG` for LDAP troubleshooting |
 | `CATALYTIX_BACKUP_DIR` | Folder for automatic backups (default: `backups` in the data directory). Must be mounted as a volume – otherwise the container warns at start-up |
 | `CATALYTIX_COVER_VIA_PROXY` | `1` = download covers via the proxy set in `HTTPS_PROXY` (default: direct, so the check for internal addresses applies) |
@@ -530,7 +531,7 @@ python -m unittest discover -s tests -v
 
 **Type checking (mypy):** introduced step by step. `mypy.ini` strictly checks the modules where errors do the most
 damage – currently `backup.py`, `netzone.py`, `proxy.py`, `models.py` (permission checks), `dbversion.py` (database version on
-updates), `composefile.py`, `lockout.py` (sign-in lock) and the build chain in `tools/`. This check must pass on every pull request. `mypy-report.ini` checks all modules and only lists the
+updates), `composefile.py`, `lockout.py` (sign-in lock), `autologout.py` (automatic sign-out) and the build chain in `tools/`. This check must pass on every pull request. `mypy-report.ini` checks all modules and only lists the
 findings in the summary of the CI run, without failing it. Every audit and every version moves more modules into
 the strict list.
 

@@ -25,7 +25,7 @@
     <label for="password">{{ _("Passwort") }}</label>
     <input type="password" id="password" name="password" autocomplete="current-password" required>
   </div>
-  <label class="check"><input type="checkbox" name="remember" value="1"> {{ _("Angemeldet bleiben") }}</label>
+  {% if remember_offered %}<label class="check"><input type="checkbox" name="remember" value="1"> {{ _("Angemeldet bleiben") }}</label>{% endif %}
   <button class="btn primary lg block" style="margin-top: 8px">{{ icon("lock") }} {{ _("Anmelden") }}</button>
 </form>
 {% if registration_open %}

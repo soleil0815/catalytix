@@ -40,7 +40,7 @@ def start_login(user: User, remember: bool, next_url: str | None):
         remember = False
     user.last_login = datetime.now()
     db.session.commit()
-    login_user(user, remember=remember)
+    _sign_in(user, remember, internal)
     if skipped:
         session["mfa_skipped"] = True
     if twofa.must_set_up(user, internal):
@@ -48,6 +48,16 @@ def start_login(user: User, remember: bool, next_url: str | None):
         flash(_("Bitte richte jetzt einen zweiten Faktor ein (Authenticator-App oder Sicherheitsschlüssel)."), "warning")
         return redirect(url_for("security.settings"))
     return redirect(safe_next(next_url) or url_for("main.dashboard"))
+
+
+def _sign_in(user: User, remember: bool, internal: bool) -> None:
+    """login_user with the rules of the automatic sign-out: no "stay signed in" where a shorter limit
+    applies or the session is to end with the browser; activity counts from now."""
+    from .. import autologout
+    login_user(user, remember=False)     # "stay signed in" = long-lived session cookie, see autologout.py
+    session[autologout.STAY_KEY] = bool(remember) and autologout.remember_allowed(user, internal)
+    autologout.apply_cookie_mode(user, internal)
+    autologout.touch(force=True)
 
 
 def _pending_user() -> User | None:
@@ -66,7 +76,8 @@ def _finish(user: User):
     session.pop("mfa_skipped", None)
     user.last_login = datetime.now()
     db.session.commit()
-    login_user(user, remember=p.get("remember", False))
+    from .. import netzone
+    _sign_in(user, bool(p.get("remember", False)), netzone.is_internal())
     session["mfa_ok"] = True   # second factor confirmed in this login (for managing factors)
     return safe_next(p.get("next")) or url_for("main.dashboard")
 

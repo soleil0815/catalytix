@@ -137,6 +137,20 @@
 </dialog>
 {% endif %}
 
+{% if current_user.is_authenticated and idle_warning %}
+{# Warning before the automatic sign-out (autologout.py) – logic in app.js #}
+<dialog id="idle-dialog" data-idle-seconds="{{ idle_warning.seconds }}" data-idle-warn="{{ idle_warning.warn }}"
+        data-status-url="{{ url_for('main.session_status') }}" data-keepalive-url="{{ url_for('main.session_keepalive') }}"
+        data-login-url="{{ url_for('main.login') }}">
+  <div class="dialog-head"><h3>{{ icon("clock") }} {{ _("Automatische Abmeldung") }}</h3></div>
+  <div class="dialog-body">
+    <p>{{ _("Du wirst in 2 Minuten abgemeldet – weiterarbeiten?") }}</p>
+    <p class="muted" data-idle-error hidden style="margin-top: 8px">{{ _("Keine Verbindung zum Server – bitte gleich noch einmal versuchen.") }}</p>
+    <div class="actions" style="margin-top: 14px"><button class="btn primary" type="button" data-idle-continue>{{ _("Weiterarbeiten") }}</button></div>
+  </div>
+</dialog>
+{% endif %}
+
 {% set jsx = js_strings() %}{% if jsx %}<script type="application/json" id="i18n-strings">{{ jsx|tojson }}</script>{% endif %}
 <script src="{{ url_for('static', filename='js/ean13.js') }}?v={{ asset_rev }}"></script>
 <script src="{{ url_for('static', filename='js/app.js') }}?v={{ asset_rev }}"></script>

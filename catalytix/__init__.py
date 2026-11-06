@@ -27,7 +27,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "3.0.7"
+__version__ = "3.0.8"
 APP_NAME = "Catalytix"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Where the source code can be found (AGPL § 13). Anyone running a modified Catalytix enters the
@@ -295,7 +295,12 @@ def create_app(test_config: dict | None = None) -> Flask:
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         REMEMBER_COOKIE_DURATION=timedelta(days=14),
-        PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
+        # Upper bound for the session cookie; the actual limit (time without activity) is checked on every
+        # request, see autologout.py
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=168),
+        # Write the session cookie only when it changed (autologout.touch: at most once a minute) – otherwise a
+        # slow response that started before signing out would bring the old session back
+        SESSION_REFRESH_EACH_REQUEST=False,
         WTF_CSRF_TIME_LIMIT=None,
     )
     if test_config:
@@ -400,6 +405,51 @@ def create_app(test_config: dict | None = None) -> Flask:
             app.config["_setup_done"] = True
         return None
 
+    # ------------------------------------------------------------ Automatic sign-out (see autologout.py)
+    @app.before_request
+    def enforce_idle_signout():
+        """Sign out after the configured time without activity, and end sessions restored from the
+        "stay signed in" cookie where that is no longer allowed (admins, sign-ins from outside, sign-out on
+        browser close)."""
+        if request.endpoint in (None, "static", "main.branding_file") or not current_user.is_authenticated:
+            return None
+        from flask import jsonify
+        from flask_login import login_fresh
+        from flask_login.utils import login_url
+        from . import autologout, netzone
+        from .i18n import ngettext as _n
+        internal = netzone.is_internal()
+        user = current_user._get_current_object()
+        left = autologout.seconds_left(user, internal)
+        expired = left is not None and left <= 0
+        # Restored from Flask-Login's remember cookie (only sign-ins from before 3.0.8 have one): continue as a
+        # "stay signed in" session where that is allowed, otherwise sign in again
+        restored = left is None and not login_fresh()
+        if restored and autologout.remember_allowed(user, internal):
+            session[autologout.STAY_KEY] = True
+            session["_remember"] = "clear"      # Flask-Login deletes the old remember cookie
+            restored = False
+        if expired or restored:
+            if expired:
+                n, unit = autologout.describe_limit(autologout.limit_seconds(user, internal))
+                msg = (_n("Du wurdest nach {n} Stunde ohne Aktivität automatisch abgemeldet.",
+                                 "Du wurdest nach {n} Stunden ohne Aktivität automatisch abgemeldet.", n)
+                       if unit == "h" else
+                       _n("Du wurdest nach {n} Minute ohne Aktivität automatisch abgemeldet.",
+                                 "Du wurdest nach {n} Minuten ohne Aktivität automatisch abgemeldet.", n))
+            else:
+                msg = _("Deine Anmeldung ist abgelaufen. Bitte melde dich erneut an.")
+            session.clear()     # first – logout_user() records in it that the remember cookie is to be deleted
+            logout_user()
+            flash(msg, "info")     # also for /api/: the login page the browser goes to next shows why
+            if request.path.startswith("/api/"):
+                return jsonify(ok=False, error=msg, signed_out=True), 401
+            return redirect(login_url("main.login", request.url if request.method == "GET" else None))
+        autologout.apply_cookie_mode(user, internal)
+        if request.endpoint not in autologout.NO_ACTIVITY:
+            autologout.touch()
+        return None
+
     # ------------------------------------------------------------ Re-check LDAP sessions
     @app.before_request
     def recheck_ldap_session():
@@ -474,9 +524,18 @@ def create_app(test_config: dict | None = None) -> Flask:
             "overdue_count": 0,
             "news_unseen": False,
         }
+        ctx["idle_warning"] = None
+        ctx["remember_offered"] = True
+        if has_request_context():
+            from . import autologout
+            ctx["remember_offered"] = not autologout.browser_close()
         if has_request_context() and current_user.is_authenticated:
             from .news import has_unseen
             ctx["news_unseen"] = has_unseen(current_user)
+            from . import autologout, netzone
+            if autologout.warning_enabled():
+                ctx["idle_warning"] = {"seconds": autologout.limit_seconds(current_user, netzone.is_internal()),
+                                       "warn": autologout.WARN_SECONDS}
         # Outside a request (e.g. sending mail in the background) there is no user
         if has_request_context() and current_user.is_authenticated and current_user.is_admin:
             ctx["pending_registrations"] = User.query.filter_by(pending_approval=True, email_verified=True).count()

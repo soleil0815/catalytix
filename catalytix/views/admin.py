@@ -558,6 +558,8 @@ def settings():
                 set_setting("own_public_hosts", "\n".join(entries))
         vis = request.form.get("catalog_visibility")
         set_setting("catalog_visibility", vis if vis in ("groups", "all") else "groups")
+        if "session_hours" in request.form:
+            _save_session_settings()
         sources = [s for s in request.form.getlist("isbn_sources") if s in SOURCES]
         order = [s for s in (request.form.get("isbn_order") or "").split(",") if s in sources]
         set_setting("isbn_sources", ",".join(order + [s for s in sources if s not in order]))
@@ -572,11 +574,38 @@ def settings():
     all_sources = active_sources + [s for s in SOURCES if s not in active_sources]
     from ..mailer import mail_active
     from .. import netzone
+    from .. import autologout
     return render_template("admin/settings.html", s=get_setting, sources=SOURCES,
+                           session_hours=autologout.general_hours(),
                            retention_result=_stamped(get_setting("retention_last_result"), _retention_message),
                            connection=netzone.describe(), default_networks=netzone.DEFAULT_INTERNAL,
                            active_sources=active_sources, all_sources=all_sources,
                            groups=Group.query.order_by(Group.name).all(), mail_on=mail_active())
+
+
+def _save_session_settings() -> None:
+    """Section "Automatische Abmeldung" (see autologout.py)."""
+    from .. import autologout
+    hours = min(form_int("session_hours", autologout.general_hours(), 1) or autologout.DEFAULT_HOURS,
+                autologout.MAX_HOURS)
+    set_setting("session_hours", hours)
+    too_long = {
+        "session_admin_minutes": _("Automatische Abmeldung: Die Frist für Admins ist länger als die für alle – es gilt "
+                                   "die kürzere ({hours} Std.)."),
+        "session_external_minutes": _("Automatische Abmeldung: Die Frist für Anmeldungen von außen ist länger als die "
+                                      "für alle – es gilt die kürzere ({hours} Std.)."),
+    }
+    for key, message in too_long.items():
+        if not (request.form.get(key) or "").strip():
+            set_setting(key, "")
+            continue
+        minutes = min(form_int(key, autologout.MIN_MINUTES, autologout.MIN_MINUTES) or autologout.MIN_MINUTES,
+                      autologout.MAX_MINUTES)
+        set_setting(key, minutes)
+        if minutes > hours * 60:
+            flash(message.replace("{hours}", str(hours)), "warning")
+    set_setting("session_warning", form_bool("session_warning"))
+    set_setting("session_browser_close", form_bool("session_browser_close"))
 
 
 # ---------------------------------------------------------------- Active Directory / LDAP

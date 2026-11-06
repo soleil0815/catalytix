@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.0.7** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 3.0.8** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name eurer Bibliothek.
 
@@ -440,6 +440,7 @@ Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewa
 | `PUID` / `PGID` | Benutzer/Gruppe für `./data` (Standard `1000`) |
 | `CATALYTIX_TRUSTED_PROXIES` | Von wem Proxy-Header akzeptiert werden: `private` (Standard), `none` oder Liste wie `172.18.0.0/16,192.168.0.11` |
 | `CATALYTIX_SECURE_COOKIES` | `auto` (Standard: bei HTTPS), `1` (immer), `0` (nie) |
+| `CATALYTIX_SESSION_HOURS` | Automatische Abmeldung nach so vielen Stunden ohne Aktivität (1–168, Standard 12) – nur Startwert, danach unter *Einstellungen → Automatische Abmeldung* |
 | `CATALYTIX_LOGLEVEL` | `INFO` (Standard), `DEBUG` für LDAP-Fehlersuche |
 | `CATALYTIX_BACKUP_DIR` | Ordner für die automatischen Sicherungen (Standard: `backups` im Datenverzeichnis). Muss als Volume eingebunden sein – sonst warnt der Container beim Start |
 | `CATALYTIX_COVER_VIA_PROXY` | `1` = Coverbilder über den in `HTTPS_PROXY` gesetzten Proxy laden (Standard: direkt, damit die Prüfung auf interne Adressen greift) |
@@ -520,7 +521,7 @@ python -m unittest discover -s tests -v
 
 **Typprüfung (mypy):** wird Schritt für Schritt eingeführt. `mypy.ini` prüft die Module, bei denen Fehler am meisten
 schaden, streng – zurzeit `backup.py`, `netzone.py`, `proxy.py`, `models.py` (Rechteprüfung), `dbversion.py` (Datenbank-Version
-beim Update), `composefile.py`, `lockout.py` (Anmeldesperre) und die Build-Kette in `tools/`. Diese Prüfung muss bei jedem Pull Request bestehen. `mypy-report.ini` prüft alle Module und listet die
+beim Update), `composefile.py`, `lockout.py` (Anmeldesperre), `autologout.py` (automatische Abmeldung) und die Build-Kette in `tools/`. Diese Prüfung muss bei jedem Pull Request bestehen. `mypy-report.ini` prüft alle Module und listet die
 Funde nur in der Zusammenfassung des Prüflaufs auf, ohne ihn abzubrechen. Mit jedem Audit und jeder Version kommen
 weitere Module in die strenge Liste.
 

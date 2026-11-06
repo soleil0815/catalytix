@@ -157,10 +157,9 @@ jobs:
           REVISION: ${{ steps.tag.outputs.revision }}
         run: |
           . tools/ci.sh
-          args=(--build-arg "CATALYTIX_TAG=$TAG" --build-arg "CATALYTIX_REVISION=$REVISION")
-          docker buildx build "${args[@]}" --platform linux/amd64,linux/arm64 release \
+          docker buildx build --build-arg "CATALYTIX_TAG=$TAG" --build-arg "CATALYTIX_REVISION=$REVISION" \
+            --platform linux/arm64 --load -t catalytix-ci:arm64 release \
             || fail "Image build failed" "See the log of this step – nothing is published."
-          docker buildx build "${args[@]}" --platform linux/arm64 --load -t catalytix-ci:arm64 release
 
       - name: Run the tests in the new image (amd64)
         if: steps.compare.outputs.changed == 'true'

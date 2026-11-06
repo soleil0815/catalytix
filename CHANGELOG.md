@@ -5,8 +5,8 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. E
 
 ## 3.0.9 – 06.11.2026
 **Intern (weniger GitHub-Actions-Minuten, gleiche Prüfungen)**
-- Kein Prüflauf mehr nach dem Mergen auf `main` – der Pull Request hat genau dieses Ergebnis schon geprüft. Pull
-  Requests, die nur Doku ändern (`*.md`, `docs/`), lösen keinen Lauf aus.
+- Kein Prüflauf mehr nach dem Mergen auf `main` – jeder Pull Request ist bereits geprüft, und `main` wird beim
+  Veröffentlichen noch einmal vollständig gebaut, getestet und gescannt. Ungeprüftes wird nie veröffentlicht.
 - Beim Veröffentlichen baut, testet und scannt der Prüf-Job das Image nicht mehr zusätzlich – das macht der
   Veröffentlichungs-Job ohnehin mit genau den Images, die veröffentlicht werden.
 - Wöchentliches Sicherheitsupdate: erst nur amd64 bauen und vergleichen; das langsame (emulierte) arm64 wird nur

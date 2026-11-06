@@ -4,8 +4,8 @@ The current version is shown at the bottom left of the sidebar after signing in.
 
 ## 3.0.9 – 2026-11-06
 **Internal (fewer GitHub Actions minutes, same checks)**
-- No CI run after merging into `main` any more – the pull request already checked exactly that result. Pull requests
-  that only change documentation (`*.md`, `docs/`) start no run.
+- No CI run after merging into `main` any more – every pull request is already checked, and `main` is built, tested
+  and scanned again in full when publishing. Nothing untested is ever published.
 - When publishing, the check job no longer builds, tests and scans the image in addition – the publish job does that
   anyway, with exactly the images that are published.
 - Weekly security update: build only amd64 first and compare; the slow (emulated) arm64 build only runs when

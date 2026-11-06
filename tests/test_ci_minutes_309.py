@@ -50,10 +50,10 @@ class PasswordHashTests(unittest.TestCase):
 
 
 class WorkflowTests(unittest.TestCase):
-    def test_no_run_on_push_docs_only_skipped(self):
+    def test_no_run_on_push(self):
         on = workflow("build.yml").split("\npermissions:")[0]
         self.assertNotIn("push:", on)
-        self.assertIn('paths-ignore:\n      - "**.md"', on)
+        self.assertNotIn("paths-ignore", on)      # docs and LICENSE go into the image – every PR is checked
 
     def test_publish_run_does_not_build_twice(self):
         check = job(workflow("build.yml"), "check")

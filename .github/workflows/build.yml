@@ -17,15 +17,11 @@
 # the release is created for exactly that commit, with update.sh/docker-compose.yml/.env.example from the image.
 name: Build
 
-# CI minutes (private repository): no run on push to main – a merged pull request was already checked on its merge
-# result (the pull_request event tests the PR merged into main). Pull requests that change only documentation skip
-# the run. Publishing builds, tests and scans the images itself, so the check job skips that part then.
+# CI minutes (private repository): no run on push to main. Each pull request is checked merged into main as it was
+# at that moment; main itself is checked again in full when publishing (build, tests, start, Trivy of exactly the
+# images that are published) – nothing untested is ever published. The check job skips that part when publishing.
 on:
   pull_request:
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - "LICENSE"
   workflow_dispatch:
     inputs:
       publish:

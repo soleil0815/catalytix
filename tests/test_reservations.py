@@ -96,7 +96,7 @@ class ReservationTests(Base):
         self.assertEqual(Loan.query.filter_by(user_id=self.anna.id).count(), 0)
         # leser may – the reservation is then fulfilled
         self.login("leser")
-        self.assertIn("Für dich zurückgelegt", self.c.get(f"/buecher/{self.book.id}").get_data(as_text=True))
+        self.assertIn("Für Sie zurückgelegt", self.c.get(f"/buecher/{self.book.id}").get_data(as_text=True))
         self.c.post(f"/buecher/{self.book.id}/ausleihen")
         self.assertEqual(Loan.query.filter_by(user_id=self.leser.id, returned_at=None).count(), 1)
         self.assertEqual(self.res(self.leser).status, "done")
@@ -183,7 +183,7 @@ class ReservationTests(Base):
         self.reserve("leser")
         self.give_back()
         self.login("leser")
-        self.assertIn("liegt für dich bereit", self.c.get("/").get_data(as_text=True))
+        self.assertIn("liegt für Sie bereit", self.c.get("/").get_data(as_text=True))
 
     def test_retention_removes_old_closed(self):
         from catalytix.retention import run_retention

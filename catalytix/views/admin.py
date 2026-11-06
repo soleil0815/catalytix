@@ -42,7 +42,7 @@ def _require_second_factor_for_changes():
     if ((request.method == "POST" or request.endpoint == "admin.backup_download")
             and request.endpoint in _SECURITY_ENDPOINTS and current_user.is_authenticated
             and session.get("mfa_skipped") and current_user.has_2fa and not session.get("mfa_ok")):
-        flash(_("Bitte bestätige zuerst deinen zweiten Faktor – danach die Änderung noch einmal speichern."), "warning")
+        flash(_("Bitte bestätigen Sie zuerst Ihren zweiten Faktor – danach die Änderung noch einmal speichern."), "warning")
         if request.endpoint in _RETURN_TO_PAGE:
             back = request.path
         elif request.endpoint.startswith("admin.backup"):
@@ -132,7 +132,7 @@ def _save_user(user: User, is_new: bool):
         return _("Unbekannte Rolle.")
     active = form_bool("active")
     if user.id == current_user.id and (role != ROLE_ADMIN or not active):
-        return _("Du kannst dir selbst die Administratorrechte nicht entziehen.")
+        return _("Sie können sich selbst die Administratorrechte nicht entziehen.")
     if user.role == ROLE_ADMIN and (role != ROLE_ADMIN or not active) and _admin_count(user.id) == 0:
         return _("Es muss mindestens ein aktiver Administrator bestehen bleiben.")
     password = request.form.get("password") or ""
@@ -240,7 +240,7 @@ def user_reject(user_id):
             or user.id == current_user.id or user.role == ROLE_ADMIN):
         flash(_("Nur wartende Registrierungen können abgelehnt werden."), "error")
     elif user.active_loans:
-        flash(_("Der Benutzer hat noch ausgeliehene Bücher. Sperre das Konto stattdessen."), "error")
+        flash(_("Der Benutzer hat noch ausgeliehene Bücher. Sperren Sie das Konto stattdessen."), "error")
     else:
         from ..retention import OpenLoans, delete_user
         name = user.name
@@ -248,7 +248,7 @@ def user_reject(user_id):
             books = delete_user(user)
         except OpenLoans:
             db.session.rollback()
-            flash(_("Der Benutzer hat noch ausgeliehene Bücher. Sperre das Konto stattdessen."), "error")
+            flash(_("Der Benutzer hat noch ausgeliehene Bücher. Sperren Sie das Konto stattdessen."), "error")
             return redirect(url_for("admin.users", status="neu"))
         db.session.commit()
         from .. import reservations
@@ -288,9 +288,9 @@ def user_unlock(user_id):
 def user_delete(user_id):
     user = db.session.get(User, user_id) or abort(404)
     if user.id == current_user.id:
-        flash(_("Du kannst dein eigenes Konto nicht löschen."), "error")
+        flash(_("Sie können Ihr eigenes Konto nicht löschen."), "error")
     elif user.active_loans:
-        flash(_("Der Benutzer hat noch ausgeliehene Bücher. Sperre das Konto stattdessen."), "error")
+        flash(_("Der Benutzer hat noch ausgeliehene Bücher. Sperren Sie das Konto stattdessen."), "error")
     elif user.role == ROLE_ADMIN and _admin_count(user.id) == 0:
         flash(_("Der letzte Administrator kann nicht gelöscht werden."), "error")
     else:
@@ -300,7 +300,7 @@ def user_delete(user_id):
             books = delete_user(user)   # completed loans are only counted from now on – statistics are preserved
         except OpenLoans:
             db.session.rollback()
-            flash(_("Der Benutzer hat noch ausgeliehene Bücher. Sperre das Konto stattdessen."), "error")
+            flash(_("Der Benutzer hat noch ausgeliehene Bücher. Sperren Sie das Konto stattdessen."), "error")
             return redirect(url_for("admin.users"))
         db.session.commit()
         from .. import reservations
@@ -652,8 +652,8 @@ def _resolve_rule_names(cfg: dict, target: dict | None = None) -> bool:
         return True
     if not cfg.get("ldap_bind_dn"):
         flash(_("Gruppennamen bei Administratoren und Verwaltern konnten nicht in einen eindeutigen DN umgewandelt "
-                "werden (kein Dienstkonto). Ein bloßer Name passt auf jede gleichnamige Gruppe im AD – trage besser "
-                "den vollständigen DN ein."), "warning")
+                "werden (kein Dienstkonto). Ein bloßer Name passt auf jede gleichnamige Gruppe im AD – tragen Sie "
+                "besser den vollständigen DN ein."), "warning")
         return True
     try:
         directory = Directory(cfg)
@@ -865,7 +865,7 @@ def email():
                 ok, err = mailer.send_mail(to, subject, text, html, kind="test", cfg=smtp_cfg,
                                            user_id=current_user.id)
                 if ok:
-                    flash(_("Testmail an {to} gesendet. Schau ins Postfach (ggf. auch in den Spam-Ordner).", to=to), "success")
+                    flash(_("Testmail an {to} gesendet. Schauen Sie ins Postfach (ggf. auch in den Spam-Ordner).", to=to), "success")
                 else:
                     flash(_("Testmail fehlgeschlagen: {error}", error=err), "error")
         elif action == "run_now":

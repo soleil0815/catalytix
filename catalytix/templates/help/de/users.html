@@ -1,14 +1,14 @@
-<p>Unter <span class="ui">Administration → Benutzer</span> siehst du alle lokalen Konten und alle AD-Konten, die sich schon einmal angemeldet haben. Das Auswahlfeld filtert nach <span class="ui">Warten auf Freigabe</span>, <span class="ui">Selbst registriert</span>, <span class="ui">Gesperrt</span> und <span class="ui">Anmeldesperre (Fehlversuche)</span>.</p>
+<p>Unter <span class="ui">Administration → Benutzer</span> sehen Sie alle lokalen Konten und alle AD-Konten, die sich schon einmal angemeldet haben. Das Auswahlfeld filtert nach <span class="ui">Warten auf Freigabe</span>, <span class="ui">Selbst registriert</span>, <span class="ui">Gesperrt</span> und <span class="ui">Anmeldesperre (Fehlversuche)</span>.</p>
 <p><b>Rollen:</b> <b>Leser</b> leihen aus, <b>Verwalter</b> pflegen Bestand und Ausleihe (nur ihrer Gruppen, ohne Gruppe den ganzen Bestand), <b>Administratoren</b> dürfen alles.</p>
 <ol>
   <li><b>Anlegen:</b> <span class="ui">Lokaler Benutzer</span> – Benutzername, Rolle, Passwort (mindestens 10 Zeichen), Gruppen. Gut für Gäste oder ein Notfall-Admin-Konto.</li>
-  <li><b>Freigeben:</b> Wartende Selbstregistrierungen bestätigst du in der Liste mit <span class="ui">Freigeben</span> oder lehnst sie mit <span class="ui">✕</span> ab (das Konto wird gelöscht).{% if f.pending_approvals %} Gerade warten <b>{{ f.pending_approvals }}</b>.{% endif %}</li>
-  <li><b>Sperren statt löschen:</b> Nimm den Haken bei <span class="ui">Konto aktiv</span> weg – das Konto kann sich nicht mehr anmelden und nichts ausleihen, der Verlauf bleibt. <span class="ui">Löschen</span> entfernt Konto und Ausleihverlauf endgültig und geht nur ohne laufende Ausleihen. Dich selbst und den letzten Administrator kannst du weder löschen noch sperren.</li>
+  <li><b>Freigeben:</b> Wartende Selbstregistrierungen bestätigen Sie in der Liste mit <span class="ui">Freigeben</span> oder lehnen sie mit <span class="ui">✕</span> ab (das Konto wird gelöscht).{% if f.pending_approvals %} Gerade warten <b>{{ f.pending_approvals }}</b>.{% endif %}</li>
+  <li><b>Sperren statt löschen:</b> Nehmen Sie den Haken bei <span class="ui">Konto aktiv</span> weg – das Konto kann sich nicht mehr anmelden und nichts ausleihen, der Verlauf bleibt. <span class="ui">Löschen</span> entfernt Konto und Ausleihverlauf endgültig und geht nur ohne laufende Ausleihen. Sich selbst und den letzten Administrator können Sie weder löschen noch sperren.</li>
 </ol>
 <p><b>Anmeldeprobleme lösen – ohne Kommandozeile:</b> Konto öffnen, unten <span class="ui">Anmeldung und Sicherheit</span>:</p>
 <ul>
   <li><span class="ui">Zurücksetzen</span> bei der Zwei-Faktor-Anmeldung entfernt App und Sicherheitsschlüssel; ist 2FA Pflicht, wird die Neueinrichtung verlangt. Eine Anmeldesperre wird dabei mit aufgehoben.</li>
   <li><span class="ui">Sperre aufheben</span> gibt ein Konto nach 8 Fehlversuchen sofort frei (sonst nach 5 Minuten von selbst).</li>
 </ul>
-<p>Setzt du ein <b>neues Passwort</b> oder die 2FA zurück, werden alle anderen Sitzungen dieses Kontos beendet – auch „Angemeldet bleiben“.</p>
-<p><b>AD-Konten:</b> Name, E-Mail und Rolle kommen bei jeder Anmeldung aus dem Active Directory. Hier kannst du nur Gruppen zuordnen und das Konto sperren; Passwörter ändert die IT im AD.</p>
+<p>Setzen Sie ein <b>neues Passwort</b> oder die 2FA zurück, werden alle anderen Sitzungen dieses Kontos beendet – auch „Angemeldet bleiben“.</p>
+<p><b>AD-Konten:</b> Name, E-Mail und Rolle kommen bei jeder Anmeldung aus dem Active Directory. Hier können Sie nur Gruppen zuordnen und das Konto sperren; Passwörter ändert die IT im AD.</p>

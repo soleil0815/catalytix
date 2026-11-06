@@ -57,7 +57,7 @@
 
     {% if own_loan %}
       <div class="notice accent" style="margin-bottom: 12px">{{ icon("book") }}
-        <div>{{ _("Du hast dieses Buch ausgeliehen.") }} {{ due_badge(own_loan) }}</div></div>
+        <div>{{ _("Sie haben dieses Buch ausgeliehen.") }} {{ due_badge(own_loan) }}</div></div>
       <div class="actions">
         {% if can_extend %}
         <form method="post" action="{{ url_for('loans.extend', loan_id=own_loan.id) }}">
@@ -79,7 +79,7 @@
       <div class="notice warn">{{ icon("lock") }}<div>{{ _("Dieses Buch gehört zur Gruppe <b>{group}</b>. Nur Mitglieder dieser Gruppe können es ausleihen.", group=book.group.name) }}</div></div>
     {% else %}
       {% if my_res and my_res.status == "ready" %}
-      <div class="notice ok" style="margin-bottom: 12px">{{ icon("check") }}<div>{{ _("Für dich zurückgelegt – bitte bis {date} abholen.", date=my_res.hold_until|de_day) }}</div></div>
+      <div class="notice ok" style="margin-bottom: 12px">{{ icon("check") }}<div>{{ _("Für Sie zurückgelegt – bitte bis {date} abholen.", date=my_res.hold_until|de_day) }}</div></div>
       {% endif %}
       {% if avail_me > 0 and (self_checkout or current_user.can_manage(book)) %}
       <form method="post" action="{{ url_for('loans.borrow', book_id=book.id) }}">
@@ -87,16 +87,16 @@
         <button class="btn primary lg">{{ icon("loan") }} {{ _("Für mich ausleihen") }}</button>
       </form>
       {% elif avail_me > 0 %}
-      <div class="notice">{{ icon("desk") }}<div>{{ _("Bitte leihe dieses Buch an der Ausleihtheke aus.") }}</div></div>
+      <div class="notice">{{ icon("desk") }}<div>{{ _("Bitte leihen Sie dieses Buch an der Ausleihtheke aus.") }}</div></div>
       {% elif my_res %}
-      <div class="notice accent">{{ icon("clock") }}<div>{{ _("Du hast dieses Buch vorgemerkt – Platz {n} in der Warteschlange. Sobald ein Exemplar frei ist, wird es für dich zurückgelegt.", n=my_pos) }}</div></div>
+      <div class="notice accent">{{ icon("clock") }}<div>{{ _("Sie haben dieses Buch vorgemerkt – Platz {n} in der Warteschlange. Sobald ein Exemplar frei ist, wird es für Sie zurückgelegt.", n=my_pos) }}</div></div>
       {% else %}
       <div class="notice">{{ icon("clock") }}<div>{{ _("Derzeit sind alle Exemplare verliehen.") if not book.held else _("Derzeit sind alle Exemplare verliehen oder für Vormerkungen zurückgelegt.") }}</div></div>
       {% if res_on %}
       <form method="post" action="{{ url_for('loans.reserve', book_id=book.id) }}" style="margin-top: 12px">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="btn primary">{{ icon("pin") }} {{ _("Vormerken") }}</button>
-        <small class="muted" style="display: block; margin-top: 6px">{{ _("Du wirst benachrichtigt, sobald ein Exemplar für dich bereitliegt.") }}</small>
+        <small class="muted" style="display: block; margin-top: 6px">{{ _("Sie werden benachrichtigt, sobald ein Exemplar für Sie bereitliegt.") }}</small>
       </form>
       {% endif %}
       {% endif %}

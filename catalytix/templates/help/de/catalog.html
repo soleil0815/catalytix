@@ -1,20 +1,20 @@
-<p>Unter <span class="ui">Katalog</span> findest du alle Bücher, die du sehen darfst. Das Suchfeld oben durchsucht Titel, Untertitel, Autor, Verlag, Schlagwörter, Kategorie, Signatur, Standort und ISBN – du kannst eine ISBN auch eintippen oder mit dem Barcodescanner hineinscannen.</p>
+<p>Unter <span class="ui">Katalog</span> finden Sie alle Bücher, die Sie sehen dürfen. Das Suchfeld oben durchsucht Titel, Untertitel, Autor, Verlag, Schlagwörter, Kategorie, Signatur, Standort und ISBN – Sie können eine ISBN auch eintippen oder mit dem Barcodescanner hineinscannen.</p>
 <p>Schon beim Tippen (ab zwei Zeichen) erscheinen passende Bücher mit Autor, Signatur und freien Exemplaren. Ein Klick – oder Pfeiltasten und Enter – öffnet das Buch direkt; <span class="ui">Enter</span> ohne Auswahl zeigt wie gewohnt alle Treffer im Katalog.</p>
 <ul>
   <li><b>Filtern</b> nach Gruppe, Standort und Status (<span class="ui">Verfügbar</span> / <span class="ui">Ausgeliehen</span>).</li>
   <li><b>Sortieren</b> nach Titel, Autor, zuletzt erfasst oder Erscheinungsjahr.</li>
-  <li><b>Ansicht:</b> Rechts schaltest du zwischen <span class="ui">Kacheln</span> mit Cover und kompakter <span class="ui">Liste</span> um. Dein Browser merkt sich die Wahl.</li>
+  <li><b>Ansicht:</b> Rechts schalten Sie zwischen <span class="ui">Kacheln</span> mit Cover und kompakter <span class="ui">Liste</span> um. Ihr Browser merkt sich die Wahl.</li>
   <li>Ein Klick auf Cover oder Titel öffnet die <b>Buchseite</b> mit Standort, Signatur und der Zahl freier Exemplare.</li>
-  {% if f.is_librarian %}<li>Unter jedem freien Buch, das du verwaltest, steht <span class="ui">Verleihen</span>: Es öffnet die Buchseite direkt beim Formular <span class="ui">An Benutzer verleihen</span>.</li>{% endif %}
+  {% if f.is_librarian %}<li>Unter jedem freien Buch, das Sie verwalten, steht <span class="ui">Verleihen</span>: Es öffnet die Buchseite direkt beim Formular <span class="ui">An Benutzer verleihen</span>.</li>{% endif %}
   <li>Schlagwörter auf der Buchseite sind anklickbar und zeigen ähnliche Bücher.</li>
 </ul>
 {% if current_user.is_global_manager %}
-<p><b>Was du siehst:</b> Du verwaltest den gesamten Bestand und siehst daher alle Bücher.</p>
+<p><b>Was Sie sehen:</b> Sie verwalten den gesamten Bestand und sehen daher alle Bücher.</p>
 {% elif f.catalog_all %}
-<p><b>Was du siehst:</b> Der ganze Bestand der Bibliothek. Ausleihen kannst du aber nur allgemeine Bücher und Bücher deiner Gruppen – bei allen anderen zeigt die Buchseite einen Hinweis mit Schloss.</p>
+<p><b>Was Sie sehen:</b> Der ganze Bestand der Bibliothek. Ausleihen können Sie aber nur allgemeine Bücher und Bücher Ihrer Gruppen – bei allen anderen zeigt die Buchseite einen Hinweis mit Schloss.</p>
 {% else %}
-<p><b>Was du siehst:</b> Die allgemeinen Bücher und die Bücher deiner Gruppen{% if current_user.groups %} ({{ current_user.groups|map(attribute="name")|join(", ") }}){% endif %}. Bücher anderer Gruppen erscheinen nicht im Katalog.</p>
+<p><b>Was Sie sehen:</b> Die allgemeinen Bücher und die Bücher Ihrer Gruppen{% if current_user.groups %} ({{ current_user.groups|map(attribute="name")|join(", ") }}){% endif %}. Bücher anderer Gruppen erscheinen nicht im Katalog.</p>
 {% endif %}
 {% if current_user.is_librarian %}
-<p><b>Für Verwalter:</b> Oben im Katalog findest du <span class="ui">CSV</span>, <span class="ui">Schnellerfassung</span> und <span class="ui">Buch erfassen</span>.</p>
+<p><b>Für Verwalter:</b> Oben im Katalog finden Sie <span class="ui">CSV</span>, <span class="ui">Schnellerfassung</span> und <span class="ui">Buch erfassen</span>.</p>
 {% endif %}

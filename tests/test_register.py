@@ -90,7 +90,7 @@ class RegisterTests(unittest.TestCase):
         self.c.post(f"/admin/benutzer/{u.id}/freigeben")
         db.session.refresh(u)
         self.assertTrue(u.active)
-        self.assertTrue(any(m["subject"] == "Dein Konto ist freigeschaltet" for m in self.sent))
+        self.assertTrue(any(m["subject"] == "Ihr Konto ist freigeschaltet" for m in self.sent))
         self.c.post("/logout")
         r = self.c.post("/login", data={"username": "lena.s", "password": "einlangespasswort"})
         self.assertEqual(r.status_code, 302)
@@ -123,7 +123,7 @@ class RegisterTests(unittest.TestCase):
         self.assertFalse(u.active)
         self.assertFalse(u.email_verified)
         r = self.c.post("/login", data={"username": "lena.s", "password": "einlangespasswort"})
-        self.assertIn("bestätige zuerst", r.get_data(as_text=True))
+        self.assertIn("bestätigen Sie zuerst", r.get_data(as_text=True))
         self.c.post("/registrieren/erneut-senden")
         verify_mails = [m for m in self.sent if m["to"] == "lena@schule.de"]
         self.assertEqual(len(verify_mails), 2)

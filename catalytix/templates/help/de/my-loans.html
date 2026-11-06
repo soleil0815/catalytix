@@ -1,16 +1,16 @@
-<p>Unter <span class="ui">Meine Ausleihen</span> siehst du alles, was du gerade ausgeliehen hast, mit Ausleihdatum und Fälligkeit. Die Reiter <span class="ui">Überfällig</span> und <span class="ui">Verlauf</span> zeigen nur Überfälliges bzw. bereits Zurückgegebenes. Die Farbe verrät den Stand: grün = noch Zeit, gelb = bald fällig, rot = überfällig.</p>
+<p>Unter <span class="ui">Meine Ausleihen</span> sehen Sie alles, was Sie gerade ausgeliehen haben, mit Ausleihdatum und Fälligkeit. Die Reiter <span class="ui">Überfällig</span> und <span class="ui">Verlauf</span> zeigen nur Überfälliges bzw. bereits Zurückgegebenes. Die Farbe verrät den Stand: grün = noch Zeit, gelb = bald fällig, rot = überfällig.</p>
 {% if f.self_extend %}
 <p><b>Verlängern:</b> <span class="ui">Verlängern</span> schiebt die Rückgabe um {{ f.extension_days }} {{ "Tag" if f.extension_days == 1 else "Tage" }} hinaus – höchstens {{ f.max_extensions }}-mal pro Ausleihe. Gezählt wird ab dem späteren Datum: heute oder bisherige Fälligkeit. Ist die Höchstzahl erreicht, verschwindet der Knopf; dann kann nur noch die Bibliothek verlängern.</p>
 {% else %}
-<p><b>Verlängern</b> kann in dieser Bibliothek nur das Personal. Frag rechtzeitig vor der Fälligkeit an der Ausleihtheke nach.</p>
+<p><b>Verlängern</b> kann in dieser Bibliothek nur das Personal. Fragen Sie rechtzeitig vor der Fälligkeit an der Ausleihtheke nach.</p>
 {% endif %}
-<p><b>Zurückgeben:</b> {% if f.self_return %}Mit <span class="ui">Rückgabe</span> buchst du das Buch selbst zurück – stell es danach an seinen Standort.{% else %}Bring das Buch zur Ausleihtheke; einen Rückgabe-Knopf gibt es für dich nicht.{% endif %}</p>
+<p><b>Zurückgeben:</b> {% if f.self_return %}Mit <span class="ui">Rückgabe</span> buchen Sie das Buch selbst zurück – stellen Sie es danach an seinen Standort.{% else %}Bringen Sie das Buch zur Ausleihtheke; einen Rückgabe-Knopf gibt es für Sie nicht.{% endif %}</p>
 {% if f.mail_on and (f.reminder_on or f.overdue_on) %}
 <p><b>E-Mails:</b>
-{% if f.reminder_on %}Kurz vor der Fälligkeit (bis zu {{ f.reminder_days }} Tag{{ "e" if f.reminder_days != 1 }} vorher) bekommst du eine Erinnerung.{% endif %}
+{% if f.reminder_on %}Kurz vor der Fälligkeit (bis zu {{ f.reminder_days }} Tag{{ "e" if f.reminder_days != 1 }} vorher) bekommen Sie eine Erinnerung.{% endif %}
 {% if f.overdue_on %}Ist ein Buch überfällig, folgt eine Mahnung.{% endif %}
-Mehrere Bücher stehen in einer Mail. Abschalten kannst du das unter <span class="ui">Mein Profil</span>.</p>
+Mehrere Bücher stehen in einer Mail. Abschalten können Sie das unter <span class="ui">Mein Profil</span>.</p>
 {% endif %}
 {% if current_user.is_librarian %}
-<p><b>Für Verwalter:</b> <span class="ui">Meine Ausleihen</span> zeigt nur deine eigenen. Die Ausleihen aller Leser findest du unter <span class="ui">Verwaltung → Alle Ausleihen</span>.</p>
+<p><b>Für Verwalter:</b> <span class="ui">Meine Ausleihen</span> zeigt nur Ihre eigenen. Die Ausleihen aller Leser finden Sie unter <span class="ui">Verwaltung → Alle Ausleihen</span>.</p>
 {% endif %}

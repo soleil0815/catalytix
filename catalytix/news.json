@@ -38,7 +38,7 @@
     "audience": "admin",
     "de": {
      "title": "Fristen für die Abmeldung einstellen",
-     "text": "Unter Einstellungen → Automatische Abmeldung legst du die Frist für alle (Standard 12 Stunden), eine kürzere für Admins (Standard 60 Minuten) und optional eine für Anmeldungen von außen fest. „Angemeldet bleiben“ gibt es für Admins nicht mehr."
+     "text": "Unter Einstellungen → Automatische Abmeldung legen Sie die Frist für alle (Standard 12 Stunden), eine kürzere für Admins (Standard 60 Minuten) und optional eine für Anmeldungen von außen fest. „Angemeldet bleiben“ gibt es für Admins nicht mehr."
     },
     "en": {
      "title": "Set the sign-out limits",
@@ -74,7 +74,7 @@
     "audience": "admin",
     "de": {
      "title": "„Buy me a coffee“",
-     "text": "Unten in der Seitenleiste gibt es jetzt einen „Buy me a coffee“-Button, über den du die Weiterentwicklung unterstützen kannst. Nur Admins sehen ihn."
+     "text": "Unten in der Seitenleiste gibt es jetzt einen „Buy me a coffee“-Button, über den Sie die Weiterentwicklung unterstützen können. Nur Admins sehen ihn."
     },
     "en": {
      "title": "\"Buy me a coffee\"",
@@ -110,7 +110,7 @@
     "audience": "admin",
     "de": {
      "title": "AD-Rollen: eindeutige Gruppen für Administratoren und Verwalter",
-     "text": "Ein bloßer Gruppenname bei Administratoren oder Verwaltern passte auf jede gleichnamige Gruppe im AD. Beim Speichern wird er jetzt in den DN genau dieser Gruppe umgewandelt. Steht bei dir noch ein bloßer Name, weist die Seite Active Directory darauf hin – einmal speichern genügt."
+     "text": "Ein bloßer Gruppenname bei Administratoren oder Verwaltern passte auf jede gleichnamige Gruppe im AD. Beim Speichern wird er jetzt in den DN genau dieser Gruppe umgewandelt. Steht bei Ihnen noch ein bloßer Name, weist die Seite Active Directory darauf hin – einmal speichern genügt."
     },
     "en": {
      "title": "AD roles: unique groups for administrators and librarians",
@@ -146,7 +146,7 @@
     "audience": "all",
     "de": {
      "title": "Sicherere Bestätigung einer neuen E-Mail-Adresse",
-     "text": "Ein Bestätigungslink für eine neue E-Mail-Adresse gilt nur noch einmal und nur, solange die Adresse im Konto noch die ist, von der aus du die Änderung angefordert hast. Ältere Links – etwa an eine vertippte Adresse – sind danach ungültig."
+     "text": "Ein Bestätigungslink für eine neue E-Mail-Adresse gilt nur noch einmal und nur, solange die Adresse im Konto noch die ist, von der aus Sie die Änderung angefordert haben. Ältere Links – etwa an eine vertippte Adresse – sind danach ungültig."
     },
     "en": {
      "title": "Safer confirmation of a new e-mail address",
@@ -290,7 +290,7 @@
     "audience": "librarian",
     "de": {
      "title": "Verleihen direkt aus dem Katalog",
-     "text": "Unter jedem freien Buch, das du verwaltest, steht im Katalog jetzt „Verleihen“. Es öffnet die Buchseite direkt beim Formular „An Benutzer verleihen“ – der Weg über die Ausleihtheke ist dafür nicht mehr nötig."
+     "text": "Unter jedem freien Buch, das Sie verwalten, steht im Katalog jetzt „Verleihen“. Es öffnet die Buchseite direkt beim Formular „An Benutzer verleihen“ – der Weg über die Ausleihtheke ist dafür nicht mehr nötig."
     },
     "en": {
      "title": "Lend straight from the catalogue",
@@ -314,7 +314,7 @@
     "audience": "librarian",
     "de": {
      "title": "Gleiches Buch noch einmal erfasst? Exemplare werden hinzugezählt",
-     "text": "Legst du ein Buch an, das es mit derselben ISBN in derselben Gruppe schon gibt, entsteht kein zweiter Eintrag mehr – die Exemplare werden beim vorhandenen Buch hinzugezählt."
+     "text": "Legen Sie ein Buch an, das es mit derselben ISBN in derselben Gruppe schon gibt, entsteht kein zweiter Eintrag mehr – die Exemplare werden beim vorhandenen Buch hinzugezählt."
     },
     "en": {
      "title": "Same book added again? The copies are added",
@@ -428,7 +428,7 @@
     "audience": "all",
     "de": {
      "title": "Bücher vormerken",
-     "text": "Sind alle Exemplare verliehen, kannst du ein Buch auf seiner Seite vormerken. Wird eines frei, wird es für dich zurückgelegt und du bekommst Bescheid. Deine Vormerkungen und deinen Platz in der Warteschlange siehst du unter „Meine Ausleihen“."
+     "text": "Sind alle Exemplare verliehen, können Sie ein Buch auf seiner Seite vormerken. Wird eines frei, wird es für Sie zurückgelegt und Sie bekommen Bescheid. Ihre Vormerkungen und Ihren Platz in der Warteschlange sehen Sie unter „Meine Ausleihen“."
     },
     "en": {
      "title": "Reserve books",
@@ -440,7 +440,7 @@
     "audience": "admin",
     "de": {
      "title": "Vormerken einschalten",
-     "text": "Das Vormerken ist optional: Einstellungen → Vormerken. Dort legst du auch die Abholfrist und die Höchstzahl an Vormerkungen je Person fest."
+     "text": "Das Vormerken ist optional: Einstellungen → Vormerken. Dort legen Sie auch die Abholfrist und die Höchstzahl an Vormerkungen je Person fest."
     },
     "en": {
      "title": "Switching reservations on",
@@ -548,7 +548,7 @@
     "audience": "all",
     "de": {
      "title": "Anmeldung besser geschützt",
-     "text": "Angriffe von außen auf viele Konten gleichzeitig werden gebremst. Sperren nach Fehlversuchen aus dem Internet treffen dich im Hausnetz nicht mehr."
+     "text": "Angriffe von außen auf viele Konten gleichzeitig werden gebremst. Sperren nach Fehlversuchen aus dem Internet treffen Sie im Hausnetz nicht mehr."
     },
     "en": {
      "title": "Better protected sign-in",

@@ -56,7 +56,7 @@
 {% if unlisted %}
 <section class="card" style="margin-top: 22px">
   <div class="card-head"><h2>{{ _("Im Bestand, aber nicht festgelegt") }}</h2><span class="muted">{{ unlisted|length }}</span></div>
-  <p class="muted" style="font-size: 13.5px; padding: 0 22px; margin: 4px 0 8px">{{ _("Diese Standorte wurden früher frei eingetippt. Übernimm sie in die Liste oder ersetze Tippfehler durch einen festgelegten Standort – die Bücher werden dabei mit umgestellt.") }}</p>
+  <p class="muted" style="font-size: 13.5px; padding: 0 22px; margin: 4px 0 8px">{{ _("Diese Standorte wurden früher frei eingetippt. Übernehmen Sie sie in die Liste oder ersetzen Sie Tippfehler durch einen festgelegten Standort – die Bücher werden dabei mit umgestellt.") }}</p>
   {% for u in unlisted %}
   <div class="list-row" style="flex-wrap: wrap; gap: 10px">
     <div class="grow" style="min-width: 160px"><b style="white-space: pre">{{ u.value }}</b>

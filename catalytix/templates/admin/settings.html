@@ -103,7 +103,7 @@
 
     <section class="card card-pad">
       <h2 style="margin-bottom: 6px">{{ icon("shield") }} {{ _("Zwei-Faktor-Anmeldung") }}</h2>
-      <p class="muted" style="font-size: 13.5px">{{ _("Authenticator-App (TOTP) oder Sicherheitsschlüssel (YubiKey/FIDO2). Jeder kann sie im Profil freiwillig einrichten; hier legst du fest, für wen sie Pflicht ist. Betroffene werden nach der nächsten Anmeldung zur Einrichtung geführt.") }}</p>
+      <p class="muted" style="font-size: 13.5px">{{ _("Authenticator-App (TOTP) oder Sicherheitsschlüssel (YubiKey/FIDO2). Jeder kann sie im Profil freiwillig einrichten; hier legen Sie fest, für wen sie Pflicht ist. Betroffene werden nach der nächsten Anmeldung zur Einrichtung geführt.") }}</p>
       <div class="field"><label for="f-mfa-policy">{{ _("Pflicht bei Zugriff von außen (Internet)") }}</label>
         <select id="f-mfa-policy" name="mfa_policy">
           <option value="optional" {{ 'selected' if s('mfa_policy') == 'optional' }}>{{ _("niemanden (freiwillig)") }}</option>
@@ -119,19 +119,19 @@
         </select>
         <div class="hint">{{ _("Eine intern ohne zweiten Faktor begonnene Sitzung gilt nicht von außen: Wer damit von außerhalb zugreift (z. B. Laptop zu Hause), muss sich neu anmelden. „Angemeldet bleiben“ wirkt dann nicht.") }}</div>
         {% if s('mfa_internal') != 'same' and config.TRUSTED_PROXIES_DEFAULT %}
-        <div class="notice warn" style="display: block; font-size: 12.5px; margin-top: 8px">{{ _("Empfehlung: Ohne Zwei-Faktor im internen Netz entscheidet die vom Reverse-Proxy gemeldete Adresse, wer als intern gilt. Derzeit wird diese Angabe von jeder privaten Adresse angenommen. Trage in der <code>.env</code> die Adresse eures Proxys ein (<code>CATALYTIX_TRUSTED_PROXIES=…</code>) und sorge dafür, dass Port 9300 nur für den Proxy erreichbar ist (<code>CATALYTIX_BIND</code> oder gemeinsames Docker-Netz) – sonst kann sich jemand, der den Port direkt erreicht, als intern ausgeben.") }}</div>
+        <div class="notice warn" style="display: block; font-size: 12.5px; margin-top: 8px">{{ _("Empfehlung: Ohne Zwei-Faktor im internen Netz entscheidet die vom Reverse-Proxy gemeldete Adresse, wer als intern gilt. Derzeit wird diese Angabe von jeder privaten Adresse angenommen. Tragen Sie in der <code>.env</code> die Adresse Ihres Proxys ein (<code>CATALYTIX_TRUSTED_PROXIES=…</code>) und sorgen Sie dafür, dass Port 9300 nur für den Proxy erreichbar ist (<code>CATALYTIX_BIND</code> oder gemeinsames Docker-Netz) – sonst kann sich jemand, der den Port direkt erreicht, als intern ausgeben.") }}</div>
         {% endif %}</div>
       <div class="field"><label for="f-internal-networks">{{ _("Internes Netz") }}</label>
         <textarea id="f-internal-networks" name="internal_networks" rows="4" class="mono" placeholder="{{ default_networks }}">{{ s('internal_networks') }}</textarea>
-        <div class="hint">{{ _("Ein Netz pro Zeile, z. B. <code>192.168.10.0/24</code>. Leer = 10.x und 192.168.x (siehe Platzhalter) – Docker-Netze 172.16–31.x zählen nur, wenn du sie einträgst. Am besten auf euer tatsächliches LAN eingrenzen.") }}</div></div>
+        <div class="hint">{{ _("Ein Netz pro Zeile, z. B. <code>192.168.10.0/24</code>. Leer = 10.x und 192.168.x (siehe Platzhalter) – Docker-Netze 172.16–31.x zählen nur, wenn Sie sie eintragen. Am besten auf Ihr tatsächliches LAN eingrenzen.") }}</div></div>
       <div class="field"><label for="f-own-public-hosts">{{ _("Eigener Internetanschluss") }}</label>
         <textarea id="f-own-public-hosts" name="own_public_hosts" rows="2" class="mono" placeholder="{{ _('meinebibliothek.dyndns.org') }}">{{ s('own_public_hosts') }}</textarea>
         <div class="hint">{% if connection.own_ips %}{{ _("Feste öffentliche IP oder DynDNS-Name, ein Eintrag pro Zeile. Wer über diese Adresse kommt, gilt als intern – nötig, wenn interne Rechner die öffentliche Domain aufrufen und der Router sie dabei als eigene öffentliche IP ausgibt. DynDNS-Namen werden alle 5 Minuten neu aufgelöst (derzeit: <code>{ips}</code>).", ips=connection.own_ips|join(', ')) }}{% else %}{{ _("Feste öffentliche IP oder DynDNS-Name, ein Eintrag pro Zeile. Wer über diese Adresse kommt, gilt als intern – nötig, wenn interne Rechner die öffentliche Domain aufrufen und der Router sie dabei als eigene öffentliche IP ausgibt. DynDNS-Namen werden alle 5 Minuten neu aufgelöst.") }}{% endif %}</div>
-        <div class="notice warn" style="display: block; font-size: 12.5px; margin-top: 8px">{{ _("Achtung: Auch Geräte im <b>Gäste-WLAN</b> und alle anderen Geräte hinter eurem Router kommen mit dieser Adresse an und gelten dann als intern. Gäste-WLAN daher getrennt halten oder für die Bibliothek sperren.") }}</div></div>
+        <div class="notice warn" style="display: block; font-size: 12.5px; margin-top: 8px">{{ _("Achtung: Auch Geräte im <b>Gäste-WLAN</b> und alle anderen Geräte hinter Ihrem Router kommen mit dieser Adresse an und gelten dann als intern. Gäste-WLAN daher getrennt halten oder für die Bibliothek sperren.") }}</div></div>
       <div class="notice {{ 'ok' if connection.internal else 'accent' }}" style="display: block; font-size: 13px; margin-bottom: 12px">
-        {% if connection.internal and connection.zone == 'own' %}{{ _("Deine aktuelle Verbindung ({ip}) gilt als <b>intern</b> (über den eigenen Internetanschluss).", ip=connection.ip) }}
-        {%- elif connection.internal %}{{ _("Deine aktuelle Verbindung ({ip}) gilt als <b>intern</b>.", ip=connection.ip) }}
-        {%- else %}{{ _("Deine aktuelle Verbindung ({ip}) gilt als <b>extern</b>.", ip=connection.ip) }}{% endif %}
+        {% if connection.internal and connection.zone == 'own' %}{{ _("Ihre aktuelle Verbindung ({ip}) gilt als <b>intern</b> (über den eigenen Internetanschluss).", ip=connection.ip) }}
+        {%- elif connection.internal %}{{ _("Ihre aktuelle Verbindung ({ip}) gilt als <b>intern</b>.", ip=connection.ip) }}
+        {%- else %}{{ _("Ihre aktuelle Verbindung ({ip}) gilt als <b>extern</b>.", ip=connection.ip) }}{% endif %}
         {% if connection.proxy_without_ip %}<br>{{ _("Der Reverse-Proxy schickt keine Besucher-Adresse (<code>X-Forwarded-For</code>) – solche Zugriffe gelten aus Sicherheitsgründen immer als extern.") }}{% endif %}
         <br><small>{{ _("Zum Prüfen einmal vom Handy über mobile Daten aufrufen: Dort muss „extern“ stehen.") }}</small></div>
       <p class="muted" style="font-size: 12.5px">{{ _('Probleme mit dem zweiten Faktor? Unter <a href="{url}">Benutzer</a> → Konto öffnen → „Zwei-Faktor-Anmeldung zurücksetzen“ bzw. „Anmeldesperre aufheben“.', url=url_for('admin.users')) }}</p>
@@ -152,7 +152,7 @@
           <div class="hint">{{ _("Optional, 5–720. Was „außen“ ist, legt „Internes Netz“ oben fest.") }}</div></div>
       </div>
       <label class="check"><input type="checkbox" name="session_warning" value="1" {{ 'checked' if s('session_warning') == '1' }}>
-        <span>{{ _("Vorher warnen") }}<small class="muted">{{ _("Zwei Minuten vor der Abmeldung erscheint „Du wirst in 2 Minuten abgemeldet – weiterarbeiten?“, damit niemand mitten im Tippen herausfliegt.") }}</small></span></label>
+        <span>{{ _("Vorher warnen") }}<small class="muted">{{ _("Zwei Minuten vor der Abmeldung erscheint „Sie werden in 2 Minuten abgemeldet – weiterarbeiten?“, damit niemand mitten im Tippen herausfliegt.") }}</small></span></label>
       <label class="check"><input type="checkbox" name="session_browser_close" value="1" {{ 'checked' if s('session_browser_close') == '1' }}>
         <span>{{ _("Beim Schließen des Browsers abmelden") }}<small class="muted">{{ _("Die Anmeldung bleibt nicht über einen Browser-Neustart hinweg bestehen; „Angemeldet bleiben“ entfällt.") }}</small></span></label>
       <p class="muted" style="font-size: 12.5px">{{ _("„Angemeldet bleiben“ gibt es nur, wo keine kürzere Frist gilt – also nicht für Admins (mit eigener Frist) und nicht von außen (mit eigener Frist). Sonst würde die Anmeldung nach einem Browser-Neustart die Frist umgehen.") }}</p>

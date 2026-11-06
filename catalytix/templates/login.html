@@ -6,7 +6,7 @@
   <a href="{{ url_for('admin.branding') }}">{{ _("Zurück") }}</a></div>{% endif %}
 {% if unverified %}
 <div class="notice warn" style="margin-bottom: 18px; display: block">
-  {{ _("<b>Bitte bestätige zuerst deine E-Mail-Adresse.</b> Den Link dazu haben wir dir bei der Registrierung geschickt.") }}
+  {{ _("<b>Bitte bestätigen Sie zuerst Ihre E-Mail-Adresse.</b> Den Link dazu haben wir Ihnen bei der Registrierung geschickt.") }}
   <form method="post" action="{{ url_for('register.resend') }}" style="margin-top: 10px">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button class="btn sm">{{ icon("mail") }} {{ _("Link erneut senden") }}</button>
@@ -14,7 +14,7 @@
 </div>
 {% endif %}
 <h2>{{ _("Willkommen zurück") }}</h2>
-<p class="muted">{{ _("Bitte melde dich mit deinem Benutzerkonto an.") }}</p>
+<p class="muted">{{ _("Bitte melden Sie sich mit Ihrem Benutzerkonto an.") }}</p>
 <form method="post" style="margin-top: 26px" {% if preview %}data-no-submit{% endif %}>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="field">

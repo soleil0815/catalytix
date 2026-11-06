@@ -15,7 +15,7 @@
     <section class="card card-pad">
       {% if ldap_user %}
       <div class="notice accent" style="margin-bottom: 18px">{{ icon("server") }}
-        <div>{{ _('Dieses Konto kommt aus dem Active Directory. Name, E-Mail und <b>Rolle</b> werden bei jeder Anmeldung aus dem AD übernommen (Regeln unter <a href="{url}">Active Directory</a>). Hier kannst du Gruppen zuordnen und das Konto sperren.', url=url_for('admin.ldap')) }}
+        <div>{{ _('Dieses Konto kommt aus dem Active Directory. Name, E-Mail und <b>Rolle</b> werden bei jeder Anmeldung aus dem AD übernommen (Regeln unter <a href="{url}">Active Directory</a>). Hier können Sie Gruppen zuordnen und das Konto sperren.', url=url_for('admin.ldap')) }}
           <br><small class="mono">{{ user.ldap_dn }}</small></div></div>
       {% endif %}
       <div class="form-grid">

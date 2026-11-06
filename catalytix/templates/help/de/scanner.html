@@ -1,10 +1,10 @@
-<p><b>USB- oder Bluetooth-Barcodescanner</b> funktionieren ohne Einrichtung: Sie verhalten sich wie eine Tastatur. Klick ins Eingabefeld und scanne – der Scanner „tippt“ die ISBN und drückt Enter. Das klappt in der Katalogsuche, unter <span class="ui">Buch erfassen</span>, in der <span class="ui">Schnellerfassung</span> und an der <span class="ui">Ausleihtheke</span>. An der Theke ist ein Scanner am schnellsten und zuverlässigsten.</p>
+<p><b>USB- oder Bluetooth-Barcodescanner</b> funktionieren ohne Einrichtung: Sie verhalten sich wie eine Tastatur. Klicken Sie ins Eingabefeld und scannen Sie – der Scanner „tippt“ die ISBN und drückt Enter. Das klappt in der Katalogsuche, unter <span class="ui">Buch erfassen</span>, in der <span class="ui">Schnellerfassung</span> und an der <span class="ui">Ausleihtheke</span>. An der Theke ist ein Scanner am schnellsten und zuverlässigsten.</p>
 <ul>
   <li>Kommt nichts an, steht der Cursor nicht im Feld – einmal hineinklicken.</li>
   <li>Folgt kein Enter, den Scanner laut Anleitung auf „Enter/CR als Suffix“ einstellen.</li>
   <li>Erscheinen falsche Zeichen, passt das Tastaturlayout des Scanners nicht zum Rechner (z. B. US statt Deutsch).</li>
 </ul>
-<p><b>Kamera</b> (Handy, Tablet, Laptop): Klicke auf das Kamera-Symbol bzw. <span class="ui">Mit Kamera scannen</span>, erlaube den Kamerazugriff und halte den ISBN-Barcode in den Rahmen. Erkannt wird nur ein gültiger ISBN-Barcode (EAN-13 mit 978/979). Chrome, Edge und Android nutzen die eingebaute Erkennung, Firefox und Safari eine mitgelieferte – es wird nichts von fremden Servern geladen.</p>
+<p><b>Kamera</b> (Handy, Tablet, Laptop): Klicken Sie auf das Kamera-Symbol bzw. <span class="ui">Mit Kamera scannen</span>, erlauben Sie den Kamerazugriff und halten Sie den ISBN-Barcode in den Rahmen. Erkannt wird nur ein gültiger ISBN-Barcode (EAN-13 mit 978/979). Chrome, Edge und Android nutzen die eingebaute Erkennung, Firefox und Safari eine mitgelieferte – es wird nichts von fremden Servern geladen.</p>
 <p>Browser erlauben die Kamera <b>nur über HTTPS</b> (oder localhost).
-{% if f.https %}Du bist gerade über HTTPS verbunden – die Kamera kann genutzt werden.{% else %}<b>Du bist gerade nicht über HTTPS verbunden</b>, die Kamera startet hier also nicht. Ruf die Bibliothek über ihre https-Adresse auf oder nimm einen USB-Scanner.{% endif %}
-Wurde der Zugriff einmal verweigert, erlaubst du ihn in den Website-Einstellungen des Browsers wieder.</p>
+{% if f.https %}Sie sind gerade über HTTPS verbunden – die Kamera kann genutzt werden.{% else %}<b>Sie sind gerade nicht über HTTPS verbunden</b>, die Kamera startet hier also nicht. Rufen Sie die Bibliothek über ihre https-Adresse auf oder nehmen Sie einen USB-Scanner.{% endif %}
+Wurde der Zugriff einmal verweigert, erlauben Sie ihn in den Website-Einstellungen des Browsers wieder.</p>

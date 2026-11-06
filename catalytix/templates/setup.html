@@ -4,7 +4,7 @@
 {% block auth %}
 <div class="eyebrow">{{ _("Ersteinrichtung") }}</div>
 <h2>{{ _("Bibliothek einrichten") }}</h2>
-<p class="muted">{{ _("Lege das lokale Administratorkonto an. Es funktioniert auch dann, wenn das Active Directory nicht erreichbar ist.") }}</p>
+<p class="muted">{{ _("Legen Sie das lokale Administratorkonto an. Es funktioniert auch dann, wenn das Active Directory nicht erreichbar ist.") }}</p>
 <form method="post" style="margin-top: 22px">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="field"><label for="f-setup-code">{{ _("Einrichtungscode") }}</label>

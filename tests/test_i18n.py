@@ -71,6 +71,26 @@ def fields(s: str) -> set[str]:
         return {"<invalid>"}
 
 
+DU_WORDS = re.compile(r"\b(du|dich|dir|dein|deine|deinen|deinem|deiner|deines|euch|euer|eure|euren|eurem|eurer|eures)\b",
+                      re.IGNORECASE)
+
+
+class FormalAddressTests(unittest.TestCase):
+    """3.1.0: the German interface addresses users formally ("Sie") – no "du" texts may come back."""
+
+    def test_msgids(self):
+        hits = sorted(m for m in template_msgids() | python_msgids() | js_msgids() if DU_WORDS.search(m))
+        self.assertEqual(hits, [])
+
+    def test_help_mails_news(self):
+        files = list((PKG / "templates" / "help" / "de").glob("*.html"))
+        hits = [f"{f.name}: {m.group(0)}" for f in files for m in DU_WORDS.finditer(f.read_text(encoding="utf-8"))]
+        news = json.loads((PKG / "news.json").read_text(encoding="utf-8"))
+        hits += [f"news {e['version']}: {m.group(0)}" for e in news for i in e["items"]
+                 for m in DU_WORDS.finditer(i["de"]["title"] + " " + i["de"]["text"])]
+        self.assertEqual(hits, [])
+
+
 class CatalogTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

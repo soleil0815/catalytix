@@ -6,7 +6,7 @@
   <div>
     <div class="eyebrow">{{ current_user.role_label }}</div>
     <h1>{{ _("Hilfe") }}</h1>
-    <p class="muted">{{ _("Hier steht nur, was du mit deiner Rolle tun kannst – passend zu den Einstellungen dieser Bibliothek.") }}</p>
+    <p class="muted">{{ _("Hier steht nur, was Sie mit Ihrer Rolle tun können – passend zu den Einstellungen dieser Bibliothek.") }}</p>
   </div>
   {% if has_manual %}
   <div class="actions"><a class="btn" href="{{ url_for('help.manual', name=manual) }}" target="_blank" rel="noopener">{{ icon("download") }} {{ _("Handbuch (PDF)") }}</a></div>
@@ -30,7 +30,7 @@
       </div>
     </section>
     {% endfor %}{% endfor %}
-    <p class="muted help-empty" data-help-empty>{{ _("Nichts gefunden. Versuche ein anderes Wort.") }}</p>
+    <p class="muted help-empty" data-help-empty>{{ _("Nichts gefunden. Versuchen Sie ein anderes Wort.") }}</p>
   </div>
 </div>
 {% endblock %}

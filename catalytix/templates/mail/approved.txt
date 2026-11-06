@@ -1,7 +1,7 @@
-{{ _("Dein Konto ist freigeschaltet") }}
+{{ _("Ihr Konto ist freigeschaltet") }}
 {{ _("Hallo {name},", name=user.name|safe) }}
 
-{{ _("dein Konto bei „{library}“ wurde freigegeben. Du kannst dich jetzt anmelden:", library=library_name|safe) }}
+{{ _("Ihr Konto bei „{library}“ wurde freigegeben. Sie können sich jetzt anmelden:", library=library_name|safe) }}
 
 {% if link %}{{ link }}{% endif %}
 

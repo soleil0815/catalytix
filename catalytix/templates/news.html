@@ -14,7 +14,7 @@
     <div class="news-head">
       <h2>{{ _("Version {version}", version=entry.version) }}</h2>
       {% if entry.date %}<span class="muted">{{ entry.date|de_day }}</span>{% endif %}
-      {% if entry.unseen %}<span class="badge accent">{{ _("neu für dich") }}</span>{% endif %}
+      {% if entry.unseen %}<span class="badge accent">{{ _("neu für Sie") }}</span>{% endif %}
     </div>
     <ul>
       {% for item in entry["items"] %}

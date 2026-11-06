@@ -99,7 +99,7 @@
         {% if stored_certs %}<span class="badge ok">{{ icon("lock") }} {{ _("{n} hinterlegt", n=stored_certs|length) }}</span>
         {% else %}<span class="badge">{{ _("keins hinterlegt") }}</span>{% endif %}
       </div>
-      <p class="muted" style="font-size: 13.5px">{{ _("Das Zertifikat wird direkt vom Domänencontroller geholt (LDAPS oder StartTLS), dabei wird die Stamm-CA automatisch ergänzt – über die AIA-Adresse im Zertifikat oder aus dem AD selbst. Du prüfst den Fingerabdruck und bestätigst.") }}</p>
+      <p class="muted" style="font-size: 13.5px">{{ _("Das Zertifikat wird direkt vom Domänencontroller geholt (LDAPS oder StartTLS), dabei wird die Stamm-CA automatisch ergänzt – über die AIA-Adresse im Zertifikat oder aus dem AD selbst. Sie prüfen den Fingerabdruck und bestätigen.") }}</p>
 
       {% if fetched %}
       <div class="notice accent" style="margin: 14px 0; display: block">
@@ -122,7 +122,7 @@
         {% endfor %}
         {% for n in fetched.notes %}<p style="margin-top: 10px"><small>ℹ {{ n }}</small></p>{% endfor %}
         {% for host, ok in fetched.hosts.items() if not ok %}
-        <p style="margin-top: 10px; color: var(--warn)"><small>⚠ {{ _("„{host}“ steht nicht im Server-Zertifikat. Trage besser den DNS-Namen des DCs ein (siehe „Namen“) oder schalte die Hostname-Prüfung ab.", host=host) }}</small></p>
+        <p style="margin-top: 10px; color: var(--warn)"><small>⚠ {{ _("„{host}“ steht nicht im Server-Zertifikat. Tragen Sie besser den DNS-Namen des DCs ein (siehe „Namen“) oder schalten Sie die Hostname-Prüfung ab.", host=host) }}</small></p>
         {% endfor %}
         <textarea name="pending_pem" hidden>{{ fetched.pem }}</textarea>
         <span hidden data-scroll-to="tls" data-scroll-block="start"></span>
@@ -150,7 +150,7 @@
       <label class="check"><input type="checkbox" name="ldap_verify_cert" value="1" {{ 'checked' if v.ldap_verify_cert == '1' }}>
         <span>{{ _("Zertifikat prüfen") }}<small class="muted">{{ _("Nur zu Testzwecken abschalten.") }}</small></span></label>
       <label class="check"><input type="checkbox" name="ldap_check_hostname" value="1" {{ 'checked' if v.ldap_check_hostname == '1' }}>
-        <span>{{ _("Hostname prüfen") }}<small class="muted">{{ _("Der Servername muss im Zertifikat stehen. Abschalten, wenn du den DC per IP-Adresse ansprichst.") }}</small></span></label>
+        <span>{{ _("Hostname prüfen") }}<small class="muted">{{ _("Der Servername muss im Zertifikat stehen. Abschalten, wenn Sie den DC per IP-Adresse ansprechen.") }}</small></span></label>
       <details style="margin-top: 6px">
         <summary class="muted" style="cursor: pointer; font-size: 13.5px">{{ _("Erweitert: eigene CA-Datei") }}</summary>
         <div class="field" style="margin-top: 10px"><label for="f-ldap-ca-file">{{ _("CA-Zertifikat (Pfad auf dem Server)") }}</label>
@@ -186,7 +186,7 @@
     <div class="stack">
       <section class="card card-pad">
         <h2 style="margin-bottom: 6px">{{ _("Wer darf was?") }}</h2>
-        <p class="muted" style="font-size: 13.5px">{{ _("Trage pro Rolle die <b>AD-Gruppen</b> ein – eine pro Zeile, einfach mit ihrem Namen (z. B. <code>Bibliothek-Admins</code>). Mitglieder verschachtelter Gruppen zählen mit. Die höchste passende Rolle gewinnt; wer in keiner Gruppe ist, kann sich nicht anmelden.") }}</p>
+        <p class="muted" style="font-size: 13.5px">{{ _("Tragen Sie pro Rolle die <b>AD-Gruppen</b> ein – eine pro Zeile, einfach mit ihrem Namen (z. B. <code>Bibliothek-Admins</code>). Mitglieder verschachtelter Gruppen zählen mit. Die höchste passende Rolle gewinnt; wer in keiner Gruppe ist, kann sich nicht anmelden.") }}</p>
         {% if bare_strict %}
         <div class="notice warn" style="margin-bottom: 12px">{{ _("Bei Administratoren oder Verwaltern steht noch ein bloßer Gruppenname ({names}). Er passt auf jede gleichnamige Gruppe im AD. Einmal speichern – dann wird er in den DN genau dieser Gruppe umgewandelt.", names=bare_strict|join(", ")) }}</div>
         {% endif %}

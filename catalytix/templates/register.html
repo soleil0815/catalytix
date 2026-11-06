@@ -3,7 +3,7 @@
 {% block title %}{{ _("Registrieren") }}{% endblock %}
 {% block auth %}
 <h2>{{ _("Konto erstellen") }}</h2>
-<p class="muted">{{ _("Registriere dich, um Bücher auszuleihen.") }}</p>
+<p class="muted">{{ _("Registrieren Sie sich, um Bücher auszuleihen.") }}</p>
 <form method="post" style="margin-top: 22px" autocomplete="on">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   {# Invisible to humans – if it gets filled in, it was a bot #}

@@ -16,7 +16,7 @@
 </div>
 
 {% if not supported %}
-<div class="notice warn">{{ _("Die automatische Datensicherung gibt es nur für die eingebaute SQLite-Datenbank. Bei MySQL/MariaDB oder PostgreSQL sichert ihr am besten mit den Werkzeugen des Datenbankservers (z. B. <code>mysqldump</code> oder <code>pg_dump</code>).") }}</div>
+<div class="notice warn">{{ _("Die automatische Datensicherung gibt es nur für die eingebaute SQLite-Datenbank. Bei MySQL/MariaDB oder PostgreSQL sichern Sie am besten mit den Werkzeugen des Datenbankservers (z. B. <code>mysqldump</code> oder <code>pg_dump</code>).") }}</div>
 {% else %}
 {% if warning %}<div class="notice danger" style="margin-bottom: 18px">{{ icon("alert") }} {{ warning }} {{ last_result }}</div>{% endif %}
 

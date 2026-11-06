@@ -3,7 +3,7 @@
 {% block title %}{{ _("Bestätigung") }}{% endblock %}
 {% block auth %}
 <h2>{{ _("Noch ein Schritt") }}</h2>
-<p class="muted">{{ _("Bestätige die Anmeldung mit deinem zweiten Faktor.") }}</p>
+<p class="muted">{{ _("Bestätigen Sie die Anmeldung mit Ihrem zweiten Faktor.") }}</p>
 
 {% if mode == "wiederherstellung" %}
 <form method="post" style="margin-top: 22px" autocomplete="off">
@@ -23,7 +23,7 @@
   {% endif %}
   {% if user.totp_enabled and totp_broken %}
   <div class="notice warn" style="margin-top: 20px">{{ _("Die Authenticator-App für dieses Konto muss neu eingerichtet werden.") }}
-    {% if has_keys %}{{ _("Melde dich mit einem Wiederherstellungscode oder deinem Sicherheitsschlüssel an und richte sie unter <i>Sicherheit</i> neu ein – oder bitte die Administration, die Zwei-Faktor-Anmeldung zurückzusetzen.") }}{% else %}{{ _("Melde dich mit einem Wiederherstellungscode an und richte sie unter <i>Sicherheit</i> neu ein – oder bitte die Administration, die Zwei-Faktor-Anmeldung zurückzusetzen.") }}{% endif %}</div>
+    {% if has_keys %}{{ _("Melden Sie sich mit einem Wiederherstellungscode oder Ihrem Sicherheitsschlüssel an und richten Sie sie unter <i>Sicherheit</i> neu ein – oder bitten Sie die Administration, die Zwei-Faktor-Anmeldung zurückzusetzen.") }}{% else %}{{ _("Melden Sie sich mit einem Wiederherstellungscode an und richten Sie sie unter <i>Sicherheit</i> neu ein – oder bitten Sie die Administration, die Zwei-Faktor-Anmeldung zurückzusetzen.") }}{% endif %}</div>
   {% elif user.totp_enabled %}
   {% if has_keys %}<div class="muted" style="text-align: center; margin: 18px 0; font-size: 13px">{{ _("oder") }}</div>{% endif %}
   <form method="post" style="margin-top: {{ '0' if has_keys else '22px' }}" autocomplete="off">
@@ -35,7 +35,7 @@
   </form>
   {% endif %}
   {% if not has_keys and not user.totp_enabled %}
-  <div class="notice warn" style="margin-top: 20px">{{ _("Für diese Adresse ist kein Sicherheitsschlüssel registriert. Nutze die Adresse, unter der du ihn eingerichtet hast, oder einen Wiederherstellungscode.") }}</div>
+  <div class="notice warn" style="margin-top: 20px">{{ _("Für diese Adresse ist kein Sicherheitsschlüssel registriert. Nutzen Sie die Adresse, unter der Sie ihn eingerichtet haben, oder einen Wiederherstellungscode.") }}</div>
   {% endif %}
   <p style="margin-top: 22px; font-size: 13px"><a href="{{ url_for('security.challenge', modus='wiederherstellung') }}">{{ _("Kein Zugriff auf den zweiten Faktor? Wiederherstellungscode verwenden") }}</a></p>
 {% endif %}

@@ -2,6 +2,21 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.0.8 – 2026-11-06
+**New**
+- Automatic sign-out after a time without activity (*Administration → Settings → Automatic sign-out*): one limit
+  for everyone (default 12 hours, start value from `CATALYTIX_SESSION_HOURS` in `.env`), an own, shorter one for
+  admins (default 60 minutes) and optionally one for sign-ins from outside. The shortest applicable limit applies.
+  Before, a sign-in lasted as long as the browser stayed open.
+- Optional: two minutes before, "You will be signed out in 2 minutes – keep working?" appears (default: on). The
+  server measures the time; activity in another tab counts too.
+- Optional: "Sign out when the browser is closed" – the sign-in does not survive a browser restart, "Stay signed in"
+  is not offered.
+
+**Changed**
+- "Stay signed in" is only available where no shorter limit applies – so no longer for admins, and not from outside
+  when an own limit is set there. Existing "stay signed in" sign-ins of admins end once with this update.
+
 ## 3.0.7 – 2026-11-05
 **Security**
 - Slimmer image: what the running program never uses is removed at the end of the build – the package manager

@@ -427,11 +427,35 @@ def _apply_email(mail: str) -> bool:
 
 def _stay_signed_in(user: User):
     """Keep the current device signed in after a session generation change."""
+    from .. import autologout, netzone
     remembered = bool(request.cookies.get("remember_token"))
     mfa_skipped = session.get("mfa_skipped")
-    login_user(user, remember=remembered and not mfa_skipped)
+    allowed = autologout.remember_allowed(user, netzone.is_internal())
+    login_user(user, remember=remembered and not mfa_skipped and allowed)
+    autologout.touch()
     if mfa_skipped:
         session["mfa_skipped"] = True
+
+
+@bp.route("/api/sitzung")
+@login_required
+def session_status():
+    """Seconds until the automatic sign-out – for the warning dialog. Not counted as activity
+    (see enforce_idle_signout in __init__.py)."""
+    from flask import jsonify
+    from .. import autologout, netzone
+    left = autologout.seconds_left(current_user, netzone.is_internal())
+    return jsonify(ok=True, seconds_left=left, warn_seconds=autologout.WARN_SECONDS)
+
+
+@bp.route("/api/sitzung/weiter", methods=["POST"])
+@login_required
+def session_keepalive():
+    """"Keep working" in the warning dialog: the request itself counts as activity."""
+    from flask import jsonify
+    from .. import autologout, netzone
+    return jsonify(ok=True, seconds_left=autologout.seconds_left(current_user, netzone.is_internal()),
+                   warn_seconds=autologout.WARN_SECONDS)
 
 
 @bp.route("/abmelden-ueberall", methods=["POST"])

@@ -9,5 +9,6 @@
   <li><span class="ui">Selbstregistrierung</span> – siehe eigenes Thema.</li>
   <li><span class="ui">Aufbewahrung</span> – Löschfrist für abgeschlossene Ausleihen, derzeit {% if f.retention_months %}{{ f.retention_months }} {{ "Monat" if f.retention_months == 1 else "Monate" }}{% else %}<b>nie</b>{% endif %}.</li>
   <li><span class="ui">Zwei-Faktor-Anmeldung</span> – Pflicht und internes Netz, siehe eigenes Thema.</li>
+  <li><span class="ui">Automatische Abmeldung</span> – nach wie vielen Stunden ohne Aktivität alle abgemeldet werden (Standard 12), eine eigene, kürzere Frist für Admins (Standard 60 Minuten) und optional für Anmeldungen von außen. Es gilt die kürzeste passende Frist. Auf Wunsch erscheint zwei Minuten vorher „Du wirst in 2 Minuten abgemeldet – weiterarbeiten?“. Mit <span class="ui">Beim Schließen des Browsers abmelden</span> endet jede Anmeldung mit dem Browser; „Angemeldet bleiben“ wird dann nicht mehr angeboten. Wo eine kürzere Frist gilt (Admins, von außen), gibt es „Angemeldet bleiben“ ohnehin nicht.</li>
   <li><span class="ui">ISBN-Datenquellen</span> – Deutsche Nationalbibliothek, Open Library, Google Books: an- oder abwählen. Abgefragt wird in dieser Reihenfolge, fehlende Felder ergänzt die nächste Quelle. Der Server braucht dafür Internetzugang; übertragen wird nur die ISBN.</li>
 </ul>

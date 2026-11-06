@@ -807,4 +807,46 @@
       return `<span class="who"><b>${esc(it.title)}</b> <small>${meta}</small><small>${state}</small></span>`;
     },
   }));
+  /* Automatic sign-out (autologout.py): warn 2 minutes before. The server keeps the time; before showing the
+     dialog this asks it, so activity in another tab counts too. The status query itself is not activity. */
+  (function idleWarning() {
+    const dlg = $("#idle-dialog");
+    if (!dlg || typeof dlg.showModal !== "function") return;
+    const limit = parseInt(dlg.dataset.idleSeconds, 10);
+    const warn = parseInt(dlg.dataset.idleWarn, 10) || 120;
+    if (!(limit > warn)) return;
+    let timer = null;
+    const later = (seconds, fn) => { clearTimeout(timer); timer = setTimeout(fn, Math.max(1, seconds) * 1000); };
+    const toLogin = () => {
+      location.href = dlg.dataset.loginUrl + "?next=" + encodeURIComponent(location.pathname + location.search);
+    };
+    async function ask(url, opts = {}) {
+      try {
+        const res = await fetch(url, { credentials: "same-origin",
+          headers: { "X-CSRFToken": CSRF, "Accept": "application/json" }, ...opts });
+        if (res.status === 401) return { signedOut: true };
+        if (!res.ok || res.redirected) return null;
+        return await res.json();
+      } catch (e) { return null; }
+    }
+    async function check() {
+      const s = await ask(dlg.dataset.statusUrl);
+      if (!s) { later(30, check); return; }                      // network problem: try again soon
+      if (s.signedOut) { toLogin(); return; }
+      const left = typeof s.seconds_left === "number" ? s.seconds_left : limit;
+      if (left <= 0) { toLogin(); return; }
+      if (left > warn + 5) { if (dlg.open) dlg.close(); later(left - warn, check); return; }   // other tab active
+      if (!dlg.open) dlg.showModal();
+      later(left + 1, check);                                    // at the limit: the server signs out
+    }
+    $("[data-idle-continue]", dlg).addEventListener("click", async () => {
+      const s = await ask(dlg.dataset.keepaliveUrl, { method: "POST" });
+      if (s && s.signedOut) { toLogin(); return; }
+      dlg.close();
+      const left = s && typeof s.seconds_left === "number" ? s.seconds_left : limit;
+      later(left - warn, check);
+    });
+    dlg.addEventListener("cancel", (e) => e.preventDefault());   // Esc must not just hide the warning
+    later(limit - warn, check);
+  })();
 })();

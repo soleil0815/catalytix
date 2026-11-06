@@ -1,5 +1,35 @@
 [
  {
+  "version": "3.0.8",
+  "date": "2026-11-06",
+  "items": [
+   {
+    "kind": "new",
+    "audience": "all",
+    "de": {
+     "title": "Automatische Abmeldung",
+     "text": "Wer längere Zeit nichts in der Bibliothek aufruft, wird automatisch abgemeldet. Zwei Minuten vorher erscheint ein Hinweis – ein Klick auf „Weiterarbeiten“ genügt."
+    },
+    "en": {
+     "title": "Automatic sign-out",
+     "text": "Anyone who does nothing in the library for a longer time is signed out automatically. A notice appears two minutes before – one click on “Keep working” is enough."
+    }
+   },
+   {
+    "kind": "new",
+    "audience": "admin",
+    "de": {
+     "title": "Fristen für die Abmeldung einstellen",
+     "text": "Unter Einstellungen → Automatische Abmeldung legst du die Frist für alle (Standard 12 Stunden), eine kürzere für Admins (Standard 60 Minuten) und optional eine für Anmeldungen von außen fest. „Angemeldet bleiben“ gibt es für Admins nicht mehr."
+    },
+    "en": {
+     "title": "Set the sign-out limits",
+     "text": "Under Settings → Automatic sign-out you set the limit for everyone (default 12 hours), a shorter one for admins (default 60 minutes) and optionally one for sign-ins from outside. “Stay signed in” is no longer available for admins."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.0.7",
   "date": "2026-11-05",
   "items": [

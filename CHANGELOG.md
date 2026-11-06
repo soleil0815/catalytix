@@ -3,6 +3,22 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.0.8 – 06.11.2026
+**Neu**
+- Automatische Abmeldung nach einer Zeit ohne Aktivität (*Administration → Einstellungen → Automatische
+  Abmeldung*): eine Frist für alle (Standard 12 Stunden, Startwert aus `CATALYTIX_SESSION_HOURS` in der `.env`), eine
+  eigene, kürzere für Admins (Standard 60 Minuten) und optional eine für Anmeldungen von außen. Es gilt die kürzeste
+  passende Frist. Bisher blieb eine Anmeldung bestehen, solange der Browser offen war.
+- Optional: Zwei Minuten vorher erscheint „Du wirst in 2 Minuten abgemeldet – weiterarbeiten?“ (Standard: an). Die
+  Zeit misst der Server; Aktivität in einem anderen Tab zählt mit.
+- Optional: „Beim Schließen des Browsers abmelden“ – die Anmeldung übersteht keinen Browser-Neustart, „Angemeldet
+  bleiben“ entfällt.
+
+**Geändert**
+- „Angemeldet bleiben“ gibt es nur noch, wo keine kürzere Frist gilt – also nicht mehr für Admins und nicht von außen,
+  wenn dort eine eigene Frist eingestellt ist. Bestehende „Angemeldet bleiben“-Anmeldungen von Admins enden mit diesem
+  Update einmalig.
+
 ## 3.0.7 – 05.11.2026
 **Sicherheit**
 - Schlankeres Image: Was das laufende Programm nie braucht, wird am Ende des Baus entfernt – Paketverwaltung (`apt`),

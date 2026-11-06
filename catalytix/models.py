@@ -489,6 +489,10 @@ DEFAULT_SETTINGS = {
     "backup_keep": "10",       # number of backups kept
     "backup_hour": "2",        # from this hour on
     "retention_months": "12",  # delete completed loans and mail log after X months; 0 = never
+    "session_admin_minutes": "60",   # automatic sign-out for admins (minutes, "" = as for everyone)
+    "session_external_minutes": "",  # automatic sign-out for sign-ins from outside (minutes, "" = off)
+    "session_warning": "1",          # warn 2 minutes before the automatic sign-out
+    "session_browser_close": "0",    # sign out when the browser is closed (no "stay signed in")
     "mfa_internal": "same",    # two-factor on the internal network: same | optional | skip
     "internal_networks": "",   # empty = private networks (10/8, 172.16/12, 192.168/16, fc00::/7)
     "own_public_hosts": "",    # own connection: static IP or DynDNS name, also counts as internal

@@ -137,6 +137,27 @@
       <p class="muted" style="font-size: 12.5px">{{ _('Probleme mit dem zweiten Faktor? Unter <a href="{url}">Benutzer</a> → Konto öffnen → „Zwei-Faktor-Anmeldung zurücksetzen“ bzw. „Anmeldesperre aufheben“.', url=url_for('admin.users')) }}</p>
     </section>
 
+    <section class="card card-pad" id="abmeldung">
+      <h2 style="margin-bottom: 6px">{{ icon("clock") }} {{ _("Automatische Abmeldung") }}</h2>
+      <p class="muted" style="font-size: 13.5px">{{ _("Wer so lange nichts mehr in der Bibliothek aufruft, wird abgemeldet – z. B. wenn jemand den Platz an der Ausleihtheke verlässt, ohne sich abzumelden. Es gilt jeweils die kürzeste passende Frist.") }}</p>
+      <div class="form-grid">
+        <div class="field span-4"><label for="f-session-hours">{{ _("Für alle (Stunden)") }}</label>
+          <input id="f-session-hours" type="number" name="session_hours" min="1" max="168" required value="{{ session_hours }}">
+          <div class="hint">{{ _("1–168. Der Startwert kommt aus der <code>.env</code> (sonst 12).") }}</div></div>
+        <div class="field span-4"><label for="f-session-admin">{{ _("Für Admins (Minuten)") }}</label>
+          <input id="f-session-admin" type="number" name="session_admin_minutes" min="5" max="720" placeholder="{{ _('wie für alle') }}" value="{{ s('session_admin_minutes') }}">
+          <div class="hint">{{ _("5–720, leer = wie für alle.") }}</div></div>
+        <div class="field span-4"><label for="f-session-external">{{ _("Anmeldungen von außen (Minuten)") }}</label>
+          <input id="f-session-external" type="number" name="session_external_minutes" min="5" max="720" placeholder="{{ _('keine eigene Frist') }}" value="{{ s('session_external_minutes') }}">
+          <div class="hint">{{ _("Optional, 5–720. Was „außen“ ist, legt „Internes Netz“ oben fest.") }}</div></div>
+      </div>
+      <label class="check"><input type="checkbox" name="session_warning" value="1" {{ 'checked' if s('session_warning') == '1' }}>
+        <span>{{ _("Vorher warnen") }}<small class="muted">{{ _("Zwei Minuten vor der Abmeldung erscheint „Du wirst in 2 Minuten abgemeldet – weiterarbeiten?“, damit niemand mitten im Tippen herausfliegt.") }}</small></span></label>
+      <label class="check"><input type="checkbox" name="session_browser_close" value="1" {{ 'checked' if s('session_browser_close') == '1' }}>
+        <span>{{ _("Beim Schließen des Browsers abmelden") }}<small class="muted">{{ _("Die Anmeldung bleibt nicht über einen Browser-Neustart hinweg bestehen; „Angemeldet bleiben“ entfällt.") }}</small></span></label>
+      <p class="muted" style="font-size: 12.5px">{{ _("„Angemeldet bleiben“ gibt es nur, wo keine kürzere Frist gilt – also nicht für Admins (mit eigener Frist) und nicht von außen (mit eigener Frist). Sonst würde die Anmeldung nach einem Browser-Neustart die Frist umgehen.") }}</p>
+    </section>
+
     <section class="card card-pad">
       <h2 style="margin-bottom: 6px">{{ _("ISBN-Datenquellen") }}</h2>
       <p class="muted" style="font-size: 13.5px">{{ _("Werden in dieser Reihenfolge abgefragt; fehlende Felder werden aus der nächsten Quelle ergänzt. Der Server braucht dafür Internetzugang.") }}</p>

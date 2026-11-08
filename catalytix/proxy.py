@@ -11,20 +11,27 @@ Environment variables (optional):
   CATALYTIX_TRUSTED_PROXIES  "private" (default), "none" or a list of networks/IPs,
                                e.g. "172.18.0.0/16, 10.0.10.11"
   CATALYTIX_SECURE_COOKIES   "auto" (default), "1" (always) or "0" (never)
-  CATALYTIX_FORCE_HTTPS      "1": requests that reach the program over HTTP *through the reverse proxy* are
-                               redirected to HTTPS, and HTTPS responses carry HSTS (one year, this host only –
-                               no includeSubDomains, other programs on sibling subdomains stay unaffected).
-                               For proxies that cannot do this themselves (e.g. the Synology reverse proxy).
-                               Direct requests without proxy headers (health check, http://IP:9300 on the LAN)
-                               are not redirected.
+  CATALYTIX_FORCE_HTTPS      HTTPS through the reverse proxy, for proxies that cannot redirect or send HSTS
+                               themselves (e.g. the Synology reverse proxy):
+                               "auto" (default) – a host is switched to HTTPS by itself as soon as it has been
+                               reached once over HTTPS through the proxy (remembered in the data folder, so it
+                               holds after a restart); a proxy without HTTPS is never redirected into nothing.
+                               "1" – always, "0" – never.
+                               Switched to HTTPS: HTTP requests through the proxy are redirected, HTTPS responses
+                               carry HSTS (one year, this host only – no includeSubDomains, other programs on
+                               sibling subdomains stay unaffected). Direct requests without proxy headers (health
+                               check, http://IP:9300 on the LAN) are never redirected.
   CATALYTIX_BEHIND_PROXY     deprecated; "0" is equivalent to TRUSTED_PROXIES=none
 """
 from __future__ import annotations
 
 import ipaddress
 import logging
+import os
 import re
+import threading
 from collections.abc import Iterable, Mapping
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from urllib.parse import quote
@@ -91,22 +98,87 @@ HSTS = "max-age=31536000"
 _HOST = re.compile(r"^[A-Za-z0-9.\-]+(:\d{1,5})?$|^\[[0-9A-Fa-f:.]+\](:\d{1,5})?$")
 
 
-class ForceHttps:
-    """CATALYTIX_FORCE_HTTPS=1: redirect HTTP requests that came through the reverse proxy to HTTPS and send HSTS
-    on HTTPS responses. Runs inside TrustedProxyFix, so wsgi.url_scheme already reflects X-Forwarded-Proto."""
+MAX_HOSTS = 50               # remembered HTTPS hosts (the proxy only forwards its configured names anyway)
 
-    def __init__(self, app: WSGIApplication, enabled: bool) -> None:
+
+class HttpsHosts:
+    """Hosts that have been reached over HTTPS through the reverse proxy – file in the data folder, one per line."""
+
+    def __init__(self, path: Path | None) -> None:
+        self.path = path
+        self.hosts: set[str] = set()
+        self.mtime = 0.0
+        self._lock = threading.Lock()
+        self._reload()
+
+    def _reload(self) -> None:
+        if self.path is None:
+            return
+        try:
+            st = self.path.stat()
+        except OSError:
+            return
+        if st.st_mtime != self.mtime:
+            try:
+                lines = self.path.read_text(encoding="utf-8").split()
+            except OSError:
+                return
+            self.hosts = {h for h in lines if _HOST.match(h)}
+            self.mtime = st.st_mtime
+
+    def known(self, host: str) -> bool:
+        if host in self.hosts:
+            return True
+        self._reload()                 # another worker may have learned it meanwhile
+        return host in self.hosts
+
+    def learn(self, host: str) -> None:
+        if host in self.hosts or not _HOST.match(host) or len(self.hosts) >= MAX_HOSTS:
+            return
+        with self._lock:
+            self.hosts.add(host)
+            if self.path is None:
+                return
+            try:
+                self.path.parent.mkdir(parents=True, exist_ok=True)
+                tmp = self.path.with_suffix(".tmp")
+                tmp.write_text("\n".join(sorted(self.hosts)) + "\n", encoding="utf-8")
+                os.replace(tmp, self.path)
+                self.mtime = self.path.stat().st_mtime
+                log.info("HTTPS through the reverse proxy detected for %s – HTTP is now redirected to HTTPS", host)
+            except OSError as e:
+                log.warning("Could not remember the HTTPS host: %s", e)
+
+
+def _host(environ: WSGIEnvironment) -> str:
+    host = (environ.get("HTTP_HOST") or "").strip().lower()
+    for port in (":80", ":443"):
+        if host.endswith(port):
+            host = host[: -len(port)]
+    return host
+
+
+class ForceHttps:
+    """Switch to HTTPS behind a reverse proxy (CATALYTIX_FORCE_HTTPS, see the module docstring): redirect HTTP
+    requests that came through the proxy to HTTPS and send HSTS on HTTPS responses. Runs inside TrustedProxyFix,
+    so wsgi.url_scheme already reflects X-Forwarded-Proto."""
+
+    def __init__(self, app: WSGIApplication, mode: str, hosts: HttpsHosts | None = None) -> None:
         self.app = app
-        self.enabled = enabled
+        self.mode = mode if mode in ("auto", "1", "0") else "auto"
+        self.hosts = hosts or HttpsHosts(None)
+
+    def _active(self, host: str) -> bool:
+        return self.mode == "1" or (self.mode == "auto" and self.hosts.known(host))
 
     def __call__(self, environ: WSGIEnvironment, start_response: StartResponse) -> Iterable[bytes]:
-        if not self.enabled:
-            return self.app(environ, start_response)
+        if self.mode == "0" or not environ.get(VIA_PROXY):
+            return self.app(environ, start_response)      # direct request: never redirected, no HSTS
         scheme = environ.get("wsgi.url_scheme")
-        if scheme == "http" and environ.get(VIA_PROXY):
-            host = (environ.get("HTTP_HOST") or "").strip()
-            if host.endswith(":80"):
-                host = host[:-3]
+        host = _host(environ)
+        if scheme == "https" and self.mode == "auto":
+            self.hosts.learn(host)
+        if scheme == "http" and self._active(host):
             if _HOST.match(host):
                 path = quote(environ.get("PATH_INFO") or "/", safe="/%:@!$&'()*+,;=-._~")
                 query = quote(environ.get("QUERY_STRING") or "", safe="=&%+;/:@!$'()*,?-._~")
@@ -117,7 +189,7 @@ class ForceHttps:
                 start_response(status, [("Location", target), ("Content-Type", "text/plain; charset=utf-8"),
                                         ("Content-Length", "0"), ("Cache-Control", "no-store")])
                 return [b""]
-        if scheme != "https":
+        if scheme != "https" or not self._active(host):
             return self.app(environ, start_response)
 
         def _start(status: str, headers: list[tuple[str, str]], exc_info: Any = None) -> Any:
@@ -166,8 +238,10 @@ def install(app: Flask, env: Mapping[str, str]) -> None:
     # Default (all private networks count as proxies)? Then the 2FA setting warns if the internal network
     # gets by without a second factor – see README "Reverse-Proxy".
     app.config["TRUSTED_PROXIES_DEFAULT"] = (trusted or "private").strip().lower() == "private"
-    force = (env.get("CATALYTIX_FORCE_HTTPS") or "").strip().lower() in ("1", "true", "yes", "on")
+    force = (env.get("CATALYTIX_FORCE_HTTPS") or "auto").strip().lower()
+    force = {"true": "1", "yes": "1", "on": "1", "false": "0", "no": "0", "off": "0"}.get(force, force)
     app.config["FORCE_HTTPS"] = force
+    hosts = HttpsHosts(Path(app.instance_path) / "https-hosts.txt")
     # order: first evaluate proxy headers (sets https), then redirect / HSTS, then adjust cookies
-    app.wsgi_app = TrustedProxyFix(ForceHttps(SecureCookies(app.wsgi_app, mode), force),  # type: ignore[method-assign]
-                                   networks)
+    inner = ForceHttps(SecureCookies(app.wsgi_app, mode), force, hosts)
+    app.wsgi_app = TrustedProxyFix(inner, networks)  # type: ignore[method-assign]

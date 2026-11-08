@@ -7,12 +7,12 @@
     "kind": "security",
     "audience": "admin",
     "de": {
-     "title": "HTTPS erzwingen, auch hinter der Synology",
-     "text": "Kann Ihr Reverse-Proxy weder auf HTTPS umleiten noch HSTS senden (z. B. der Reverse-Proxy der Synology), schalten Sie in der .env die HTTPS-Pflicht ein (README, Abschnitt „Reverse-Proxy und HTTPS“). Dann übernimmt die Bibliothek beides selbst – nur für Zugriffe über den Proxy."
+     "title": "HTTPS wird automatisch erzwungen",
+     "text": "Sobald die Bibliothek einmal per HTTPS über Ihren Reverse-Proxy aufgerufen wurde, leitet sie Aufrufe per HTTP automatisch auf HTTPS um und weist Browser an, künftig nur noch HTTPS zu verwenden – auch wenn der Proxy das nicht selbst kann (z. B. die Synology). Sie müssen dafür nichts einstellen."
     },
     "en": {
-     "title": "Enforce HTTPS, also behind a Synology",
-     "text": "If your reverse proxy can neither redirect to HTTPS nor send HSTS (e.g. the Synology reverse proxy), switch on HTTPS enforcement in .env (README, section “Reverse proxy and HTTPS”). The library then does both itself – only for requests through the proxy."
+     "title": "HTTPS is enforced automatically",
+     "text": "Once the library has been opened over HTTPS through your reverse proxy, it automatically redirects HTTP to HTTPS and tells browsers to use only HTTPS from then on – even if the proxy cannot do this itself (e.g. a Synology). Nothing needs to be configured."
     }
    }
   ]

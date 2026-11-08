@@ -33,9 +33,14 @@ class FullAppTests(unittest.TestCase):
         self.assertNotIn(r.status_code, (301, 308))
         self.assertNotIn("Strict-Transport-Security", r.headers)
 
-    def test_off_by_default(self):
-        r = client("").get("/login", headers={"X-Forwarded-Proto": "http"}, environ_base=PROXY)
-        self.assertNotIn(r.status_code, (301, 308))
+    def test_auto_by_default(self):
+        c = client("")
+        hdr = {"Host": "bib.firma.local"}
+        r = c.get("/login", headers={**hdr, "X-Forwarded-Proto": "http"}, environ_base=PROXY)
+        self.assertNotIn(r.status_code, (301, 308))          # no HTTPS seen yet: a proxy without HTTPS keeps working
+        c.get("/login", headers={**hdr, "X-Forwarded-Proto": "https"}, environ_base=PROXY)
+        r = c.get("/login", headers={**hdr, "X-Forwarded-Proto": "http"}, environ_base=PROXY)
+        self.assertEqual(r.status_code, 301)
 
     def test_cross_origin_opener_policy(self):
         r = client("").get("/login")

@@ -92,5 +92,56 @@ class ProxyTests(unittest.TestCase):
             db.session.remove()
 
 
+
+class ForceHttpsTests(unittest.TestCase):
+    """3.1.1: CATALYTIX_FORCE_HTTPS=1 – for proxies that can neither redirect nor send HSTS (Synology)."""
+    PROXY = {"REMOTE_ADDR": "172.17.0.1"}         # Docker bridge: the reverse proxy on the NAS
+
+    def client(self, force="1"):
+        return make_app({"CATALYTIX_FORCE_HTTPS": force})
+
+    def test_http_through_proxy_is_redirected(self):
+        r = self.client().get("/buecher?q=a b", headers={"X-Forwarded-Proto": "http", "Host": "bib.firma.local"},
+                              environ_base=self.PROXY)
+        self.assertEqual(r.status_code, 301)
+        self.assertEqual(r.headers["Location"], "https://bib.firma.local/buecher?q=a%20b")
+
+    def test_form_post_keeps_method(self):
+        r = self.client().post("/login", data={"a": "b"},
+                               headers={"X-Forwarded-Proto": "http", "Host": "bib.firma.local:80"},
+                               environ_base=self.PROXY)
+        self.assertEqual(r.status_code, 308)
+        self.assertEqual(r.headers["Location"], "https://bib.firma.local/login")
+
+    def test_https_gets_hsts_for_this_host_only(self):
+        r = self.client().get("/", headers={"X-Forwarded-Proto": "https"}, environ_base=self.PROXY)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.headers["Strict-Transport-Security"], "max-age=31536000")
+        self.assertNotIn("includeSubDomains", r.headers["Strict-Transport-Security"])
+
+    def test_direct_requests_are_left_alone(self):
+        # Docker health check and http://IP:9300 on the LAN: no proxy header – no redirect, no HSTS
+        for env in ({"REMOTE_ADDR": "127.0.0.1"}, {"REMOTE_ADDR": "10.0.10.25"}):
+            r = self.client().get("/", environ_base=env)
+            self.assertEqual(r.status_code, 200)
+            self.assertNotIn("Strict-Transport-Security", r.headers)
+
+    def test_untrusted_sender_cannot_trigger_a_redirect(self):
+        r = self.client().get("/", headers={"X-Forwarded-Proto": "http", "Host": "evil.example"},
+                              environ_base={"REMOTE_ADDR": "198.51.100.9"})
+        self.assertEqual(r.status_code, 200)
+
+    def test_bad_host_is_not_used(self):
+        r = self.client().get("/", headers={"X-Forwarded-Proto": "http", "Host": "a b<script>"},
+                              environ_base=self.PROXY)
+        self.assertEqual(r.status_code, 200)
+
+    def test_off_by_default(self):
+        for force in ("", "0"):
+            r = self.client(force).get("/", headers={"X-Forwarded-Proto": "http"}, environ_base=self.PROXY)
+            self.assertEqual(r.status_code, 200)
+            r = self.client(force).get("/", headers={"X-Forwarded-Proto": "https"}, environ_base=self.PROXY)
+            self.assertNotIn("Strict-Transport-Security", r.headers)
+
 if __name__ == "__main__":
     unittest.main()

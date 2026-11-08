@@ -3,6 +3,16 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.1.1 – 08.11.2026
+**Sicherheit**
+- Neu: `CATALYTIX_FORCE_HTTPS=1` in der `.env` erzwingt HTTPS für Reverse-Proxys, die das nicht selbst können (z. B.
+  der Reverse-Proxy der Synology): Anfragen, die per HTTP über den Proxy kommen, werden auf HTTPS umgeleitet
+  (Formulare behalten ihre Daten), Antworten über HTTPS tragen HSTS – ein Jahr, nur für diese Adresse, damit andere
+  Programme unter Nachbar-Subdomains unberührt bleiben. Direkte Zugriffe ohne Proxy (Docker-Gesundheitscheck,
+  `http://IP:9300` im LAN) werden nicht umgeleitet.
+- Zusätzlicher Header `Cross-Origin-Opener-Policy: same-origin`: Fremde Seiten, die die Bibliothek in einem neuen
+  Fenster öffnen, bekommen keinen Zugriff auf dieses Fenster.
+
 ## 3.1.0 – 06.11.2026
 **Geändert**
 - Die deutsche Oberfläche spricht Nutzerinnen und Nutzer jetzt mit „Sie“ an statt mit „du“ – in allen Seiten und

@@ -2,6 +2,15 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.1.1 – 2026-11-08
+**Security**
+- New: `CATALYTIX_FORCE_HTTPS=1` in `.env` enforces HTTPS for reverse proxies that cannot do it themselves (e.g. the
+  Synology reverse proxy): requests that arrive over HTTP through the proxy are redirected to HTTPS (forms keep their
+  data), HTTPS responses carry HSTS – one year, this address only, so other programs on sibling subdomains are not
+  affected. Direct requests without the proxy (Docker health check, `http://IP:9300` on the LAN) are not redirected.
+- Additional header `Cross-Origin-Opener-Policy: same-origin`: other sites that open the library in a new window get
+  no access to that window.
+
 ## 3.1.0 – 2026-11-06
 **Changed**
 - The German interface now addresses users formally ("Sie") instead of informally ("du") – on all pages and messages,

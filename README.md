@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.1.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 3.1.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name Ihrer Bibliothek.
 
@@ -349,6 +349,8 @@ Technisch: TOTP nach RFC 6238 (Geheimnisse verschlüsselt gespeichert, Codes nic
 - An der **Ausleihtheke** wird ein Code der Reihe nach als Signatur (genau, ohne Groß/Klein), ISBN und Titel gesucht. Reine Ziffern gelten **nicht mehr** als interne Buch-Nummer (bis 2.9 schon – Signaturen aus Ziffern fanden dann das falsche Buch); die Buch-Nummer gibt man jetzt mit `#` ein, z. B. `#12`.
 - **Kamera-Scan** nutzt die eingebaute Barcode-Erkennung des Browsers (Chrome, Edge, Android), in Firefox und Safari die mitgelieferte eigene EAN-13-Erkennung – es wird nichts von fremden Servern nachgeladen. Browser erlauben die Kamera **nur über HTTPS** (oder `localhost`). Betreiben Sie Catalytix dafür hinter einem Reverse-Proxy mit Zertifikat.
 
+## Reverse-Proxy und HTTPS
+
 Beispiel mit Caddy (holt Zertifikate automatisch bzw. nutzt intern `tls internal`):
 
 ```
@@ -365,6 +367,7 @@ Mehr ist nicht nötig: Catalytix erkennt den Reverse-Proxy automatisch. Die Weit
 - **`CATALYTIX_TRUSTED_PROXIES` auf die Adresse des Proxys setzen** (z. B. `172.18.0.5` oder das Docker-Netz des Proxys). Standard ist „jede private Adresse“ – wer den Port direkt aus dem LAN erreicht, könnte sonst eine beliebige Absenderadresse vortäuschen. Das ist besonders wichtig, wenn im internen Netz keine Zwei-Faktor-Abfrage nötig ist; die Einstellungsseite weist dann darauf hin.
 - Nginx Proxy Manager lädt beim Start die Adressbereiche von Cloudflare und CloudFront, um bei Anfragen von dort die echte Besucheradresse zu übernehmen. Nutzen Sie kein solches CDN, setzen Sie im NPM-Container `IP_RANGES_FETCH_ENABLED=false` – dann kann niemand über diese Dienste eine fremde Absenderadresse einschleusen.
 - Hinter HTTPS `CATALYTIX_SECURE_COOKIES=1` setzen und HSTS im Proxy einschalten („HSTS Enabled“ in NPM).
+- **Proxy ohne HTTPS-Umleitung und HSTS** (z. B. der Reverse-Proxy der Synology, der beides pro Regel nicht kann): `CATALYTIX_FORCE_HTTPS=1` setzen. Dann leitet Catalytix Anfragen, die per HTTP über den Proxy kommen, auf HTTPS um und sendet HSTS (ein Jahr, nur für diese Adresse – andere Programme unter Nachbar-Subdomains bleiben unberührt). Am Proxy beide Regeln anlegen: `http://bib.firma.local` und `https://bib.firma.local` jeweils auf `http://<NAS>:9300`. Direkte Zugriffe ohne Proxy (Docker-Gesundheitscheck, `http://IP:9300` im LAN) werden nicht umgeleitet.
 - **Basis-Adresse für E-Mail-Links** (*Administration → E-Mail*) eintragen – Links in Mails entstehen nur daraus, nie aus der Anfrage. Ohne sie ist die Selbstregistrierung mit E-Mail-Bestätigung gesperrt.
 - `PUID`/`PGID` auf einen eigenen Dienstbenutzer setzen (Standard 1000 ist meist der erste echte Benutzer des Hosts – dem gehören dann Datenbank und Schlüssel). Datenbank, Schlüssel und Sicherungen sind nur für diesen Benutzer lesbar.
 - **Image-Dateien prüfen** (Weg ohne Internet): `update.sh --load` vergleicht die Datei mit `SHA256SUMS` aus dem Release und lädt sie nur, wenn die Prüfsumme stimmt. Über die Registry geholte Images prüft Docker selbst.
@@ -440,6 +443,7 @@ Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewa
 | `PUID` / `PGID` | Benutzer/Gruppe für `./data` (Standard `1000`) |
 | `CATALYTIX_TRUSTED_PROXIES` | Von wem Proxy-Header akzeptiert werden: `private` (Standard), `none` oder Liste wie `172.18.0.0/16,192.168.0.11` |
 | `CATALYTIX_SECURE_COOKIES` | `auto` (Standard: bei HTTPS), `1` (immer), `0` (nie) |
+| `CATALYTIX_FORCE_HTTPS` | `1`: HTTP über den Reverse-Proxy auf HTTPS umleiten und HSTS senden (für Proxys, die das nicht selbst können, z. B. Synology) |
 | `CATALYTIX_SESSION_HOURS` | Automatische Abmeldung nach so vielen Stunden ohne Aktivität (1–168, Standard 12) – nur Startwert, danach unter *Einstellungen → Automatische Abmeldung* |
 | `CATALYTIX_LOGLEVEL` | `INFO` (Standard), `DEBUG` für LDAP-Fehlersuche |
 | `CATALYTIX_BACKUP_DIR` | Ordner für die automatischen Sicherungen (Standard: `backups` im Datenverzeichnis). Muss als Volume eingebunden sein – sonst warnt der Container beim Start |

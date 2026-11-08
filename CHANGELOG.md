@@ -3,6 +3,13 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.1.3 – 08.11.2026
+**Verbessert**
+- HTTPS hinter dem Reverse-Proxy funktioniert jetzt genauso wie in AssetLotse und Helfi.Space. Neu: Ein Proxy, der
+  nur `X-Forwarded-Port` meldet, wird erkannt (80 = HTTP, 443 = HTTPS). Aufrufe über eine IP-Adresse oder
+  `localhost` werden nie auf HTTPS umgeleitet (dafür gibt es kein Zertifikat). Ein abweichender Port in der Adresse
+  fällt bei der Umleitung weg, das Ziel ist immer `https://<Name>/…`.
+
 ## 3.1.2 – 08.11.2026
 **Verbessert**
 - HSTS sendet die Bibliothek nur noch für Adressen, bei denen sie HTTP selbst auf HTTPS umleiten musste (z. B. hinter

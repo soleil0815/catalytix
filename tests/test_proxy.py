@@ -193,5 +193,23 @@ class ForceHttpsTests(unittest.TestCase):
         f = pathlib.Path(self.instance) / "https-hosts.txt"
         self.assertFalse(f.exists() and "script" in f.read_text())
 
+    def test_port_only_proxy(self):
+        # proxies that only send X-Forwarded-Port: 80 = HTTP, 443 = HTTPS; the protocol header wins
+        c = self.client()
+        c.get("/", headers={"X-Forwarded-Port": "443", "Host": "bib.firma.local"}, environ_base=self.PROXY)
+        r = c.get("/", headers={"X-Forwarded-Port": "80", "Host": "bib.firma.local"}, environ_base=self.PROXY)
+        self.assertEqual((r.status_code, r.headers["Location"]), (301, "https://bib.firma.local/"))
+        r = c.get("/", headers={"X-Forwarded-Proto": "https", "X-Forwarded-Port": "80", "Host": "bib.firma.local"},
+                  environ_base=self.PROXY)
+        self.assertEqual(r.status_code, 200)
+
+    def test_ip_addresses_and_ports(self):
+        c = self.client("1")
+        for host in ("192.168.2.221:9300", "[fd00::5]:9300", "localhost", "evil.example/x"):
+            r = c.get("/", headers={"X-Forwarded-Proto": "http", "Host": host}, environ_base=self.PROXY)
+            self.assertEqual(r.status_code, 200, host)
+        r = c.get("/", headers={"X-Forwarded-Proto": "http", "Host": "bib.firma.local:8080"}, environ_base=self.PROXY)
+        self.assertEqual(r.headers["Location"], "https://bib.firma.local/")
+
 if __name__ == "__main__":
     unittest.main()

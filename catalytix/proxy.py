@@ -17,9 +17,11 @@ Environment variables (optional):
                                reached once over HTTPS through the proxy (remembered in the data folder, so it
                                holds after a restart); a proxy without HTTPS is never redirected into nothing.
                                "1" – always, "0" – never.
-                               Switched to HTTPS: HTTP requests through the proxy are redirected, HTTPS responses
+                               Switched to HTTPS: HTTP requests through the proxy are redirected. HTTPS responses
                                carry HSTS (one year, this host only – no includeSubDomains, other programs on
-                               sibling subdomains stay unaffected). Direct requests without proxy headers (health
+                               sibling subdomains stay unaffected) once the program had to redirect itself – a
+                               proxy that redirects on its own (NPM "Force SSL") keeps its own HSTS header.
+                               "1" always sends HSTS. Direct requests without proxy headers (health
                                check, http://IP:9300 on the LAN) are never redirected.
   CATALYTIX_BEHIND_PROXY     deprecated; "0" is equivalent to TRUSTED_PROXIES=none
 """
@@ -102,11 +104,14 @@ MAX_HOSTS = 50               # remembered HTTPS hosts (the proxy only forwards i
 
 
 class HttpsHosts:
-    """Hosts that have been reached over HTTPS through the reverse proxy – file in the data folder, one per line."""
+    """What the program has seen through the reverse proxy, per host – file in the data folder:
+    a line "<host>" = reached over HTTPS, "<host> redirected" = in addition, an HTTP request arrived and had to be
+    redirected (the proxy does not redirect itself, so it presumably sends no HSTS either)."""
 
     def __init__(self, path: Path | None) -> None:
         self.path = path
         self.hosts: set[str] = set()
+        self.redirected: set[str] = set()
         self.mtime = 0.0
         self._lock = threading.Lock()
         self._reload()
@@ -120,34 +125,58 @@ class HttpsHosts:
             return
         if st.st_mtime != self.mtime:
             try:
-                lines = self.path.read_text(encoding="utf-8").split()
+                lines = self.path.read_text(encoding="utf-8").splitlines()
             except OSError:
                 return
-            self.hosts = {h for h in lines if _HOST.match(h)}
-            self.mtime = st.st_mtime
+            hosts: set[str] = set()
+            redirected: set[str] = set()
+            for line in lines:
+                parts = line.split()
+                if parts and _HOST.match(parts[0]):
+                    hosts.add(parts[0])
+                    if "redirected" in parts[1:]:
+                        redirected.add(parts[0])
+            self.hosts, self.redirected, self.mtime = hosts, redirected, st.st_mtime
 
     def known(self, host: str) -> bool:
-        if host in self.hosts:
-            return True
-        self._reload()                 # another worker may have learned it meanwhile
+        if host not in self.hosts:
+            self._reload()             # another worker may have learned it meanwhile
         return host in self.hosts
+
+    def was_redirected(self, host: str) -> bool:
+        if host not in self.redirected:
+            self._reload()
+        return host in self.redirected
+
+    def _save(self, message: str, host: str) -> None:
+        if self.path is None:
+            return
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.path.with_suffix(".tmp")
+            lines = [h + (" redirected" if h in self.redirected else "") for h in sorted(self.hosts)]
+            tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            os.replace(tmp, self.path)
+            self.mtime = self.path.stat().st_mtime
+            log.info(message, host)
+        except OSError as e:
+            log.warning("Could not remember the HTTPS host: %s", e)
 
     def learn(self, host: str) -> None:
         if host in self.hosts or not _HOST.match(host) or len(self.hosts) >= MAX_HOSTS:
             return
         with self._lock:
+            self._reload()
             self.hosts.add(host)
-            if self.path is None:
-                return
-            try:
-                self.path.parent.mkdir(parents=True, exist_ok=True)
-                tmp = self.path.with_suffix(".tmp")
-                tmp.write_text("\n".join(sorted(self.hosts)) + "\n", encoding="utf-8")
-                os.replace(tmp, self.path)
-                self.mtime = self.path.stat().st_mtime
-                log.info("HTTPS through the reverse proxy detected for %s – HTTP is now redirected to HTTPS", host)
-            except OSError as e:
-                log.warning("Could not remember the HTTPS host: %s", e)
+            self._save("HTTPS through the reverse proxy detected for %s – HTTP is now redirected to HTTPS", host)
+
+    def mark_redirected(self, host: str) -> None:
+        if host in self.redirected or host not in self.hosts:
+            return
+        with self._lock:
+            self._reload()
+            self.redirected.add(host)
+            self._save("The reverse proxy does not redirect %s to HTTPS itself – HSTS is now sent", host)
 
 
 def _host(environ: WSGIEnvironment) -> str:
@@ -160,8 +189,8 @@ def _host(environ: WSGIEnvironment) -> str:
 
 class ForceHttps:
     """Switch to HTTPS behind a reverse proxy (CATALYTIX_FORCE_HTTPS, see the module docstring): redirect HTTP
-    requests that came through the proxy to HTTPS and send HSTS on HTTPS responses. Runs inside TrustedProxyFix,
-    so wsgi.url_scheme already reflects X-Forwarded-Proto."""
+    requests that came through the proxy to HTTPS and send HSTS on HTTPS responses of hosts the program had to
+    redirect itself. Runs inside TrustedProxyFix, so wsgi.url_scheme already reflects X-Forwarded-Proto."""
 
     def __init__(self, app: WSGIApplication, mode: str, hosts: HttpsHosts | None = None) -> None:
         self.app = app
@@ -180,6 +209,8 @@ class ForceHttps:
             self.hosts.learn(host)
         if scheme == "http" and self._active(host):
             if _HOST.match(host):
+                if self.mode == "auto":
+                    self.hosts.mark_redirected(host)
                 path = quote(environ.get("PATH_INFO") or "/", safe="/%:@!$&'()*+,;=-._~")
                 query = quote(environ.get("QUERY_STRING") or "", safe="=&%+;/:@!$'()*,?-._~")
                 target = f"https://{host}{environ.get('SCRIPT_NAME', '')}{path}" + (f"?{query}" if query else "")
@@ -189,7 +220,11 @@ class ForceHttps:
                 start_response(status, [("Location", target), ("Content-Type", "text/plain; charset=utf-8"),
                                         ("Content-Length", "0"), ("Cache-Control", "no-store")])
                 return [b""]
-        if scheme != "https" or not self._active(host):
+        # HSTS only where the program had to redirect itself: a proxy that redirects on its own (Nginx Proxy Manager
+        # with "Force SSL") usually also sends HSTS – a second header would override its setting (browsers use the
+        # first one) and is reported as an error by checkers such as hstspreload.org.
+        hsts = self.mode == "1" or (self.mode == "auto" and self.hosts.was_redirected(host))
+        if scheme != "https" or not hsts:
             return self.app(environ, start_response)
 
         def _start(status: str, headers: list[tuple[str, str]], exc_info: Any = None) -> Any:

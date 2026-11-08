@@ -2,6 +2,13 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.1.2 – 2026-11-08
+**Improved**
+- The library now sends HSTS only for addresses where it had to redirect HTTP to HTTPS itself (e.g. behind the
+  Synology reverse proxy). Behind a proxy that redirects and sends HSTS itself (Nginx Proxy Manager with "Force SSL"
+  and "HSTS Enabled") there is no second HSTS header any more – it would have overridden the proxy's setting
+  (browsers use the first one) and is reported as an error by checkers such as hstspreload.org.
+
 ## 3.1.1 – 2026-11-08
 **Security**
 - HTTPS is now enforced by itself, also behind reverse proxies that cannot do it (e.g. the Synology reverse proxy):

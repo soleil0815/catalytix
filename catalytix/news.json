@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.1.2",
+  "date": "2026-11-08",
+  "items": [
+   {
+    "kind": "improved",
+    "audience": "admin",
+    "de": {
+     "title": "HSTS passt sich dem Reverse-Proxy an",
+     "text": "Leitet Ihr Reverse-Proxy selbst auf HTTPS um und sendet HSTS (z. B. Nginx Proxy Manager mit „Force SSL“), überlässt die Bibliothek HSTS jetzt ihm. Hinter einem Proxy, der das nicht kann (z. B. Synology), übernimmt sie es weiterhin selbst."
+    },
+    "en": {
+     "title": "HSTS adapts to the reverse proxy",
+     "text": "If your reverse proxy redirects to HTTPS and sends HSTS itself (e.g. Nginx Proxy Manager with “Force SSL”), the library now leaves HSTS to it. Behind a proxy that cannot do this (e.g. Synology), it still takes care of it itself."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.1.1",
   "date": "2026-11-08",
   "items": [

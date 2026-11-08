@@ -3,6 +3,13 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.1.2 – 08.11.2026
+**Verbessert**
+- HSTS sendet die Bibliothek nur noch für Adressen, bei denen sie HTTP selbst auf HTTPS umleiten musste (z. B. hinter
+  dem Reverse-Proxy der Synology). Hinter einem Proxy, der selbst umleitet und HSTS sendet (Nginx Proxy Manager mit
+  „Force SSL“ und „HSTS Enabled“), entsteht so kein zweiter HSTS-Header mehr – der hätte die Einstellung des Proxys
+  überdeckt (Browser werten den ersten aus) und wird von Prüfwerkzeugen wie hstspreload.org als Fehler gemeldet.
+
 ## 3.1.1 – 08.11.2026
 **Sicherheit**
 - HTTPS wird jetzt von selbst erzwungen, auch hinter Reverse-Proxys, die das nicht können (z. B. der Reverse-Proxy

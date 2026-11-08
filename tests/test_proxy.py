@@ -107,13 +107,40 @@ class ForceHttpsTests(unittest.TestCase):
         return make_app(env, self.instance)
 
     def test_auto_switches_after_https_was_seen(self):
+        # Synology: the proxy forwards HTTP as well – the program redirects and from then on sends HSTS
         c = self.client()
         self.assertEqual(c.get("/", headers=self.HTTP, environ_base=self.PROXY).status_code, 200)  # no HTTPS yet
         r = c.get("/", headers=self.HTTPS, environ_base=self.PROXY)
-        self.assertEqual(r.headers["Strict-Transport-Security"], "max-age=31536000")
+        self.assertNotIn("Strict-Transport-Security", r.headers)      # not redirected itself yet
         r = c.get("/buecher?q=a b", headers=self.HTTP, environ_base=self.PROXY)
         self.assertEqual(r.status_code, 301)
         self.assertEqual(r.headers["Location"], "https://bib.firma.local/buecher?q=a%20b")
+        r = c.get("/", headers=self.HTTPS, environ_base=self.PROXY)
+        self.assertEqual(r.headers["Strict-Transport-Security"], "max-age=31536000")
+
+    def test_proxy_that_redirects_itself_keeps_its_hsts(self):
+        # Nginx Proxy Manager with "Force SSL" (+ "HSTS Enabled"): only HTTPS ever arrives – no second HSTS header
+        c = self.client()
+        for _ in range(3):
+            r = c.get("/", headers=self.HTTPS, environ_base=self.PROXY)
+            self.assertEqual(r.status_code, 200)
+            self.assertNotIn("Strict-Transport-Security", r.headers)
+
+    def test_redirect_mark_is_remembered(self):
+        c = self.client()
+        c.get("/", headers=self.HTTPS, environ_base=self.PROXY)
+        c.get("/", headers=self.HTTP, environ_base=self.PROXY)
+        import pathlib
+        self.assertEqual((pathlib.Path(self.instance) / "https-hosts.txt").read_text(), "bib.firma.local redirected\n")
+        r = self.client().get("/", headers=self.HTTPS, environ_base=self.PROXY)              # after a restart
+        self.assertIn("Strict-Transport-Security", r.headers)
+
+    def test_file_from_311_still_works(self):
+        import pathlib
+        (pathlib.Path(self.instance) / "https-hosts.txt").write_text("bib.firma.local\n")
+        c = self.client()
+        self.assertEqual(c.get("/", headers=self.HTTP, environ_base=self.PROXY).status_code, 301)
+        self.assertIn("Strict-Transport-Security", c.get("/", headers=self.HTTPS, environ_base=self.PROXY).headers)
 
     def test_auto_is_remembered_after_restart(self):
         self.client().get("/", headers=self.HTTPS, environ_base=self.PROXY)

@@ -3,6 +3,19 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.1.1 – 08.11.2026
+**Sicherheit**
+- HTTPS wird jetzt von selbst erzwungen, auch hinter Reverse-Proxys, die das nicht können (z. B. der Reverse-Proxy
+  der Synology): Sobald eine Adresse einmal per HTTPS über den Proxy aufgerufen wurde, werden HTTP-Anfragen über den
+  Proxy auf HTTPS umgeleitet (Formulare behalten ihre Daten), und Antworten über HTTPS tragen HSTS – ein Jahr, nur für
+  diese Adresse, damit andere Programme unter Nachbar-Subdomains unberührt bleiben. Die Adresse steht danach in
+  `https-hosts.txt` im Datenordner. Ein Proxy ganz ohne HTTPS wird nie ins Leere umgeleitet; direkte Zugriffe ohne
+  Proxy (Docker-Gesundheitscheck, `http://IP:9300` im LAN) werden nie umgeleitet. `CATALYTIX_FORCE_HTTPS=1` schaltet
+  sofort um, `0` schaltet es ab.
+- Debian-Pakete auf dem Stand vom 08.11.2026: `zlib1g` mit zwei behobenen Lücken der Stufe HIGH.
+- Zusätzlicher Header `Cross-Origin-Opener-Policy: same-origin`: Fremde Seiten, die die Bibliothek in einem neuen
+  Fenster öffnen, bekommen keinen Zugriff auf dieses Fenster.
+
 ## 3.1.0 – 06.11.2026
 **Geändert**
 - Die deutsche Oberfläche spricht Nutzerinnen und Nutzer jetzt mit „Sie“ an statt mit „du“ – in allen Seiten und

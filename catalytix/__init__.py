@@ -27,7 +27,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "3.1.0"
+__version__ = "3.1.1"
 APP_NAME = "Catalytix"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Where the source code can be found (AGPL § 13). Anyone running a modified Catalytix enters the
@@ -562,6 +562,9 @@ def create_app(test_config: dict | None = None) -> Flask:
         resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
         resp.headers.setdefault("Referrer-Policy", "same-origin")
         resp.headers.setdefault("Permissions-Policy", "camera=(self)")
+        # Pages opened from here (or opening this one) get no handle on each other's window. No
+        # Cross-Origin-Resource-Policy: mails load the logo from here, webmail would be blocked.
+        resp.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
         # Strict Content-Security-Policy: no inline or third-party JavaScript, no external sources.
         # (For SVG logos the respective route sets an even stricter policy of its own.)
         resp.headers.setdefault("Content-Security-Policy", CSP)

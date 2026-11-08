@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.1.1",
+  "date": "2026-11-08",
+  "items": [
+   {
+    "kind": "security",
+    "audience": "admin",
+    "de": {
+     "title": "HTTPS wird automatisch erzwungen",
+     "text": "Sobald die Bibliothek einmal per HTTPS über Ihren Reverse-Proxy aufgerufen wurde, leitet sie Aufrufe per HTTP automatisch auf HTTPS um und weist Browser an, künftig nur noch HTTPS zu verwenden – auch wenn der Proxy das nicht selbst kann (z. B. die Synology). Sie müssen dafür nichts einstellen."
+    },
+    "en": {
+     "title": "HTTPS is enforced automatically",
+     "text": "Once the library has been opened over HTTPS through your reverse proxy, it automatically redirects HTTP to HTTPS and tells browsers to use only HTTPS from then on – even if the proxy cannot do this itself (e.g. a Synology). Nothing needs to be configured."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.1.0",
   "date": "2026-11-06",
   "items": [

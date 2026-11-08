@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.1.0** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.1.1** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -371,6 +371,7 @@ Nothing else is required: Catalytix detects the reverse proxy automatically. For
 - **Set `CATALYTIX_TRUSTED_PROXIES` to the proxy's address** (e.g. `172.18.0.5` or the proxy's Docker network). The default is "any private address" – anyone reaching the port directly from the LAN could otherwise fake any client address. This matters most if no second factor is required on the internal network; the settings page points this out.
 - Nginx Proxy Manager fetches the Cloudflare and CloudFront address ranges at startup to take over the real client address for requests coming from there. If you use no such CDN, set `IP_RANGES_FETCH_ENABLED=false` in the NPM container – then nobody can inject a foreign client address through those services.
 - Behind HTTPS set `CATALYTIX_SECURE_COOKIES=1` and enable HSTS in the proxy ("HSTS Enabled" in NPM).
+- **Catalytix enforces HTTPS itself**, also behind proxies that cannot (e.g. the Synology reverse proxy): as soon as an address has been opened once over HTTPS through the proxy, Catalytix redirects HTTP to HTTPS for that address and sends HSTS (one year, this address only – other programs on sibling subdomains are not affected). It remembers the address in the data folder (`https-hosts.txt`). A proxy without any HTTPS is therefore never redirected into nothing. On a Synology, create both rules: `http://bib.firma.local` and `https://bib.firma.local`, each to `http://<NAS>:9300`. Direct requests without the proxy (Docker health check, `http://IP:9300` on the LAN) are never redirected. `CATALYTIX_FORCE_HTTPS=1` applies it right away, `0` turns it off.
 - Enter the **base address for e-mail links** (*Administration → E-mail*) – links in e-mails are only built from it, never from the request. Without it, self-registration with e-mail confirmation is blocked.
 - Set `PUID`/`PGID` to a dedicated service user (the default 1000 is usually the host's first real user – who then owns the database and key). Database, key and backups are readable for this user only.
 - **Verify image files** (the way without internet): `update.sh --load` compares the file with `SHA256SUMS` from the release and only loads it if the checksum matches. Docker verifies images pulled from the registry itself.
@@ -446,6 +447,7 @@ Privacy: backups contain all data, including data already deleted by the retenti
 | `PUID` / `PGID` | User/group owning `./data` (default `1000`) |
 | `CATALYTIX_TRUSTED_PROXIES` | Who may send proxy headers: `private` (default), `none` or a list such as `172.18.0.0/16,192.168.0.11` |
 | `CATALYTIX_SECURE_COOKIES` | `auto` (default: over HTTPS), `1` (always), `0` (never) |
+| `CATALYTIX_FORCE_HTTPS` | `auto` (default: switch once HTTPS through the proxy was seen), `1` (always), `0` (never) – redirect HTTP through the reverse proxy to HTTPS and send HSTS |
 | `CATALYTIX_SESSION_HOURS` | Automatic sign-out after this many hours without activity (1–168, default 12) – start value only, afterwards under *Settings → Automatic sign-out* |
 | `CATALYTIX_LOGLEVEL` | `INFO` (default), `DEBUG` for LDAP troubleshooting |
 | `CATALYTIX_BACKUP_DIR` | Folder for automatic backups (default: `backups` in the data directory). Must be mounted as a volume – otherwise the container warns at start-up |

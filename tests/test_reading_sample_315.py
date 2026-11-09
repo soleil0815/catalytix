@@ -29,17 +29,18 @@ class LookupTests(unittest.TestCase):
     def setUp(self):
         reading_sample.clear_cache()
 
-    def test_pick_only_embeddable_samples(self):
-        self.assertEqual(reading_sample.pick(answer()), VOLUME)
-        self.assertEqual(reading_sample.pick(answer(viewability="ALL_PAGES")), VOLUME)
-        self.assertEqual(reading_sample.pick(answer(viewability="NO_PAGES")), "")
-        self.assertEqual(reading_sample.pick(answer(embeddable=False)), "")
+    def test_pick_any_known_volume(self):
+        # 3.1.8: accessInfo said NO_PAGES / embeddable false for a book whose preview the viewer shows – not trusted
+        self.assertEqual(reading_sample.pick(answer()), "noSample01")
+        self.assertEqual(reading_sample.pick({"items": [{"id": VOLUME, "accessInfo": {
+            "embeddable": False, "viewability": "NO_PAGES"}}]}), VOLUME)
+        self.assertEqual(reading_sample.pick({"totalItems": 0}), "")
         self.assertEqual(reading_sample.pick({}), "")
         self.assertEqual(reading_sample.pick(None), "")
         self.assertEqual(reading_sample.pick({"items": ["x", {"accessInfo": "y"}]}), "")
         # the id goes into a URL: anything but a plain Google volume id is ignored
         for bad in ('x"><script>', "../../evil", "a b c d e f", "kurz"):
-            self.assertEqual(reading_sample.pick(answer(volume=bad)), "", bad)
+            self.assertEqual(reading_sample.pick({"items": [{"id": bad}]}), "", bad)
 
     def test_check_cached_found_none_and_errors(self):
         calls = []
@@ -104,16 +105,21 @@ class GoogleKeyTests(BaseCase):
         resp = mock.Mock(status_code=200, json=lambda: answer())
         with mock.patch("catalytix.isbn.requests.get", return_value=resp) as get:
             self.assertEqual(reading_sample.target(ISBN),
-                             f"https://books.google.com/books?id={VOLUME}&printsec=frontcover&output=embed")
+                             f"https://books.google.com/books?vid=ISBN{ISBN}&printsec=frontcover&output=embed")
         self.assertEqual(get.call_args.args[0], "https://www.googleapis.com/books/v1/volumes")
         params = get.call_args.kwargs["params"]
         self.assertEqual(params["q"], f"isbn:{ISBN}")
         self.assertEqual(params["key"], "AIzaSyTestKey_0123456789abcdef")
         self.assertNotIn("cookies", get.call_args.kwargs)
         reading_sample.clear_cache()
-        none = mock.Mock(status_code=200, json=lambda: answer(embeddable=False))
-        with mock.patch("catalytix.isbn.requests.get", return_value=none):
-            self.assertFalse(reading_sample.available(ISBN))           # Google says: no sample → no button
+        not_embeddable = mock.Mock(status_code=200, json=lambda: {"items": [{"id": VOLUME, "accessInfo": {
+            "embeddable": False, "viewability": "NO_PAGES"}}]})
+        with mock.patch("catalytix.isbn.requests.get", return_value=not_embeddable):
+            self.assertTrue(reading_sample.available(ISBN))            # the viewer decides, not accessInfo
+        reading_sample.clear_cache()
+        unknown = mock.Mock(status_code=200, json=lambda: {"totalItems": 0})
+        with mock.patch("catalytix.isbn.requests.get", return_value=unknown):
+            self.assertFalse(reading_sample.available(ISBN))           # Google does not know the book → no button
             self.assertIsNone(reading_sample.target(ISBN))
 
     def test_key_never_in_errors_or_logs(self):
@@ -147,11 +153,7 @@ class GoogleKeyTests(BaseCase):
         self.assertEqual(get_setting("google_api_key"), "AIzaSyTestKey_0123456789abcdef")
 
 
-    def test_embed_url_and_policy(self):
-        self.assertEqual(reading_sample.embed_url(VOLUME),
-                         f"https://books.google.com/books?id={VOLUME}&printsec=frontcover&output=embed")
-        with self.assertRaises(ValueError):
-            reading_sample.embed_url('x"onload=')
+    def test_policy(self):
         policy = reading_sample.csp(CSP)
         self.assertIn("script-src 'self';", policy)                     # no third-party script in our pages
         self.assertIn("frame-src https://books.google.com", policy)
@@ -211,7 +213,7 @@ class PageTests(BaseCase):
             second = self.c.get(f"/buecher/{self.book.id}/leseprobe?laden=1")
         html = second.get_data(as_text=True)
         self.assertEqual(second.status_code, 200)
-        self.assertIn(f'src="https://books.google.com/books?id={VOLUME}&amp;printsec=frontcover&amp;output=embed"', html)
+        self.assertIn(f'src="https://books.google.com/books?vid=ISBN{ISBN}&amp;printsec=frontcover&amp;output=embed"', html)
         self.assertIn('referrerpolicy="no-referrer"', html)
         self.assertIn('sandbox="allow-scripts allow-same-origin allow-popups', html)
         policy = second.headers["Content-Security-Policy"]

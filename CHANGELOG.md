@@ -3,6 +3,13 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.1.8 – 09.11.2026
+**Behoben**
+- **Leseproben mit Google-API-Schlüssel:** Der Knopf „Leseprobe“ verschwand bei Büchern, deren Vorschau Googles
+  Viewer sehr wohl zeigt – Googles Schnittstelle meldet für sie „keine Seiten / nicht einbettbar“. Diese Angabe wird
+  nicht mehr ausgewertet: Mit Schlüssel fehlt der Knopf nur noch bei Büchern, die Google Books gar nicht kennt; ob es
+  eine Vorschau gibt, zeigt der Viewer. Er wird jetzt immer über die ISBN geöffnet.
+
 ## 3.1.7 – 09.11.2026
 **Verbessert**
 - `reset-password` und `reset-2fa` heben auch eine Anmeldesperre nach Fehlversuchen auf (bisher musste man danach

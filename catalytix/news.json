@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.1.8",
+  "date": "2026-11-09",
+  "items": [
+   {
+    "kind": "fixed",
+    "audience": "admin",
+    "de": {
+     "title": "Leseprobe mit Google-API-Schlüssel",
+     "text": "Mit eingetragenem Google-API-Schlüssel fehlte der Knopf „Leseprobe“ bei Büchern, deren Vorschau Google sehr wohl zeigt. Jetzt erscheint er bei allen Büchern, die Google Books kennt."
+    },
+    "en": {
+     "title": "Reading sample with a Google API key",
+     "text": "With a Google API key entered, the “Reading sample” button was missing for books whose preview Google does show. Now it appears for all books Google Books knows."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.1.7",
   "date": "2026-11-09",
   "items": [

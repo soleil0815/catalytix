@@ -178,7 +178,7 @@
                placeholder="{{ _('gespeichert – leer lassen, um ihn zu behalten') if google_key_set else _('kein Schlüssel') }}">
         {% if google_key_set %}<label class="check" style="margin-top: 6px"><input type="checkbox" name="clear_google_api_key" value="1"> {{ _("löschen") }}</label>{% endif %}
       </div>
-      <p class="muted" style="font-size: 12.5px">{{ _("Ohne Schlüssel beantwortet Google keine Abfragen. Dann erscheint der Knopf bei jedem Buch mit ISBN, und Googles Viewer zeigt selbst an, wenn es keine Vorschau gibt. Mit Schlüssel prüft der Server vorab (nur die ISBN), und der Knopf erscheint nur bei Büchern mit Leseprobe – die ISBN-Abfrage über Google Books nutzt ihn ebenfalls. Kostenlos in der Google Cloud Console: Books API aktivieren, API-Schlüssel anlegen und auf die Books API beschränken. Er wird verschlüsselt gespeichert.") }}</p>
+      <p class="muted" style="font-size: 12.5px">{{ _("Ohne Schlüssel beantwortet Google keine Abfragen. Dann erscheint der Knopf bei jedem Buch mit ISBN, und Googles Viewer zeigt selbst an, wenn es keine Vorschau gibt. Mit Schlüssel prüft der Server vorab (nur die ISBN), und der Knopf erscheint nur bei Büchern, die Google Books kennt – ob es eine Vorschau gibt, zeigt erst der Viewer. Die ISBN-Abfrage über Google Books nutzt den Schlüssel ebenfalls. Kostenlos in der Google Cloud Console: Books API aktivieren, API-Schlüssel anlegen und auf die Books API beschränken. Er wird verschlüsselt gespeichert.") }}</p>
       {% if google_quota %}<div class="notice warn" style="margin-top: 10px">{{ icon("clock") }}<div>{{ _("Google hat Abfragen wegen des Tageslimits abgelehnt. Prüfen Sie den Schlüssel und sein Kontingent in der Google Cloud Console.") }}</div></div>{% endif %}
     </section>
   </div>

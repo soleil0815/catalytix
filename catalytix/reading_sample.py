@@ -7,7 +7,9 @@ that the sample is loaded from Google, and only after that second click the brow
 
 Whether there is a sample:
 - with an own Google API key (Settings → "Leseproben", stored encrypted) the SERVER asks the Books API (only the
-  ISBN; the browser does not talk to Google for that) – the button appears only where there is an embeddable sample;
+  ISBN; the browser does not talk to Google for that) – the button appears only for books Google knows. Its
+  "embeddable"/"viewability" fields are NOT used: they say "NO_PAGES" for books whose preview the viewer shows
+  (seen in 3.1.7), so only the viewer itself can tell;
 - without a key Google answers no queries (daily limit 0 for anonymous requests, HTTP 429) – then the button appears
   for every book with an ISBN and Google's viewer, opened by ISBN, says itself when there is no preview. The same
   happens with a key while Google cannot be reached or the daily limit is used up.
@@ -41,7 +43,6 @@ TTL_NONE = 24 * 3600          # publishers add samples now and then
 TTL_ERROR = 15 * 60           # Google not reachable or limit used up: try again soon, not on every page view
 CACHE_MAX = 5000
 VOLUME_ID = re.compile(r"[A-Za-z0-9_-]{6,24}")
-EMBEDDABLE = ("PARTIAL", "ALL_PAGES")
 UNKNOWN = "?"                 # not checked (no key, Google not reachable, daily limit): the viewer decides
 
 _cache: dict[str, tuple[float, str]] = {}     # ISBN-13 → (valid until, volume id / "" none / UNKNOWN)
@@ -66,22 +67,19 @@ def quota_problem(now: float | None = None) -> bool:
 
 
 def pick(data: Any) -> str:
-    """The first volume of a Google Books answer that has an embeddable sample, else ""."""
+    """The first volume of a Google Books answer ("Google knows this book"), else "". accessInfo is not trusted:
+    it reports "no pages" for books whose preview the viewer shows."""
     items = data.get("items") if isinstance(data, dict) else None
     for item in items or []:
-        if not isinstance(item, dict):
-            continue
-        access = item.get("accessInfo") or {}
-        volume = str(item.get("id") or "")
-        if (isinstance(access, dict) and access.get("embeddable") is True
-                and access.get("viewability") in EMBEDDABLE and VOLUME_ID.fullmatch(volume)):
+        volume = str(item.get("id") or "") if isinstance(item, dict) else ""
+        if VOLUME_ID.fullmatch(volume):
             return volume
     return ""
 
 
 def _fetch(isbn13: str) -> str:
     return pick(google_get({"q": f"isbn:{isbn13}", "maxResults": 5,
-                            "fields": "items(id,accessInfo(embeddable,viewability))"}))
+                            "fields": "items(id)"}))
 
 
 def _isbn13(isbn: str) -> str | None:
@@ -90,8 +88,7 @@ def _isbn13(isbn: str) -> str | None:
 
 
 def check(isbn: str, now: float | None = None, fetch: Callable[[str], str] | None = None) -> str | None:
-    """Volume id with an embeddable sample, "" (Google says: none), UNKNOWN (not checked) – or None without a valid
-    ISBN. Answers are kept for a while (also "none" and errors), so a busy catalog does not ask on every page view."""
+    """Volume id (Google knows the book), "" (Google does not), UNKNOWN (not checked) – or None without a valid ISBN. Answers are kept for a while (also "none" and errors), so a busy catalog does not ask on every page view."""
     global _quota_at
     key = _isbn13(isbn)
     if key is None:
@@ -127,26 +124,18 @@ def check(isbn: str, now: float | None = None, fetch: Callable[[str], str] | Non
 
 
 def available(isbn: str) -> bool:
-    """Show the button? Not when Google said "no sample" (only possible with a key)."""
+    """Show the button? Not when Google does not know the book (only possible with a key)."""
     found = check(isbn)
     return found is not None and found != ""
 
 
 def target(isbn: str) -> str | None:
-    """Address of Google's viewer for this book, or None (no ISBN, or Google said "no sample")."""
-    found = check(isbn)
-    if not found:
+    """Address of Google's viewer for this book (opened by ISBN – it shows the preview where the publisher allows
+    it), or None (no ISBN, or Google does not know the book)."""
+    if not check(isbn):
         return None
-    if found == UNKNOWN:
-        key = _isbn13(isbn)
-        return f"{EMBED}?vid=ISBN{key}&printsec=frontcover&output=embed" if key else None
-    return embed_url(found)
-
-
-def embed_url(volume: str) -> str:
-    if not VOLUME_ID.fullmatch(volume):
-        raise ValueError("invalid volume id")
-    return f"{EMBED}?id={volume}&printsec=frontcover&output=embed"
+    key = _isbn13(isbn)
+    return f"{EMBED}?vid=ISBN{key}&printsec=frontcover&output=embed" if key else None
 
 
 def csp(base: str) -> str:

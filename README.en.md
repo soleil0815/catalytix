@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.1.7** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.1.8** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -391,7 +391,7 @@ Catalytix is built so that users' browsers **only talk to your own server**:
 - **Barcode detection** is built in; no library is loaded from the internet.
 - **ISBN lookups** are made by the server and only transmit the ISBN, never personal data.
 - **Reading samples** (optional, off by default – *Settings → Reading samples*) are the only exception: with an own Google
-  API key (stored encrypted) the server asks beforehand whether there is a reading sample (only the ISBN); without a
+  API key (stored encrypted) the server asks beforehand whether Google Books knows the book (only the ISBN; whether there is a preview only Google's viewer shows); without a
   key Google answers no queries, then the button appears for every book with an ISBN and Google's viewer says itself
   when there is none. The browser loads the sample itself only after
   someone confirms a notice on the book page (two-click solution) – then directly from Google, which learns the IP

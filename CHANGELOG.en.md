@@ -2,6 +2,13 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.1.8 – 2026-11-09
+**Fixed**
+- **Reading samples with a Google API key:** the "Reading sample" button disappeared for books whose preview Google's
+  viewer does show – Google's API reports "no pages / not embeddable" for them. That information is no longer used:
+  with a key the button is missing only for books Google Books does not know at all; whether there is a preview the
+  viewer shows. It is now always opened by ISBN.
+
 ## 3.1.7 – 2026-11-09
 **Improved**
 - `reset-password` and `reset-2fa` also lift a sign-in lock after failed attempts (so far you still had to wait up

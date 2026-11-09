@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.1.6** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 3.1.7** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name Ihrer Bibliothek.
 
@@ -469,7 +469,7 @@ Alles Weitere (Leihfrist, Verlängerungen, Selbstausleihe, ISBN-Quellen, AD) ste
 ## Wartung
 
 ```bash
-# Admin-Passwort zurücksetzen
+# Admin-Passwort zurücksetzen (hebt auch eine Anmeldesperre auf)
 flask --app wsgi reset-password admin
 # Zweiten Faktor zurücksetzen (Handy/Schlüssel verloren)
 flask --app wsgi reset-2fa admin

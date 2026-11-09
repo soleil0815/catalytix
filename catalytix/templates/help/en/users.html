@@ -8,7 +8,7 @@
 <p><b>Fixing sign-in problems – no command line needed:</b> open the account and scroll down to <span class="ui">Sign-in and security</span>:</p>
 <ul>
   <li><span class="ui">Reset</span> next to two-factor authentication removes the app and security keys; if 2FA is mandatory, the user has to set it up again. Any sign-in lock is lifted at the same time.</li>
-  <li><span class="ui">Lift lock</span> releases an account immediately after 8 failed attempts (otherwise it unlocks itself after 5 minutes).</li>
+  <li><span class="ui">Lift lock</span> releases an account immediately after too many failed attempts (otherwise it unlocks itself after 5 minutes, after very many failed attempts from different addresses after up to 15 minutes). Failed attempts from outside lock the account only for sign-ins from outside.</li>
 </ul>
 <p>Setting a <b>new password</b> or resetting 2FA signs the account out of all other sessions – including “Stay signed in”.</p>
 <p><b>Active Directory accounts:</b> name, email and role are taken from the directory at every sign-in. Here you can only assign groups and disable the account; passwords are changed by IT in the directory.</p>

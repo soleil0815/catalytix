@@ -27,7 +27,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "3.1.6"
+__version__ = "3.1.7"
 APP_NAME = "Catalytix"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Where the source code can be found (AGPL § 13). Anyone running a modified Catalytix enters the
@@ -606,6 +606,8 @@ def create_app(test_config: dict | None = None) -> Flask:
                                text=_("Bitte laden Sie die Seite neu und versuchen Sie es noch einmal.")), 400
 
     # ------------------------------------------------------------ CLI
+    from . import lockout
+
     @app.cli.command("reset-password")
     @click.argument("username")
     @click.password_option()
@@ -621,7 +623,8 @@ def create_app(test_config: dict | None = None) -> Flask:
         user.active = True
         user.ldap_gone_at = None   # no longer managed by the AD sync
         db.session.commit()
-        click.echo(f"Password set for {username}.")
+        unlocked = lockout.unlock_user(user.username)   # a new password must not wait for an old lock
+        click.echo(f"Password set for {username}." + (" Sign-in lock lifted." if unlocked else ""))
 
     @app.cli.command("reset-2fa")
     @click.argument("username")
@@ -632,7 +635,8 @@ def create_app(test_config: dict | None = None) -> Flask:
         if not user:
             raise click.ClickException(f"User {username} not found.")
         reset_2fa(user)
-        click.echo(f"Two-factor authentication reset for {username}.")
+        unlocked = lockout.unlock_user(user.username)   # also the daily limit for wrong codes
+        click.echo(f"Two-factor authentication reset for {username}." + (" Sign-in lock lifted." if unlocked else ""))
 
     @app.cli.command("send-reminders")
     def send_reminders():

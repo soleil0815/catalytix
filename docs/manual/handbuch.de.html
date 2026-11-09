@@ -149,7 +149,7 @@
 <table>
   <tr><th style="width:38%">Meldung / Situation</th><th>Was tun?</th></tr>
   <tr><td>„Benutzername oder Passwort ist falsch.“</td><td>Schreibweise prüfen (Feststelltaste?). Aus Sicherheitsgründen verrät die Seite nicht, ob es das Konto gibt oder ob es gesperrt ist.</td></tr>
-  <tr><td>„Zu viele Fehlversuche“</td><td>Nach 8 Fehlversuchen ist die Anmeldung 5 Minuten gesperrt. Warten – oder ein Administrator hebt die Sperre sofort auf.</td></tr>
+  <tr><td>„Zu viele Fehlversuche“</td><td>Nach 8 Fehlversuchen ist die Anmeldung 5 Minuten gesperrt; bei sehr vielen Fehlversuchen von verschiedenen Adressen (40 in 15 Minuten) bis zu 15 Minuten. Warten – oder ein Administrator hebt die Sperre sofort auf.</td></tr>
   <tr><td>Passwort vergessen</td><td>Bei Netzwerk-Konten des Instituts setzt die IT das Passwort zurück. Bei lokalen Konten vergibt ein Administrator ein neues Passwort. Wer sein Passwort noch kennt, ändert es selbst unter <span class="path">Mein Profil</span>. Eine „Passwort vergessen“-Funktion gibt es bewusst nicht.</td></tr>
   <tr><td>Handy mit Authenticator-App verloren</td><td>Mit einem Wiederherstellungscode anmelden oder einen Administrator bitten, die Zwei-Faktor-Anmeldung zurückzusetzen.</td></tr>
   <tr><td>„Die Authenticator-App muss neu eingerichtet werden“</td><td>Mit Wiederherstellungscode oder Sicherheitsschlüssel anmelden und die App unter <span class="path">Sicherheit</span> neu einrichten; den alten Eintrag in der App löschen.</td></tr>
@@ -326,7 +326,7 @@
 <p>Unten im Konto steht der Bereich <b>Anmeldung und Sicherheit</b>:</p>
 <ul>
   <li><span class="ui">Zurücksetzen</span> bei der Zwei-Faktor-Anmeldung entfernt Authenticator-App und Sicherheitsschlüssel. Die Person meldet sich danach wieder nur mit dem Passwort an; ist ein zweiter Faktor Pflicht, wird sie zur Neueinrichtung geführt.</li>
-  <li><span class="ui">Sperre aufheben</span> gibt ein Konto nach zu vielen Fehlversuchen sofort wieder frei (sonst nach 5 Minuten von selbst).</li>
+  <li><span class="ui">Sperre aufheben</span> gibt ein Konto nach zu vielen Fehlversuchen sofort wieder frei (sonst nach 5 Minuten von selbst, bei sehr vielen Fehlversuchen von verschiedenen Adressen nach bis zu 15 Minuten). Fehlversuche von außen sperren das Konto nur für die Anmeldung von außen – im internen Netz geht es weiter.</li>
 </ul>
 <figure class="half"><img src="img/25-anmeldung-sicherheit.jpg"><figcaption><b>Abb. 26</b> – Bereich „Anmeldung und Sicherheit“ im Benutzerkonto.</figcaption></figure>
 <div class="box warn"><span class="label">Alle Admins ausgesperrt?</span>Ist im internen Netz „keine Zwei-Faktor-Abfrage“ eingestellt, kommt ein Admin vom Hausnetz aus ohne zweiten Faktor hinein. Sonst hilft die IT mit einem Befehl auf dem Server (Kapitel 6.6). Am sichersten: <b>zwei</b> Administratoren und Wiederherstellungscodes gut verwahren.</div>
@@ -508,8 +508,8 @@ docker compose start catalytix</pre>
 <p>Alle Befehle im Container mit vorangestelltem <code>docker compose exec catalytix docker-entrypoint.sh</code> ausführen – so laufen sie mit den Rechten der App und nicht als root:</p>
 <table class="plain">
   <tr><th style="width:52%">Befehl</th><th>Wirkung</th></tr>
-  <tr><td><code>flask --app wsgi reset-password admin</code></td><td>neues Passwort für ein lokales Konto setzen</td></tr>
-  <tr><td><code>flask --app wsgi reset-2fa admin</code></td><td>zweiten Faktor eines Kontos zurücksetzen</td></tr>
+  <tr><td><code>flask --app wsgi reset-password admin</code></td><td>neues Passwort für ein lokales Konto setzen (aktiviert es wieder und hebt eine Anmeldesperre auf)</td></tr>
+  <tr><td><code>flask --app wsgi reset-2fa admin</code></td><td>zweiten Faktor eines Kontos zurücksetzen (hebt auch die Sperre nach zu vielen falschen Codes auf)</td></tr>
   <tr><td><code>flask --app wsgi create-admin notfall</code></td><td>zusätzliches lokales Administratorkonto anlegen</td></tr>
   <tr><td><code>flask --app wsgi backup</code></td><td>Datenbank sofort sichern</td></tr>
   <tr><td><code>flask --app wsgi list-backups</code></td><td>Sicherungen anzeigen (auch „vor Update auf …“)</td></tr>

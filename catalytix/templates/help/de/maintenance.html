@@ -13,8 +13,8 @@
 <p><b>Wenn ein Lauf auf GitHub rot wird</b> (GitHub schickt dann eine E-Mail): Es wurde nichts veröffentlicht, der Server läuft unverändert weiter. Die Ursache steht oben am Lauf. Meist ist eine Korrektur noch keine 7 Tage alt – dann den nächsten Patchday abwarten oder unter <span class="ui">Actions → Security update → Run workflow</span> mit <code>cooldown_days</code> = 0 starten. Bei fehlgeschlagenen Tests, Schwachstellen ohne Korrektur im Unterbau oder einer Warnung zum Unterbau ist eine bewusste Änderung nötig; die README beschreibt jeden Fall.</p>
 <p><b>Befehle für den Notfall</b> – jeweils mit <code>docker compose exec catalytix docker-entrypoint.sh</code> davor (über den Entrypoint laufen sie wie die App ohne Root-Rechte, z. B. gehören Sicherungen dann nicht root):</p>
 <ul>
-  <li><code>flask --app wsgi reset-password admin</code> – neues Passwort für ein lokales Konto (aktiviert es auch wieder)</li>
-  <li><code>flask --app wsgi reset-2fa admin</code> – zweiten Faktor zurücksetzen</li>
+  <li><code>flask --app wsgi reset-password admin</code> – neues Passwort für ein lokales Konto (aktiviert es auch wieder und hebt eine Anmeldesperre auf)</li>
+  <li><code>flask --app wsgi reset-2fa admin</code> – zweiten Faktor zurücksetzen (hebt auch die Sperre nach zu vielen falschen Codes auf)</li>
   <li><code>flask --app wsgi create-admin notfall</code> – zusätzliches lokales Admin-Konto</li>
   <li><code>flask --app wsgi backup</code> / <code>list-backups</code> – sichern bzw. Sicherungen anzeigen</li>
   <li><code>flask --app wsgi restore-for-version X.Y.Z</code> – Sicherung für den Weg zurück zu X.Y.Z einspielen (Server vorher anhalten, mit <code>docker compose run --rm -e CATALYTIX_SKIP_DB_CHECK=1 catalytix</code> davor)</li>

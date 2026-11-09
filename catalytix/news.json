@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.1.7",
+  "date": "2026-11-09",
+  "items": [
+   {
+    "kind": "improved",
+    "audience": "admin",
+    "de": {
+     "title": "Notfall-Befehle heben die Anmeldesperre auf",
+     "text": "Wer sich ausgesperrt hat: reset-password und reset-2fa auf dem Server heben jetzt auch die Sperre nach Fehlversuchen auf – die Anmeldung klappt sofort. Details im Handbuch, Kapitel „Befehle für den Notfall“."
+    },
+    "en": {
+     "title": "Emergency commands lift the sign-in lock",
+     "text": "Locked out? reset-password and reset-2fa on the server now also lift the lock after failed attempts – signing in works right away. Details in the help under Maintenance."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.1.6",
   "date": "2026-11-09",
   "items": [

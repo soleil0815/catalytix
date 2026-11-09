@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.1.6** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.1.7** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -475,7 +475,7 @@ The database schema is upgraded automatically on start-up (missing columns are a
 ## Maintenance
 
 ```bash
-# Reset admin password
+# Reset admin password (also lifts a sign-in lock)
 flask --app wsgi reset-password admin
 # Reset second factor (phone/key lost)
 flask --app wsgi reset-2fa admin

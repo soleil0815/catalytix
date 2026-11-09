@@ -13,8 +13,8 @@
 <p><b>If a run on GitHub turns red</b> (GitHub then sends an email): nothing was published, the server keeps running unchanged. The cause is shown at the top of the run. Usually a fix is not 7 days old yet – then wait for the next patch day or start <span class="ui">Actions → Security update → Run workflow</span> with <code>cooldown_days</code> = 0. Failed tests, vulnerabilities without a fix inside the foundation or a foundation warning need a deliberate change; the README describes each case.</p>
 <p><b>Emergency commands</b> – each prefixed with <code>docker compose exec catalytix docker-entrypoint.sh</code> (going through the entrypoint runs them without root rights like the app, so e.g. backups are not owned by root):</p>
 <ul>
-  <li><code>flask --app wsgi reset-password admin</code> – new password for a local account (also re-enables it)</li>
-  <li><code>flask --app wsgi reset-2fa admin</code> – reset the second factor</li>
+  <li><code>flask --app wsgi reset-password admin</code> – new password for a local account (also re-enables it and lifts a sign-in lock)</li>
+  <li><code>flask --app wsgi reset-2fa admin</code> – reset the second factor (also lifts the lock after too many wrong codes)</li>
   <li><code>flask --app wsgi create-admin emergency</code> – additional local admin account</li>
   <li><code>flask --app wsgi backup</code> / <code>list-backups</code> – back up now / list backups</li>
   <li><code>flask --app wsgi restore-for-version X.Y.Z</code> – restore the backup for going back to X.Y.Z (stop the server first; prefix with <code>docker compose run --rm -e CATALYTIX_SKIP_DB_CHECK=1 catalytix</code>)</li>

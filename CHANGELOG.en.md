@@ -2,6 +2,13 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.1.7 – 2026-11-09
+**Improved**
+- `reset-password` and `reset-2fa` also lift a sign-in lock after failed attempts (so far you still had to wait up
+  to 15 minutes, or until the next day after too many wrong codes).
+- Manual and help now also mention the longer lock after very many failed attempts from different addresses (up to
+  15 minutes) and that failed attempts from outside lock the account only for sign-ins from outside.
+
 ## 3.1.6 – 2026-11-09
 **Fixed**
 - **Reading samples:** Google no longer answers queries without an own API key (daily limit 0, HTTP 429) – so the

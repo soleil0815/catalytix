@@ -46,16 +46,46 @@ highest_release() {
         || fail "Release list unreadable" "No version number found among the releases: $(head -c 300 <<<"$tags")"
 }
 
-prepare_builder() {   # prepare_builder [multi] – buildx builder; "multi" also enables arm64 emulation
-    if [ "${1:-}" = multi ]; then
-        # Without the man page index update (the runner rebuilds it on every install – that took up to 7 minutes)
-        sudo rm -f /var/lib/man-db/auto-update
-        sudo apt-get update -qq >/dev/null \
-            && sudo apt-get install -y -qq --no-install-recommends qemu-user-static >/dev/null \
-            || fail "Preparation failed" "Could not install qemu-user-static for arm64 builds."
-    fi
+prepare_builder() {   # buildx builder – every platform is built on its own runner (no emulation)
     docker buildx create --name ci --driver docker-container --use >/dev/null
     docker buildx inspect --bootstrap >/dev/null
+}
+
+# Push the image just built and checked – the same builder, so every layer comes from its cache – WITHOUT a tag
+# (only by digest), and write the digest to OUTFILE. The tags are set only when both platforms passed
+# (merge_platforms). An untagged digest of a failed run is never pulled by anyone.
+push_by_digest() {   # push_by_digest OUTFILE CONTEXT BUILD-ARGS… (the same --platform and --build-arg as the check build)
+    local out="$1" ctx="$2" digest
+    shift 2
+    docker buildx build "$@" --metadata-file build-meta.json \
+        --output "type=image,name=$(image_name),push-by-digest=true,name-canonical=true,push=true" "$ctx" \
+        || fail "Publishing failed" "Could not push the checked image (see the log of this step)."
+    digest="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["containerimage.digest"])' build-meta.json)" \
+        || fail "Publishing failed" "No digest in the build result."
+    [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "Publishing failed" "Invalid digest: $digest"
+    echo "$digest" > "$out"
+    echo "Pushed $(image_name)@$digest"
+}
+
+# One multi-platform tag from the per-platform digests (files written by push_by_digest); checks that both platforms
+# are in it.
+merge_platforms() {   # merge_platforms DIGEST-DIR TAG… (full references, e.g. ghcr.io/x/y:1.2.3)
+    local dir="$1" image refs=() d arch platforms
+    shift
+    image="$(image_name)"
+    for arch in amd64 arm64; do
+        [ -f "$dir/$arch" ] || fail "Platform missing" "No checked $arch image from this run."
+        d="$(cat "$dir/$arch")"
+        [[ "$d" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "Platform missing" "Invalid $arch digest: $d"
+        refs+=("$image@$d")
+    done
+    local tags=()
+    for t in "$@"; do tags+=(-t "$t"); done
+    docker buildx imagetools create "${tags[@]}" "${refs[@]}" || fail "Publishing failed" "Could not create $1."
+    platforms="$(docker buildx imagetools inspect "$1" --format '{{json .Manifest}}' \
+        | python3 -c 'import json, sys; print(" ".join(sorted({m["platform"]["architecture"] for m in json.load(sys.stdin)["manifests"] if m.get("platform", {}).get("os") == "linux"})))')" \
+        || fail "Publishing failed" "Could not read back $1."
+    [ "$platforms" = "amd64 arm64" ] || fail "Publishing failed" "$1 contains '$platforms' instead of amd64 and arm64."
 }
 
 # Tests in exactly the given image, with the given checkout mounted (the same code that is in the image)

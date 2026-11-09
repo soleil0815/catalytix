@@ -506,10 +506,10 @@ def _sample_book_or_404(book_id: int) -> Book:
 @bp.route("/api/leseprobe/<int:book_id>")
 @login_required
 def reading_sample_status(book_id):
-    """Is there a reading sample? Asked by the book page; only the server talks to Google (only the ISBN)."""
+    """Show the button? Asked by the book page; only the server talks to Google (only the ISBN, only with a key)."""
     from .. import reading_sample
     book = _sample_book_or_404(book_id)
-    return jsonify({"available": reading_sample.lookup(book.isbn) is not None})
+    return jsonify({"available": reading_sample.available(book.isbn)})
 
 
 @bp.route("/buecher/<int:book_id>/leseprobe")
@@ -520,11 +520,10 @@ def reading_sample(book_id):
     book = _sample_book_or_404(book_id)
     if request.args.get("laden") != "1":
         return render_template("books/reading_sample.html", book=book, embed=None, missing=False)
-    volume = sample.lookup(book.isbn)
-    if not volume:
+    embed = sample.target(book.isbn)
+    if not embed:
         return render_template("books/reading_sample.html", book=book, embed=None, missing=True), 404
-    resp = make_response(render_template("books/reading_sample.html", book=book, embed=sample.embed_url(volume),
-                                         missing=False))
+    resp = make_response(render_template("books/reading_sample.html", book=book, embed=embed, missing=False))
     resp.headers["Content-Security-Policy"] = sample.csp(CSP)
     return resp
 

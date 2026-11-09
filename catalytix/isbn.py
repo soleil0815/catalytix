@@ -155,11 +155,47 @@ def lookup_openlibrary(isbn: str) -> dict:
     return {k: v for k, v in data.items() if v}
 
 
+GOOGLE_API = "https://www.googleapis.com/books/v1/volumes"
+
+
+class GoogleBooksError(Exception):
+    """Google Books answered with an error – the message never contains the request URL (it may carry the API
+    key). quota=True: daily limit reached (HTTP 429; without an own key Google allows no queries at all)."""
+
+    def __init__(self, status: int | None):
+        self.status = status
+        self.quota = status == 429
+        super().__init__(f"HTTP {status}" if status else "no answer")
+
+
+def google_api_key() -> str:
+    """Own Google API key (Administration → Settings → "Leseproben"), stored encrypted; "" = none."""
+    try:
+        from .models import get_setting
+        return (get_setting("google_api_key") or "").strip()
+    except RuntimeError:          # outside the application (e.g. a script)
+        return ""
+
+
+def google_get(params: dict[str, str | int]) -> dict:
+    """GET on the Books API, with the own key if there is one. Errors without URL (no key in logs)."""
+    params = dict(params)
+    key = google_api_key()
+    if key:
+        params["key"] = key
+    try:
+        r = requests.get(GOOGLE_API, params=params, timeout=TIMEOUT, headers=HEADERS)
+    except requests.RequestException:
+        raise GoogleBooksError(None) from None   # never chained: the message of exc contains the URL
+    if r.status_code != 200:
+        raise GoogleBooksError(r.status_code)
+    data = r.json()
+    return data if isinstance(data, dict) else {}
+
+
 def lookup_google(isbn: str) -> dict:
-    r = requests.get("https://www.googleapis.com/books/v1/volumes",
-                     params={"q": f"isbn:{isbn}"}, timeout=TIMEOUT, headers=HEADERS)
-    r.raise_for_status()
-    items = r.json().get("items") or []
+    data = google_get({"q": f"isbn:{isbn}"})
+    items = data.get("items") or []
     if not items:
         return {}
     v = items[0].get("volumeInfo", {})

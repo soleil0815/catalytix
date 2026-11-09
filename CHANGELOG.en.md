@@ -2,6 +2,19 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.1.6 – 2026-11-09
+**Fixed**
+- **Reading samples:** Google no longer answers queries without an own API key (daily limit 0, HTTP 429) – so the
+  "Reading sample" button never appeared. Now, without a key, it appears for every book with an ISBN; Google's
+  viewer is opened by ISBN and says itself when there is no preview (still only after a notice and a second click).
+
+**New**
+- Optional **Google API key** under *Settings → Reading samples* (stored encrypted, never shown again). With it the
+  server checks beforehand, and the button appears only for books with a reading sample. The ISBN lookup via Google
+  Books uses it too and works again. If Google refuses because of the daily limit, the log and a notice on the
+  settings page say so clearly. Error messages from Google Books never contain the query address (and so never the
+  key).
+
 ## 3.1.5 – 2026-11-09
 **New**
 - **Reading samples from Google Books** (optional, off by default): *Settings → Reading samples* has "Allow reading

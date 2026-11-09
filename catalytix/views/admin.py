@@ -565,6 +565,7 @@ def settings():
         set_setting("isbn_sources", ",".join(order + [s for s in sources if s not in order]))
         if "isbn_order" in request.form:      # the full settings form (not a form of one section)
             set_setting("reading_sample_google", form_bool("reading_sample_google"))
+            _save_google_key()
         db.session.commit()
         flash(_("Einstellungen gespeichert."), "success")
         if get_setting("registration_mode") != "off" and not get_setting("app_base_url"):
@@ -577,12 +578,31 @@ def settings():
     from ..mailer import mail_active
     from .. import netzone
     from .. import autologout
+    from ..reading_sample import quota_problem as reading_sample_quota
     return render_template("admin/settings.html", s=get_setting, sources=SOURCES,
                            session_hours=autologout.general_hours(),
                            retention_result=_stamped(get_setting("retention_last_result"), _retention_message),
                            connection=netzone.describe(), default_networks=netzone.DEFAULT_INTERNAL,
                            active_sources=active_sources, all_sources=all_sources,
+                           google_key_set=bool(get_setting("google_api_key")),
+                           google_quota=reading_sample_quota(),
                            groups=Group.query.order_by(Group.name).all(), mail_on=mail_active())
+
+
+def _save_google_key() -> None:
+    """Own Google API key (reading samples, ISBN lookup): stored encrypted, never shown again; empty = keep."""
+    from .. import reading_sample
+    new = (request.form.get("google_api_key") or "").strip()
+    if request.form.get("clear_google_api_key"):
+        set_setting("google_api_key", "")
+    elif new:
+        if not re.fullmatch(r"[A-Za-z0-9_-]{20,100}", new):
+            flash(_("Der Google-API-Schlüssel hat nicht das erwartete Format – nicht gespeichert."), "error")
+            return
+        set_setting("google_api_key", new)
+    else:
+        return
+    reading_sample.clear_cache()          # answers given without / with the old key
 
 
 def _save_session_settings() -> None:

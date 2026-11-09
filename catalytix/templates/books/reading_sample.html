@@ -20,7 +20,7 @@
 <section class="card card-pad" style="max-width: 680px">
   <h2 style="margin-bottom: 8px">{{ icon("globe") }} {{ _("Inhalte von Google Books") }}</h2>
   <p>{{ _("Die Leseprobe wird direkt von Google Books geladen. Dabei überträgt Ihr Browser Ihre IP-Adresse an Google, und Google kann Cookies setzen. Es gelten die Datenschutzbestimmungen von Google.") }}</p>
-  <p class="muted" style="font-size: 13.5px">{{ _("Ohne Ihren Klick wird nichts von Google geladen. Ob es eine Leseprobe gibt, hat der Server der Bibliothek vorab nur anhand der ISBN geprüft.") }}</p>
+  <p class="muted" style="font-size: 13.5px">{{ _("Ohne Ihren Klick wird nichts von Google geladen. Gibt es zu diesem Buch keine Leseprobe, zeigt Google das im Viewer an.") }}</p>
   <div class="actions" style="margin-top: 16px">
     <a class="btn primary" href="{{ url_for('books.reading_sample', book_id=book.id, laden=1) }}">{{ icon("book") }} {{ _("Leseprobe laden") }}</a>
     <a class="btn ghost" href="{{ url_for('books.detail', book_id=book.id) }}">{{ _("Abbrechen") }}</a>

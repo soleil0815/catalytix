@@ -35,6 +35,11 @@
     </dl>
     {% if book.tags %}<div class="chips" style="margin-bottom: 16px">{% for t in book.tags.split(",") if t.strip() %}<a class="badge accent" href="{{ url_for('books.index', q=t.strip()) }}">{{ t.strip() }}</a>{% endfor %}</div>{% endif %}
     {% if book.description %}<div class="desc">{{ book.description }}</div>{% endif %}
+    {% if reading_sample and book.isbn %}
+    {# shown by app.js only when Google Books has a sample (the server asks, the browser never talks to Google here) #}
+    <a class="btn sm" hidden data-reading-sample="{{ url_for('books.reading_sample_status', book_id=book.id) }}"
+       href="{{ url_for('books.reading_sample', book_id=book.id) }}" style="margin-top: 14px">{{ icon("book") }} {{ _("Leseprobe") }}</a>
+    {% endif %}
   </div>
 </div>
 

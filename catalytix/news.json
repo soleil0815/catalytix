@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.1.5",
+  "date": "2026-11-09",
+  "items": [
+   {
+    "kind": "new",
+    "audience": "admin",
+    "de": {
+     "title": "Leseproben von Google Books",
+     "text": "Neu unter Einstellungen → Leseproben: Ist der Haken gesetzt, erscheint auf der Buchseite „Leseprobe“, wenn der Verlag bei Google Books eine freigegeben hat. Geladen wird sie erst nach einem Hinweis und einem zweiten Klick – denken Sie an Ihre Datenschutzerklärung."
+    },
+    "en": {
+     "title": "Reading samples from Google Books",
+     "text": "New under Settings → Reading samples: when ticked, the book page shows “Reading sample” if the publisher has released one on Google Books. It is loaded only after a notice and a second click – remember your privacy policy."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.1.4",
   "date": "2026-11-09",
   "items": [

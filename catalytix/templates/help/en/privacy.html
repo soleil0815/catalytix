@@ -4,6 +4,7 @@
 <p><b>Legal notice and privacy policy</b> are entered under <span class="ui">Settings → Legal</span>. The links appear on the sign-in page, in the sidebar and in every email; the privacy policy must be accepted during self-registration.{% if not f.imprint_set or not f.privacy_set %} <b>Currently missing: {% if not f.imprint_set and not f.privacy_set %}both{% elif not f.imprint_set %}the legal notice{% else %}the privacy policy{% endif %}</b> – usually mandatory when running on the internet.{% endif %}</p>
 <ul>
   <li>No third-party servers: fonts, covers and barcode recognition come from your own server, ISBN lookups are made by the server (only the ISBN is sent). No tracking, only technically necessary cookies.</li>
+  {% if f.reading_sample %}<li><b>Exception: reading samples</b> (<span class="ui">Settings → Reading samples</span>, switched on): whoever confirms <span class="ui">Load reading sample</span> on a book page loads Google's viewer directly from Google Books – Google learns the IP address and may set cookies. A notice comes first; nothing is loaded without the click. Include this in your privacy policy.</li>{% endif %}
   <li>Passwords for the directory service account and the mail server, as well as 2FA secrets, are stored <b>encrypted</b> in the database. The key is the file <code>data/secret_key</code> – without it a copied database cannot be read. Keep it with your backups, but protect it separately.</li>
   <li>If someone else runs the server for you, you need a data processing agreement (Art. 28 GDPR).</li>
 </ul>

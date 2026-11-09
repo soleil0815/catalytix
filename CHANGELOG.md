@@ -3,6 +3,20 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.1.5 – 09.11.2026
+**Neu**
+- **Leseproben von Google Books** (optional, standardmäßig aus): Unter *Einstellungen → Leseproben* lässt sich
+  „Leseproben von Google Books erlauben“ einschalten. Hat der Verlag bei Google Books eine Leseprobe freigegeben,
+  erscheint auf der Buchseite „Leseprobe“. Ob es eine gibt, fragt der Server (nur die ISBN, Antwort wird
+  zwischengespeichert). Die Leseprobe selbst öffnet sich erst nach einem Hinweis und einem zweiten Klick als
+  eingebetteter Viewer von Google – erst dann spricht der Browser mit Google. Nur diese eine Seite erlaubt Google
+  Books als Rahmen (`frame-src`), Skripte bleiben auf den eigenen Server beschränkt. Texte oder Seiten der Leseprobe
+  werden nicht gespeichert.
+
+**Build**
+- Veröffentlichen geht deutlich schneller: amd64 und arm64 werden gleichzeitig auf eigenen Rechnern gebaut, getestet
+  und geprüft (arm64 nicht mehr nachgeahmt); der Trivy-Download wird bei kurzen Ausfällen von GitHub wiederholt.
+
 ## 3.1.4 – 09.11.2026
 **Sicherheit**
 - Seiten und Daten werden nicht mehr vom Browser oder einem Proxy zwischengespeichert (`Cache-Control: no-store`):

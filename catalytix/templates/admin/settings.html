@@ -167,6 +167,13 @@
         <span>{{ sources[key][0] }}<small class="muted">{% if key == 'dnb' %}{{ _("Beste Abdeckung für deutschsprachige Titel") }}{% elif key == 'openlibrary' %}{{ _("Internationaler offener Katalog, viele Cover") }}{% else %}{{ _("Große Abdeckung, oft mit Beschreibung") }}{% endif %}</small></span></label>
       {% endfor %}
     </section>
+
+    <section class="card card-pad" id="leseproben">
+      <h2 style="margin-bottom: 6px">{{ icon("book") }} {{ _("Leseproben") }}</h2>
+      <label class="check"><input type="checkbox" name="reading_sample_google" value="1" {{ 'checked' if s('reading_sample_google') == '1' }}>
+        <span>{{ _("Leseproben von Google Books erlauben") }}<small class="muted">{{ _("Auf der Buchseite erscheint „Leseprobe“, wenn der Verlag bei Google Books eine freigegeben hat.") }}</small></span></label>
+      <p class="muted" style="font-size: 12.5px">{{ _("Ob es eine Leseprobe gibt, fragt der Server ab (nur die ISBN). Die Leseprobe selbst lädt der Browser erst nach einem Klick und einem Hinweis direkt von Google – dabei erfährt Google die IP-Adresse. Nehmen Sie das in Ihre Datenschutzerklärung auf.") }}</p>
+    </section>
   </div>
   <div class="actions" style="margin-top: 20px; justify-content: flex-end">
     <button class="btn primary lg">{{ icon("check") }} {{ _("Speichern") }}</button>

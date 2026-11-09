@@ -2,6 +2,19 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.1.5 – 2026-11-09
+**New**
+- **Reading samples from Google Books** (optional, off by default): *Settings → Reading samples* has "Allow reading
+  samples from Google Books". If the publisher has released a reading sample on Google Books, the book page shows
+  "Reading sample". Whether there is one is asked by the server (only the ISBN, the answer is cached). The sample
+  itself opens only after a notice and a second click, as Google's embedded viewer – only then does the browser talk
+  to Google. Only that one page allows Google Books as a frame (`frame-src`); scripts stay limited to your own
+  server. Texts or pages of the sample are not stored.
+
+**Build**
+- Publishing is much faster: amd64 and arm64 are built, tested and checked at the same time on their own machines
+  (arm64 no longer emulated); the Trivy download is retried when GitHub is briefly unavailable.
+
 ## 3.1.4 – 2026-11-09
 **Security**
 - Pages and data are no longer stored by the browser or a proxy (`Cache-Control: no-store`): after signing out on a

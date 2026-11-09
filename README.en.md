@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.1.4** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.1.5** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -390,6 +390,11 @@ Catalytix is built so that users' browsers **only talk to your own server**:
 - **Cover images** are fetched once by the server from DNB, Open Library or Google Books, stored and served locally. The preview while adding a book also goes through your server. Only public addresses are fetched – internal servers cannot be reached through this feature. The check happens when connecting, for exactly the address that is connected to (protection against DNS rebinding); a download takes at most 10 seconds. If an outgoing proxy is set via `HTTPS_PROXY`/`HTTP_PROXY`, the proxy resolves the names – it should then block internal destinations itself.
 - **Barcode detection** is built in; no library is loaded from the internet.
 - **ISBN lookups** are made by the server and only transmit the ISBN, never personal data.
+- **Reading samples** (optional, off by default – *Settings → Reading samples*) are the only exception: whether Google
+  Books has a reading sample is asked by the server (only the ISBN). The browser loads the sample itself only after
+  someone confirms a notice on the book page (two-click solution) – then directly from Google, which learns the IP
+  address. Only that page allows Google Books as a frame (`frame-src`); scripts stay limited to your own server. When
+  switched on, this belongs in your privacy policy.
 - **Cookies:** only strictly necessary ones (sign-in, form protection) – no cookie banner required. No tracking, no ads.
 
 Enter the addresses of your **imprint (Impressum) and privacy policy** under *Administration → Einstellungen → Rechtliches* (Settings → Legal), e.g. pages on the institution's website. The links appear on the login page, in the sidebar and in every e-mail; self-registration requires accepting the privacy policy.

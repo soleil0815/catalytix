@@ -155,6 +155,7 @@ def facts() -> dict:
         "default_language": get_setting("default_language") or "de",
         "imprint_set": bool(get_setting("imprint_url")),
         "privacy_set": bool(get_setting("privacy_url")),
+        "reading_sample": get_bool("reading_sample_google"),
     }
 
 

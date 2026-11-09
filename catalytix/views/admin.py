@@ -563,6 +563,8 @@ def settings():
         sources = [s for s in request.form.getlist("isbn_sources") if s in SOURCES]
         order = [s for s in (request.form.get("isbn_order") or "").split(",") if s in sources]
         set_setting("isbn_sources", ",".join(order + [s for s in sources if s not in order]))
+        if "isbn_order" in request.form:      # the full settings form (not a form of one section)
+            set_setting("reading_sample_google", form_bool("reading_sample_google"))
         db.session.commit()
         flash(_("Einstellungen gespeichert."), "success")
         if get_setting("registration_mode") != "off" and not get_setting("app_base_url"):

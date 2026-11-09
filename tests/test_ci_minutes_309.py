@@ -63,22 +63,34 @@ class WorkflowTests(unittest.TestCase):
             self.assertIn("if: steps.version.outputs.new != 'true'", block[:200], step)
         mypy = check[check.index("Type check (mypy)"):]
         self.assertNotIn("if:", mypy[:mypy.index("- name:")])                          # mypy always runs
-        publish = job(workflow("build.yml"), "publish")
-        for part in ("--no-cache", "test_in_image", "start_in_image", "scan catalytix-ci:amd64",
-                     "scan catalytix-ci:arm64"):
-            self.assertIn(part, publish)
+        platform = job(workflow("build.yml"), "platform")
+        for part in ("--no-cache", "test_in_image", "start_in_image", "trivy_scan.py scan"):
+            self.assertIn(part, platform)
+        for arch, runner in (("amd64", "ubuntu-24.04"), ("arm64", "ubuntu-24.04-arm")):
+            self.assertIn(f"- arch: {arch}\n            runner: {runner}\n", platform)
 
     def test_security_update_builds_arm64_only_when_something_changed(self):
         upd = job(workflow("security-update.yml"), "update")
         amd = upd[upd.index("Build amd64 (without cache)"):upd.index("Compare with the published")]
         self.assertNotIn("arm64", amd.split("run:", 1)[1])
-        arm = upd[upd.index("- name: Build arm64"):]
-        self.assertIn("if: steps.compare.outputs.changed == 'true'", arm[:120])
-        self.assertLess(upd.index("Compare with the published"), upd.index("- name: Build arm64"))
-        self.assertLess(upd.index("- name: Build arm64"), upd.index("scan catalytix-ci:arm64"))
+        self.assertNotIn("linux/arm64", upd)                             # 3.1.5: own job, natively
+        arm = job(workflow("security-update.yml"), "arm64")
+        self.assertIn("if: needs.update.outputs.changed == 'true'", arm)
 
-    def test_qemu_without_man_db_rebuild(self):
-        self.assertIn("rm -f /var/lib/man-db/auto-update", (ROOT / "tools" / "ci.sh").read_text())
+    def test_pull_request_checks_arm64_natively(self):
+        arm = job(workflow("build.yml"), "check-arm64")
+        self.assertIn("if: github.event_name == 'pull_request'", arm)
+        self.assertIn("runs-on: ubuntu-24.04-arm", arm)
+        for part in ("--no-cache", "--platform linux/arm64", "test_in_image", "start_in_image", "trivy_scan.py scan"):
+            self.assertIn(part, arm)
+
+    def test_no_emulation(self):
+        # 3.1.5: arm64 on a native ARM runner – under QEMU the publish run took 20+ minutes
+        self.assertNotIn("qemu-user-static", (ROOT / "tools" / "ci.sh").read_text())
+        for name in ("build.yml", "security-update.yml"):
+            self.assertNotIn("setup-qemu", workflow(name), name)
+            self.assertNotIn("prepare_builder multi", workflow(name), name)
+            self.assertNotIn("linux/amd64,linux/arm64", workflow(name), name)
 
 
 if __name__ == "__main__":

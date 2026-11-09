@@ -5,11 +5,12 @@
 #         2. tools/lock.py update: newest base image, Debian packages and Python packages – only INSIDE the foundation
 #            (Debian 13 "trixie", Python 3.13, every package within its major version, calendar versions like
 #            certifi without limit, new releases only after <cooldown> days).
-#         3. One build without cache for amd64 and arm64 (all Debian packages, also those of the base image, brought
-#            to the locked archive state; pip removed from the finished image).
+#         3. Build amd64 without cache (all Debian packages, also those of the base image, brought to the locked
+#            archive state; pip removed from the finished image).
 #         4. Compare the package list with the published :latest – nothing changed: nothing happens.
-#         5. Tests IN the new image (amd64), Trivy scan of both platforms.
-#         6. Only if everything passed: push exactly these images as <version>-s<counter> (e.g. 2.19.0-s1; a new
+#         5. Tests IN the new image and Trivy – amd64 here, arm64 at the same time natively on an ARM runner (job
+#            arm64, the same locks, no emulation). Each pushes its checked image without a tag.
+#         6. Only if both passed: tag both together as <version>-s<counter> (e.g. 2.19.0-s1; a new
 #            program version starts again at s1). The tag is chosen before the build and baked into the image
 #            (label catalytix.tag, plus the release commit as org.opencontainers.image.revision) – update.sh goes
 #            back to exactly this tag. Published tags are never overwritten.
@@ -56,6 +57,7 @@ jobs:
       version: ${{ steps.release.outputs.version }}
       main_sha: ${{ steps.release.outputs.main_sha }}
       tag: ${{ steps.tag.outputs.tag }}
+      revision: ${{ steps.tag.outputs.revision }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -76,8 +78,8 @@ jobs:
           echo "main_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "Security update for v$v"
 
-      - name: Prepare Docker (amd64 + arm64)
-        run: . tools/ci.sh && prepare_builder multi
+      - name: Prepare Docker
+        run: . tools/ci.sh && prepare_builder
 
       - name: Fix newer versions (inside the foundation)
         env:
@@ -106,8 +108,8 @@ jobs:
           echo "revision=$(git -C release rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "Tag: $tag"
 
-      # amd64 first, without cache (fresh builder of this run): enough to see whether anything changed. arm64 (emulated,
-      # by far the slowest part) is only built when something changed – most weeks nothing does (CI minutes).
+      # amd64 first, without cache (fresh builder of this run): enough to see whether anything changed. arm64 is only
+      # built (job arm64) when something changed – most weeks nothing does.
       - name: Build amd64 (without cache)
         env:
           TAG: ${{ steps.tag.outputs.tag }}
@@ -148,45 +150,7 @@ jobs:
           echo "changed=true" >> "$GITHUB_OUTPUT"
           { echo "### Changed packages"; head -c 60000 changes.txt; } >> "$GITHUB_STEP_SUMMARY"
 
-      # Same builder: amd64 comes from the layers built above (exactly the image that was compared and gets tested),
-      # arm64 is built now – also without any older cache.
-      - name: Build arm64
-        if: steps.compare.outputs.changed == 'true'
-        env:
-          TAG: ${{ steps.tag.outputs.tag }}
-          REVISION: ${{ steps.tag.outputs.revision }}
-        run: |
-          . tools/ci.sh
-          docker buildx build --build-arg "CATALYTIX_TAG=$TAG" --build-arg "CATALYTIX_REVISION=$REVISION" \
-            --platform linux/arm64 --load -t catalytix-ci:arm64 release \
-            || fail "Image build failed" "See the log of this step – nothing is published."
-
-      - name: Run the tests in the new image (amd64)
-        if: steps.compare.outputs.changed == 'true'
-        run: . tools/ci.sh && test_in_image catalytix-ci:amd64 "$PWD/release"
-
-      - name: Security scan of both platforms (Trivy)
-        if: steps.compare.outputs.changed == 'true'
-        run: |
-          python3 tools/trivy_scan.py install
-          python3 tools/trivy_scan.py scan catalytix-ci:amd64
-          python3 tools/trivy_scan.py scan catalytix-ci:arm64
-
-      - name: Push the security update (never overwrite)
-        id: push
-        if: steps.compare.outputs.changed == 'true'
-        env:
-          TAG: ${{ steps.tag.outputs.tag }}
-          REVISION: ${{ steps.tag.outputs.revision }}
-        run: |
-          . tools/ci.sh
-          image="$(image_name)"
-          ! image_exists "$image:$TAG" || fail "Tag taken meanwhile" "$image:$TAG appeared during the run – never overwritten. Start the security update again."
-          docker buildx build --platform linux/amd64,linux/arm64 --push \
-            --build-arg "CATALYTIX_TAG=$TAG" --build-arg "CATALYTIX_REVISION=$REVISION" -t "$image:$TAG" release \
-            || fail "Publishing failed" "See the log of this step."
-          echo "### Pushed $image:$TAG" >> "$GITHUB_STEP_SUMMARY"
-
+      # The new locks for the arm64 job (and later for main)
       - name: Hand over the new locks
         if: steps.compare.outputs.changed == 'true'
         run: |
@@ -203,14 +167,144 @@ jobs:
           retention-days: 7
           include-hidden-files: false
 
+      - name: Run the tests in the new image (amd64)
+        if: steps.compare.outputs.changed == 'true'
+        run: . tools/ci.sh && test_in_image catalytix-ci:amd64 "$PWD/release"
+
+      - name: Security scan (Trivy, amd64)
+        if: steps.compare.outputs.changed == 'true'
+        run: |
+          python3 tools/trivy_scan.py install
+          python3 tools/trivy_scan.py scan catalytix-ci:amd64
+
+      - name: Push the checked image (amd64, without a tag)
+        if: steps.compare.outputs.changed == 'true'
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          REVISION: ${{ steps.tag.outputs.revision }}
+        run: |
+          . tools/ci.sh
+          mkdir -p digest
+          push_by_digest digest/amd64 release --build-arg "CATALYTIX_TAG=$TAG" --build-arg "CATALYTIX_REVISION=$REVISION" \
+            --platform linux/amd64
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: steps.compare.outputs.changed == 'true'
+        with:
+          name: digest-amd64
+          path: digest/amd64
+          retention-days: 1
+
       - name: Log out
         if: always()
         run: docker logout ghcr.io
 
-  record:
-    name: Change log and locks on main
+  # arm64 natively on an ARM runner, with exactly the locks of the update job – only when something changed.
+  arm64:
+    name: Build, test, scan arm64
     needs: update
     if: needs.update.outputs.changed == 'true'
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: security-update
+          path: handover
+
+      - name: Release code with the new locks
+        env:
+          VERSION: ${{ needs.update.outputs.version }}
+        run: |
+          . tools/ci.sh
+          git worktree add --detach release "v$VERSION" >/dev/null || fail "No release" "Tag v$VERSION not found."
+          python3 tools/lock.py copy-locks handover release
+          python3 release/tools/lock.py check || fail "Locking failed" "The handed-over locks are incomplete."
+
+      - name: Prepare Docker
+        run: . tools/ci.sh && prepare_builder
+
+      - name: Build arm64 (without cache)
+        env:
+          TAG: ${{ needs.update.outputs.tag }}
+          REVISION: ${{ needs.update.outputs.revision }}
+        run: |
+          . tools/ci.sh
+          docker buildx build --no-cache --pull --build-arg "CATALYTIX_TAG=$TAG" --build-arg "CATALYTIX_REVISION=$REVISION" \
+            --platform linux/arm64 --load -t catalytix-ci:arm64 release \
+            || fail "Image build failed" "See the log of this step – nothing is published."
+
+      - name: Run the tests in the new image (arm64)
+        run: . tools/ci.sh && test_in_image catalytix-ci:arm64 "$PWD/release"
+
+      - name: Security scan (Trivy, arm64)
+        run: |
+          python3 tools/trivy_scan.py install
+          python3 tools/trivy_scan.py scan catalytix-ci:arm64
+
+      - name: Push the checked image (arm64, without a tag)
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.update.outputs.tag }}
+          REVISION: ${{ needs.update.outputs.revision }}
+        run: |
+          . tools/ci.sh
+          docker_login
+          mkdir -p digest
+          push_by_digest digest/arm64 release --build-arg "CATALYTIX_TAG=$TAG" --build-arg "CATALYTIX_REVISION=$REVISION" \
+            --platform linux/arm64
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: digest-arm64
+          path: digest/arm64
+          retention-days: 1
+
+      - name: Log out
+        if: always()
+        run: docker logout ghcr.io
+
+  push:
+    name: Tag the security update (both platforms)
+    needs: [update, arm64]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          pattern: digest-*
+          path: digest
+          merge-multiple: true
+
+      - name: Push the security update (never overwrite)
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.update.outputs.tag }}
+        run: |
+          . tools/ci.sh
+          docker_login
+          image="$(image_name)"
+          ! image_exists "$image:$TAG" || fail "Tag taken meanwhile" "$image:$TAG appeared during the run – never overwritten. Start the security update again."
+          merge_platforms digest "$image:$TAG"
+          docker logout ghcr.io >/dev/null
+          echo "### Pushed $image:$TAG" >> "$GITHUB_STEP_SUMMARY"
+
+  record:
+    name: Change log and locks on main
+    needs: [update, push]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -247,7 +341,7 @@ jobs:
 
   promote:
     name: Move latest
-    needs: [update, record]
+    needs: [update, push, record]
     runs-on: ubuntu-24.04
     permissions:
       contents: read

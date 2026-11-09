@@ -16,6 +16,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import platform
 import re
 import subprocess
 import sys
@@ -51,20 +52,37 @@ def summary(text: str) -> None:
             f.write(text + "\n")
 
 
-def read_lock(path: Path = LOCK) -> dict[str, str]:
+def runner_arch(machine: str | None = None) -> str:
+    """amd64 or arm64 – the release of Trivy that runs on this machine (the publish job builds natively on both)."""
+    m = (machine or platform.machine()).lower()
+    if m in ("x86_64", "amd64"):
+        return "amd64"
+    if m in ("aarch64", "arm64"):
+        return "arm64"
+    raise SystemExit(f"Trivy: no locked release for this machine ({m})")
+
+
+def read_lock(path: Path = LOCK, arch: str | None = None) -> dict[str, str]:
+    """version, url and sha256 for this machine: url/sha256 (amd64) or url_arm64/sha256_arm64."""
     values = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if line and not line.startswith("#") and "=" in line:
             k, v = line.split("=", 1)
             values[k.strip()] = v.strip()
-    for key in ("version", "url", "sha256"):
+    for key in ("version", "url", "sha256", "url_arm64", "sha256_arm64"):
         if not values.get(key):
             raise SystemExit(f"trivy.lock: {key} missing")
-    if not re.fullmatch(r"[0-9a-f]{64}", values["sha256"]):
-        raise SystemExit("trivy.lock: sha256 must be 64 hex characters")
-    if not values["url"].startswith("https://github.com/aquasecurity/trivy/releases/download/"):
-        raise SystemExit("trivy.lock: url must be an official Trivy release on github.com")
+    for suffix in ("", "_arm64"):
+        if not re.fullmatch(r"[0-9a-f]{64}", values["sha256" + suffix]):
+            raise SystemExit(f"trivy.lock: sha256{suffix} must be 64 hex characters")
+        url = values["url" + suffix]
+        if not url.startswith("https://github.com/aquasecurity/trivy/releases/download/"):
+            raise SystemExit(f"trivy.lock: url{suffix} must be an official Trivy release on github.com")
+        if f"/v{values['version']}/" not in url:
+            raise SystemExit(f"trivy.lock: url{suffix} is not version {values['version']}")
+    if (arch or runner_arch()) == "arm64":
+        values["url"], values["sha256"] = values["url_arm64"], values["sha256_arm64"]
     return values
 
 

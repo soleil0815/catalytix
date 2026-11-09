@@ -206,8 +206,10 @@ class WorkflowTests(unittest.TestCase):
             self.assertIn("workflow_dispatch:", workflow(name), name)                        # can be started manually
 
     def test_publishing_jobs_never_concurrent_and_only_from_main(self):
-        publishing = [("build.yml", "publish"), ("build.yml", "release"), ("security-update.yml", "update"),
-                      ("security-update.yml", "record"), ("security-update.yml", "promote")]
+        publishing = [("build.yml", "state"), ("build.yml", "platform"), ("build.yml", "publish"),
+                      ("build.yml", "release"), ("security-update.yml", "update"), ("security-update.yml", "arm64"),
+                      ("security-update.yml", "push"), ("security-update.yml", "record"),
+                      ("security-update.yml", "promote")]
         # 3.0.3: concurrency per WORKFLOW, not per job – GitHub keeps one waiting entry per group and cancels the older
         # one, at job level e.g. the release job after the image was pushed
         for name, job in publishing:
@@ -224,33 +226,56 @@ class WorkflowTests(unittest.TestCase):
         order = ["Check locks", "Build the image (without cache)", "Run the tests in the image", "Security scan"]
         positions = [check.index(o) for o in order]
         self.assertEqual(positions, sorted(positions))
-        publish = wf["publish"]
-        order = ["Already published?", "--no-cache", "test_in_image", "scan catalytix-ci:amd64",
-                 "scan catalytix-ci:arm64", "--push", "imagetools create -t"]
-        positions = [publish.index(o) for o in order]
+        self.assertIn("Already published?", wf["state"])
+        self.assertIn("needs: check", wf["state"])
+        # 3.1.5: each platform natively on its own runner – build, tests, start, Trivy, then push without a tag
+        plat = wf["platform"]
+        self.assertIn("needs: [check, state]", plat)
+        self.assertIn("if: needs.state.outputs.published == 'false'", plat)
+        order = ["--no-cache", "test_in_image", "start_in_image", "trivy_scan.py scan", "push_by_digest",
+                 "upload-artifact"]
+        positions = [plat.index(o) for o in order]
         self.assertEqual(positions, sorted(positions), order)
-        self.assertIn("needs: check", publish)
+        # tags only after BOTH platforms passed
+        publish = wf["publish"]
+        self.assertIn("needs: [check, state, platform]", publish)
+        self.assertIn("needs.platform.result == 'success'", publish)
+        self.assertLess(publish.index("! image_exists"), publish.index("merge_platforms"))
+        self.assertLess(publish.index("merge_platforms"), publish.index("imagetools create -t"))
+        self.assertNotIn("--no-cache", publish)              # nothing is built here
         self.assertIn("is-highest", check)
         self.assertIn("is-highest", publish)                 # :latest only for the highest version
         self.assertIn("needs: [check, publish]", wf["release"])
+        self.assertIn("needs.publish.result == 'success'", wf["release"])
 
     def test_security_update_order(self):
         wf = jobs(workflow("security-update.yml"))
         upd = wf["update"]
         order = ["highest_release", "same-build", "lock.py update", "next-tag", "--no-cache",
-                 "Compare with the published", "test_in_image", "scan catalytix-ci:amd64", "scan catalytix-ci:arm64",
-                 "--push", "upload-artifact"]
+                 "Compare with the published", "upload-artifact", "test_in_image", "scan catalytix-ci:amd64",
+                 "push_by_digest digest/amd64"]
         positions = [upd.index(o) for o in order]
         self.assertEqual(positions, sorted(positions), order)
-        for step in ("Run the tests", "Security scan", "Push the security update"):
+        for step in ("Run the tests", "Security scan", "Push the checked image"):
             block = upd[upd.index(step):]
             self.assertIn("if: steps.compare.outputs.changed == 'true'", block[:300], step)   # otherwise do nothing
         self.assertIn("while image_exists", upd)                                              # never overwrite
+        # 3.1.5: arm64 natively, with the handed-over locks, only when something changed
+        arm = wf["arm64"]
+        self.assertIn("runs-on: ubuntu-24.04-arm", arm)
+        self.assertIn("if: needs.update.outputs.changed == 'true'", arm)
+        order = ["download-artifact", "copy-locks handover release", "lock.py check", "--no-cache", "test_in_image",
+                 "scan catalytix-ci:arm64", "push_by_digest digest/arm64"]
+        positions = [arm.index(o) for o in order]
+        self.assertEqual(positions, sorted(positions), order)
+        push = wf["push"]
+        self.assertIn("needs: [update, arm64]", push)
+        self.assertLess(push.index("! image_exists"), push.index("merge_platforms"))
         rec = wf["record"]
-        self.assertIn("if: needs.update.outputs.changed == 'true'", rec)
+        self.assertIn("needs: [update, push]", rec)
         self.assertLess(rec.index("commits/main"), rec.index("changelog"))                   # main not moved
         self.assertLess(rec.index("changelog"), rec.index("git push"))
-        self.assertIn("needs: [update, record]", wf["promote"])
+        self.assertIn("needs: [update, push, record]", wf["promote"])
         self.assertIn("is-highest", wf["promote"])
 
     def test_errors_are_readable_on_the_run(self):
@@ -311,6 +336,54 @@ class CiHelperTests(unittest.TestCase):
         r = self.run_sh("release_exists 1.0.0 || echo missing", gh_out="gh: Server Error (HTTP 502)", gh_rc=1)
         self.assertNotIn("missing", r.stdout)
         self.assertIn("::error title=GitHub API not reachable", r.stdout)
+
+    def fake_docker(self, tmp, body):
+        f = Path(tmp) / "docker"
+        f.write_text("#!/bin/bash\n" + body)
+        f.chmod(0o755)
+        return dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}", GITHUB_REPOSITORY="o/r")
+
+    def test_merge_platforms_needs_both_and_checks_the_result(self):
+        """3.1.5: tags are set only from the two checked digests, and the result must contain both platforms."""
+        d1, d2 = "sha256:" + "a" * 64, "sha256:" + "b" * 64
+        index = json.dumps({"manifests": [{"platform": {"os": "linux", "architecture": a}} for a in ("amd64", "arm64")]
+                           + [{"platform": {"os": "unknown", "architecture": "unknown"}}]})
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "calls"
+            env = self.fake_docker(tmp, f'echo "$*" >> {log}\n'
+                                        f'case "$*" in *inspect*) printf \'%s\\n\' \'{index}\' ;; esac\n')
+            digests = Path(tmp) / "digest"
+            digests.mkdir()
+            (digests / "amd64").write_text(d1 + "\n")
+            run = lambda: subprocess.run(["bash", "-c", f". tools/ci.sh; merge_platforms {digests} x/y:1.0.0 x/y:sha-1"],
+                                         cwd=ROOT, env=env, capture_output=True, text=True)
+            r = run()
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn("No checked arm64 image", r.stdout)
+            self.assertFalse(log.exists())                                    # nothing tagged
+            (digests / "arm64").write_text(d2 + "\n")
+            r = run()
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            self.assertIn(f"imagetools create -t x/y:1.0.0 -t x/y:sha-1 ghcr.io/o/r@{d1} ghcr.io/o/r@{d2}",
+                          log.read_text())
+            # an index without arm64 is an error
+            index_amd = json.dumps({"manifests": [{"platform": {"os": "linux", "architecture": "amd64"}}]})
+            env = self.fake_docker(tmp, f'case "$*" in *inspect*) printf \'%s\\n\' \'{index_amd}\' ;; esac\n')
+            r = run()
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn("instead of amd64 and arm64", r.stdout)
+
+    def test_push_by_digest_writes_only_a_valid_digest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for digest, ok in (("sha256:" + "c" * 64, True), ("nonsense", False)):
+                env = self.fake_docker(tmp, 'for a; do [ "$prev" = --metadata-file ] && '
+                                            f'echo \'{{"containerimage.digest": "{digest}"}}\' > "$a"; prev="$a"; done\n')
+                out = Path(tmp) / "d"
+                out.unlink(missing_ok=True)
+                r = subprocess.run(["bash", "-c", f"cd {tmp} && . {ROOT}/tools/ci.sh; push_by_digest {out} . --platform linux/arm64"],
+                                   env=env, capture_output=True, text=True)
+                self.assertEqual(r.returncode == 0, ok, r.stdout + r.stderr)
+                self.assertEqual(out.exists(), ok)
 
     def test_failing_tests_in_the_image_stop_the_run(self):
         """Regression (Review 2.20.1): the tests ran through "| tee" – without pipefail their failure was lost."""
@@ -398,11 +471,31 @@ class TrivyFlowTests(unittest.TestCase):
             self.assertIn("Trivy could not scan", "".join(c.args[0] for c in stdout.write.call_args_list))
 
     def test_download_checked_against_sha256(self):
-        lockdata = trivy_scan.read_lock()
+        lockdata = trivy_scan.read_lock(arch="amd64")
         self.assertEqual(lockdata["version"], "0.76.0")
         self.assertRegex(lockdata["sha256"], r"^[0-9a-f]{64}$")
         with self.assertRaises(SystemExit), mock.patch("sys.stdout"):
             trivy_scan.install(lockdata, fetch=lambda url, dest: Path(dest).write_bytes(b"not trivy"))
+
+    def test_lock_per_platform(self):
+        # 3.1.5: the publish job scans each platform natively – the ARM runner needs the ARM release of Trivy
+        amd, arm = trivy_scan.read_lock(arch="amd64"), trivy_scan.read_lock(arch="arm64")
+        self.assertTrue(amd["url"].endswith("_Linux-64bit.tar.gz"))
+        self.assertTrue(arm["url"].endswith("_Linux-ARM64.tar.gz"))
+        self.assertNotEqual(amd["sha256"], arm["sha256"])
+        self.assertEqual(trivy_scan.runner_arch("x86_64"), "amd64")
+        self.assertEqual(trivy_scan.runner_arch("aarch64"), "arm64")
+        with self.assertRaises(SystemExit):
+            trivy_scan.runner_arch("riscv64")
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = Path(tmp) / "trivy.lock"
+            text = trivy_scan.LOCK.read_text()
+            bad.write_text(text.replace("/v0.76.0/trivy_0.76.0_Linux-ARM64", "/v0.75.0/trivy_0.75.0_Linux-ARM64"))
+            with self.assertRaises(SystemExit):
+                trivy_scan.read_lock(bad, arch="amd64")                     # both entries must be the same version
+            bad.write_text("\n".join(l for l in text.splitlines() if not l.startswith("sha256_arm64")))
+            with self.assertRaises(SystemExit):
+                trivy_scan.read_lock(bad, arch="amd64")
 
     @staticmethod
     def flaky(failures, blob=b"x"):
@@ -674,7 +767,7 @@ class SlimImageTests(unittest.TestCase):
     def test_ci_starts_image_like_a_server(self):
         build = (ROOT / ".github" / "workflows" / "build.yml").read_text(encoding="utf-8")
         self.assertIn("start_in_image catalytix-ci:check", build)
-        self.assertIn("start_in_image catalytix-ci:amd64", build)
+        self.assertIn('start_in_image "catalytix-ci:${{ matrix.arch }}"', build)     # both platforms, natively
         ci = (ROOT / "tools" / "ci.sh").read_text(encoding="utf-8")
         self.assertIn("start_in_image() {", ci)
         self.assertIn("/proc/1/status", ci)                 # app runs as 1000, not root

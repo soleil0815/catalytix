@@ -1,10 +1,13 @@
 # Program release: tests, container image (GitHub Container Registry) and the GitHub release.
 #
-# pull request → check the locks, build the image WITHOUT cache, run the tests IN the image, Trivy.
+# pull request → check the locks, build the image WITHOUT cache, run the tests IN the image, Trivy – amd64 and
+#   arm64 at the same time, each on its own runner.
 #   Nothing is published – a merged pull request only gets checked.
 # Publishing ONLY by hand: Actions → Build → Run workflow (branch main) with "publish" ticked, and only for a NEW
-#   version (higher than every release). Then: build amd64 + arm64 once without cache, test (amd64) and scan (both)
-#   exactly these images, push them as :<version> (+ :sha-…), move :latest, and create the release v<version> with
+#   version (higher than every release). Then: build amd64 and arm64 at the same time, each natively on its own
+#   runner (ubuntu-24.04 / ubuntu-24.04-arm, no emulation) and without cache, run tests, start check and Trivy on
+#   each, push exactly these images (by digest), tag both together as :<version> (+ :sha-…) only when both passed,
+#   move :latest, and create the release v<version> with
 #   the image files for installing without internet (catalytix-<version>-amd64.tar.gz / -arm64.tar.gz), SHA256SUMS,
 #   update.sh, docker-compose.yml and .env.example. Published versions are never overwritten.
 #
@@ -114,16 +117,50 @@ jobs:
           python3 tools/trivy_scan.py install
           python3 tools/trivy_scan.py scan catalytix-ci:check
 
-  publish:
-    name: Build, check and publish both platforms
+  # Pull requests: arm64 as well, natively and at the same time as the check above (no extra waiting) – an
+  # ARM-only problem shows up in the pull request, not only when publishing.
+  check-arm64:
+    name: Build, test and scan (arm64)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare Docker
+        run: . tools/ci.sh && prepare_builder
+
+      - name: Build the image (without cache)
+        run: |
+          . tools/ci.sh
+          docker buildx build --no-cache --pull --build-arg "CATALYTIX_REVISION=$GITHUB_SHA" \
+            --platform linux/arm64 --load -t catalytix-ci:check . \
+            || fail "Image build failed" "See the log of this step."
+
+      - name: Run the tests in the image
+        run: . tools/ci.sh && test_in_image catalytix-ci:check "$PWD"
+
+      - name: Start the image like on a server
+        run: . tools/ci.sh && start_in_image catalytix-ci:check
+
+      - name: Security scan (Trivy)
+        run: |
+          python3 tools/trivy_scan.py install
+          python3 tools/trivy_scan.py scan catalytix-ci:check
+
+  state:
+    name: Already published?
     needs: check
     if: needs.check.outputs.new == 'true' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-      packages: write
+      packages: read
     outputs:
-      pushed: ${{ steps.push.outputs.pushed }}
+      published: ${{ steps.state.outputs.published }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -143,53 +180,117 @@ jobs:
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
+          docker logout ghcr.io >/dev/null
 
-      - name: Prepare Docker (amd64 + arm64)
-        if: steps.state.outputs.published == 'false'
-        run: . tools/ci.sh && prepare_builder multi
+  # Each platform on its own hardware, both at the same time (no emulation – arm64 under QEMU took ~20 minutes):
+  # build without cache, tests and start check IN the image, Trivy – then push exactly this image without a tag.
+  platform:
+    name: Build, check and push (${{ matrix.arch }})
+    needs: [check, state]
+    if: needs.state.outputs.published == 'false'
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
 
-      # One build without cache for both platforms; the steps below load and push exactly these layers.
-      - name: Build both platforms (without cache)
-        if: steps.state.outputs.published == 'false'
+      - name: Prepare Docker
+        run: . tools/ci.sh && prepare_builder
+
+      - name: Build (without cache)
         env:
           VERSION: ${{ needs.check.outputs.version }}
+          ARCH: ${{ matrix.arch }}
         run: |
           . tools/ci.sh
-          args=(--build-arg "CATALYTIX_TAG=$VERSION" --build-arg "CATALYTIX_REVISION=$GITHUB_SHA")
-          docker buildx build --no-cache --pull "${args[@]}" --platform linux/amd64,linux/arm64 . \
+          docker buildx build --no-cache --pull --build-arg "CATALYTIX_TAG=$VERSION" --build-arg "CATALYTIX_REVISION=$GITHUB_SHA" \
+            --platform "linux/$ARCH" --load -t "catalytix-ci:$ARCH" . \
             || fail "Image build failed" "See the log of this step – nothing is published."
-          docker buildx build "${args[@]}" --platform linux/amd64 --load -t catalytix-ci:amd64 .
-          docker buildx build "${args[@]}" --platform linux/arm64 --load -t catalytix-ci:arm64 .
 
-      - name: Run the tests in the image (amd64)
-        if: steps.state.outputs.published == 'false'
-        run: . tools/ci.sh && test_in_image catalytix-ci:amd64 "$PWD"
+      - name: Run the tests in the image
+        run: . tools/ci.sh && test_in_image "catalytix-ci:${{ matrix.arch }}" "$PWD"
 
-      - name: Start the image like on a server (amd64)
-        if: steps.state.outputs.published == 'false'
-        run: . tools/ci.sh && start_in_image catalytix-ci:amd64
+      - name: Start the image like on a server
+        run: . tools/ci.sh && start_in_image "catalytix-ci:${{ matrix.arch }}"
 
-      - name: Security scan of both platforms (Trivy)
-        if: steps.state.outputs.published == 'false'
+      - name: Security scan (Trivy)
         run: |
           python3 tools/trivy_scan.py install
-          python3 tools/trivy_scan.py scan catalytix-ci:amd64
-          python3 tools/trivy_scan.py scan catalytix-ci:arm64
+          python3 tools/trivy_scan.py scan "catalytix-ci:${{ matrix.arch }}"
+
+      - name: Push the checked image (without a tag)
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.check.outputs.version }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          . tools/ci.sh
+          docker_login
+          mkdir -p digest
+          push_by_digest "digest/$ARCH" . --build-arg "CATALYTIX_TAG=$VERSION" --build-arg "CATALYTIX_REVISION=$GITHUB_SHA" \
+            --platform "linux/$ARCH"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: digest-${{ matrix.arch }}
+          path: digest/${{ matrix.arch }}
+          retention-days: 1
+
+      - name: Log out
+        if: always()
+        run: docker logout ghcr.io
+
+  publish:
+    name: Publish both platforms
+    needs: [check, state, platform]
+    # also when the image exists already (platform skipped): then only the release is created
+    if: >-
+      !cancelled() && needs.state.result == 'success'
+      && (needs.platform.result == 'success' || (needs.platform.result == 'skipped' && needs.state.outputs.published == 'true'))
+      && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      pushed: ${{ steps.push.outputs.pushed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        if: needs.state.outputs.published == 'false'
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        if: needs.state.outputs.published == 'false'
+        with:
+          pattern: digest-*
+          path: digest
+          merge-multiple: true
 
       - name: Publish
         id: push
-        if: steps.state.outputs.published == 'false'
+        if: needs.state.outputs.published == 'false'
         env:
           VERSION: ${{ needs.check.outputs.version }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ github.token }}
         run: |
           . tools/ci.sh
+          docker_login
           image="$(image_name)"
           ! image_exists "$image:$VERSION" || fail "Version already published" "$image:$VERSION appeared meanwhile – never overwritten."
-          docker buildx build --platform linux/amd64,linux/arm64 --push \
-            --build-arg "CATALYTIX_TAG=$VERSION" --build-arg "CATALYTIX_REVISION=$GITHUB_SHA" \
-            -t "$image:$VERSION" -t "$image:sha-${GITHUB_SHA::7}" . \
-            || fail "Publishing failed" "See the log of this step."
+          merge_platforms digest "$image:$VERSION" "$image:sha-${GITHUB_SHA::7}"
           echo "pushed=true" >> "$GITHUB_OUTPUT"
           highest="$(highest_release)"
           if [ -z "$highest" ] || python3 tools/security_update.py is-highest "$VERSION" "$highest"; then
@@ -203,11 +304,13 @@ jobs:
 
       - name: Log out
         if: always()
-        run: docker logout ghcr.io
+        run: docker logout ghcr.io || true
 
   release:
     name: GitHub release (image files, update.sh, docker-compose.yml)
     needs: [check, publish]
+    # explicit: a skipped platform job (image published earlier) would otherwise skip this job as well
+    if: ${{ !cancelled() && needs.publish.result == 'success' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write

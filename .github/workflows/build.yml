@@ -13,7 +13,7 @@
 #
 # Security: actions pinned to full commit SHAs, permissions: {} by default and minimal per job, no Git credentials
 # stored in the checkout, publishing only from main, one publishing run at a time (workflow-level concurrency; the
-# weekly security update has its own – a job-level group shared by both let GitHub cancel waiting jobs),
+# monthly security update has its own – a job-level group shared by both let GitHub cancel waiting jobs),
 # :latest never moved to a lower version (checked against the releases AND the image :latest points to), Trivy NOT
 # as a GitHub action (see tools/trivy_scan.py), helpers with readable errors in tools/ci.sh.
 # Every published image carries its exact tag (catalytix.tag) and source commit (org.opencontainers.image.revision);

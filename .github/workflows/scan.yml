@@ -1,6 +1,6 @@
 # Daily security scan of the published image (ghcr.io/<owner>/catalytix:latest).
 # Reports vulnerabilities that become known only after the release: if this run fails, GitHub sends an email.
-# It changes nothing – the weekly security update (or a new program version) brings the fix.
+# It changes nothing – the monthly security update on patch day (or one started by hand, or a new program version) brings the fix.
 name: Daily scan
 
 on:

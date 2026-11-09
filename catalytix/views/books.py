@@ -16,7 +16,7 @@ import requests
 import requests.adapters
 import urllib3.connection
 import urllib3.connectionpool
-from flask import (Blueprint, Response, abort, current_app, flash, jsonify, redirect,
+from flask import (Blueprint, Response, abort, current_app, flash, jsonify, make_response, redirect,
                    render_template, request, send_from_directory, url_for)
 from flask_login import current_user, login_required
 from sqlalchemy import case, func, or_, update
@@ -468,6 +468,7 @@ def api_catalog():
 @bp.route("/buecher/<int:book_id>")
 @login_required
 def detail(book_id):
+    from ..reading_sample import enabled as reading_sample_enabled
     book = _get_book_or_404(book_id)
     if not current_user.can_see(book, get_setting("catalog_visibility") == "all"):
         abort(404)
@@ -488,7 +489,44 @@ def detail(book_id):
                            res_on=res_on, my_res=my_res,
                            my_pos=reservations.position(my_res) if my_res else 0,
                            avail_me=book.available_for(current_user),
-                           loan_days=get_setting("loan_days"))
+                           loan_days=get_setting("loan_days"),
+                           reading_sample=reading_sample_enabled())
+
+
+# ---------------------------------------------------------------- Reading sample (Google Books, optional)
+
+def _sample_book_or_404(book_id: int) -> Book:
+    from .. import reading_sample
+    book = _get_book_or_404(book_id)
+    if not reading_sample.enabled() or not current_user.can_see(book, get_setting("catalog_visibility") == "all"):
+        abort(404)
+    return book
+
+
+@bp.route("/api/leseprobe/<int:book_id>")
+@login_required
+def reading_sample_status(book_id):
+    """Is there a reading sample? Asked by the book page; only the server talks to Google (only the ISBN)."""
+    from .. import reading_sample
+    book = _sample_book_or_404(book_id)
+    return jsonify({"available": reading_sample.lookup(book.isbn) is not None})
+
+
+@bp.route("/buecher/<int:book_id>/leseprobe")
+@login_required
+def reading_sample(book_id):
+    """Two clicks: first a notice that the sample comes from Google, Google's viewer only after "laden=1"."""
+    from .. import CSP, reading_sample as sample
+    book = _sample_book_or_404(book_id)
+    if request.args.get("laden") != "1":
+        return render_template("books/reading_sample.html", book=book, embed=None, missing=False)
+    volume = sample.lookup(book.isbn)
+    if not volume:
+        return render_template("books/reading_sample.html", book=book, embed=None, missing=True), 404
+    resp = make_response(render_template("books/reading_sample.html", book=book, embed=sample.embed_url(volume),
+                                         missing=False))
+    resp.headers["Content-Security-Policy"] = sample.csp(CSP)
+    return resp
 
 
 # ---------------------------------------------------------------- Maintenance

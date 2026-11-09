@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.1.4** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 3.1.5** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name Ihrer Bibliothek.
 
@@ -386,6 +386,11 @@ Catalytix ist darauf ausgelegt, dass die Browser der Nutzer **nur mit Ihrem eige
 - **Coverbilder** lädt der Server einmal von DNB, Open Library oder Google Books, speichert sie und liefert sie selbst aus. Auch die Vorschau beim Erfassen läuft über den eigenen Server. Dabei werden nur öffentliche Adressen abgerufen – interne Server sind über diese Funktion nicht erreichbar. Die Prüfung erfolgt beim Verbindungsaufbau für genau die Adresse, zu der verbunden wird (Schutz vor DNS-Rebinding); ein Abruf dauert höchstens 10 Sekunden. Ist ein ausgehender Proxy über `HTTPS_PROXY`/`HTTP_PROXY` gesetzt, löst der Proxy die Namen auf – dann sollte er selbst keine internen Ziele zulassen.
 - **Barcode-Erkennung** ist eingebaut, es wird keine Bibliothek aus dem Internet nachgeladen.
 - **ISBN-Abfragen** stellt der Server; übertragen wird nur die ISBN, nie Daten über Personen.
+- **Leseproben** (optional, standardmäßig aus – *Einstellungen → Leseproben*) sind die einzige Ausnahme: Ob es bei
+  Google Books eine Leseprobe gibt, fragt der Server (nur die ISBN). Die Leseprobe selbst lädt der Browser erst, wenn
+  jemand auf der Buchseite einen Hinweis bestätigt (Zwei-Klick-Lösung) – dann direkt von Google, das dabei die
+  IP-Adresse erfährt. Nur diese Seite erlaubt Google Books als Rahmen (`frame-src`); Skripte bleiben auf den eigenen
+  Server beschränkt. Eingeschaltet gehört das in die Datenschutzerklärung.
 - **Cookies:** nur technisch notwendige (Anmeldung, Formularschutz) – kein Cookie-Banner nötig. Kein Tracking, keine Werbung.
 
 **Impressum und Datenschutzerklärung** tragen Sie unter *Administration → Einstellungen → Rechtliches* ein (Adressen der Seiten, z. B. auf der Website des Instituts). Die Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in jeder E-Mail; bei der Selbstregistrierung muss die Datenschutzerklärung bestätigt werden.

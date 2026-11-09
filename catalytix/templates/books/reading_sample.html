@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ _("Leseprobe") }} – {{ book.title }}{% endblock %}
+{% block content %}
+<a href="{{ url_for('books.detail', book_id=book.id) }}" class="btn ghost sm" style="margin-bottom: 14px">{{ icon("arrow-left") }} {{ _("Zurück zum Buch") }}</a>
+<h1>{{ _("Leseprobe") }}</h1>
+<div class="sub" style="margin-bottom: 18px">{{ book.title }}{% if book.authors %} · {{ book.authors }}{% endif %}</div>
+
+{% if embed %}
+<section class="card" style="padding: 0; overflow: hidden">
+  <iframe class="reading-sample" src="{{ embed }}" title="{{ _('Leseprobe von Google Books') }}"
+          style="display: block; width: 100%; height: 78vh; min-height: 480px; border: 0"
+          referrerpolicy="no-referrer" loading="lazy"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
+</section>
+<p class="muted" style="font-size: 12.5px; margin-top: 10px">{{ _("Angezeigt von Google Books. Welche Seiten zu sehen sind, legt der Verlag fest.") }}</p>
+{% elif missing %}
+<div class="notice warn">{{ icon("book") }}<div>{{ _("Für dieses Buch gibt es bei Google Books derzeit keine Leseprobe.") }}</div></div>
+{% else %}
+<section class="card card-pad" style="max-width: 680px">
+  <h2 style="margin-bottom: 8px">{{ icon("globe") }} {{ _("Inhalte von Google Books") }}</h2>
+  <p>{{ _("Die Leseprobe wird direkt von Google Books geladen. Dabei überträgt Ihr Browser Ihre IP-Adresse an Google, und Google kann Cookies setzen. Es gelten die Datenschutzbestimmungen von Google.") }}</p>
+  <p class="muted" style="font-size: 13.5px">{{ _("Ohne Ihren Klick wird nichts von Google geladen. Ob es eine Leseprobe gibt, hat der Server der Bibliothek vorab nur anhand der ISBN geprüft.") }}</p>
+  <div class="actions" style="margin-top: 16px">
+    <a class="btn primary" href="{{ url_for('books.reading_sample', book_id=book.id, laden=1) }}">{{ icon("book") }} {{ _("Leseprobe laden") }}</a>
+    <a class="btn ghost" href="{{ url_for('books.detail', book_id=book.id) }}">{{ _("Abbrechen") }}</a>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

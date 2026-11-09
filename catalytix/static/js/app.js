@@ -807,6 +807,15 @@
       return `<span class="who"><b>${esc(it.title)}</b> <small>${meta}</small><small>${state}</small></span>`;
     },
   }));
+  /* Reading sample (reading_sample.py): the button appears only when Google Books has one – the server asks
+     Google (only the ISBN); the browser loads nothing from Google until the reader confirms on the next page. */
+  $$("[data-reading-sample]").forEach(async (btn) => {
+    try {
+      const res = await fetch(btn.dataset.readingSample, { credentials: "same-origin",
+        headers: { "Accept": "application/json" } });
+      if (res.ok && !res.redirected && (await res.json()).available === true) btn.hidden = false;
+    } catch (e) { /* no sample button */ }
+  });
   /* Automatic sign-out (autologout.py): warn 2 minutes before. The server keeps the time; the page asks it
      (status query – not counted as activity) at least every 5 minutes and when the tab becomes visible again, so
      activity in other tabs, a changed limit (e.g. now outside) or a laptop waking up are noticed. */

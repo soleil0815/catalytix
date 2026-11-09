@@ -451,6 +451,7 @@ DEFAULT_SETTINGS = {
     "reservation_max": "5",           # open reservations per person (0 = unlimited)
     "catalog_visibility": "groups",  # groups | all
     "isbn_sources": "dnb,openlibrary,google",
+    "reading_sample_google": "0",    # reading samples from Google Books (reading_sample.py) – off by default
     "cache_covers": "1",
     # Active Directory / LDAP
     "ldap_enabled": "0",

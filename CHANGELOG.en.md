@@ -2,6 +2,14 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.1.4 – 2026-11-09
+**Security**
+- Pages and data are no longer stored by the browser or a proxy (`Cache-Control: no-store`): after signing out on a
+  shared computer (e.g. at the lending desk), the back button no longer shows names, loans or admin pages from the
+  cache. Images, CSS and JavaScript are still cached.
+- Static files with a trailing slash (`/static/js/app.js/`) now give "not found" instead of serving the file –
+  security scanners (OWASP ZAP) reported this as a directory listing.
+
 ## 3.1.3 – 2026-11-08
 **Improved**
 - HTTPS behind the reverse proxy now works exactly as in AssetLotse and Helfi.Space. New: a proxy that only reports

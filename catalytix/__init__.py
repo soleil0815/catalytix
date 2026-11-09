@@ -19,7 +19,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import click
-from flask import Flask, flash, has_request_context, redirect, render_template, request, session, url_for
+from flask import Flask, abort, flash, has_request_context, redirect, render_template, request, session, url_for
 from flask_login import LoginManager, current_user, logout_user
 from flask_wtf.csrf import CSRFError, CSRFProtect
 
@@ -27,7 +27,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "3.1.3"
+__version__ = "3.1.4"
 APP_NAME = "Catalytix"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Where the source code can be found (AGPL § 13). Anyone running a modified Catalytix enters the
@@ -568,7 +568,20 @@ def create_app(test_config: dict | None = None) -> Flask:
         # Strict Content-Security-Policy: no inline or third-party JavaScript, no external sources.
         # (For SVG logos the respective route sets an even stricter policy of its own.)
         resp.headers.setdefault("Content-Security-Policy", CSP)
+        # Pages and data are never stored by the browser or a proxy: after signing out on a shared computer
+        # (lending desk), the back button must not show names, loans or admin pages from the cache. Static files
+        # (versioned URLs), covers and logos keep their own caching.
+        if "Cache-Control" not in resp.headers and resp.mimetype in ("text/html", "application/json"):
+            resp.headers["Cache-Control"] = "no-store"
         return resp
+
+    @app.before_request
+    def static_no_trailing_slash():
+        """/static/js/app.js/ is not a directory – answer 404 instead of serving the file (scanners report the
+        file content as a directory listing)."""
+        if request.endpoint == "static" and request.path.endswith("/"):
+            abort(404)
+        return None
 
     # ------------------------------------------------------------ Error pages
     @app.errorhandler(403)

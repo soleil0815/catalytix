@@ -4,6 +4,8 @@
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name Ihrer Bibliothek.
 
+> **Für den eigenen Einsatz gebaut – Nutzung in eigener Verantwortung.** Ich habe Catalytix in erster Linie für mich selbst entwickelt, weil ich genau so ein Programm in meiner eigenen Umgebung einsetzen wollte. Ich nutze es selbst im Betrieb; Fehler fallen mir dadurch meist schnell auf und werden zügig behoben. Wenn Sie Catalytix ebenfalls einsetzen möchten: gern – aber in eigener Verantwortung. Es gibt keine Gewährleistung und keine Haftung (Abschnitte 15 und 16 der [Lizenz](LICENSE)). Probieren Sie es zuerst in einer Testumgebung aus und legen Sie Sicherungen an. Fehlerberichte und Verbesserungsvorschläge sind willkommen – am besten als [Issue](https://github.com/soleil0815/catalytix/issues); Sicherheitslücken bitte nicht öffentlich, sondern wie in [SECURITY.md](SECURITY.md) beschrieben melden. Support oder feste Antwortzeiten kann ich nicht zusagen.
+
 - **Bestand pflegen** – manuell oder per ISBN: USB-/Bluetooth-Barcodescanner, Handy-/Laptop-Kamera oder Eintippen. Daten und Cover kommen automatisch von der Deutschen Nationalbibliothek, Open Library und Google Books.
 - **Standorte** – feste Liste der Regale und Räume; beim Erfassen wird ausgewählt statt getippt.
 - **Schnellerfassung** – ISBN für ISBN scannen; neue Titel mit einem Klick übernehmen, vorhandene um ein Exemplar erhöhen. Wird ein vorhandenes Buch (gleiche ISBN, gleiche Gruppe) noch einmal erfasst, werden die Exemplare dort hinzugezählt statt einen zweiten Eintrag anzulegen.

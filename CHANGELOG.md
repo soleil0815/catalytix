@@ -3,6 +3,14 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.1.4 – 09.11.2026
+**Sicherheit**
+- Seiten und Daten werden nicht mehr vom Browser oder einem Proxy zwischengespeichert (`Cache-Control: no-store`):
+  Nach dem Abmelden an einem gemeinsam genutzten Rechner (z. B. an der Ausleihtheke) zeigt die Zurück-Taste keine
+  Namen, Ausleihen oder Admin-Seiten mehr aus dem Speicher. Bilder, CSS und JavaScript werden weiter gespeichert.
+- Statische Dateien mit angehängtem Schrägstrich (`/static/js/app.js/`) ergeben jetzt „nicht gefunden“ statt die
+  Datei auszuliefern – Sicherheitsscanner (OWASP ZAP) hielten das für eine Verzeichnisliste.
+
 ## 3.1.3 – 08.11.2026
 **Verbessert**
 - HTTPS hinter dem Reverse-Proxy funktioniert jetzt genauso wie in AssetLotse und Helfi.Space. Neu: Ein Proxy, der

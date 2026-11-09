@@ -7,7 +7,7 @@
   <li>Click a cover or title to open the <b>book page</b> with its location, shelf mark and number of available copies.</li>
   {% if f.is_librarian %}<li>Under every available book you manage there is <span class="ui">Lend</span>: it opens the book page right at the <span class="ui">Lend to a user</span> form.</li>{% endif %}
   <li>Tags on the book page are clickable and show related books.</li>
-  {% if f.reading_sample %}<li><b>Reading sample:</b> If the publisher has released a reading sample on Google Books, the book page shows <span class="ui">Reading sample</span>. After a notice, <span class="ui">Load reading sample</span> loads it from Google – only then does Google learn your IP address.</li>{% endif %}
+  {% if f.reading_sample %}<li><b>Reading sample:</b> The book page shows <span class="ui">Reading sample</span>. After a notice, <span class="ui">Load reading sample</span> loads it from Google Books – only then does Google learn your IP address. Whether there is one is up to the publisher; otherwise Google says so in the viewer.</li>{% endif %}
 </ul>
 {% if current_user.is_global_manager %}
 <p><b>What you see:</b> you manage the whole collection, so you see every book.</p>

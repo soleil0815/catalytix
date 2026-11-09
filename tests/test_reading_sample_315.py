@@ -13,6 +13,7 @@ os.environ.setdefault("CATALYTIX_DATA_DIR", tempfile.mkdtemp(prefix="catalytix-t
 from test_app import BaseCase  # noqa: E402
 
 from catalytix import CSP, reading_sample  # noqa: E402
+from catalytix import isbn as isbnlib  # noqa: E402
 from catalytix.models import Book, Group, db, get_setting, set_setting  # noqa: E402
 
 ISBN = "9783462045277"      # any valid ISBN-13
@@ -26,7 +27,7 @@ def answer(viewability="PARTIAL", embeddable=True, volume=VOLUME):
 
 class LookupTests(unittest.TestCase):
     def setUp(self):
-        reading_sample._cache.clear()
+        reading_sample.clear_cache()
 
     def test_pick_only_embeddable_samples(self):
         self.assertEqual(reading_sample.pick(answer()), VOLUME)
@@ -40,40 +41,111 @@ class LookupTests(unittest.TestCase):
         for bad in ('x"><script>', "../../evil", "a b c d e f", "kurz"):
             self.assertEqual(reading_sample.pick(answer(volume=bad)), "", bad)
 
-    def test_lookup_cached_found_none_and_errors(self):
+    def test_check_cached_found_none_and_errors(self):
         calls = []
 
         def fetch(isbn):
             calls.append(isbn)
             return VOLUME
-        self.assertEqual(reading_sample.lookup("978-3-462-04527-7", now=1000, fetch=fetch), VOLUME)
-        self.assertEqual(reading_sample.lookup(ISBN, now=2000, fetch=fetch), VOLUME)
+        self.assertEqual(reading_sample.check("978-3-462-04527-7", now=1000, fetch=fetch), VOLUME)
+        self.assertEqual(reading_sample.check(ISBN, now=2000, fetch=fetch), VOLUME)
         self.assertEqual(calls, [ISBN])                                  # cached, one question to Google
-        self.assertEqual(reading_sample.lookup(ISBN, now=1000 + reading_sample.TTL_FOUND + 1, fetch=fetch), VOLUME)
+        self.assertEqual(reading_sample.check(ISBN, now=1000 + reading_sample.TTL_FOUND + 1, fetch=fetch), VOLUME)
         self.assertEqual(len(calls), 2)                                  # asked again after a week
+        reading_sample._cache.clear()
+        self.assertEqual(reading_sample.check(ISBN, now=1000, fetch=lambda i: ""), "")       # Google: no sample
 
         def down(isbn):
-            raise requests.ConnectionError("no internet")
+            raise isbnlib.GoogleBooksError(None)
         reading_sample._cache.clear()
-        self.assertIsNone(reading_sample.lookup(ISBN, now=1000, fetch=down))
-        self.assertIsNone(reading_sample.lookup(ISBN, now=1000 + 60, fetch=fetch))       # error kept 15 minutes
-        self.assertEqual(reading_sample.lookup(ISBN, now=1000 + reading_sample.TTL_ERROR + 1, fetch=fetch), VOLUME)
+        self.assertEqual(reading_sample.check(ISBN, now=1000, fetch=down), reading_sample.UNKNOWN)
+        self.assertEqual(reading_sample.check(ISBN, now=1000 + 60, fetch=fetch), reading_sample.UNKNOWN)   # 15 min
+        self.assertEqual(reading_sample.check(ISBN, now=1000 + reading_sample.TTL_ERROR + 1, fetch=fetch), VOLUME)
+
+    def test_quota_is_remembered_for_the_settings_page(self):
+        def quota(isbn):
+            raise isbnlib.GoogleBooksError(429)
+        with self.assertLogs("catalytix.reading_sample", "WARNING") as logs:
+            self.assertEqual(reading_sample.check(ISBN, now=5000, fetch=quota), reading_sample.UNKNOWN)
+        self.assertIn("daily limit reached (HTTP 429)", logs.output[0])
+        self.assertTrue(reading_sample.quota_problem(now=5000 + 3600))
+        self.assertFalse(reading_sample.quota_problem(now=5000 + 25 * 3600))
+        reading_sample.clear_cache()
+        self.assertFalse(reading_sample.quota_problem(now=5000 + 60))
 
     def test_isbn10_and_invalid(self):
         seen = []
-        self.assertEqual(reading_sample.lookup("3-462-04527-X", fetch=lambda i: seen.append(i) or VOLUME), VOLUME)
+        self.assertEqual(reading_sample.check("3-462-04527-X", fetch=lambda i: seen.append(i) or VOLUME), VOLUME)
         self.assertEqual(seen, [ISBN])                                   # asked with the ISBN-13
-        self.assertIsNone(reading_sample.lookup("", fetch=lambda i: 1 / 0))
-        self.assertIsNone(reading_sample.lookup("12345", fetch=lambda i: 1 / 0))
+        self.assertIsNone(reading_sample.check("", fetch=lambda i: 1 / 0))
+        self.assertIsNone(reading_sample.check("12345", fetch=lambda i: 1 / 0))
 
-    def test_only_the_isbn_goes_to_google(self):
+
+class GoogleKeyTests(BaseCase):
+    """Without an own key Google answers no queries (HTTP 429, daily limit 0) – 3.1.6."""
+
+    def setUp(self):
+        super().setUp()
+        reading_sample.clear_cache()
+
+    def test_without_key_no_query_and_the_viewer_opens_by_isbn(self):
+        with mock.patch("catalytix.isbn.requests.get") as get:
+            self.assertEqual(reading_sample.check(ISBN), reading_sample.UNKNOWN)
+            self.assertTrue(reading_sample.available(ISBN))
+            self.assertEqual(reading_sample.target("3-462-04527-X"),
+                             f"https://books.google.com/books?vid=ISBN{ISBN}&printsec=frontcover&output=embed")
+        get.assert_not_called()
+        self.assertFalse(reading_sample.available(""))
+        self.assertIsNone(reading_sample.target("12345"))
+
+    def test_with_key_only_isbn_and_key_go_to_google(self):
+        set_setting("google_api_key", "AIzaSyTestKey_0123456789abcdef")
+        db.session.commit()
         resp = mock.Mock(status_code=200, json=lambda: answer())
-        with mock.patch("catalytix.reading_sample.requests.get", return_value=resp) as get:
-            self.assertEqual(reading_sample.lookup(ISBN), VOLUME)
-        url = get.call_args.args[0]
-        self.assertEqual(url, "https://www.googleapis.com/books/v1/volumes")
-        self.assertEqual(get.call_args.kwargs["params"]["q"], f"isbn:{ISBN}")
+        with mock.patch("catalytix.isbn.requests.get", return_value=resp) as get:
+            self.assertEqual(reading_sample.target(ISBN),
+                             f"https://books.google.com/books?id={VOLUME}&printsec=frontcover&output=embed")
+        self.assertEqual(get.call_args.args[0], "https://www.googleapis.com/books/v1/volumes")
+        params = get.call_args.kwargs["params"]
+        self.assertEqual(params["q"], f"isbn:{ISBN}")
+        self.assertEqual(params["key"], "AIzaSyTestKey_0123456789abcdef")
         self.assertNotIn("cookies", get.call_args.kwargs)
+        reading_sample.clear_cache()
+        none = mock.Mock(status_code=200, json=lambda: answer(embeddable=False))
+        with mock.patch("catalytix.isbn.requests.get", return_value=none):
+            self.assertFalse(reading_sample.available(ISBN))           # Google says: no sample → no button
+            self.assertIsNone(reading_sample.target(ISBN))
+
+    def test_key_never_in_errors_or_logs(self):
+        key = "AIzaSySecretKey_0123456789abcdef"
+        set_setting("google_api_key", key)
+        db.session.commit()
+        err = requests.ConnectionError(f"Max retries exceeded with url: /books/v1/volumes?q=isbn:1&key={key}")
+        with mock.patch("catalytix.isbn.requests.get", side_effect=err), self.assertLogs("catalytix", "INFO") as logs:
+            self.assertEqual(reading_sample.check(ISBN), reading_sample.UNKNOWN)
+            result = isbnlib.lookup(ISBN, ["google"])
+        self.assertNotIn(key, "\n".join(logs.output) + repr(result))
+        with mock.patch("catalytix.isbn.requests.get", side_effect=err):
+            with self.assertRaises(isbnlib.GoogleBooksError) as cm:
+                isbnlib.google_get({"q": "isbn:1"})
+        self.assertIsNone(cm.exception.__cause__)
+        self.assertTrue(cm.exception.__suppress_context__)              # no traceback with the URL
+        quota = mock.Mock(status_code=429, json=lambda: {})
+        with mock.patch("catalytix.isbn.requests.get", return_value=quota):
+            with self.assertRaises(isbnlib.GoogleBooksError) as cm:
+                isbnlib.google_get({"q": "isbn:1"})
+        self.assertTrue(cm.exception.quota)
+        self.assertEqual(str(cm.exception), "HTTP 429")
+
+    def test_key_stored_encrypted(self):
+        set_setting("google_api_key", "AIzaSyTestKey_0123456789abcdef")
+        db.session.commit()
+        from catalytix.models import Setting
+        raw = db.session.get(Setting, "google_api_key").value
+        self.assertTrue(raw.startswith("enc:"))
+        self.assertNotIn("AIzaSyTestKey", raw)
+        self.assertEqual(get_setting("google_api_key"), "AIzaSyTestKey_0123456789abcdef")
+
 
     def test_embed_url_and_policy(self):
         self.assertEqual(reading_sample.embed_url(VOLUME),
@@ -97,8 +169,9 @@ class PageTests(BaseCase):
         db.session.commit()
         self.login("leser")
 
-    def enable(self, on=True):
+    def enable(self, on=True, key="AIzaSyTestKey_0123456789abcdef"):
         set_setting("reading_sample_google", "1" if on else "0")
+        set_setting("google_api_key", key)
         db.session.commit()
 
     def test_off_by_default(self):
@@ -182,6 +255,38 @@ class PageTests(BaseCase):
         self.assertEqual(get_setting("reading_sample_google"), "1")
         self.c.post("/admin/einstellungen", data={"library_name": "Bibliothek", "isbn_order": "dnb"})
         self.assertEqual(get_setting("reading_sample_google"), "0")
+
+    def test_without_key_button_for_every_isbn_and_viewer_by_isbn(self):
+        self.enable(key="")
+        with mock.patch("catalytix.isbn.requests.get") as get:
+            self.assertEqual(self.c.get(f"/api/leseprobe/{self.book.id}").get_json(), {"available": True})
+            r = self.c.get(f"/buecher/{self.book.id}/leseprobe?laden=1")
+        get.assert_not_called()                                           # Google answers no anonymous queries
+        self.assertIn(f'src="https://books.google.com/books?vid=ISBN{ISBN}&amp;printsec=frontcover', r.get_data(as_text=True))
+        self.assertIn("frame-src https://books.google.com", r.headers["Content-Security-Policy"])
+
+    def test_admin_key_saved_kept_cleared_and_never_shown(self):
+        self.login("admin")
+        form = {"library_name": "Bibliothek", "isbn_order": "dnb", "reading_sample_google": "1"}
+        self.c.post("/admin/einstellungen", data={**form, "google_api_key": " AIzaSyTestKey_0123456789abcdef "})
+        self.assertEqual(get_setting("google_api_key"), "AIzaSyTestKey_0123456789abcdef")
+        page = self.c.get("/admin/einstellungen").get_data(as_text=True)
+        self.assertNotIn("AIzaSyTestKey", page)                          # never sent back to the browser
+        self.assertIn('name="clear_google_api_key"', page)
+        self.c.post("/admin/einstellungen", data=form)                    # empty field: keep
+        self.assertEqual(get_setting("google_api_key"), "AIzaSyTestKey_0123456789abcdef")
+        r = self.c.post("/admin/einstellungen", data={**form, "google_api_key": "<script>"}, follow_redirects=True)
+        self.assertIn("nicht das erwartete Format", r.get_data(as_text=True))
+        self.assertEqual(get_setting("google_api_key"), "AIzaSyTestKey_0123456789abcdef")
+        self.c.post("/admin/einstellungen", data={**form, "clear_google_api_key": "1"})
+        self.assertEqual(get_setting("google_api_key"), "")
+
+    def test_quota_notice_on_the_settings_page(self):
+        self.login("admin")
+        self.assertNotIn("wegen des Tageslimits", self.c.get("/admin/einstellungen").get_data(as_text=True))
+        reading_sample._quota_at = __import__("time").time()
+        self.assertIn("wegen des Tageslimits", self.c.get("/admin/einstellungen").get_data(as_text=True))
+        reading_sample.clear_cache()
 
     def test_help_mentions_it_only_when_on(self):
         self.assertNotIn("Leseprobe", self.c.get("/hilfe?thema=catalog").get_data(as_text=True))

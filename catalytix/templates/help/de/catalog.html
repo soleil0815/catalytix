@@ -7,7 +7,7 @@
   <li>Ein Klick auf Cover oder Titel öffnet die <b>Buchseite</b> mit Standort, Signatur und der Zahl freier Exemplare.</li>
   {% if f.is_librarian %}<li>Unter jedem freien Buch, das Sie verwalten, steht <span class="ui">Verleihen</span>: Es öffnet die Buchseite direkt beim Formular <span class="ui">An Benutzer verleihen</span>.</li>{% endif %}
   <li>Schlagwörter auf der Buchseite sind anklickbar und zeigen ähnliche Bücher.</li>
-  {% if f.reading_sample %}<li><b>Leseprobe:</b> Hat der Verlag bei Google Books eine Leseprobe freigegeben, steht auf der Buchseite <span class="ui">Leseprobe</span>. Nach einem Hinweis lädt <span class="ui">Leseprobe laden</span> sie von Google – erst dann erfährt Google Ihre IP-Adresse.</li>{% endif %}
+  {% if f.reading_sample %}<li><b>Leseprobe:</b> Auf der Buchseite steht <span class="ui">Leseprobe</span>. Nach einem Hinweis lädt <span class="ui">Leseprobe laden</span> sie von Google Books – erst dann erfährt Google Ihre IP-Adresse. Ob es eine gibt, legt der Verlag fest; sonst zeigt Google das im Viewer an.</li>{% endif %}
 </ul>
 {% if current_user.is_global_manager %}
 <p><b>Was Sie sehen:</b> Sie verwalten den gesamten Bestand und sehen daher alle Bücher.</p>

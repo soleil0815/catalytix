@@ -538,7 +538,7 @@ DEFAULT_SETTINGS = {
 
 
 # Credentials that are stored only encrypted in the database (and thus in backups)
-SECRET_SETTINGS = {"ldap_bind_password", "smtp_password"}
+SECRET_SETTINGS = {"ldap_bind_password", "smtp_password", "google_api_key"}
 _ENC = "enc:"
 
 

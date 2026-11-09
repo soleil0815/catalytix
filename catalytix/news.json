@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.1.6",
+  "date": "2026-11-09",
+  "items": [
+   {
+    "kind": "improved",
+    "audience": "admin",
+    "de": {
+     "title": "Leseproben funktionieren jetzt",
+     "text": "Google beantwortet Abfragen ohne eigenen Schlüssel nicht mehr. Der Knopf „Leseprobe“ erscheint jetzt bei jedem Buch mit ISBN, und Google zeigt selbst an, wenn es keine Vorschau gibt. Mit einem kostenlosen Google-API-Schlüssel unter Einstellungen → Leseproben erscheint er nur bei Büchern mit Leseprobe."
+    },
+    "en": {
+     "title": "Reading samples work now",
+     "text": "Google no longer answers queries without an own key. The “Reading sample” button now appears for every book with an ISBN, and Google says itself when there is no preview. With a free Google API key under Settings → Reading samples it appears only for books with a reading sample."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.1.5",
   "date": "2026-11-09",
   "items": [

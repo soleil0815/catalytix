@@ -3,6 +3,20 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.1.6 – 09.11.2026
+**Behoben**
+- **Leseproben:** Google beantwortet Abfragen ohne eigenen API-Schlüssel nicht mehr (Tageslimit 0, HTTP 429) – der
+  Knopf „Leseprobe“ erschien deshalb nie. Jetzt erscheint er ohne Schlüssel bei jedem Buch mit ISBN; Googles Viewer
+  wird über die ISBN geöffnet und zeigt selbst an, wenn es keine Vorschau gibt (weiterhin erst nach Hinweis und
+  zweitem Klick).
+
+**Neu**
+- Optionaler **Google-API-Schlüssel** unter *Einstellungen → Leseproben* (verschlüsselt gespeichert, wird nie wieder
+  angezeigt). Damit prüft der Server vorab, und der Knopf erscheint nur bei Büchern mit Leseprobe. Auch die
+  ISBN-Abfrage über Google Books nutzt ihn und funktioniert damit wieder. Lehnt Google wegen des Tageslimits ab,
+  steht das klar im Protokoll und als Hinweis auf der Einstellungsseite. Fehlermeldungen von Google Books enthalten
+  nie die Abfrage-Adresse (und damit nie den Schlüssel).
+
 ## 3.1.5 – 09.11.2026
 **Neu**
 - **Leseproben von Google Books** (optional, standardmäßig aus): Unter *Einstellungen → Leseproben* lässt sich

@@ -794,5 +794,38 @@ class SlimImageTests(unittest.TestCase):
         self.assertIn("start_in_image() {", ci)
         self.assertIn("/proc/1/status", ci)                 # app runs as 1000, not root
 
+
+class ZapScanTests(unittest.TestCase):
+    """ZAP scan as part of the monthly code audit: schedule, scope, pinning, no secrets (same in all programs)."""
+
+    def setUp(self):
+        base = Path(__file__).resolve().parent.parent
+        self.yml = (base / ".github" / "workflows" / "zap-scan.yml").read_text(encoding="utf-8")
+        self.sh = (base / "tools/zap-scan.sh").read_text(encoding="utf-8")
+
+    def test_only_in_the_week_before_patch_day_or_by_hand(self):
+        self.assertRegex(self.yml, r"cron: '\d+ [0-5] \* \* 2'")
+        self.assertIn("sh tools/patchday.sh \"$(date -u -d '+7 days' +%F)\"", self.yml)
+        self.assertIn("workflow_dispatch:", self.yml)
+        paths = self.yml.split("pull_request:")[1].split("\npermissions:")[0]
+        for p in re.findall(r"- (\S+)", paths):
+            self.assertIn("zap", p.lower(), "pull requests only when the scan itself changes")
+
+    def test_read_only_and_pinned(self):
+        self.assertIn("\npermissions: {}\n", self.yml)
+        self.assertNotIn(": write", self.yml)
+        for u in re.findall(r"uses: (\S+)", self.yml):
+            self.assertRegex(u, r"@[0-9a-f]{40}$")
+        self.assertRegex(self.yml, r"ZAP_IMAGE: ghcr\.io/zaproxy/zaproxy:stable@sha256:[0-9a-f]{64}\n")
+
+    def test_script_throwaway_container_no_login_alerts_in_log(self):
+        self.assertTrue(self.sh.startswith("#!/bin/sh"))
+        self.assertIn('-t "$scheme://$APP:$APP_PORT"', self.sh)
+        self.assertIn('OUT="$(cd "$OUT" && pwd)"', self.sh)
+        self.assertIn("scanner.maxScanDurationInMins=$MINUTES", self.sh)
+        self.assertNotRegex(self.sh, r"(?i)--auth|password=")
+        self.assertIn("ZAP-ALERTS-BEGIN", self.sh)
+        self.assertIn("ZAP-ALERTS-END", self.sh)
+
 if __name__ == "__main__":
     unittest.main()

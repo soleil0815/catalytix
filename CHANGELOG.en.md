@@ -2,6 +2,13 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.1.3 – 2026-11-08
+**Improved**
+- HTTPS behind the reverse proxy now works exactly as in AssetLotse and Helfi.Space. New: a proxy that only reports
+  `X-Forwarded-Port` is recognised (80 = HTTP, 443 = HTTPS). Requests to an IP address or `localhost` are never
+  redirected to HTTPS (there is no certificate for them). A non-standard port in the address is dropped on
+  redirect, the target is always `https://<name>/…`.
+
 ## 3.1.2 – 2026-11-08
 **Improved**
 - The library now sends HSTS only for addresses where it had to redirect HTTP to HTTPS itself (e.g. behind the

@@ -6,6 +6,10 @@
   Requests coming directly from the internet therefore cannot forge the headers.
 * Cookies get the Secure flag automatically as soon as the request came via HTTPS
   (directly or according to the proxy). Login still works via http://IP:9300 on the LAN.
+* The protocol comes from X-Forwarded-Proto; a proxy that only sends X-Forwarded-Port counts with port 80 as HTTP
+  and with 443 as HTTPS.
+
+The same rules apply in Catalytix, AssetLotse and Helfi.Space (same variables, same behaviour).
 
 Environment variables (optional):
   CATALYTIX_TRUSTED_PROXIES  "private" (default), "none" or a list of networks/IPs,
@@ -22,7 +26,8 @@ Environment variables (optional):
                                sibling subdomains stay unaffected) once the program had to redirect itself – a
                                proxy that redirects on its own (NPM "Force SSL") keeps its own HSTS header.
                                "1" always sends HSTS. Direct requests without proxy headers (health
-                               check, http://IP:9300 on the LAN) are never redirected.
+                               check, http://IP:9300 on the LAN) and IP addresses are never redirected.
+                               Redirects: 301 for GET/HEAD, 308 for everything else (forms keep their data).
   CATALYTIX_BEHIND_PROXY     deprecated; "0" is equivalent to TRUSTED_PROXIES=none
 """
 from __future__ import annotations
@@ -89,6 +94,11 @@ class TrustedProxyFix:
 
     def __call__(self, environ: WSGIEnvironment, start_response: StartResponse) -> Iterable[bytes]:
         if self.networks and self._trusted(environ.get("REMOTE_ADDR")):
+            if not environ.get("HTTP_X_FORWARDED_PROTO"):
+                # some proxies only report the port: 80 = HTTP, 443 = HTTPS (the protocol header wins)
+                port = (environ.get("HTTP_X_FORWARDED_PORT") or "").split(",")[-1].strip()
+                if port in ("80", "443"):
+                    environ["HTTP_X_FORWARDED_PROTO"] = "http" if port == "80" else "https"
             if environ.get("HTTP_X_FORWARDED_PROTO"):
                 environ[VIA_PROXY] = True      # for ForceHttps: this request came through the reverse proxy
             return self.fixed(environ, start_response)
@@ -97,7 +107,8 @@ class TrustedProxyFix:
 
 VIA_PROXY = "catalytix.via_proxy"
 HSTS = "max-age=31536000"
-_HOST = re.compile(r"^[A-Za-z0-9.\-]+(:\d{1,5})?$|^\[[0-9A-Fa-f:.]+\](:\d{1,5})?$")
+# a DNS name (not an IP address, not "localhost"): only then is https://<host>/ a sensible target
+_HOST = re.compile(r"^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$")
 
 
 MAX_HOSTS = 50               # remembered HTTPS hosts (the proxy only forwards its configured names anyway)
@@ -180,11 +191,11 @@ class HttpsHosts:
 
 
 def _host(environ: WSGIEnvironment) -> str:
+    """Host name of the request without port, lower case; "" for IPv6 literals."""
     host = (environ.get("HTTP_HOST") or "").strip().lower()
-    for port in (":80", ":443"):
-        if host.endswith(port):
-            host = host[: -len(port)]
-    return host
+    if host.startswith("["):
+        return ""
+    return host.rsplit(":", 1)[0] if ":" in host else host
 
 
 class ForceHttps:

@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.1.3",
+  "date": "2026-11-08",
+  "items": [
+   {
+    "kind": "improved",
+    "audience": "admin",
+    "de": {
+     "title": "HTTPS einheitlich in allen Programmen",
+     "text": "Die Umleitung auf HTTPS hinter dem Reverse-Proxy funktioniert jetzt genauso wie in AssetLotse und Helfi.Space. Aufrufe über eine IP-Adresse werden nie umgeleitet, und auch Proxys, die nur den Port melden, werden erkannt."
+    },
+    "en": {
+     "title": "HTTPS works the same in all programs",
+     "text": "The redirect to HTTPS behind the reverse proxy now works exactly as in AssetLotse and Helfi.Space. Requests to an IP address are never redirected, and proxies that only report the port are recognised too."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.1.2",
   "date": "2026-11-08",
   "items": [

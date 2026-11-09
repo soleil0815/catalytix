@@ -4,7 +4,7 @@
 <p><b>If it doesn't work:</b></p>
 <ul>
   <li><b>“Incorrect username or password”</b> – check the spelling and Caps Lock. For security reasons the page does not reveal whether the account exists or is locked.</li>
-  <li><b>“Too many failed attempts”</b> – after 8 failed attempts sign-in is locked for 5 minutes. Wait, or ask an administrator to lift the lock.</li>
+  <li><b>“Too many failed attempts”</b> – after 8 failed attempts sign-in is locked for 5 minutes, after very many failed attempts from different addresses for up to 15 minutes. Wait, or ask an administrator to lift the lock.</li>
   <li><b>Forgotten password</b> – there is deliberately no “forgot password” function. {% if f.ldap_on %}For institution network accounts, IT resets the password; for local accounts, an administrator sets a new one.{% else %}An administrator can set a new password for you.{% endif %}</li>
   <li><b>Lost phone or key</b> – sign in with a recovery code, or ask an administrator to reset your two-factor authentication.</li>
   <li><b>Security key not accepted</b> – it only works at the address where it was registered. Otherwise use the app or a recovery code.</li>

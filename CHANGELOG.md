@@ -3,6 +3,13 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.1.7 – 09.11.2026
+**Verbessert**
+- `reset-password` und `reset-2fa` heben auch eine Anmeldesperre nach Fehlversuchen auf (bisher musste man danach
+  noch bis zu 15 Minuten warten bzw. bei zu vielen falschen Codes bis zum nächsten Tag).
+- Handbuch und Hilfe nennen jetzt auch die längere Sperre bei sehr vielen Fehlversuchen von verschiedenen Adressen
+  (bis zu 15 Minuten) und dass Fehlversuche von außen das Konto nur für die Anmeldung von außen sperren.
+
 ## 3.1.6 – 09.11.2026
 **Behoben**
 - **Leseproben:** Google beantwortet Abfragen ohne eigenen API-Schlüssel nicht mehr (Tageslimit 0, HTTP 429) – der

@@ -8,7 +8,7 @@
 <p><b>Anmeldeprobleme lösen – ohne Kommandozeile:</b> Konto öffnen, unten <span class="ui">Anmeldung und Sicherheit</span>:</p>
 <ul>
   <li><span class="ui">Zurücksetzen</span> bei der Zwei-Faktor-Anmeldung entfernt App und Sicherheitsschlüssel; ist 2FA Pflicht, wird die Neueinrichtung verlangt. Eine Anmeldesperre wird dabei mit aufgehoben.</li>
-  <li><span class="ui">Sperre aufheben</span> gibt ein Konto nach 8 Fehlversuchen sofort frei (sonst nach 5 Minuten von selbst).</li>
+  <li><span class="ui">Sperre aufheben</span> gibt ein Konto nach zu vielen Fehlversuchen sofort frei (sonst nach 5 Minuten von selbst, bei sehr vielen Fehlversuchen von verschiedenen Adressen nach bis zu 15 Minuten). Fehlversuche von außen sperren das Konto nur für die Anmeldung von außen.</li>
 </ul>
 <p>Setzen Sie ein <b>neues Passwort</b> oder die 2FA zurück, werden alle anderen Sitzungen dieses Kontos beendet – auch „Angemeldet bleiben“.</p>
 <p><b>AD-Konten:</b> Name, E-Mail und Rolle kommen bei jeder Anmeldung aus dem Active Directory. Hier können Sie nur Gruppen zuordnen und das Konto sperren; Passwörter ändert die IT im AD.</p>

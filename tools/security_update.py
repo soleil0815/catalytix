@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Helpers for the weekly security update (.github/workflows/security-update.yml).
+"""Helpers for the monthly security update on patch day (.github/workflows/security-update.yml).
 
   diff OLD NEW                 compare two package lists (/app/image-packages.txt of the published and the new
                                image); prints the changes, exit code 0 = changed, 3 = unchanged
@@ -32,13 +32,13 @@ KINDS = {"base": "Basis-Image", "python": "Python", "deb": "Debian-Pakete", "pip
 # Texts of the change log entry per language (CHANGELOG.md is German, CHANGELOG.en.md English)
 TEXTS: dict[str, dict[str, Any]] = {
     "de": {"kinds": KINDS, "new": "neu", "removed": "entfernt", "date": "%d.%m.%Y", "suffix": "Sicherheitsupdate",
-           "intro": "Gleiches Programm wie {version}, nur aktualisierte Pakete (wöchentliches Sicherheitsupdate, "
+           "intro": "Gleiches Programm wie {version}, nur aktualisierte Pakete (monatliches Sicherheitsupdate am Patchday, "
                     "automatisch gebaut, getestet und mit Trivy geprüft):",
            "first": "- Erster Stand mit vollständiger Paketliste ({deb} Debian-Pakete, {pip} Python-Pakete, siehe "
                     "`/app/image-packages.txt`) – ein Vergleich mit dem vorigen Image ist nicht möglich."},
     "en": {"kinds": {"base": "Base image", "python": "Python", "deb": "Debian packages", "pip": "Python packages"},
            "new": "new", "removed": "removed", "date": "%Y-%m-%d", "suffix": "security update",
-           "intro": "Same program as {version}, only updated packages (weekly security update, built, tested and "
+           "intro": "Same program as {version}, only updated packages (monthly security update on patch day, built, tested and "
                     "checked with Trivy automatically):",
            "first": "- First state with a complete package list ({deb} Debian packages, {pip} Python packages, see "
                     "`/app/image-packages.txt`) – a comparison with the previous image is not possible."},

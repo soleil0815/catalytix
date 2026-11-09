@@ -199,11 +199,32 @@ class WorkflowTests(unittest.TestCase):
             self.assertNotIn(": write", workflow(name), name)
 
     def test_schedules(self):
-        self.assertRegex(workflow("security-update.yml"), r'cron: "\d+ [0-6] \* \* 1"')      # Monday morning
+        self.assertRegex(workflow("security-update.yml"), r'cron: "\d+ [0-6] \* \* 2"')      # Tuesday morning …
         self.assertRegex(workflow("scan.yml"), r'cron: "\d+ \d+ \* \* \*"')                  # daily
         self.assertRegex(workflow("foundation.yml"), r'cron: "\d+ \d+ \* \* 1"')             # weekly
         for name in ("security-update.yml", "scan.yml", "foundation.yml"):
             self.assertIn("workflow_dispatch:", workflow(name), name)                        # can be started manually
+
+    def test_patchday(self):
+        # … but only patch day (the second Tuesday of the month) goes on – by hand any day
+        import datetime as dt
+        import subprocess
+        script = ROOT / "tools" / "patchday.sh"
+        def due(day: dt.date) -> bool:
+            rc = subprocess.run(["sh", str(script), day.isoformat()]).returncode
+            self.assertIn(rc, (0, 1), day)
+            return rc == 0
+        start = dt.date(2026, 11, 1)
+        days = [start + dt.timedelta(n) for n in range(800)]
+        self.assertEqual([d for d in days if due(d)], [d for d in days if d.weekday() == 1 and 8 <= d.day <= 14])
+        self.assertTrue(due(dt.date(2026, 11, 10)))                        # the first one
+        for bad in ("2026-13-01", "morgen", "2026-1-5"):
+            self.assertEqual(subprocess.run(["sh", str(script), bad], capture_output=True).returncode, 2, bad)
+        text = workflow("security-update.yml")
+        self.assertIn("sh tools/patchday.sh", jobs(text)["patchday"])
+        self.assertIn('[ "$EVENT" != schedule ]', jobs(text)["patchday"])
+        self.assertIn("needs.patchday.outputs.due == 'true'", jobs(text)["update"])
+        self.assertNotIn("write", jobs(text)["patchday"])
 
     def test_publishing_jobs_never_concurrent_and_only_from_main(self):
         publishing = [("build.yml", "state"), ("build.yml", "platform"), ("build.yml", "publish"),
@@ -218,7 +239,8 @@ class WorkflowTests(unittest.TestCase):
                       "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}", workflow("build.yml"))
         self.assertIn("concurrency:\n  group: security-update\n  cancel-in-progress: false", workflow("security-update.yml"))
         self.assertIn("github.ref == 'refs/heads/main'", jobs(workflow("build.yml"))["publish"])
-        self.assertIn("if: github.ref == 'refs/heads/main'", jobs(workflow("security-update.yml"))["update"])
+        self.assertRegex(jobs(workflow("security-update.yml"))["update"],
+                         r"\n    if: needs\.patchday\.outputs\.due == 'true' && github\.ref == 'refs/heads/main'\n")
 
     def test_release_order(self):
         wf = jobs(workflow("build.yml"))

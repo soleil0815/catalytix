@@ -466,7 +466,7 @@ docker compose up -d</pre>
   <li><b>Eigene Werte</b> (Port, Zeitzone, Datenbank, Frist für die automatische Abmeldung …) gehören in die <code>.env</code> – alles darin ist optional. Ergänzungen wie ein NAS-Laufwerk für Sicherungen kommen in eine eigene <code>docker-compose.override.yml</code>. Beide werden bei Updates nie angefasst.</li>
   <li><b>Erster Aufruf:</b> <code>http://SERVER:9300</code> öffnen (z. B. <code>http://bibliothek.firma.local:9300</code>) und das lokale Administratorkonto anlegen. Dafür wird der <b>Einrichtungscode</b> abgefragt: <code>docker compose exec catalytix docker-entrypoint.sh flask --app wsgi setup-code</code>.</li>
   <li><b>HTTPS:</b> Für den Betrieb im Internet, die Kamera und Sicherheitsschlüssel hinter einen Reverse-Proxy mit Zertifikat stellen (z. B. Nginx Proxy Manager, Caddy). Der Proxy muss <code>X-Forwarded-For</code> mitschicken – das tun die genannten von sich aus. Port 9300 am Router <b>nicht</b> freigeben.</li>
-  <li><b>Sicher gebaut:</b> Basis-Image, Betriebssystem- und Python-Pakete sind auf exakte Versionen mit Prüfsummen festgelegt. Jedes Image wird vor der Veröffentlichung getestet und auf Schwachstellen geprüft; jeden Montag erscheint bei Bedarf automatisch ein Sicherheitsupdate (<code>X.Y.Z-s1</code>, <code>-s2</code> …).</li>
+  <li><b>Sicher gebaut:</b> Basis-Image, Betriebssystem- und Python-Pakete sind auf exakte Versionen mit Prüfsummen festgelegt. Jedes Image wird vor der Veröffentlichung getestet und auf Schwachstellen geprüft; einmal im Monat am Patchday (zweiter Dienstag) erscheint bei Bedarf automatisch ein Sicherheitsupdate (<code>X.Y.Z-s1</code>, <code>-s2</code> …).</li>
 </ul>
 
 <h3 data-mark="s-update">Update</h3>

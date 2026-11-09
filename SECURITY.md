@@ -21,7 +21,7 @@ described in the change log and, if you like, credited to you. Please give us re
 before you disclose details.
 
 ### Supported versions
-Only the **newest release** (image tag `latest`) gets fixes, including its weekly security updates (`X.Y.Z-sN`,
+Only the **newest release** (image tag `latest`) gets fixes, including its monthly security updates on patch day (`X.Y.Z-sN`,
 same program with updated packages). Please update before reporting – the issue may already be fixed
 ([change log](CHANGELOG.en.md)).
 
@@ -31,8 +31,8 @@ In scope: the program in this repository and the published image `ghcr.io/soleil
 
 Not in scope: findings that need admin access to the server or the `data/` folder, missing hardening without a
 concrete attack, problems of your own reverse proxy, mail server or directory, and denial of service through
-large amounts of requests. Known package findings in the image are handled automatically (daily Trivy scan, weekly
-security update) – report them only if a fix is available and not yet included.
+large amounts of requests. Known package findings in the image are handled automatically (daily Trivy scan, monthly
+security update on patch day) – report them only if a fix is available and not yet included.
 
 ## Deutsch
 
@@ -55,7 +55,7 @@ behoben; die Korrektur steht im CHANGELOG, auf Wunsch mit deinem Namen. Bitte gi
 zu veröffentlichen, bevor du Einzelheiten bekannt machst.
 
 ### Unterstützte Versionen
-Korrekturen gibt es nur für die **neueste Version** (Image-Tag `latest`) samt ihren wöchentlichen Sicherheitsupdates
+Korrekturen gibt es nur für die **neueste Version** (Image-Tag `latest`) samt ihren monatlichen Sicherheitsupdates am Patchday
 (`X.Y.Z-sN`, gleiches Programm mit aktualisierten Paketen). Bitte vor einer Meldung aktualisieren – vielleicht ist
 das Problem schon behoben ([CHANGELOG](CHANGELOG.md)).
 
@@ -66,4 +66,4 @@ einschließlich `update.sh` und `docker-compose.yml`.
 Nicht dazu gehören: Funde, die Admin-Zugriff auf den Server oder den Ordner `data/` voraussetzen, fehlende Härtung
 ohne konkreten Angriff, Probleme des eigenen Reverse-Proxys, Mailservers oder Verzeichnisdienstes sowie
 Überlastung durch sehr viele Anfragen. Bekannte Paket-Funde im Image werden automatisch behandelt (täglicher
-Trivy-Scan, wöchentliches Sicherheitsupdate) – bitte nur melden, wenn es eine Korrektur gibt, die noch fehlt.
+Trivy-Scan, monatliches Sicherheitsupdate am Patchday) – bitte nur melden, wenn es eine Korrektur gibt, die noch fehlt.

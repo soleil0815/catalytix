@@ -1,0 +1,3 @@
+# Known false positives for the ZAP scan (zap-scan.sh): one line per rule, TAB separated:
+# <rule id>	IGNORE	<why it is not a problem here>
+# Only the code audit adds lines here, each with a reason – never to silence a real finding.

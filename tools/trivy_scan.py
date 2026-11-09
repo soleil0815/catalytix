@@ -21,6 +21,8 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
+import urllib.error
 import urllib.request
 from collections.abc import Callable
 from pathlib import Path
@@ -31,6 +33,9 @@ LOCK = ROOT / "tools" / "trivy.lock"
 IGNORE = ROOT / ".trivyignore"
 INSTALL_DIR = ROOT / ".trivy"
 MAX_IGNORE_DAYS = 183
+# Download retries: GitHub's release download answers now and then with 502/503/504 or times out. Waits in seconds
+# before the 2nd, 3rd and 4th attempt; the checksum check afterwards is unchanged.
+RETRY_WAITS = (10, 30, 60)
 
 
 def annotate(level: str, title: str, message: str) -> None:
@@ -63,16 +68,48 @@ def read_lock(path: Path = LOCK) -> dict[str, str]:
     return values
 
 
-def install(lock: dict[str, str] | None = None, fetch: Callable[[str, Path], object] | None = None) -> Path:
+def _urlopen_fetch(url: str, dest: Path) -> None:
+    with urllib.request.urlopen(url, timeout=120) as res, open(dest, "wb") as out:  # noqa: S310
+        out.write(res.read())
+
+
+def _transient(exc: Exception) -> bool:
+    """Worth another attempt: server errors (5xx), rate limit (429), timeouts and connection problems.
+    Other HTTP errors (e.g. 404 – release asset gone) are permanent."""
+    if isinstance(exc, urllib.error.HTTPError):
+        return exc.code >= 500 or exc.code == 429
+    return isinstance(exc, (urllib.error.URLError, TimeoutError, ConnectionError))
+
+
+def download(url: str, dest: Path, fetch: Callable[[str, Path], object] | None = None,
+             sleep: Callable[[float], object] = time.sleep) -> None:
+    """Download with retries on transient errors; on failure a readable annotation on the run and exit code 1."""
+    fetch = fetch or _urlopen_fetch
+    attempts = len(RETRY_WAITS) + 1
+    for attempt in range(1, attempts + 1):
+        try:
+            fetch(url, dest)
+            return
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
+            reason = f"{type(exc).__name__}: {exc}"
+            if not _transient(exc) or attempt == attempts:
+                tried = f" after {attempt} attempts" if attempt > 1 else ""
+                annotate("error", "Trivy download failed",
+                         f"{url}{tried}: {reason} – no scan, nothing is published. "
+                         "A temporary problem at GitHub usually goes away; start the run again later.")
+                raise SystemExit(1) from exc
+            wait = RETRY_WAITS[attempt - 1]
+            annotate("warning", "Trivy download retried", f"Attempt {attempt}/{attempts}: {reason} – next in {wait} s")
+            sleep(wait)
+
+
+def install(lock: dict[str, str] | None = None, fetch: Callable[[str, Path], object] | None = None,
+            sleep: Callable[[float], object] = time.sleep) -> Path:
     lock = lock or read_lock()
     INSTALL_DIR.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         archive = Path(tmp) / "trivy.tar.gz"
-        if fetch:
-            fetch(lock["url"], archive)
-        else:
-            with urllib.request.urlopen(lock["url"], timeout=120) as res, open(archive, "wb") as out:  # noqa: S310
-                out.write(res.read())
+        download(lock["url"], archive, fetch, sleep)
         digest = hashlib.sha256(archive.read_bytes()).hexdigest()
         if digest != lock["sha256"]:
             annotate("error", "Trivy download rejected",

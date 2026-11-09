@@ -404,6 +404,55 @@ class TrivyFlowTests(unittest.TestCase):
         with self.assertRaises(SystemExit), mock.patch("sys.stdout"):
             trivy_scan.install(lockdata, fetch=lambda url, dest: Path(dest).write_bytes(b"not trivy"))
 
+    @staticmethod
+    def flaky(failures, blob=b"x"):
+        """fetch stand-in: raises the given exceptions one after another, then writes blob."""
+        calls = []
+
+        def fetch(url, dest):
+            calls.append(url)
+            if len(calls) <= len(failures):
+                raise failures[len(calls) - 1]
+            Path(dest).write_bytes(blob)
+        return fetch, calls
+
+    @staticmethod
+    def http_error(code):
+        import urllib.error
+        return urllib.error.HTTPError("https://github.com/x", code, "Gateway Time-out", {}, None)
+
+    def test_download_retries_transient_errors(self):
+        # 3.1.4: a single 504 from GitHub's release download stopped the publish run without a readable message
+        import urllib.error
+        fetch, calls = self.flaky([self.http_error(504), urllib.error.URLError("timed out"), TimeoutError()])
+        waits = []
+        with tempfile.TemporaryDirectory() as tmp, mock.patch("sys.stdout") as stdout:
+            trivy_scan.download("https://github.com/x", Path(tmp) / "a", fetch, waits.append)
+            self.assertEqual((Path(tmp) / "a").read_bytes(), b"x")
+        self.assertEqual(len(calls), 4)
+        self.assertEqual(waits, list(trivy_scan.RETRY_WAITS))
+        out = "".join(c.args[0] for c in stdout.write.call_args_list)
+        self.assertIn("::warning title=Trivy download retried::Attempt 1/4: HTTPError: HTTP Error 504", out)
+
+    def test_download_gives_up_with_annotation(self):
+        fetch, calls = self.flaky([self.http_error(503)] * 10)
+        with tempfile.TemporaryDirectory() as tmp, mock.patch("sys.stdout") as stdout:
+            with self.assertRaises(SystemExit) as cm:
+                trivy_scan.download("https://github.com/x", Path(tmp) / "a", fetch, lambda s: None)
+        self.assertEqual(cm.exception.code, 1)
+        self.assertEqual(len(calls), 4)
+        out = "".join(c.args[0] for c in stdout.write.call_args_list)
+        self.assertIn("::error title=Trivy download failed::https://github.com/x after 4 attempts", out)
+
+    def test_download_no_retry_on_404(self):
+        fetch, calls = self.flaky([self.http_error(404)])
+        waits = []
+        with tempfile.TemporaryDirectory() as tmp, mock.patch("sys.stdout") as stdout:
+            with self.assertRaises(SystemExit):
+                trivy_scan.download("https://github.com/x", Path(tmp) / "a", fetch, waits.append)
+        self.assertEqual((len(calls), waits), (1, []))
+        self.assertIn("::error title=Trivy download failed::", "".join(c.args[0] for c in stdout.write.call_args_list))
+
     def test_install_success_path(self):
         import hashlib
         import io

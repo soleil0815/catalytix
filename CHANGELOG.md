@@ -3,6 +3,11 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.1.8-s1 – 10.11.2026 (Sicherheitsupdate)
+Gleiches Programm wie 3.1.8, nur aktualisierte Pakete (monatliches Sicherheitsupdate am Patchday, automatisch gebaut, getestet und mit Trivy geprüft):
+- Basis-Image: `python:3.13.18-slim-trixie@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1 → python:3.13.18-slim-trixie@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90`
+- Python-Pakete: `wtforms 3.3.1 → 3.3.2`
+
 ## 3.1.8 – 09.11.2026
 **Behoben**
 - **Leseproben mit Google-API-Schlüssel:** Der Knopf „Leseprobe“ verschwand bei Büchern, deren Vorschau Googles

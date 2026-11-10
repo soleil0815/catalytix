@@ -2,6 +2,11 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.1.8-s1 – 2026-11-10 (security update)
+Same program as 3.1.8, only updated packages (monthly security update on patch day, built, tested and checked with Trivy automatically):
+- Base image: `python:3.13.18-slim-trixie@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1 → python:3.13.18-slim-trixie@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90`
+- Python packages: `wtforms 3.3.1 → 3.3.2`
+
 ## 3.1.8 – 2026-11-09
 **Fixed**
 - **Reading samples with a Google API key:** the "Reading sample" button disappeared for books whose preview Google's

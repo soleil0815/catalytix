@@ -291,7 +291,7 @@
 <figure><img src="img/20-rueckgabe.jpg"><figcaption><b>Abb. 21</b> – Rückgabe an der Theke.</figcaption></figure>
 
 <h3 data-mark="s-vormerkungen">Vormerkungen verwalten</h3>
-<p>Auf der Buchseite sehen Sie die <b>Warteschlange</b> mit Namen, Datum und Status (<i>wartet</i> oder <i>zurückgelegt bis …</i>) und können einzelne Vormerkungen löschen. Kommt eine Person mit zurückgelegtem Buch an die Theke, steht es nach ihrer Auswahl oben unter „Für … zurückgelegt“ – ein Klick verleiht es. Vormerkungen schaltet ein Administrator unter <span class="path">Einstellungen → Vormerken</span> ein; dort stehen auch Abholfrist und Höchstzahl je Person.</p>
+<p>Auf der Buchseite sehen Sie die <b>Warteschlange</b> mit Namen, Datum und Status (<i>wartet</i> oder <i>zurückgelegt bis …</i>) und können einzelne Vormerkungen löschen. Kommt eine Person mit zurückgelegtem Buch an die Theke, steht es nach ihrer Auswahl oben unter „Für … zurückgelegt“ – ein Klick verleiht es. Vormerkungen schaltet ein Administrator unter <span class="path">Einstellungen → Ausleihe → Vormerken</span> ein; dort stehen auch Abholfrist und Höchstzahl je Person.</p>
 <figure class="half"><img src="img/21-warteschlange.jpg"><figcaption><b>Abb. 22</b> – Warteschlange auf der Buchseite.</figcaption></figure>
 
 <h3 data-mark="s-alle">Alle Ausleihen und Mahnungen</h3>
@@ -381,18 +381,20 @@
 <div class="box note"><span class="label">Hinweis</span>Logo und Hintergrundbild sind öffentlich abrufbar, weil sie schon auf der Anmeldeseite gebraucht werden – also nichts Vertrauliches verwenden.</div>
 
 <h3 data-mark="s-einstellungen">Einstellungen</h3>
-<figure><img src="img/33-einstellungen.jpg"><figcaption><b>Abb. 34</b> – Allgemeine Einstellungen und Ausleihregeln.</figcaption></figure>
+<p>Die Einstellungen sind auf <b>sechs Reiter</b> verteilt. Jeder Reiter hat unten seinen eigenen Knopf <span class="ui">Speichern</span> und speichert nur seine eigenen Felder – Speichern in einem Reiter verändert nie etwas in einem anderen.</p>
+<figure><img src="img/33-einstellungen.jpg"><figcaption><b>Abb. 34</b> – Einstellungen mit Reitern, hier „Ausleihe“.</figcaption></figure>
 <table>
-  <tr><th style="width:32%">Bereich</th><th>Was Sie festlegen</th></tr>
+  <tr><th style="width:32%">Reiter → Bereich</th><th>Was Sie festlegen</th></tr>
   <tr><td>Allgemein</td><td>Name der Bibliothek, Standardsprache; ob Leser den ganzen Katalog sehen oder nur ihre Gruppen und allgemeine Bücher.</td></tr>
-  <tr><td>Rechtliches</td><td>Adressen von <b>Impressum</b> und <b>Datenschutzerklärung</b> (z. B. auf der Website des Instituts). Sie erscheinen auf der Anmeldeseite, in der Seitenleiste und in jeder E-Mail. Bei Betrieb im Internet in der Regel Pflicht.</td></tr>
-  <tr><td>Ausleihe</td><td>Leihfrist (Standard 28 Tage), Verlängerung (14 Tage, höchstens 2-mal), Höchstzahl gleichzeitiger Ausleihen (0 = unbegrenzt), Selbstausleihe, selbst verlängern, selbst zurückgeben.</td></tr>
-  <tr><td>Vormerken</td><td>ein/aus (Standard aus), Abholfrist (Standard 7 Tage), Höchstzahl offener Vormerkungen je Person (Standard 5). Ausschalten beendet alle offenen Vormerkungen.</td></tr>
-  <tr><td>Selbstregistrierung</td><td>aus (Standard) / mit Freigabe durch Administratoren / sofort aktiv; E-Mail-Bestätigung, erlaubte E-Mail-Domains, Gruppe für neue Leser.</td></tr>
-  <tr><td>Aufbewahrung</td><td>Löschfrist für abgeschlossene Ausleihen und E-Mail-Protokoll (siehe 5.9).</td></tr>
-  <tr><td>Zwei-Faktor-Anmeldung</td><td>Pflicht von außen, Regel im internen Netz (siehe 5.8).</td></tr>
-  <tr><td>Automatische Abmeldung</td><td>Fristen ohne Aktivität für alle, für Admins und von außen; Warnung vorher, Abmelden beim Schließen des Browsers (siehe unten).</td></tr>
-  <tr><td>ISBN-Datenquellen</td><td>Welche Kataloge in welcher Reihenfolge abgefragt werden.</td></tr>
+  <tr><td>Ausleihe → Ausleihe</td><td>Leihfrist (Standard 28 Tage), Verlängerung (14 Tage, höchstens 2-mal), Höchstzahl gleichzeitiger Ausleihen (0 = unbegrenzt), Selbstausleihe, selbst verlängern, selbst zurückgeben.</td></tr>
+  <tr><td>Ausleihe → Vormerken</td><td>ein/aus (Standard aus), Abholfrist (Standard 7 Tage), Höchstzahl offener Vormerkungen je Person (Standard 5). Ausschalten beendet alle offenen Vormerkungen.</td></tr>
+  <tr><td>Katalog → ISBN-Datenquellen</td><td>Welche Kataloge in welcher Reihenfolge abgefragt werden.</td></tr>
+  <tr><td>Katalog → Leseproben</td><td>Leseproben von Google Books erlauben (Standard aus), optional ein eigener Google-API-Schlüssel. Die Leseprobe lädt der Browser erst nach einem Hinweis und einem zweiten Klick von Google – das gehört in die Datenschutzerklärung.</td></tr>
+  <tr><td>Konten → Selbstregistrierung</td><td>aus (Standard) / mit Freigabe durch Administratoren / sofort aktiv; E-Mail-Bestätigung, erlaubte E-Mail-Domains, Gruppe für neue Leser.</td></tr>
+  <tr><td>Sicherheit → Zwei-Faktor-Anmeldung</td><td>Pflicht von außen, Regel im internen Netz, internes Netz, eigener Internetanschluss (siehe 5.8).</td></tr>
+  <tr><td>Sicherheit → Automatische Abmeldung</td><td>Fristen ohne Aktivität für alle, für Admins und von außen; Warnung vorher, Abmelden beim Schließen des Browsers (siehe unten).</td></tr>
+  <tr><td>Datenschutz → Rechtliches</td><td>Adressen von <b>Impressum</b> und <b>Datenschutzerklärung</b> (z. B. auf der Website des Instituts). Sie erscheinen auf der Anmeldeseite, in der Seitenleiste und in jeder E-Mail. Bei Betrieb im Internet in der Regel Pflicht.</td></tr>
+  <tr><td>Datenschutz → Aufbewahrung</td><td>Löschfrist für abgeschlossene Ausleihen und E-Mail-Protokoll (siehe 5.9).</td></tr>
 </table>
 <figure class="third"><img src="img/34-selbstregistrierung.jpg"><figcaption><b>Abb. 35</b> – Selbstregistrierung.</figcaption></figure>
 
@@ -529,7 +531,7 @@ docker compose start catalytix</pre>
   <tr><td>Warum werde ich abgemeldet?</td><td>Nach einer Zeit ohne Aktivität meldet die Bibliothek automatisch ab (Abschnitt 2.3). Mit <span class="ui">Weiterarbeiten</span> im Hinweis davor bleiben Sie angemeldet.</td></tr>
   <tr><td>Die Kamera startet nicht.</td><td>Die Kamera geht nur über die https-Adresse und braucht Ihre Erlaubnis im Browser. An der Theke ist ein USB-Barcodescanner zuverlässiger.</td></tr>
   <tr><td>Der YubiKey wird nicht angenommen.</td><td>Sicherheitsschlüssel gelten nur für die Adresse, unter der sie eingerichtet wurden. Über eine andere Adresse (z. B. die IP) mit der Authenticator-App oder einem Wiederherstellungscode anmelden.</td></tr>
-  <tr><td>Im Haus werde ich trotzdem nach dem zweiten Faktor gefragt.</td><td>Unter <span class="path">Einstellungen → Zwei-Faktor-Anmeldung</span> zeigt die Seite, welche Adresse der Server sieht. Steht dort Ihre öffentliche IP, den eigenen Internetanschluss eintragen oder einen internen DNS-Eintrag anlegen (siehe 5.8).</td></tr>
+  <tr><td>Im Haus werde ich trotzdem nach dem zweiten Faktor gefragt.</td><td>Unter <span class="path">Einstellungen → Sicherheit → Zwei-Faktor-Anmeldung</span> zeigt die Seite, welche Adresse der Server sieht. Steht dort Ihre öffentliche IP, den eigenen Internetanschluss eintragen oder einen internen DNS-Eintrag anlegen (siehe 5.8).</td></tr>
   <tr><td>Ein Standort ist falsch geschrieben.</td><td>Unter <span class="path">Standorte</span> umbenennen – alle Bücher dort werden mit umgestellt. Alte Tippfehler stehen unter „Im Bestand, aber nicht festgelegt“ und lassen sich per Klick ersetzen.</td></tr>
   <tr><td>Ein Buch steht doppelt im Bestand.</td><td>Beim Original die Zahl der Exemplare erhöhen und den doppelten Eintrag löschen (geht nur, wenn er nicht ausgeliehen ist). Neu erfasste Bücher mit derselben ISBN in derselben Gruppe werden seit 2.20 automatisch hinzugezählt.</td></tr>
   <tr><td>Mein vorgemerktes Buch liegt bereit – was nun?</td><td>Innerhalb der Abholfrist ausleihen (selbst oder an der Theke). Die Frist steht auf der Übersicht; danach ist die nächste Person an der Reihe.</td></tr>

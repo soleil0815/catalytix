@@ -3,10 +3,17 @@
 {% block title %}{{ _("Einstellungen") }}{% endblock %}
 {% block content %}
 <div class="page-head"><div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("Einstellungen") }}</h1></div></div>
-<form method="post">
+<nav class="tabs" aria-label="{{ _('Bereiche der Einstellungen') }}" data-settings-anchors="{{ anchors|tojson|forceescape }}">
+  {% set labels = {"allgemein": _("Allgemein"), "ausleihe": _p("settings", "Ausleihe"), "katalog": _("Katalog"),
+                   "konten": _p("settings", "Konten"), "sicherheit": _("Sicherheit"), "datenschutz": _p("settings", "Datenschutz")} %}
+  {% for key, ico in tabs.items() %}<a href="{{ url_for('admin.settings', bereich=key) }}" class="{{ 'on' if key == tab }}"{{ ' aria-current="page"'|safe if key == tab }}>{{ icon(ico) }} {{ labels[key] }}</a>{% endfor %}
+</nav>
+<form method="post" action="{{ url_for('admin.settings', bereich=tab) }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="bereich" value="{{ tab }}">
   <div class="grid grid-2">
-    <section class="card card-pad">
+    {% if tab == 'allgemein' %}
+    <section class="card card-pad" id="allgemein">
       <h2 style="margin-bottom: 16px">{{ _("Allgemein") }}</h2>
       <div class="field"><label for="f-library-name">{{ _("Name der Bibliothek") }}</label><input id="f-library-name" type="text" name="library_name" value="{{ s('library_name') }}"></div>
       <div class="field"><label for="f-default-language">{{ _("Standardsprache") }}</label>
@@ -20,17 +27,9 @@
           <option value="all" {{ 'selected' if s('catalog_visibility') == 'all' }}>{{ _("Alle sehen den gesamten Katalog (Ausleihe bleibt eingeschränkt)") }}</option>
         </select></div>
       <p class="muted" style="font-size: 13px; margin: 4px 0 0">{{ _("Coverbilder werden beim Erfassen heruntergeladen und vom eigenen Server ausgeliefert – die Browser der Nutzer verbinden sich nie mit fremden Servern.") }}</p>
-
-      <h2 style="margin: 22px 0 6px">{{ icon("shield") }} {{ _("Rechtliches") }}</h2>
-      <p class="muted" style="font-size: 13.5px">{{ _("Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in E-Mails. Bei Betrieb im Internet sind beide Angaben in der Regel Pflicht.") }}</p>
-      <div class="field"><label for="f-imprint-url">{{ _("Impressum (Adresse)") }}</label>
-        <input id="f-imprint-url" type="url" name="imprint_url" value="{{ s('imprint_url') }}" placeholder="{{ _('https://www.institut.de/impressum') }}"></div>
-      <div class="field"><label for="f-privacy-url">{{ _("Datenschutzerklärung (Adresse)") }}</label>
-        <input id="f-privacy-url" type="url" name="privacy_url" value="{{ s('privacy_url') }}" placeholder="{{ _('https://www.institut.de/datenschutz') }}">
-        <div class="hint">{{ _("Bei der Selbstregistrierung muss sie bestätigt werden.") }}</div></div>
     </section>
-
-    <section class="card card-pad">
+    {% elif tab == 'ausleihe' %}
+    <section class="card card-pad" id="ausleihe">
       <h2 style="margin-bottom: 16px">{{ _("Ausleihe") }}</h2>
       <div class="form-grid">
         <div class="field span-3"><label for="f-loan-days">{{ _("Leihfrist (Tage)") }}</label><input id="f-loan-days" type="number" name="loan_days" min="1" value="{{ s('loan_days') }}"></div>
@@ -47,7 +46,7 @@
         <span>{{ _("Selbst zurückgeben") }}<small class="muted">{{ _("Sonst nimmt ein Verwalter das Buch zurück.") }}</small></span></label>
     </section>
 
-    <section class="card card-pad">
+    <section class="card card-pad" id="vormerken">
       <h2 style="margin-bottom: 6px">{{ icon("pin") }} {{ _("Vormerken") }}</h2>
       <label class="check"><input type="checkbox" name="reservations_enabled" value="1" {{ 'checked' if s('reservations_enabled') == '1' }}>
         <span>{{ _("Vormerken verliehener Bücher") }}<small class="muted">{{ _("Sind alle Exemplare verliehen, kann man ein Buch vormerken. Wird eines frei, wird es für die erste Person in der Warteschlange zurückgelegt; sie bekommt eine E-Mail. Vorgemerkte Bücher können Leser nicht selbst verlängern. Ausschalten löscht alle offenen Vormerkungen.") }}</small></span></label>
@@ -58,8 +57,32 @@
           <div class="hint">{{ _("0 = unbegrenzt") }}</div></div>
       </div>
     </section>
+    {% elif tab == 'katalog' %}
+    <section class="card card-pad" id="isbn">
+      <h2 style="margin-bottom: 6px">{{ _("ISBN-Datenquellen") }}</h2>
+      <p class="muted" style="font-size: 13.5px">{{ _("Werden in dieser Reihenfolge abgefragt; fehlende Felder werden aus der nächsten Quelle ergänzt. Der Server braucht dafür Internetzugang.") }}</p>
+      <input type="hidden" name="isbn_order" value="{{ all_sources|join(',') }}">
+      {% for key in all_sources %}
+      <label class="check"><input type="checkbox" name="isbn_sources" value="{{ key }}" {{ 'checked' if key in active_sources }}>
+        <span>{{ sources[key][0] }}<small class="muted">{% if key == 'dnb' %}{{ _("Beste Abdeckung für deutschsprachige Titel") }}{% elif key == 'openlibrary' %}{{ _("Internationaler offener Katalog, viele Cover") }}{% else %}{{ _("Große Abdeckung, oft mit Beschreibung") }}{% endif %}</small></span></label>
+      {% endfor %}
+    </section>
 
-    <section class="card card-pad">
+    <section class="card card-pad" id="leseproben">
+      <h2 style="margin-bottom: 6px">{{ icon("book") }} {{ _("Leseproben") }}</h2>
+      <label class="check"><input type="checkbox" name="reading_sample_google" value="1" {{ 'checked' if s('reading_sample_google') == '1' }}>
+        <span>{{ _("Leseproben von Google Books erlauben") }}<small class="muted">{{ _("Auf der Buchseite erscheint „Leseprobe“, wenn der Verlag bei Google Books eine freigegeben hat.") }}</small></span></label>
+      <p class="muted" style="font-size: 12.5px">{{ _("Die Leseprobe lädt der Browser erst nach einem Klick und einem Hinweis direkt von Google – dabei erfährt Google die IP-Adresse. Nehmen Sie das in Ihre Datenschutzerklärung auf.") }}</p>
+      <div class="field" style="margin-top: 12px"><label for="f-google-key">{{ _("Google-API-Schlüssel (optional)") }}</label>
+        <input id="f-google-key" type="password" name="google_api_key" value="" autocomplete="new-password" spellcheck="false"
+               placeholder="{{ _('gespeichert – leer lassen, um ihn zu behalten') if google_key_set else _('kein Schlüssel') }}">
+        {% if google_key_set %}<label class="check" style="margin-top: 6px"><input type="checkbox" name="clear_google_api_key" value="1"> {{ _("löschen") }}</label>{% endif %}
+      </div>
+      <p class="muted" style="font-size: 12.5px">{{ _("Ohne Schlüssel beantwortet Google keine Abfragen. Dann erscheint der Knopf bei jedem Buch mit ISBN, und Googles Viewer zeigt selbst an, wenn es keine Vorschau gibt. Mit Schlüssel prüft der Server vorab (nur die ISBN), und der Knopf erscheint nur bei Büchern, die Google Books kennt – ob es eine Vorschau gibt, zeigt erst der Viewer. Die ISBN-Abfrage über Google Books nutzt den Schlüssel ebenfalls. Kostenlos in der Google Cloud Console: Books API aktivieren, API-Schlüssel anlegen und auf die Books API beschränken. Er wird verschlüsselt gespeichert.") }}</p>
+      {% if google_quota %}<div class="notice warn" style="margin-top: 10px">{{ icon("clock") }}<div>{{ _("Google hat Abfragen wegen des Tageslimits abgelehnt. Prüfen Sie den Schlüssel und sein Kontingent in der Google Cloud Console.") }}</div></div>{% endif %}
+    </section>
+    {% elif tab == 'konten' %}
+    <section class="card card-pad" id="registrierung">
       <h2 style="margin-bottom: 6px">{{ icon("user") }} {{ _("Selbstregistrierung") }}</h2>
       <p class="muted" style="font-size: 13.5px">{{ _("Dürfen sich Leser selbst ein Konto anlegen? Neue Konten sind immer <b>Leser</b>. Mit aktiver Registrierung erscheint auf der Anmeldeseite der Link „Jetzt registrieren“.") }}</p>
       <div class="field"><label for="f-registration-mode">{{ _("Registrierung") }}</label>
@@ -84,24 +107,11 @@
             {% for g in groups %}<option value="{{ g.id }}" {{ 'selected' if s('registration_group_id') == g.id|string }}>{{ g.name }}</option>{% endfor %}
           </select></div>
         <div class="field span-3"><label>{{ _("Datenschutzerklärung") }}</label>
-          <div class="hint" style="margin-top: 6px">{% if s('privacy_url') %}{{ _("Wird bei der Registrierung angezeigt und muss bestätigt werden.") }}{% else %}{{ _("Noch keine hinterlegt – siehe <i>Allgemein → Rechtliches</i>.") }}{% endif %}</div></div>
+          <div class="hint" style="margin-top: 6px">{% if s('privacy_url') %}{{ _("Wird bei der Registrierung angezeigt und muss bestätigt werden.") }}{% else %}{{ _("Noch keine hinterlegt – siehe <i>Datenschutz → Rechtliches</i>.") }}{% endif %}</div></div>
       </div>
     </section>
-
-    <section class="card card-pad" id="aufbewahrung">
-      <h2 style="margin-bottom: 6px">{{ icon("clock") }} {{ _("Aufbewahrung") }}</h2>
-      <p class="muted" style="font-size: 13.5px">{{ _("Abgeschlossene Ausleihen und das E-Mail-Protokoll werden nach Ablauf der Frist automatisch gelöscht (DSGVO: nur so lange speichern wie nötig). Pro Buch bleibt nur die Anzahl der Ausleihen erhalten. Laufende und überfällige Ausleihen werden nie gelöscht.") }}</p>
-      <div class="field"><label for="f-retention-months">{{ _("Abgeschlossene Ausleihen löschen nach") }}</label>
-        <select id="f-retention-months" name="retention_months">
-          {% for m, label in [("3", _("3 Monaten")), ("6", _("6 Monaten")), ("12", _("12 Monaten (empfohlen)")), ("24", _("2 Jahren")), ("36", _("3 Jahren")), ("0", _("nie (nicht empfohlen)"))] %}
-          <option value="{{ m }}" {{ 'selected' if s('retention_months') == m }}>{{ label }}</option>{% endfor %}
-        </select>
-        <div class="hint">{{ _("gerechnet ab der Rückgabe · läuft einmal täglich automatisch") }}</div></div>
-      {% if s('retention_last_result') %}<p class="muted" style="font-size: 13px; margin: 0 0 10px">{{ _("Letzter Lauf:") }} {{ retention_result }}</p>{% endif %}
-      <button class="btn sm" type="submit" form="retention-now">{{ icon("check") }} {{ _("Jetzt bereinigen") }}</button>
-    </section>
-
-    <section class="card card-pad">
+    {% elif tab == 'sicherheit' %}
+    <section class="card card-pad" id="zwei-faktor">
       <h2 style="margin-bottom: 6px">{{ icon("shield") }} {{ _("Zwei-Faktor-Anmeldung") }}</h2>
       <p class="muted" style="font-size: 13.5px">{{ _("Authenticator-App (TOTP) oder Sicherheitsschlüssel (YubiKey/FIDO2). Jeder kann sie im Profil freiwillig einrichten; hier legen Sie fest, für wen sie Pflicht ist. Betroffene werden nach der nächsten Anmeldung zur Einrichtung geführt.") }}</p>
       <div class="field"><label for="f-mfa-policy">{{ _("Pflicht bei Zugriff von außen (Internet)") }}</label>
@@ -157,30 +167,30 @@
         <span>{{ _("Beim Schließen des Browsers abmelden") }}<small class="muted">{{ _("Die Anmeldung bleibt nicht über einen Browser-Neustart hinweg bestehen; „Angemeldet bleiben“ entfällt.") }}</small></span></label>
       <p class="muted" style="font-size: 12.5px">{{ _("„Angemeldet bleiben“ gibt es nur, wo keine kürzere Frist gilt – also nicht für Admins (mit eigener Frist) und nicht von außen (mit eigener Frist). Sonst würde die Anmeldung nach einem Browser-Neustart die Frist umgehen.") }}</p>
     </section>
-
-    <section class="card card-pad">
-      <h2 style="margin-bottom: 6px">{{ _("ISBN-Datenquellen") }}</h2>
-      <p class="muted" style="font-size: 13.5px">{{ _("Werden in dieser Reihenfolge abgefragt; fehlende Felder werden aus der nächsten Quelle ergänzt. Der Server braucht dafür Internetzugang.") }}</p>
-      <input type="hidden" name="isbn_order" value="{{ all_sources|join(',') }}">
-      {% for key in all_sources %}
-      <label class="check"><input type="checkbox" name="isbn_sources" value="{{ key }}" {{ 'checked' if key in active_sources }}>
-        <span>{{ sources[key][0] }}<small class="muted">{% if key == 'dnb' %}{{ _("Beste Abdeckung für deutschsprachige Titel") }}{% elif key == 'openlibrary' %}{{ _("Internationaler offener Katalog, viele Cover") }}{% else %}{{ _("Große Abdeckung, oft mit Beschreibung") }}{% endif %}</small></span></label>
-      {% endfor %}
+    {% elif tab == 'datenschutz' %}
+    <section class="card card-pad" id="rechtliches">
+      <h2 style="margin-bottom: 6px">{{ icon("shield") }} {{ _("Rechtliches") }}</h2>
+      <p class="muted" style="font-size: 13.5px">{{ _("Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in E-Mails. Bei Betrieb im Internet sind beide Angaben in der Regel Pflicht.") }}</p>
+      <div class="field"><label for="f-imprint-url">{{ _("Impressum (Adresse)") }}</label>
+        <input id="f-imprint-url" type="url" name="imprint_url" value="{{ s('imprint_url') }}" placeholder="{{ _('https://www.institut.de/impressum') }}"></div>
+      <div class="field"><label for="f-privacy-url">{{ _("Datenschutzerklärung (Adresse)") }}</label>
+        <input id="f-privacy-url" type="url" name="privacy_url" value="{{ s('privacy_url') }}" placeholder="{{ _('https://www.institut.de/datenschutz') }}">
+        <div class="hint">{{ _("Bei der Selbstregistrierung muss sie bestätigt werden.") }}</div></div>
     </section>
 
-    <section class="card card-pad" id="leseproben">
-      <h2 style="margin-bottom: 6px">{{ icon("book") }} {{ _("Leseproben") }}</h2>
-      <label class="check"><input type="checkbox" name="reading_sample_google" value="1" {{ 'checked' if s('reading_sample_google') == '1' }}>
-        <span>{{ _("Leseproben von Google Books erlauben") }}<small class="muted">{{ _("Auf der Buchseite erscheint „Leseprobe“, wenn der Verlag bei Google Books eine freigegeben hat.") }}</small></span></label>
-      <p class="muted" style="font-size: 12.5px">{{ _("Die Leseprobe lädt der Browser erst nach einem Klick und einem Hinweis direkt von Google – dabei erfährt Google die IP-Adresse. Nehmen Sie das in Ihre Datenschutzerklärung auf.") }}</p>
-      <div class="field" style="margin-top: 12px"><label for="f-google-key">{{ _("Google-API-Schlüssel (optional)") }}</label>
-        <input id="f-google-key" type="password" name="google_api_key" value="" autocomplete="new-password" spellcheck="false"
-               placeholder="{{ _('gespeichert – leer lassen, um ihn zu behalten') if google_key_set else _('kein Schlüssel') }}">
-        {% if google_key_set %}<label class="check" style="margin-top: 6px"><input type="checkbox" name="clear_google_api_key" value="1"> {{ _("löschen") }}</label>{% endif %}
-      </div>
-      <p class="muted" style="font-size: 12.5px">{{ _("Ohne Schlüssel beantwortet Google keine Abfragen. Dann erscheint der Knopf bei jedem Buch mit ISBN, und Googles Viewer zeigt selbst an, wenn es keine Vorschau gibt. Mit Schlüssel prüft der Server vorab (nur die ISBN), und der Knopf erscheint nur bei Büchern, die Google Books kennt – ob es eine Vorschau gibt, zeigt erst der Viewer. Die ISBN-Abfrage über Google Books nutzt den Schlüssel ebenfalls. Kostenlos in der Google Cloud Console: Books API aktivieren, API-Schlüssel anlegen und auf die Books API beschränken. Er wird verschlüsselt gespeichert.") }}</p>
-      {% if google_quota %}<div class="notice warn" style="margin-top: 10px">{{ icon("clock") }}<div>{{ _("Google hat Abfragen wegen des Tageslimits abgelehnt. Prüfen Sie den Schlüssel und sein Kontingent in der Google Cloud Console.") }}</div></div>{% endif %}
+    <section class="card card-pad" id="aufbewahrung">
+      <h2 style="margin-bottom: 6px">{{ icon("clock") }} {{ _("Aufbewahrung") }}</h2>
+      <p class="muted" style="font-size: 13.5px">{{ _("Abgeschlossene Ausleihen und das E-Mail-Protokoll werden nach Ablauf der Frist automatisch gelöscht (DSGVO: nur so lange speichern wie nötig). Pro Buch bleibt nur die Anzahl der Ausleihen erhalten. Laufende und überfällige Ausleihen werden nie gelöscht.") }}</p>
+      <div class="field"><label for="f-retention-months">{{ _("Abgeschlossene Ausleihen löschen nach") }}</label>
+        <select id="f-retention-months" name="retention_months">
+          {% for m, label in [("3", _("3 Monaten")), ("6", _("6 Monaten")), ("12", _("12 Monaten (empfohlen)")), ("24", _("2 Jahren")), ("36", _("3 Jahren")), ("0", _("nie (nicht empfohlen)"))] %}
+          <option value="{{ m }}" {{ 'selected' if s('retention_months') == m }}>{{ label }}</option>{% endfor %}
+        </select>
+        <div class="hint">{{ _("gerechnet ab der Rückgabe · läuft einmal täglich automatisch") }}</div></div>
+      {% if s('retention_last_result') %}<p class="muted" style="font-size: 13px; margin: 0 0 10px">{{ _("Letzter Lauf:") }} {{ retention_result }}</p>{% endif %}
+      <button class="btn sm" type="submit" form="retention-now">{{ icon("check") }} {{ _("Jetzt bereinigen") }}</button>
     </section>
+    {% endif %}
   </div>
   <div class="actions" style="margin-top: 20px; justify-content: flex-end">
     <button class="btn primary lg">{{ icon("check") }} {{ _("Speichern") }}</button>

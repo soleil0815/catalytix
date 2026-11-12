@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.1.8** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.2.0** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -191,7 +191,7 @@ gunicorn -w 2 --threads 4 -b 0.0.0.0:9300 wsgi:app   # Windows: waitress-serve -
 
 ## Reservations
 
-Optional under *Einstellungen → Vormerken* (off by default):
+Optional under *Einstellungen → Ausleihe → Vormerken* (off by default):
 - When all copies of a book are on loan, it can be **reserved** on the book page, which puts you in a queue. *My loans* lists your reservations with your place in the queue; you can delete them there.
 - When a copy becomes free (return, additional copy, reservation deleted or expired), it is **set aside** for the first person: they get an email, the overview says it is ready for them, and the return at the desk says “Please put it aside – reserved for …”. For everyone else the copy counts as not available.
 - If the person does not collect it within the **collection period** (7 days by default), the next person gets it. Lending it to them completes the reservation.
@@ -268,7 +268,7 @@ Local accounts always take precedence, so the local admin account works even whe
 
 ## Self-registration
 
-**Off** by default. Under *Administration → Einstellungen → Selbstregistrierung*:
+**Off** by default. Under *Administration → Einstellungen → Konten → Selbstregistrierung*:
 
 | Setting | Effect |
 |---|---|
@@ -390,7 +390,7 @@ Catalytix is built so that users' browsers **only talk to your own server**:
 - **Cover images** are fetched once by the server from DNB, Open Library or Google Books, stored and served locally. The preview while adding a book also goes through your server. Only public addresses are fetched – internal servers cannot be reached through this feature. The check happens when connecting, for exactly the address that is connected to (protection against DNS rebinding); a download takes at most 10 seconds. If an outgoing proxy is set via `HTTPS_PROXY`/`HTTP_PROXY`, the proxy resolves the names – it should then block internal destinations itself.
 - **Barcode detection** is built in; no library is loaded from the internet.
 - **ISBN lookups** are made by the server and only transmit the ISBN, never personal data.
-- **Reading samples** (optional, off by default – *Settings → Reading samples*) are the only exception: with an own Google
+- **Reading samples** (optional, off by default – *Settings → Catalogue → Reading samples*) are the only exception: with an own Google
   API key (stored encrypted) the server asks beforehand whether Google Books knows the book (only the ISBN; whether there is a preview only Google's viewer shows); without a
   key Google answers no queries, then the button appears for every book with an ISBN and Google's viewer says itself
   when there is none. The browser loads the sample itself only after
@@ -399,11 +399,11 @@ Catalytix is built so that users' browsers **only talk to your own server**:
   switched on, this belongs in your privacy policy.
 - **Cookies:** only strictly necessary ones (sign-in, form protection) – no cookie banner required. No tracking, no ads.
 
-Enter the addresses of your **imprint (Impressum) and privacy policy** under *Administration → Einstellungen → Rechtliches* (Settings → Legal), e.g. pages on the institution's website. The links appear on the login page, in the sidebar and in every e-mail; self-registration requires accepting the privacy policy.
+Enter the addresses of your **imprint (Impressum) and privacy policy** under *Administration → Einstellungen → Datenschutz → Rechtliches* (Settings → Privacy → Legal), e.g. pages on the institution's website. The links appear on the login page, in the sidebar and in every e-mail; self-registration requires accepting the privacy policy.
 
 The privacy policy should list what Catalytix stores: name, username, e-mail address, group memberships, loans with dates, a log of sent e-mails and, with two-factor authentication, the registered keys. With the **AD people cache** (see Active Directory), also name, username, e-mail and groups of all AD people who may use the library – even without a loan; they are deleted at the sync as soon as someone is disabled, deleted or no longer entitled in AD, and immediately when the cache is switched off. If the server is operated by someone other than the institution itself, you need a data processing agreement (Art. 28 GDPR).
 
-**Retention periods** (*Einstellungen → Aufbewahrung*, Settings → Retention, default **12 months**): completed loans are deleted automatically the configured time after their return, and so are e-mail log entries. Only the number of loans per book is kept, so statistics stay correct. Active and overdue loans and their reminder entries are never deleted. The job runs once a day; „Jetzt bereinigen“ (Clean up now) or `flask --app wsgi apply-retention` runs it immediately. When a user is deleted, their loans are removed at once (the per-book count is kept). Unconfirmed self-registrations are deleted after 7 days. State the retention period in your privacy policy as well.
+**Retention periods** (*Einstellungen → Datenschutz → Aufbewahrung*, Settings → Privacy → Retention, default **12 months**): completed loans are deleted automatically the configured time after their return, and so are e-mail log entries. Only the number of loans per book is kept, so statistics stay correct. Active and overdue loans and their reminder entries are never deleted. The job runs once a day; „Jetzt bereinigen“ (Clean up now) or `flask --app wsgi apply-retention` runs it immediately. When a user is deleted, their loans are removed at once (the per-book count is kept). Unconfirmed self-registrations are deleted after 7 days. State the retention period in your privacy policy as well.
 
 ## Security
 
@@ -458,7 +458,7 @@ Privacy: backups contain all data, including data already deleted by the retenti
 | `CATALYTIX_TRUSTED_PROXIES` | Who may send proxy headers: `private` (default), `none` or a list such as `172.18.0.0/16,192.168.0.11` |
 | `CATALYTIX_SECURE_COOKIES` | `auto` (default: over HTTPS), `1` (always), `0` (never) |
 | `CATALYTIX_FORCE_HTTPS` | `auto` (default: switch once HTTPS through the proxy was seen), `1` (always), `0` (never) – redirect HTTP through the reverse proxy to HTTPS and send HSTS |
-| `CATALYTIX_SESSION_HOURS` | Automatic sign-out after this many hours without activity (1–168, default 12) – start value only, afterwards under *Settings → Automatic sign-out* |
+| `CATALYTIX_SESSION_HOURS` | Automatic sign-out after this many hours without activity (1–168, default 12) – start value only, afterwards under *Settings → Security → Automatic sign-out* |
 | `CATALYTIX_LOGLEVEL` | `INFO` (default), `DEBUG` for LDAP troubleshooting |
 | `CATALYTIX_BACKUP_DIR` | Folder for automatic backups (default: `backups` in the data directory). Must be mounted as a volume – otherwise the container warns at start-up |
 | `CATALYTIX_COVER_VIA_PROXY` | `1` = download covers via the proxy set in `HTTPS_PROXY` (default: direct, so the check for internal addresses applies) |

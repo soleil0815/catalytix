@@ -251,7 +251,7 @@ class PageTests(AutoLogoutCase):
     def test_settings_save(self):
         self.login("admin")
         r = self.c.post("/admin/einstellungen", data={
-            "session_hours": "8", "session_admin_minutes": "900", "session_external_minutes": "",
+            "bereich": "sicherheit", "mfa_policy": "optional", "mfa_internal": "same", "session_hours": "8", "session_admin_minutes": "900", "session_external_minutes": "",
             "session_warning": "1"}, follow_redirects=True)
         from catalytix.models import get_setting
         self.assertEqual(get_setting("session_hours"), "8")
@@ -259,13 +259,13 @@ class PageTests(AutoLogoutCase):
         self.assertEqual(get_setting("session_external_minutes"), "")
         self.assertEqual(get_setting("session_browser_close"), "0")
         self.assertIn("Die Frist für Admins ist länger als die für alle", r.get_data(as_text=True))
-        page = self.c.get("/admin/einstellungen").get_data(as_text=True)
+        page = self.c.get("/admin/einstellungen?bereich=sicherheit").get_data(as_text=True)
         self.assertIn('name="session_hours" min="1" max="168" required value="8"', page)
 
     def test_other_settings_forms_leave_it_alone(self):
         self.set(session_hours="6")
         self.login("admin")
-        self.c.post("/admin/einstellungen", data={"library_name": "Bibliothek"})
+        self.c.post("/admin/einstellungen", data={"bereich": "allgemein", "library_name": "Bibliothek"})
         from catalytix.models import get_setting
         self.assertEqual(get_setting("session_hours"), "6")
 

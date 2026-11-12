@@ -34,7 +34,7 @@ class AdminNeedsSecondFactorTests(Base):
         r = self.c.post(f"/admin/benutzer/{admin.id}/2fa-zuruecksetzen", environ_base=LAN)
         self.assertIn("/login/2fa", r.headers["Location"])           # straight to the confirmation
         self.assertTrue(self.user("admin").totp_enabled)          # not reset
-        r = self.c.post("/admin/einstellungen", data={"mfa_internal": "same"}, environ_base=LAN)
+        r = self.c.post("/admin/einstellungen", data={"bereich": "sicherheit", "mfa_internal": "same", "session_hours": "12"}, environ_base=LAN)
         self.assertIn("/login/2fa", r.headers["Location"])
         self.assertEqual(get_setting("mfa_internal"), "skip")
         self.assertEqual(self.c.get("/admin/benutzer", environ_base=LAN).status_code, 200)   # viewing works
@@ -42,10 +42,10 @@ class AdminNeedsSecondFactorTests(Base):
     def test_after_confirming_returns_to_page(self):
         from catalytix import twofa
         secret = self.login_skipped_admin()
-        self.c.post("/admin/einstellungen", data={"mfa_internal": "same"}, environ_base=LAN)
+        self.c.post("/admin/einstellungen", data={"bereich": "sicherheit", "mfa_internal": "same", "session_hours": "12"}, environ_base=LAN)
         r = self.c.post("/login/2fa", data={"code": twofa.totp_now(secret)}, environ_base=LAN)
-        self.assertEqual(r.headers["Location"], "/admin/einstellungen")
-        self.c.post("/admin/einstellungen", data={"mfa_internal": "same"}, environ_base=LAN)
+        self.assertEqual(r.headers["Location"], "/admin/einstellungen?bereich=sicherheit")
+        self.c.post("/admin/einstellungen", data={"bereich": "sicherheit", "mfa_internal": "same", "session_hours": "12"}, environ_base=LAN)
         self.assertEqual(get_setting("mfa_internal"), "same")
 
     def test_branding_and_groups_need_no_confirmation(self):

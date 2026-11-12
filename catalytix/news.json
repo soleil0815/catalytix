@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.2.0",
+  "date": "2026-11-12",
+  "items": [
+   {
+    "kind": "improved",
+    "audience": "admin",
+    "de": {
+     "title": "Einstellungen in Reitern",
+     "text": "Die Einstellungen sind jetzt thematisch auf sechs Reiter verteilt: Allgemein, Ausleihe, Katalog, Konten, Sicherheit und Datenschutz. Jeder Reiter speichert nur seine eigenen Felder."
+    },
+    "en": {
+     "title": "Settings in tabs",
+     "text": "The settings are now grouped into six tabs: General, Lending, Catalogue, Accounts, Security and Privacy. Each tab saves only its own fields."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.1.8",
   "date": "2026-11-09",
   "items": [

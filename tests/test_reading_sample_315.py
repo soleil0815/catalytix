@@ -248,14 +248,14 @@ class PageTests(BaseCase):
 
     def test_admin_setting(self):
         self.login("admin")
-        page = self.c.get("/admin/einstellungen").get_data(as_text=True)
+        page = self.c.get("/admin/einstellungen?bereich=katalog").get_data(as_text=True)
         self.assertIn('name="reading_sample_google"', page)
-        self.c.post("/admin/einstellungen", data={"library_name": "Bibliothek", "isbn_order": "dnb",
+        self.c.post("/admin/einstellungen", data={"bereich": "katalog", "isbn_order": "dnb", "isbn_sources": "dnb",
                                                   "reading_sample_google": "1"})
         self.assertEqual(get_setting("reading_sample_google"), "1")
-        self.c.post("/admin/einstellungen", data={"library_name": "Bibliothek"})     # form of another section
+        self.c.post("/admin/einstellungen", data={"bereich": "allgemein", "library_name": "Bibliothek"})   # other tab
         self.assertEqual(get_setting("reading_sample_google"), "1")
-        self.c.post("/admin/einstellungen", data={"library_name": "Bibliothek", "isbn_order": "dnb"})
+        self.c.post("/admin/einstellungen", data={"bereich": "katalog", "isbn_order": "dnb", "isbn_sources": "dnb"})
         self.assertEqual(get_setting("reading_sample_google"), "0")
 
     def test_without_key_button_for_every_isbn_and_viewer_by_isbn(self):
@@ -269,10 +269,10 @@ class PageTests(BaseCase):
 
     def test_admin_key_saved_kept_cleared_and_never_shown(self):
         self.login("admin")
-        form = {"library_name": "Bibliothek", "isbn_order": "dnb", "reading_sample_google": "1"}
+        form = {"bereich": "katalog", "isbn_order": "dnb", "isbn_sources": "dnb", "reading_sample_google": "1"}
         self.c.post("/admin/einstellungen", data={**form, "google_api_key": " AIzaSyTestKey_0123456789abcdef "})
         self.assertEqual(get_setting("google_api_key"), "AIzaSyTestKey_0123456789abcdef")
-        page = self.c.get("/admin/einstellungen").get_data(as_text=True)
+        page = self.c.get("/admin/einstellungen?bereich=katalog").get_data(as_text=True)
         self.assertNotIn("AIzaSyTestKey", page)                          # never sent back to the browser
         self.assertIn('name="clear_google_api_key"', page)
         self.c.post("/admin/einstellungen", data=form)                    # empty field: keep
@@ -285,9 +285,9 @@ class PageTests(BaseCase):
 
     def test_quota_notice_on_the_settings_page(self):
         self.login("admin")
-        self.assertNotIn("wegen des Tageslimits", self.c.get("/admin/einstellungen").get_data(as_text=True))
+        self.assertNotIn("wegen des Tageslimits", self.c.get("/admin/einstellungen?bereich=katalog").get_data(as_text=True))
         reading_sample._quota_at = __import__("time").time()
-        self.assertIn("wegen des Tageslimits", self.c.get("/admin/einstellungen").get_data(as_text=True))
+        self.assertIn("wegen des Tageslimits", self.c.get("/admin/einstellungen?bereich=katalog").get_data(as_text=True))
         reading_sample.clear_cache()
 
     def test_help_mentions_it_only_when_on(self):

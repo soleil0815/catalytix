@@ -528,8 +528,10 @@ class AdminTests(BaseCase):
         self.assertIsNone(b.group_id)
 
     def test_settings(self):
-        self.c.post("/admin/einstellungen", data={"library_name": "Stadtbücherei", "loan_days": "21",
-                                                  "isbn_sources": ["google", "dnb"], "isbn_order": "dnb,openlibrary,google"})
+        # 3.2.0: one form per tab – each saves only its own fields
+        self.c.post("/admin/einstellungen", data={"bereich": "ausleihe", "loan_days": "21"})
+        self.c.post("/admin/einstellungen", data={"bereich": "katalog", "isbn_sources": ["google", "dnb"],
+                                                  "isbn_order": "dnb,openlibrary,google"})
         from catalytix.models import get_setting
         self.assertEqual(get_setting("loan_days"), "21")
         self.assertEqual(get_setting("isbn_sources"), "dnb,google")

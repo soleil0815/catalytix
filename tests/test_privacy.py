@@ -58,7 +58,8 @@ class NoThirdPartyTests(Base):
         html = self.c.get("/login").get_data(as_text=True)
         self.assertNotIn("googleapis", html)
         self.login("admin")
-        for url in ["/", "/buecher", "/buecher/neu", "/info", "/admin/einstellungen"]:
+        for url in ["/", "/buecher", "/buecher/neu", "/info", "/admin/einstellungen",
+                    "/admin/einstellungen?bereich=katalog", "/admin/einstellungen?bereich=sicherheit"]:
             page = self.c.get(url).get_data(as_text=True)
             pages.append(url)
             # only outgoing links (imprint etc.) are allowed, no embedded resources
@@ -81,9 +82,10 @@ class LegalLinkTests(Base):
 
     def test_shown_on_login_sidebar_and_registration(self):
         self.login("admin")
-        self.c.post("/admin/einstellungen", data={"imprint_url": "https://institut.example/impressum",
-                                                 "privacy_url": "https://institut.example/datenschutz",
-                                                 "registration_mode": "open", "loan_days": "28"})
+        self.c.post("/admin/einstellungen", data={"bereich": "datenschutz",
+                                                 "imprint_url": "https://institut.example/impressum",
+                                                 "privacy_url": "https://institut.example/datenschutz"})
+        self.c.post("/admin/einstellungen", data={"bereich": "konten", "registration_mode": "open"})
         self.assertEqual(get_setting("imprint_url"), "https://institut.example/impressum")
         sidebar = self.c.get("/").get_data(as_text=True)
         self.assertIn("https://institut.example/datenschutz", sidebar)
@@ -96,7 +98,7 @@ class LegalLinkTests(Base):
 
     def test_rejects_javascript_urls(self):
         self.login("admin")
-        self.c.post("/admin/einstellungen", data={"imprint_url": "javascript:alert(1)", "loan_days": "28"})
+        self.c.post("/admin/einstellungen", data={"bereich": "datenschutz", "imprint_url": "javascript:alert(1)"})
         self.assertEqual(get_setting("imprint_url"), "")
 
     def test_old_registration_privacy_setting_is_taken_over(self):

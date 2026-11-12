@@ -128,7 +128,7 @@ class NoProductNameTests(unittest.TestCase):
         self.assertIn("Bibliothek des Ausbildungsinstituts", login)
         self.assertNotIn("catalytix", self.visible_text(login).lower())
         self.c.post("/login", data={"username": "admin", "password": "geheim12345"})
-        for url in ["/", "/buecher", "/buecher/neu", "/profil", "/admin/einstellungen", "/admin/erscheinungsbild",
+        for url in ["/", "/buecher", "/buecher/neu", "/profil", "/admin/einstellungen", *[f"/admin/einstellungen?bereich={t}" for t in ("ausleihe", "katalog", "konten", "sicherheit", "datenschutz")], "/admin/erscheinungsbild",
                     "/admin/verzeichnisdienst", "/admin/email"]:
             with self.subTest(url=url):
                 html = self.c.get(url).get_data(as_text=True)

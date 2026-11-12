@@ -2,6 +2,17 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.2.0 – 2026-11-12
+**Improved**
+- **Settings tidied up:** *Administration → Settings* now has six tabs instead of one long page: **General** (name,
+  language, catalogue visibility), **Lending** (lending rules, reservations), **Catalogue** (ISBN data sources, reading
+  samples), **Accounts** (self-registration), **Security** (two-factor authentication, internal network, automatic
+  sign-out) and **Privacy** (legal notice and privacy policy, retention).
+- Each tab saves only its own fields – saving in one tab never changes anything in another.
+- Old links to sections (e.g. `…/einstellungen#leseproben`) open the matching tab. On phones the tab bar scrolls
+  sideways and the open tab stays in view.
+- Help, manual (with a new screenshot) and README name the new paths, e.g. *Settings → Catalogue → Reading samples*.
+
 ## 3.1.8-s1 – 2026-11-10 (security update)
 Same program as 3.1.8, only updated packages (monthly security update on patch day, built, tested and checked with Trivy automatically):
 - Base image: `python:3.13.18-slim-trixie@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1 → python:3.13.18-slim-trixie@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90`

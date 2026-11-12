@@ -1,4 +1,4 @@
-<p>Under <span class="ui">Settings → Two-factor authentication</span> you decide who needs a second factor – separately for access from outside and from the internal network.</p>
+<p>Under <span class="ui">Settings → Security → Two-factor authentication</span> you decide who needs a second factor – separately for access from outside and from the internal network.</p>
 <ul>
   <li><span class="ui">Mandatory for access from outside (internet)</span>: nobody, administrators, librarians and administrators, or everyone. Currently: <b>{% if f.mfa_policy == "all" %}all users{% elif f.mfa_policy == "librarians" %}librarians and administrators{% elif f.mfa_policy == "admins" %}administrators{% else %}nobody (optional){% endif %}</b>. Those affected are guided through setup after their next sign-in.</li>
   <li><span class="ui">On the internal network</span> – currently <b>{% if f.mfa_internal == "skip" %}no two-factor prompt{% elif f.mfa_internal == "optional" %}not required{% else %}same as outside{% endif %}</b>:

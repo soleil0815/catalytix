@@ -1,4 +1,4 @@
-<p>Unter <span class="ui">Einstellungen → Zwei-Faktor-Anmeldung</span> legen Sie fest, wer einen zweiten Faktor braucht – getrennt nach Zugriff von außen und aus dem internen Netz.</p>
+<p>Unter <span class="ui">Einstellungen → Sicherheit → Zwei-Faktor-Anmeldung</span> legen Sie fest, wer einen zweiten Faktor braucht – getrennt nach Zugriff von außen und aus dem internen Netz.</p>
 <ul>
   <li><span class="ui">Pflicht bei Zugriff von außen</span>: niemand, Administratoren, Verwalter und Administratoren oder alle. Derzeit: <b>{% if f.mfa_policy == "all" %}alle Benutzer{% elif f.mfa_policy == "librarians" %}Verwalter und Administratoren{% elif f.mfa_policy == "admins" %}Administratoren{% else %}niemand (freiwillig){% endif %}</b>. Betroffene werden nach der nächsten Anmeldung zur Einrichtung geführt.</li>
   <li><span class="ui">Im internen Netz</span> – derzeit <b>{% if f.mfa_internal == "skip" %}keine Zwei-Faktor-Abfrage{% elif f.mfa_internal == "optional" %}keine Pflicht{% else %}wie von außen{% endif %}</b>:

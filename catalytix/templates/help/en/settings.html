@@ -1,15 +1,31 @@
-<p><span class="ui">Administration → Settings</span> controls how the library works. Don't forget <span class="ui">Save</span> at the bottom.</p>
+<p><span class="ui">Administration → Settings</span> controls how the library works. The page has six tabs; each has its own <span class="ui">Save</span> button at the bottom and saves only its own fields.</p>
+<h3>General</h3>
 <ul>
-  <li><b>General:</b> <span class="ui">Library name</span> (shown everywhere instead of a product name), <span class="ui">Default language</span> (currently {{ f.languages.get(f.default_language, f.default_language) }}) – used for visitors whose browser prefers neither German nor English, and for emails to users who have not chosen a language.</li>
+  <li><span class="ui">Library name</span> (shown everywhere instead of a product name), <span class="ui">Default language</span> (currently {{ f.languages.get(f.default_language, f.default_language) }}) – used for visitors whose browser prefers neither German nor English, and for emails to users who have not chosen a language.</li>
   <li><span class="ui">Catalogue visibility</span>: {% if f.catalog_all %}currently everyone sees the whole catalogue{% else %}currently readers only see their groups' books and general books{% endif %}. Borrowing is always limited to the reader's own groups.</li>
-  <li><b>Legal:</b> addresses of the <span class="ui">Legal notice</span> and <span class="ui">Privacy policy</span>. The links appear on the sign-in page, in the sidebar and in every email.</li>
-  <li><b>Loans:</b> loan period (currently {{ f.loan_days }} {{ "day" if f.loan_days == 1 else "days" }}), renewal by {{ f.extension_days }} {{ "day" if f.extension_days == 1 else "days" }}, at most {{ f.max_extensions }} {{ "time" if f.max_extensions == 1 else "times" }}, simultaneous loans {% if f.max_loans %}at most {{ f.max_loans }}{% else %}unlimited (0){% endif %}.</li>
+</ul>
+<h3>Lending</h3>
+<ul>
+  <li>Loan period (currently {{ f.loan_days }} {{ "day" if f.loan_days == 1 else "days" }}), renewal by {{ f.extension_days }} {{ "day" if f.extension_days == 1 else "days" }}, at most {{ f.max_extensions }} {{ "time" if f.max_extensions == 1 else "times" }}, simultaneous loans {% if f.max_loans %}at most {{ f.max_loans }}{% else %}unlimited (0){% endif %}.</li>
   <li><b>Self-service:</b> <span class="ui">Self-checkout</span> ({{ "on" if f.self_checkout else "off" }}), <span class="ui">Self-renewal</span> ({{ "on" if f.self_extend else "off" }}), <span class="ui">Self-return</span> ({{ "on" if f.self_return else "off" }}). Whatever is off is done by librarians.</li>
   <li><b>Reserving</b> ({{ "on" if f.reservations else "off" }}): when all copies are on loan, readers can reserve a book. A copy that becomes free is kept for the first person in the queue for {{ f.hold_days }} {{ "day" if f.hold_days == 1 else "days" }} (email, note on the overview), then the next person gets it. <span class="ui">Max. reservations per person</span> limits open reservations (0 = unlimited). Readers cannot extend reserved books themselves. Switching it off deletes all open reservations.</li>
-  <li><span class="ui">Self-registration</span> – see its own topic.</li>
-  <li><span class="ui">Retention</span> – deletion period for completed loans, currently {% if f.retention_months %}{{ f.retention_months }} {{ "month" if f.retention_months == 1 else "months" }}{% else %}<b>never</b>{% endif %}.</li>
-  <li><span class="ui">Two-factor authentication</span> – requirement and internal network, see its own topic.</li>
-  <li><span class="ui">Automatic sign-out</span> – after how many hours without activity everyone is signed out (default 12), an own, shorter limit for admins (default 60 minutes) and optionally for sign-ins from outside. The shortest applicable limit applies. If enabled, “You will be signed out in 2 minutes – keep working?” appears two minutes before. With <span class="ui">Sign out when the browser is closed</span>, every sign-in ends with the browser and “Stay signed in” is no longer offered. Where a shorter limit applies (admins, from outside), “Stay signed in” is not available anyway.</li>
+</ul>
+<h3>Catalogue</h3>
+<ul>
   <li><span class="ui">ISBN data sources</span> – German National Library, Open Library, Google Books: tick or untick. They are queried in this order and missing fields are filled from the next source. The server needs internet access for this; only the ISBN is sent.</li>
   <li><span class="ui">Reading samples</span> – <span class="ui">Allow reading samples from Google Books</span> (off by default): the book page shows <span class="ui">Reading sample</span>. Without an own <span class="ui">Google API key</span> Google answers no queries (daily limit 0) – then the button appears for every book with an ISBN, and Google's viewer says itself when there is no preview. With a key (free in the Google Cloud Console: enable the Books API, create a key and restrict it to the Books API) the server checks beforehand (only the ISBN), and the button appears only for books Google Books knows (whether there is a preview only the viewer shows – Google's own information on that is unreliable); the ISBN lookup via Google Books uses it too. The key is stored encrypted. The browser loads the sample itself from Google only after a click and a notice (two-click solution) – this belongs in your privacy policy. Texts or pages of the sample are not stored; neither copyright nor Google allows that.</li>
+</ul>
+<h3>Accounts</h3>
+<ul>
+  <li><span class="ui">Self-registration</span> – see its own topic.</li>
+</ul>
+<h3>Security</h3>
+<ul>
+  <li><span class="ui">Two-factor authentication</span> – requirement and internal network, see its own topic.</li>
+  <li><span class="ui">Automatic sign-out</span> – after how many hours without activity everyone is signed out (default 12), an own, shorter limit for admins (default 60 minutes) and optionally for sign-ins from outside. The shortest applicable limit applies. If enabled, “You will be signed out in 2 minutes – keep working?” appears two minutes before. With <span class="ui">Sign out when the browser is closed</span>, every sign-in ends with the browser and “Stay signed in” is no longer offered. Where a shorter limit applies (admins, from outside), “Stay signed in” is not available anyway.</li>
+</ul>
+<h3>Privacy</h3>
+<ul>
+  <li><b>Legal notice and privacy policy:</b> addresses of the <span class="ui">Legal notice</span> and <span class="ui">Privacy policy</span>. The links appear on the sign-in page, in the sidebar and in every email.</li>
+  <li><span class="ui">Retention</span> – deletion period for completed loans, currently {% if f.retention_months %}{{ f.retention_months }} {{ "month" if f.retention_months == 1 else "months" }}{% else %}<b>never</b>{% endif %}.</li>
 </ul>

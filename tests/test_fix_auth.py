@@ -273,7 +273,7 @@ class NetzoneDefaultTests(Base):
 
     def test_settings_page_shows_new_default(self):
         self.c.post("/login", data={"username": "admin", "password": PW}, environ_base=LAN)
-        html = self.c.get("/admin/einstellungen", environ_base=LAN).get_data(as_text=True)
+        html = self.c.get("/admin/einstellungen?bereich=sicherheit", environ_base=LAN).get_data(as_text=True)
         self.assertIn("10.0.0.0/8\n192.168.0.0/16", html)
         self.assertNotIn("172.16.0.0/12", html)
 

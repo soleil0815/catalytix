@@ -167,12 +167,12 @@ class OwnConnectionTests(ZoneTests):
         from unittest import mock
         self.configure(policy="optional", internal="same")
         self.login("admin", LAN)
-        base = {"loan_days": "28", "mfa_policy": "all", "mfa_internal": "skip"}
+        base = {"bereich": "sicherheit", "mfa_policy": "all", "mfa_internal": "skip", "session_hours": "12"}
         with mock.patch("socket.getaddrinfo", return_value=self.addrinfo(self.OWN)):
             self.c.post("/admin/einstellungen", data={**base, "own_public_hosts": "Bibliothek.DynDNS.example\n80.151.220.89"},
                         environ_base={"REMOTE_ADDR": LAN})
             self.assertEqual(get_setting("own_public_hosts"), "bibliothek.dyndns.example\n80.151.220.89")
-            html = self.get("/admin/einstellungen", LAN).get_data(as_text=True)
+            html = self.get("/admin/einstellungen?bereich=sicherheit", LAN).get_data(as_text=True)
         self.assertIn("derzeit: <code>80.151.220.89</code>", html)
         self.assertIn("Gäste-WLAN", html)
         r = self.c.post("/admin/einstellungen", data={**base, "own_public_hosts": "http://kaputt/"},
@@ -249,9 +249,9 @@ class SettingsPageTests(Base):
     def test_save_and_validate(self):
         self.configure(policy="optional", internal="same")
         self.login("admin", LAN)
-        html = self.get("/admin/einstellungen", LAN).get_data(as_text=True)
+        html = self.get("/admin/einstellungen?bereich=sicherheit", LAN).get_data(as_text=True)
         self.assertIn("gilt als <b>intern</b>", html)
-        base = {"loan_days": "28", "mfa_policy": "librarians", "mfa_internal": "skip"}
+        base = {"bereich": "sicherheit", "mfa_policy": "librarians", "mfa_internal": "skip", "session_hours": "12"}
         self.c.post("/admin/einstellungen", data={**base, "internal_networks": "192.168.1.0/24\n10.8.0.0/16"},
                     environ_base={"REMOTE_ADDR": LAN})
         self.assertEqual(get_setting("mfa_internal"), "skip")

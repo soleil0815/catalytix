@@ -180,7 +180,7 @@ class LanguageTests(Base):
         self.c.post("/sprache/en", data={"next": "/"})
         pages = ["/", "/buecher", "/buecher/neu", "/buecher/schnellerfassung", "/ausleihen", "/theke", "/standorte",
                  "/profil", "/profil/sicherheit", "/hilfe", "/info", "/admin/benutzer", "/admin/benutzer/neu",
-                 "/admin/gruppen", "/admin/gruppen/neu", "/admin/einstellungen", "/admin/verzeichnisdienst",
+                 "/admin/gruppen", "/admin/gruppen/neu", "/admin/einstellungen", *[f"/admin/einstellungen?bereich={t}" for t in ("ausleihe", "katalog", "konten", "sicherheit", "datenschutz")], "/admin/verzeichnisdienst",
                  "/admin/email", "/admin/erscheinungsbild", "/admin/datensicherung"]
         found = {}
         for url in pages:

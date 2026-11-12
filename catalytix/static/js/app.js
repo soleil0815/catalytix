@@ -807,6 +807,26 @@
       return `<span class="who"><b>${esc(it.title)}</b> <small>${meta}</small><small>${state}</small></span>`;
     },
   }));
+  /* Settings tabs (3.2.0): links to an anchor of the former single page (e.g. #leseproben) open the right tab. */
+  const settingsTabs = $("[data-settings-anchors]");
+  const activeTab = settingsTabs && $("a.on", settingsTabs);
+  if (activeTab) {   // narrow screens: the tab bar scrolls sideways – keep the open tab in view
+    settingsTabs.scrollLeft = Math.max(0, activeTab.offsetLeft - settingsTabs.offsetLeft - 16);
+  }
+  if (settingsTabs && location.hash.length > 1) {
+    const id = decodeURIComponent(location.hash.slice(1));
+    if (!document.getElementById(id)) {
+      let map = {};
+      try { map = JSON.parse(settingsTabs.dataset.settingsAnchors); } catch (e) { /* no mapping */ }
+      const tab = Object.prototype.hasOwnProperty.call(map, id) ? map[id] : null;
+      if (typeof tab === "string" && /^[a-z]+$/.test(tab)) {
+        const url = new URL(location.href);
+        url.searchParams.set("bereich", tab);
+        location.replace(url.pathname + url.search + location.hash);
+      }
+    }
+  }
+
   /* Reading sample (reading_sample.py): the button appears only when Google Books has one – the server asks
      Google (only the ISBN); the browser loads nothing from Google until the reader confirms on the next page. */
   $$("[data-reading-sample]").forEach(async (btn) => {

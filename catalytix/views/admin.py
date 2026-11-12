@@ -43,12 +43,14 @@ def _require_second_factor_for_changes():
             and request.endpoint in _SECURITY_ENDPOINTS and current_user.is_authenticated
             and session.get("mfa_skipped") and current_user.has_2fa and not session.get("mfa_ok")):
         flash(_("Bitte bestätigen Sie zuerst Ihren zweiten Faktor – danach die Änderung noch einmal speichern."), "warning")
-        if request.endpoint in _RETURN_TO_PAGE:
+        if request.endpoint == "admin.settings":
+            back = url_for("admin.settings", bereich=_settings_tab(request.form.get("bereich")))
+        elif request.endpoint in _RETURN_TO_PAGE:
             back = request.path
         elif request.endpoint.startswith("admin.backup"):
             back = url_for("admin.backups")
         elif request.endpoint == "admin.retention_run":
-            back = url_for("admin.settings")
+            back = url_for("admin.settings", bereich="datenschutz")
         elif request.endpoint == "admin.group_delete":
             back = url_for("admin.groups")
         else:
@@ -322,7 +324,7 @@ def retention_run():
     else:
         flash(_("Gelöscht: {loans} alte Ausleihe(n), {mails} Einträge im E-Mail-Protokoll.",
                 loans=res["loans"], mails=res["mails"]), "success")
-    return redirect(url_for("admin.settings") + "#aufbewahrung")
+    return redirect(url_for("admin.settings", bereich="datenschutz"))
 
 
 # ---------------------------------------------------------------- Backup
@@ -498,88 +500,123 @@ def group_delete(group_id):
 
 # ---------------------------------------------------------------- Settings
 
+# Tabs of the settings page: key (in the address, ?bereich=…) → icon; the labels are in the template. Each tab is its
+# own form and saves only its own fields – saving one tab can never change another (a missing checkbox would
+# otherwise read as "off").
+SETTINGS_TABS = {"allgemein": "settings", "ausleihe": "loan", "katalog": "book", "konten": "user",
+                 "sicherheit": "shield", "datenschutz": "lock"}
+# Anchors of the old single page (links in notices, help, bookmarks) → tab
+SETTINGS_ANCHORS = {"aufbewahrung": "datenschutz", "rechtliches": "datenschutz", "abmeldung": "sicherheit",
+                    "zwei-faktor": "sicherheit", "leseproben": "katalog", "isbn": "katalog", "vormerken": "ausleihe",
+                    "registrierung": "konten"}
+
+
+def _settings_tab(value: str | None) -> str:
+    return value if value in SETTINGS_TABS else "allgemein"
+
+
+def _save_general() -> None:
+    set_setting("library_name", form_str("library_name", 120) or "Bibliothek")
+    from ..i18n import normalize
+    set_setting("default_language", normalize(request.form.get("default_language")) or "de")
+    vis = request.form.get("catalog_visibility")
+    set_setting("catalog_visibility", vis if vis in ("groups", "all") else "groups")
+
+
+def _save_lending() -> None:
+    set_setting("loan_days", min(form_int("loan_days", 28, 1), 3650))
+    set_setting("extension_days", min(form_int("extension_days", 14, 1), 3650))
+    set_setting("max_extensions", min(form_int("max_extensions", 2, 0), 100))
+    set_setting("max_loans", min(form_int("max_loans", 0, 0), 1000))
+    for key in ("self_checkout", "self_return", "self_extend"):
+        set_setting(key, form_bool(key))
+    was_on = get_bool("reservations_enabled")
+    set_setting("reservations_enabled", form_bool("reservations_enabled"))
+    set_setting("reservation_hold_days", min(form_int("reservation_hold_days", 7, 1), 60))
+    set_setting("reservation_max", min(form_int("reservation_max", 5, 0), 100))
+    if was_on and not form_bool("reservations_enabled"):
+        from .. import reservations
+        db.session.commit()
+        n = reservations.cancel_all()   # otherwise copies would stay held for reservations
+        if n:
+            flash(_n("{n} offene Vormerkung gelöscht.", "{n} offene Vormerkungen gelöscht.", n), "info")
+
+
+def _save_catalog() -> None:
+    sources = [s for s in request.form.getlist("isbn_sources") if s in SOURCES]
+    order = [s for s in (request.form.get("isbn_order") or "").split(",") if s in sources]
+    set_setting("isbn_sources", ",".join(order + [s for s in sources if s not in order]))
+    set_setting("reading_sample_google", form_bool("reading_sample_google"))
+    _save_google_key()
+
+
+def _save_accounts() -> None:
+    reg = request.form.get("registration_mode")
+    set_setting("registration_mode", reg if reg in ("off", "approval", "open") else "off")
+    set_setting("registration_verify_email", form_bool("registration_verify_email"))
+    set_setting("registration_notify_admins", form_bool("registration_notify_admins"))
+    set_setting("registration_domains", form_str("registration_domains", 500))
+    gid = _id(request.form.get("registration_group_id"))
+    set_setting("registration_group_id", str(gid) if gid is not None and db.session.get(Group, gid) else "")
+
+
+def _save_security() -> None:
+    pol = request.form.get("mfa_policy")
+    set_setting("mfa_policy", pol if pol in ("optional", "admins", "librarians", "all") else "optional")
+    mode = request.form.get("mfa_internal")
+    set_setting("mfa_internal", mode if mode in ("same", "optional", "skip") else "same")
+    from ..netzone import parse, parse_own
+    nets, bad = parse((request.form.get("internal_networks") or "").strip()[:2000])
+    if bad:
+        flash(_("Internes Netz: ungültige Einträge {entries} – Netze nicht geändert.", entries=", ".join(bad[:5])), "error")
+    else:
+        set_setting("internal_networks", "\n".join(str(n) for n in nets))
+    entries, bad = parse_own((request.form.get("own_public_hosts") or "")[:1000])
+    if bad:
+        flash(_("Eigener Anschluss: ungültige Einträge {entries} – nicht geändert.", entries=", ".join(bad[:5])), "error")
+    else:
+        set_setting("own_public_hosts", "\n".join(entries))
+    _save_session_settings()
+
+
+def _save_privacy() -> None:
+    for key in ("imprint_url", "privacy_url"):
+        url = form_str(key, 500)
+        # "//host/…" and "/\host/…" would be protocol-relative links to another server
+        ok = (url.startswith(("https://", "http://", "/")) and not url.startswith(("//", "/\\"))
+              and not re.search(r"[\x00-\x20\x7f]", url))   # browsers drop tabs inside URLs: "/<tab>/host"
+        set_setting(key, url if ok else "")
+    months = request.form.get("retention_months", "12")
+    set_setting("retention_months", months if months in ("0", "3", "6", "12", "24", "36") else "12")
+
+
+_SETTINGS_SAVE = {"allgemein": _save_general, "ausleihe": _save_lending, "katalog": _save_catalog,
+                  "konten": _save_accounts, "sicherheit": _save_security, "datenschutz": _save_privacy}
+
+
 @bp.route("/einstellungen", methods=["GET", "POST"])
 @admin_required
 def settings():
+    tab = _settings_tab(request.values.get("bereich"))
     if request.method == "POST":
-        set_setting("library_name", form_str("library_name", 120) or "Bibliothek")
-        from ..i18n import normalize
-        if "default_language" in request.form:
-            set_setting("default_language", normalize(request.form.get("default_language")) or "de")
-        set_setting("loan_days", min(form_int("loan_days", 28, 1), 3650))
-        set_setting("extension_days", min(form_int("extension_days", 14, 1), 3650))
-        set_setting("max_extensions", min(form_int("max_extensions", 2, 0), 100))
-        set_setting("max_loans", min(form_int("max_loans", 0, 0), 1000))
-        for key in ("self_checkout", "self_return", "self_extend"):
-            set_setting(key, form_bool(key))
-        was_on = get_bool("reservations_enabled")
-        set_setting("reservations_enabled", form_bool("reservations_enabled"))
-        set_setting("reservation_hold_days", min(form_int("reservation_hold_days", 7, 1), 60))
-        set_setting("reservation_max", min(form_int("reservation_max", 5, 0), 100))
-        if was_on and not form_bool("reservations_enabled"):
-            from .. import reservations
-            db.session.commit()
-            n = reservations.cancel_all()   # otherwise copies would stay held for reservations
-            if n:
-                flash(_n("{n} offene Vormerkung gelöscht.", "{n} offene Vormerkungen gelöscht.", n), "info")
-        reg = request.form.get("registration_mode")
-        set_setting("registration_mode", reg if reg in ("off", "approval", "open") else "off")
-        set_setting("registration_verify_email", form_bool("registration_verify_email"))
-        set_setting("registration_notify_admins", form_bool("registration_notify_admins"))
-        set_setting("registration_domains", form_str("registration_domains", 500))
-        gid = _id(request.form.get("registration_group_id"))
-        set_setting("registration_group_id", str(gid) if gid is not None and db.session.get(Group, gid) else "")
-        for key in ("imprint_url", "privacy_url"):
-            url = form_str(key, 500)
-            # "//host/…" and "/\host/…" would be protocol-relative links to another server
-            ok = (url.startswith(("https://", "http://", "/")) and not url.startswith(("//", "/\\"))
-                  and not re.search(r"[\x00-\x20\x7f]", url))   # browsers drop tabs inside URLs: "/<tab>/host"
-            set_setting(key, url if ok else "")
-        months = request.form.get("retention_months", "12")
-        set_setting("retention_months", months if months in ("0", "3", "6", "12", "24", "36") else "12")
-        pol = request.form.get("mfa_policy")
-        set_setting("mfa_policy", pol if pol in ("optional", "admins", "librarians", "all") else "optional")
-        mode = request.form.get("mfa_internal")
-        set_setting("mfa_internal", mode if mode in ("same", "optional", "skip") else "same")
-        if "internal_networks" in request.form:
-            from ..netzone import parse
-            text = (request.form.get("internal_networks") or "").strip()[:2000]
-            nets, bad = parse(text)
-            if bad:
-                flash(_("Internes Netz: ungültige Einträge {entries} – Netze nicht geändert.", entries=", ".join(bad[:5])), "error")
-            else:
-                set_setting("internal_networks", "\n".join(str(n) for n in nets))
-        if "own_public_hosts" in request.form:
-            from ..netzone import parse_own
-            entries, bad = parse_own((request.form.get("own_public_hosts") or "")[:1000])
-            if bad:
-                flash(_("Eigener Anschluss: ungültige Einträge {entries} – nicht geändert.", entries=", ".join(bad[:5])), "error")
-            else:
-                set_setting("own_public_hosts", "\n".join(entries))
-        vis = request.form.get("catalog_visibility")
-        set_setting("catalog_visibility", vis if vis in ("groups", "all") else "groups")
-        if "session_hours" in request.form:
-            _save_session_settings()
-        sources = [s for s in request.form.getlist("isbn_sources") if s in SOURCES]
-        order = [s for s in (request.form.get("isbn_order") or "").split(",") if s in sources]
-        set_setting("isbn_sources", ",".join(order + [s for s in sources if s not in order]))
-        if "isbn_order" in request.form:      # the full settings form (not a form of one section)
-            set_setting("reading_sample_google", form_bool("reading_sample_google"))
-            _save_google_key()
+        if request.form.get("bereich") not in SETTINGS_TABS:
+            abort(400)                       # every form names its tab; nothing is saved by guessing
+        _SETTINGS_SAVE[tab]()
         db.session.commit()
         flash(_("Einstellungen gespeichert."), "success")
-        if get_setting("registration_mode") != "off" and not get_setting("app_base_url"):
+        if tab == "konten" and get_setting("registration_mode") != "off" and not get_setting("app_base_url"):
             flash(_("Für die Selbstregistrierung fehlt die Basis-Adresse für Links in E-Mails (Administration → "
                     "E-Mail). Ohne sie werden keine Bestätigungs-Links verschickt; mit E-Mail-Bestätigung ist die "
                     "Registrierung so lange gesperrt."), "warning")
-        return redirect(url_for("admin.settings"))
+        return redirect(url_for("admin.settings", bereich=tab))
     active_sources = [s for s in get_setting("isbn_sources").split(",") if s]
     all_sources = active_sources + [s for s in SOURCES if s not in active_sources]
     from ..mailer import mail_active
     from .. import netzone
     from .. import autologout
     from ..reading_sample import quota_problem as reading_sample_quota
-    return render_template("admin/settings.html", s=get_setting, sources=SOURCES,
+    return render_template("admin/settings.html", s=get_setting, sources=SOURCES, tab=tab, tabs=SETTINGS_TABS,
+                           anchors=SETTINGS_ANCHORS,
                            session_hours=autologout.general_hours(),
                            retention_result=_stamped(get_setting("retention_last_result"), _retention_message),
                            connection=netzone.describe(), default_networks=netzone.DEFAULT_INTERNAL,

@@ -137,7 +137,7 @@ class FormLabelTests(unittest.TestCase):
         # backups: the settings form only appears where backups are possible (SQLite file database)
         with mock.patch("catalytix.backup.supported", return_value=True), \
                 mock.patch("catalytix.backup.list_backups", return_value=[]):
-            self.check(["/admin/einstellungen", "/admin/verzeichnisdienst", "/admin/email", "/admin/benutzer",
+            self.check(["/admin/einstellungen", *[f"/admin/einstellungen?bereich={t}" for t in ("ausleihe", "katalog", "konten", "sicherheit", "datenschutz")], "/admin/verzeichnisdienst", "/admin/email", "/admin/benutzer",
                         "/admin/benutzer/neu", f"/admin/benutzer/{self.users['leser'].id}", "/admin/gruppen",
                         "/admin/gruppen/neu", f"/admin/gruppen/{self.group.id}", "/admin/erscheinungsbild",
                         "/admin/datensicherung"])

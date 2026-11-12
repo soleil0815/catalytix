@@ -120,9 +120,9 @@ class RetentionTests(unittest.TestCase):
     def test_settings_and_manual_run(self):
         self.loan(self.book, 500, 480)
         self.c.post("/login", data={"username": "admin", "password": "geheim12345"})
-        self.c.post("/admin/einstellungen", data={"retention_months": "24", "loan_days": "28"})
+        self.c.post("/admin/einstellungen", data={"bereich": "datenschutz", "retention_months": "24"})
         self.assertEqual(get_setting("retention_months"), "24")
-        self.c.post("/admin/einstellungen", data={"retention_months": "999", "loan_days": "28"})
+        self.c.post("/admin/einstellungen", data={"bereich": "datenschutz", "retention_months": "999"})
         self.assertEqual(get_setting("retention_months"), "12")
         r = self.c.post("/admin/aufbewahrung/jetzt", follow_redirects=True)
         self.assertIn("1 alte Ausleihe(n)", r.get_data(as_text=True))

@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.1.8** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 3.2.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name Ihrer Bibliothek.
 
@@ -189,7 +189,7 @@ Zum Ausprobieren reicht `python wsgi.py` (nur `127.0.0.1:9300`). Das Image selbs
 
 ## Vormerken (Reservieren)
 
-Optional unter *Einstellungen → Vormerken* (standardmäßig aus):
+Optional unter *Einstellungen → Ausleihe → Vormerken* (standardmäßig aus):
 - Sind alle Exemplare eines Buchs verliehen, kann man es auf der Buchseite **vormerken** und steht in einer Warteschlange. Unter *Meine Ausleihen* sieht man seine Vormerkungen samt Platz und kann sie löschen.
 - Wird ein Exemplar frei (Rückgabe, zusätzliches Exemplar, Vormerkung gelöscht oder abgelaufen), wird es für die erste Person **zurückgelegt**: Diese Person bekommt eine E-Mail, auf der Übersicht steht „liegt für Sie bereit“, an der Theke meldet die Rückgabe „Bitte zurücklegen – vorgemerkt für …“. Für alle anderen gilt das Exemplar als nicht verfügbar.
 - Holt die Person es nicht innerhalb der **Abholfrist** (Standard 7 Tage) ab, ist die nächste dran. Mit der Ausleihe an sie ist die Vormerkung erledigt.
@@ -264,7 +264,7 @@ Lokale Konten haben immer Vorrang. Das lokale Admin-Konto funktioniert daher auc
 
 ## Selbstregistrierung
 
-Standardmäßig **aus**. Unter *Administration → Einstellungen → Selbstregistrierung*:
+Standardmäßig **aus**. Unter *Administration → Einstellungen → Konten → Selbstregistrierung*:
 
 | Einstellung | Wirkung |
 |---|---|
@@ -386,7 +386,7 @@ Catalytix ist darauf ausgelegt, dass die Browser der Nutzer **nur mit Ihrem eige
 - **Coverbilder** lädt der Server einmal von DNB, Open Library oder Google Books, speichert sie und liefert sie selbst aus. Auch die Vorschau beim Erfassen läuft über den eigenen Server. Dabei werden nur öffentliche Adressen abgerufen – interne Server sind über diese Funktion nicht erreichbar. Die Prüfung erfolgt beim Verbindungsaufbau für genau die Adresse, zu der verbunden wird (Schutz vor DNS-Rebinding); ein Abruf dauert höchstens 10 Sekunden. Ist ein ausgehender Proxy über `HTTPS_PROXY`/`HTTP_PROXY` gesetzt, löst der Proxy die Namen auf – dann sollte er selbst keine internen Ziele zulassen.
 - **Barcode-Erkennung** ist eingebaut, es wird keine Bibliothek aus dem Internet nachgeladen.
 - **ISBN-Abfragen** stellt der Server; übertragen wird nur die ISBN, nie Daten über Personen.
-- **Leseproben** (optional, standardmäßig aus – *Einstellungen → Leseproben*) sind die einzige Ausnahme: Mit eigenem
+- **Leseproben** (optional, standardmäßig aus – *Einstellungen → Katalog → Leseproben*) sind die einzige Ausnahme: Mit eigenem
   Google-API-Schlüssel (verschlüsselt gespeichert) fragt der Server vorab, ob Google Books das Buch kennt (nur die ISBN; ob es eine Vorschau gibt, zeigt erst Googles Viewer);
   ohne Schlüssel beantwortet Google keine Abfragen, dann erscheint der Knopf bei jedem Buch mit ISBN und Googles Viewer
   meldet selbst, wenn es keine gibt. Die Leseprobe selbst lädt der Browser erst, wenn
@@ -395,11 +395,11 @@ Catalytix ist darauf ausgelegt, dass die Browser der Nutzer **nur mit Ihrem eige
   Server beschränkt. Eingeschaltet gehört das in die Datenschutzerklärung.
 - **Cookies:** nur technisch notwendige (Anmeldung, Formularschutz) – kein Cookie-Banner nötig. Kein Tracking, keine Werbung.
 
-**Impressum und Datenschutzerklärung** tragen Sie unter *Administration → Einstellungen → Rechtliches* ein (Adressen der Seiten, z. B. auf der Website des Instituts). Die Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in jeder E-Mail; bei der Selbstregistrierung muss die Datenschutzerklärung bestätigt werden.
+**Impressum und Datenschutzerklärung** tragen Sie unter *Administration → Einstellungen → Datenschutz → Rechtliches* ein (Adressen der Seiten, z. B. auf der Website des Instituts). Die Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in jeder E-Mail; bei der Selbstregistrierung muss die Datenschutzerklärung bestätigt werden.
 
 In die Datenschutzerklärung gehört, was Catalytix speichert: Name, Benutzername, E-Mail-Adresse, Gruppenzugehörigkeit, Ausleihen mit Datum, Protokoll der versendeten E-Mails, bei Zwei-Faktor-Anmeldung die registrierten Schlüssel. Mit dem **AD-Personen-Cache** (siehe Active Directory) zusätzlich Name, Benutzername, E-Mail und Gruppen aller AD-Personen, die die Bibliothek nutzen dürfen – auch ohne Ausleihe; sie werden beim Abgleich gelöscht, sobald jemand im AD deaktiviert, gelöscht oder nicht mehr berechtigt ist, und sofort beim Abschalten. Wird der Server von jemand anderem als der Einrichtung selbst betrieben, brauchen Sie einen Vertrag zur Auftragsverarbeitung (Art. 28 DSGVO).
 
-**Aufbewahrungsfristen** (*Einstellungen → Aufbewahrung*, Standard **12 Monate**): Abgeschlossene Ausleihen werden die eingestellte Zeit nach der Rückgabe automatisch gelöscht, ebenso Einträge im E-Mail-Protokoll. Pro Buch bleibt nur die Anzahl der Ausleihen erhalten, damit die Statistik stimmt. Laufende und überfällige Ausleihen sowie die Mahn-Einträge dazu werden nie gelöscht. Der Lauf erfolgt einmal täglich automatisch; „Jetzt bereinigen“ oder `flask --app wsgi apply-retention` startet ihn sofort. Wird ein Benutzer gelöscht, verschwinden seine Ausleihen sofort (die Anzahl pro Buch bleibt). Nicht bestätigte Selbstregistrierungen werden nach 7 Tagen gelöscht. Die Frist gehört ebenfalls in die Datenschutzerklärung.
+**Aufbewahrungsfristen** (*Einstellungen → Datenschutz → Aufbewahrung*, Standard **12 Monate**): Abgeschlossene Ausleihen werden die eingestellte Zeit nach der Rückgabe automatisch gelöscht, ebenso Einträge im E-Mail-Protokoll. Pro Buch bleibt nur die Anzahl der Ausleihen erhalten, damit die Statistik stimmt. Laufende und überfällige Ausleihen sowie die Mahn-Einträge dazu werden nie gelöscht. Der Lauf erfolgt einmal täglich automatisch; „Jetzt bereinigen“ oder `flask --app wsgi apply-retention` startet ihn sofort. Wird ein Benutzer gelöscht, verschwinden seine Ausleihen sofort (die Anzahl pro Buch bleibt). Nicht bestätigte Selbstregistrierungen werden nach 7 Tagen gelöscht. Die Frist gehört ebenfalls in die Datenschutzerklärung.
 
 ## Sicherheit
 
@@ -454,7 +454,7 @@ Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewa
 | `CATALYTIX_TRUSTED_PROXIES` | Von wem Proxy-Header akzeptiert werden: `private` (Standard), `none` oder Liste wie `172.18.0.0/16,192.168.0.11` |
 | `CATALYTIX_SECURE_COOKIES` | `auto` (Standard: bei HTTPS), `1` (immer), `0` (nie) |
 | `CATALYTIX_FORCE_HTTPS` | `auto` (Standard: umschalten, sobald HTTPS über den Proxy gesehen wurde), `1` (immer), `0` (nie) – HTTP über den Reverse-Proxy auf HTTPS umleiten und HSTS senden |
-| `CATALYTIX_SESSION_HOURS` | Automatische Abmeldung nach so vielen Stunden ohne Aktivität (1–168, Standard 12) – nur Startwert, danach unter *Einstellungen → Automatische Abmeldung* |
+| `CATALYTIX_SESSION_HOURS` | Automatische Abmeldung nach so vielen Stunden ohne Aktivität (1–168, Standard 12) – nur Startwert, danach unter *Einstellungen → Sicherheit → Automatische Abmeldung* |
 | `CATALYTIX_LOGLEVEL` | `INFO` (Standard), `DEBUG` für LDAP-Fehlersuche |
 | `CATALYTIX_BACKUP_DIR` | Ordner für die automatischen Sicherungen (Standard: `backups` im Datenverzeichnis). Muss als Volume eingebunden sein – sonst warnt der Container beim Start |
 | `CATALYTIX_COVER_VIA_PROXY` | `1` = Coverbilder über den in `HTTPS_PROXY` gesetzten Proxy laden (Standard: direkt, damit die Prüfung auf interne Adressen greift) |

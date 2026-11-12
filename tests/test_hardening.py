@@ -118,7 +118,7 @@ class RedirectTests(Base):
 class InputBoundsTests(Base):
     def test_setting_bounds(self):
         self.login("admin")
-        self.c.post("/admin/einstellungen", data={"loan_days": "999999", "extension_days": "-5",
+        self.c.post("/admin/einstellungen", data={"bereich": "ausleihe", "loan_days": "999999", "extension_days": "-5",
                                                    "max_extensions": "100000", "max_loans": "5000000"})
         self.assertEqual(get_setting("loan_days"), "3650")
         self.assertEqual(int(get_setting("extension_days")), 1)

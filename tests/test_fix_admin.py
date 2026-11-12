@@ -129,7 +129,7 @@ class DigitTests(Base):
         for url, data in ((f"/admin/benutzer/{self.leser.id}", {"username": "leser", "role": "reader",
                                                                 "active": "1", "groups": "²"}),
                           ("/admin/gruppen/neu", {"name": "g", "members": ["²", "9" * 40]}),
-                          ("/admin/einstellungen", {"registration_group_id": "²"}),
+                          ("/admin/einstellungen", {"bereich": "konten", "registration_group_id": "²"}),
                           ("/admin/email", {"action": "save", "smtp_port": "²", "mail_hour": "³"})):
             r = self.c.post(url, data=data)
             self.assertEqual(r.status_code, 302, url)

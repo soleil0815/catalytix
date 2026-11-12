@@ -1,15 +1,31 @@
-<p>Unter <span class="ui">Administration → Einstellungen</span> legen Sie fest, wie die Bibliothek arbeitet. Unten <span class="ui">Speichern</span> nicht vergessen.</p>
+<p>Unter <span class="ui">Administration → Einstellungen</span> legen Sie fest, wie die Bibliothek arbeitet. Die Seite hat sechs Reiter; jeder hat unten seinen eigenen Knopf <span class="ui">Speichern</span> und speichert nur seine eigenen Felder.</p>
+<h3>Allgemein</h3>
 <ul>
-  <li><b>Allgemein:</b> <span class="ui">Name der Bibliothek</span> (erscheint überall statt eines Programmnamens), <span class="ui">Standardsprache</span> (derzeit {{ f.languages.get(f.default_language, f.default_language) }}) – gilt für Besucher, deren Browser weder Deutsch noch Englisch bevorzugt, und für E-Mails an Benutzer ohne eigene Wahl.</li>
+  <li><span class="ui">Name der Bibliothek</span> (erscheint überall statt eines Programmnamens), <span class="ui">Standardsprache</span> (derzeit {{ f.languages.get(f.default_language, f.default_language) }}) – gilt für Besucher, deren Browser weder Deutsch noch Englisch bevorzugt, und für E-Mails an Benutzer ohne eigene Wahl.</li>
   <li><span class="ui">Katalog-Sichtbarkeit</span>: {% if f.catalog_all %}derzeit sehen alle den gesamten Katalog{% else %}derzeit sehen Leser nur Bücher ihrer Gruppen und allgemeine Bücher{% endif %}. Ausleihen bleibt in jedem Fall auf die eigenen Gruppen beschränkt.</li>
-  <li><b>Rechtliches:</b> Adressen von <span class="ui">Impressum</span> und <span class="ui">Datenschutzerklärung</span>. Die Links stehen auf der Anmeldeseite, in der Seitenleiste und in allen E-Mails.</li>
-  <li><b>Ausleihe:</b> Leihfrist (derzeit {{ f.loan_days }} {{ "Tag" if f.loan_days == 1 else "Tage" }}), Verlängerung um {{ f.extension_days }} {{ "Tag" if f.extension_days == 1 else "Tage" }}, höchstens {{ f.max_extensions }}-mal, gleichzeitige Ausleihen {% if f.max_loans %}höchstens {{ f.max_loans }}{% else %}unbegrenzt (0){% endif %}.</li>
+</ul>
+<h3>Ausleihe</h3>
+<ul>
+  <li>Leihfrist (derzeit {{ f.loan_days }} {{ "Tag" if f.loan_days == 1 else "Tage" }}), Verlängerung um {{ f.extension_days }} {{ "Tag" if f.extension_days == 1 else "Tage" }}, höchstens {{ f.max_extensions }}-mal, gleichzeitige Ausleihen {% if f.max_loans %}höchstens {{ f.max_loans }}{% else %}unbegrenzt (0){% endif %}.</li>
   <li><b>Selbstbedienung:</b> <span class="ui">Selbstausleihe</span> ({{ "an" if f.self_checkout else "aus" }}), <span class="ui">Selbst verlängern</span> ({{ "an" if f.self_extend else "aus" }}), <span class="ui">Selbst zurückgeben</span> ({{ "an" if f.self_return else "aus" }}). Ist etwas aus, erledigen das Verwalter.</li>
   <li><b>Vormerken</b> ({{ "an" if f.reservations else "aus" }}): Sind alle Exemplare verliehen, können Leser ein Buch vormerken. Ein frei gewordenes Exemplar liegt {{ f.hold_days }} {{ "Tag" if f.hold_days == 1 else "Tage" }} für die erste Person der Warteschlange bereit (E-Mail, Hinweis auf der Übersicht), danach ist die nächste dran. <span class="ui">Max. Vormerkungen je Person</span> begrenzt die offenen Vormerkungen (0 = unbegrenzt). Vorgemerkte Bücher können Leser nicht selbst verlängern. Ausschalten löscht alle offenen Vormerkungen.</li>
-  <li><span class="ui">Selbstregistrierung</span> – siehe eigenes Thema.</li>
-  <li><span class="ui">Aufbewahrung</span> – Löschfrist für abgeschlossene Ausleihen, derzeit {% if f.retention_months %}{{ f.retention_months }} {{ "Monat" if f.retention_months == 1 else "Monate" }}{% else %}<b>nie</b>{% endif %}.</li>
-  <li><span class="ui">Zwei-Faktor-Anmeldung</span> – Pflicht und internes Netz, siehe eigenes Thema.</li>
-  <li><span class="ui">Automatische Abmeldung</span> – nach wie vielen Stunden ohne Aktivität alle abgemeldet werden (Standard 12), eine eigene, kürzere Frist für Admins (Standard 60 Minuten) und optional für Anmeldungen von außen. Es gilt die kürzeste passende Frist. Auf Wunsch erscheint zwei Minuten vorher „Sie werden in 2 Minuten abgemeldet – weiterarbeiten?“. Mit <span class="ui">Beim Schließen des Browsers abmelden</span> endet jede Anmeldung mit dem Browser; „Angemeldet bleiben“ wird dann nicht mehr angeboten. Wo eine kürzere Frist gilt (Admins, von außen), gibt es „Angemeldet bleiben“ ohnehin nicht.</li>
+</ul>
+<h3>Katalog</h3>
+<ul>
   <li><span class="ui">ISBN-Datenquellen</span> – Deutsche Nationalbibliothek, Open Library, Google Books: an- oder abwählen. Abgefragt wird in dieser Reihenfolge, fehlende Felder ergänzt die nächste Quelle. Der Server braucht dafür Internetzugang; übertragen wird nur die ISBN.</li>
   <li><span class="ui">Leseproben</span> – <span class="ui">Leseproben von Google Books erlauben</span> (standardmäßig aus): Auf der Buchseite erscheint <span class="ui">Leseprobe</span>. Ohne eigenen <span class="ui">Google-API-Schlüssel</span> beantwortet Google keine Abfragen (Tageslimit 0) – dann erscheint der Knopf bei jedem Buch mit ISBN, und Googles Viewer zeigt selbst an, wenn es keine Vorschau gibt. Mit Schlüssel (kostenlos in der Google Cloud Console: Books API aktivieren, Schlüssel anlegen und auf die Books API beschränken) prüft der Server vorab (nur die ISBN), und der Knopf erscheint nur bei Büchern, die Google Books kennt (ob es eine Vorschau gibt, zeigt erst der Viewer – Googles eigene Angabe dazu ist unzuverlässig); auch die ISBN-Abfrage über Google Books nutzt ihn. Der Schlüssel wird verschlüsselt gespeichert. Die Leseprobe selbst lädt der Browser erst nach einem Klick und einem Hinweis von Google (Zwei-Klick-Lösung) – das gehört in die Datenschutzerklärung. Texte oder Seiten der Leseprobe werden nicht gespeichert; das erlauben weder Urheberrecht noch Google.</li>
+</ul>
+<h3>Konten</h3>
+<ul>
+  <li><span class="ui">Selbstregistrierung</span> – siehe eigenes Thema.</li>
+</ul>
+<h3>Sicherheit</h3>
+<ul>
+  <li><span class="ui">Zwei-Faktor-Anmeldung</span> – Pflicht und internes Netz, siehe eigenes Thema.</li>
+  <li><span class="ui">Automatische Abmeldung</span> – nach wie vielen Stunden ohne Aktivität alle abgemeldet werden (Standard 12), eine eigene, kürzere Frist für Admins (Standard 60 Minuten) und optional für Anmeldungen von außen. Es gilt die kürzeste passende Frist. Auf Wunsch erscheint zwei Minuten vorher „Sie werden in 2 Minuten abgemeldet – weiterarbeiten?“. Mit <span class="ui">Beim Schließen des Browsers abmelden</span> endet jede Anmeldung mit dem Browser; „Angemeldet bleiben“ wird dann nicht mehr angeboten. Wo eine kürzere Frist gilt (Admins, von außen), gibt es „Angemeldet bleiben“ ohnehin nicht.</li>
+</ul>
+<h3>Datenschutz</h3>
+<ul>
+  <li><b>Impressum und Datenschutzerklärung:</b> Adressen von <span class="ui">Impressum</span> und <span class="ui">Datenschutzerklärung</span>. Die Links stehen auf der Anmeldeseite, in der Seitenleiste und in allen E-Mails.</li>
+  <li><span class="ui">Aufbewahrung</span> – Löschfrist für abgeschlossene Ausleihen, derzeit {% if f.retention_months %}{{ f.retention_months }} {{ "Monat" if f.retention_months == 1 else "Monate" }}{% else %}<b>nie</b>{% endif %}.</li>
 </ul>

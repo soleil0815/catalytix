@@ -3,6 +3,18 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.2.0 – 12.11.2026
+**Verbessert**
+- **Einstellungen aufgeräumt:** *Administration → Einstellungen* hat jetzt sechs Reiter statt einer langen Seite:
+  **Allgemein** (Name, Sprache, Katalog-Sichtbarkeit), **Ausleihe** (Ausleihregeln, Vormerken), **Katalog**
+  (ISBN-Datenquellen, Leseproben), **Konten** (Selbstregistrierung), **Sicherheit** (Zwei-Faktor-Anmeldung, internes
+  Netz, automatische Abmeldung) und **Datenschutz** (Impressum und Datenschutzerklärung, Aufbewahrung).
+- Jeder Reiter speichert nur seine eigenen Felder – Speichern in einem Reiter verändert nie etwas in einem anderen.
+- Alte Links auf Abschnitte (z. B. `…/einstellungen#leseproben`) öffnen den passenden Reiter. Auf dem Handy lässt
+  sich die Reiterleiste seitlich schieben, der offene Reiter bleibt sichtbar.
+- Hilfe, Handbuch (mit neuem Bildschirmfoto) und README nennen die neuen Wege, z. B. *Einstellungen → Katalog →
+  Leseproben*.
+
 ## 3.1.8-s1 – 10.11.2026 (Sicherheitsupdate)
 Gleiches Programm wie 3.1.8, nur aktualisierte Pakete (monatliches Sicherheitsupdate am Patchday, automatisch gebaut, getestet und mit Trivy geprüft):
 - Basis-Image: `python:3.13.18-slim-trixie@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1 → python:3.13.18-slim-trixie@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90`

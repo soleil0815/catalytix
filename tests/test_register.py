@@ -227,8 +227,9 @@ class RegisterTests(unittest.TestCase):
 
     def test_settings_saved(self):
         self.c.post("/login", data={"username": "admin", "password": "geheim123"})
-        self.c.post("/admin/einstellungen", data={"registration_mode": "approval", "registration_domains": "schule.de",
-                                                  "privacy_url": "javascript:alert(1)"})
+        self.c.post("/admin/einstellungen", data={"bereich": "konten", "registration_mode": "approval",
+                                                  "registration_domains": "schule.de"})
+        self.c.post("/admin/einstellungen", data={"bereich": "datenschutz", "privacy_url": "javascript:alert(1)"})
         from catalytix.models import get_setting
         self.assertEqual(get_setting("registration_mode"), "approval")
         self.assertEqual(get_setting("privacy_url"), "")

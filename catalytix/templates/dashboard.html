@@ -117,4 +117,10 @@
   </div>
   {% endif %}
 </div>
+{% if current_user.is_admin %}{# admins only: support the developer (external site, opens in a new tab) #}
+<section class="coffee-card" aria-label="{{ _('Weiterentwicklung unterstützen') }}">
+  <p>{{ _("Gefällt Ihnen dieses Programm? Über einen Kaffee freue ich mich.") }}</p>
+  <a class="coffee-btn" href="{{ support_url }}" target="_blank" rel="noopener noreferrer">{{ icon("coffee") }} {{ _("Einen Kaffee spendieren") }}</a>
+</section>
+{% endif %}
 {% endblock %}

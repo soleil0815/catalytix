@@ -2,6 +2,12 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.2.1 – 2026-11-13
+**Improved**
+- The note on supporting further development is now a calm card at the bottom of the overview ("Enjoying this
+  program? I'd be glad about a coffee." with the button "Buy me a coffee") instead of a yellow pill in the sidebar –
+  still visible to admins only, in German and English.
+
 ## 3.2.0 – 2026-11-12
 **Improved**
 - **Settings tidied up:** *Administration → Settings* now has six tabs instead of one long page: **General** (name,

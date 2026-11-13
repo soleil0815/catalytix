@@ -126,13 +126,6 @@ code, .mono { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-si
 .side-legal a { color: var(--side-muted); }
 .side-legal a:hover { color: var(--side-ink, #fff); }
 .side-legal + .side-version { margin-top: 0; }
-/* "Buy me a coffee" (admins only): the service's yellow pill, same in light and dark mode */
-.coffee-btn { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px 12px 12px;
-  padding: 7px 14px; border-radius: 999px; background: #ffdd00; color: #0d0c22; border: 2px solid #0d0c22;
-  box-shadow: 0 0 0 2px rgba(255,255,255,.55); font-size: 13px; font-weight: 600; text-decoration: none; }
-.coffee-btn:hover { background: #ffe74d; text-decoration: none; }
-.coffee-btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
-.coffee-btn .i { width: 16px; height: 16px; stroke: currentColor; }
 .side-foot { padding: 14px 10px 0; border-top: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 10px; }
 .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--brass-soft); color: var(--brass-text); display: grid; place-items: center; font-weight: 700; font-size: 13px; flex: none; }
 .sidebar .avatar { background: var(--side-2); color: var(--brass); }
@@ -534,3 +527,13 @@ h1, h2, h3, .who b, .list-row, .kv dd, .notice, .card-head h2 { overflow-wrap: a
 td { overflow-wrap: break-word; }
 .content pre, .content code { white-space: pre-wrap; overflow-wrap: anywhere; }
 .content input, .content select, .content textarea { max-width: 100%; min-width: 0; }
+
+/* Support the developer (admins only, bottom of the overview): calm card, the service's yellow button */
+.coffee-card { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px; margin-top: 28px;
+  padding: 18px 24px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+.coffee-card p { margin: 0; color: var(--ink); }
+.coffee-btn { display: inline-flex; align-items: center; gap: 10px; padding: 10px 20px; border-radius: 9px;
+  background: #ffdd00; color: #0d0c22; border: 1px solid #e3c400; font-weight: 700; text-decoration: none; }
+.coffee-btn:hover { background: #ffe74d; color: #0d0c22; text-decoration: none; }
+.coffee-btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+.coffee-btn .i { width: 18px; height: 18px; stroke: currentColor; }

@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.2.1",
+  "date": "2026-11-13",
+  "items": [
+   {
+    "kind": "improved",
+    "audience": "admin",
+    "de": {
+     "title": "Kaffee-Knopf auf der Übersicht",
+     "text": "Der Knopf zum Unterstützen der Weiterentwicklung steht jetzt unten auf der Übersicht statt in der Seitenleiste – sichtbar nur für Admins."
+    },
+    "en": {
+     "title": "Coffee button on the overview",
+     "text": "The button for supporting further development is now at the bottom of the overview instead of in the sidebar – visible to admins only."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.2.0",
   "date": "2026-11-12",
   "items": [

@@ -3,6 +3,12 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.2.1 – 13.11.2026
+**Verbessert**
+- Der Hinweis zum Unterstützen der Weiterentwicklung steht jetzt als ruhiger Kasten unten auf der Übersicht
+  („Gefällt Ihnen dieses Programm? Über einen Kaffee freue ich mich.“ mit dem Knopf „Einen Kaffee spendieren“) statt
+  als gelbe Pille in der Seitenleiste – weiterhin nur für Admins sichtbar, auf Deutsch und Englisch.
+
 ## 3.2.0 – 12.11.2026
 **Verbessert**
 - **Einstellungen aufgeräumt:** *Administration → Einstellungen* hat jetzt sechs Reiter statt einer langen Seite:

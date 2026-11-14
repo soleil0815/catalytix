@@ -125,6 +125,7 @@ def facts() -> dict:
         "overdue_on": get_bool("mail_overdue"),
         "mfa_internal": twofa.internal_mode(),   # same | optional | skip
         "ldap_on": get_bool("ldap_enabled"),
+        "passkey_login": twofa.passkey_enabled(),
         "loan_mail": get_bool("mail_on_loan"),
         "https": request.is_secure,   # camera and security keys require HTTPS
         "registration_mode": get_setting("registration_mode"),

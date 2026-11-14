@@ -3,6 +3,21 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.3.0 – 14.11.2026
+**Neu**
+- **Anmeldung mit Passkey:** ohne Benutzername und Passwort, nur mit Fingerabdruck, Gesicht oder PIN (Windows Hello,
+  Face ID/Touch ID, Android, Passwortmanager oder Sicherheitsschlüssel mit PIN). Einschalten unter *Einstellungen →
+  Sicherheit → Passkeys* (Standard aus); dann richtet jeder seinen Passkey unter *Profil → Sicherheit* ein und meldet
+  sich auf der Anmeldeseite mit „Mit Passkey anmelden“ an – der Browser schlägt den Passkey auch direkt im Feld
+  Benutzername vor.
+- Ein Passkey zählt als zwei Faktoren (Gerät plus Fingerabdruck, Gesicht oder PIN), danach folgt keine weitere
+  Zwei-Faktor-Abfrage. Er kann auch als zweiter Faktor nach dem Passwort dienen.
+- **AD-Konten** werden bei jeder Passkey-Anmeldung über das Dienstkonto im AD geprüft: deaktiviert, abgelaufen, nach
+  zu vielen Fehlversuchen gesperrt oder nicht mehr in einer berechtigten Gruppe – keine Anmeldung. Ohne Dienstkonto
+  oder wenn das AD nicht erreichbar ist, geht für AD-Konten nur das Passwort. Ein abgelaufenes AD-Passwort hindert
+  die Passkey-Anmeldung nicht.
+- Fehlgeschlagene Passkey-Anmeldungen zählen wie falsche Passwörter für die Sperre nach Fehlversuchen.
+
 ## 3.2.1 – 13.11.2026
 **Verbessert**
 - Der Hinweis zum Unterstützen der Weiterentwicklung steht jetzt als ruhiger Kasten unten auf der Übersicht

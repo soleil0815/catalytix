@@ -229,24 +229,39 @@ def _cred_data(cred: WebAuthnCredential):
     return AttestedCredentialData(base64.b64decode(cred.credential_data))
 
 
-def webauthn_register_begin(user: User, rp_id: str):
+def user_handle(user: User) -> bytes:
+    """WebAuthn user.id of an account: identifies the account of a passkey at sign-in (no name or e-mail)."""
+    return f"user-{user.id}".encode()
+
+
+def passkey_enabled() -> bool:
+    return get_setting("passkey_login") in ("1", "true", "on", "yes")
+
+
+def webauthn_register_begin(user: User, rp_id: str, passkey: bool = False):
+    """passkey=True: stored on the device (discoverable) and only usable with fingerprint/face/PIN (user
+    verification) – such a key signs in on its own, without a password. Otherwise a second factor."""
     from fido2.webauthn import PublicKeyCredentialUserEntity
     existing = [_cred_data(c) for c in user.webauthn_credentials if c.rp_id == rp_id]
+    mode = "required" if passkey else "discouraged"
     options, state = _server(rp_id).register_begin(
-        PublicKeyCredentialUserEntity(id=f"user-{user.id}".encode(), name=user.username,
-                                      display_name=user.name),
-        existing, user_verification="discouraged", resident_key_requirement="discouraged")
+        PublicKeyCredentialUserEntity(id=user_handle(user), name=user.username, display_name=user.name),
+        existing, user_verification=mode, resident_key_requirement=mode)
     return dict(options), state
 
 
-def webauthn_register_complete(user: User, rp_id: str, state, response: dict, name: str) -> WebAuthnCredential:
+def webauthn_register_complete(user: User, rp_id: str, state, response: dict, name: str,
+                               passkey: bool = False) -> WebAuthnCredential:
     from fido2.utils import websafe_encode
-    auth_data = _server(rp_id).register_complete(state, response)
+    auth_data = _server(rp_id).register_complete(state, response)   # with UV "required" in the state: checked
+    if passkey and not auth_data.is_user_verified():
+        raise ValueError("passkey without user verification")
     cd = auth_data.credential_data
-    cred = WebAuthnCredential(user_id=user.id, rp_id=rp_id, name=(name or "Sicherheitsschlüssel")[:100],
+    default = "Passkey" if passkey else "Sicherheitsschlüssel"
+    cred = WebAuthnCredential(user_id=user.id, rp_id=rp_id, name=(name or default)[:100],
                               credential_id=websafe_encode(cd.credential_id),
                               credential_data=base64.b64encode(bytes(cd)).decode(),
-                              sign_count=auth_data.counter)
+                              sign_count=auth_data.counter, passkey=bool(passkey))
     db.session.add(cred)
     db.session.commit()
     return cred
@@ -281,3 +296,41 @@ def webauthn_auth_complete(user: User, rp_id: str, state, response: dict) -> boo
     used.last_used_at = datetime.now()
     db.session.commit()
     return True
+
+
+# ---------------------------------------------------------------- Passkey sign-in (without a password)
+
+def passkey_auth_begin(rp_id: str):
+    """Options for "sign in with a passkey": no account named – the browser offers the passkeys it has for this
+    address; fingerprint/face/PIN required."""
+    options, state = _server(rp_id).authenticate_begin(None, user_verification="required")
+    return dict(options), state
+
+
+def passkey_auth_complete(rp_id: str, state, response: dict) -> User | None:
+    """The account of a valid passkey sign-in, or None. Checks: a key registered as passkey for this address, the
+    account it belongs to (user handle), signature and user verification (fido2, from the state) and the
+    counter (clone detection)."""
+    from datetime import datetime
+
+    from fido2.utils import websafe_encode
+    from fido2.webauthn import AuthenticationResponse
+
+    parsed = AuthenticationResponse.from_dict(response)
+    cred_id = websafe_encode(parsed.raw_id)
+    stored = WebAuthnCredential.query.filter_by(credential_id=cred_id, rp_id=rp_id, passkey=True).first()
+    if stored is None:
+        return None
+    handle = parsed.response.user_handle
+    if handle is not None and handle != user_handle(stored.user):
+        return None
+    _server(rp_id).authenticate_complete(state, [_cred_data(stored)], response)   # raises if invalid
+    if not parsed.response.authenticator_data.is_user_verified():
+        return None
+    counter = parsed.response.authenticator_data.counter
+    if counter and stored.sign_count and counter <= stored.sign_count:
+        return None
+    stored.sign_count = counter
+    stored.last_used_at = datetime.now()
+    db.session.commit()
+    return stored.user

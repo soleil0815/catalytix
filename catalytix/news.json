@@ -1,5 +1,35 @@
 [
  {
+  "version": "3.3.0",
+  "date": "2026-11-14",
+  "items": [
+   {
+    "kind": "new",
+    "audience": "admin",
+    "de": {
+     "title": "Anmeldung mit Passkey",
+     "text": "Unter Einstellungen → Sicherheit → Passkeys lässt sich die Anmeldung ohne Passwort einschalten – mit Fingerabdruck, Gesicht oder PIN. AD-Konten werden dabei jedes Mal über das Dienstkonto im AD geprüft."
+    },
+    "en": {
+     "title": "Sign-in with a passkey",
+     "text": "Under Settings → Security → Passkeys you can switch on signing in without a password – with fingerprint, face or PIN. AD accounts are checked in AD through the service account every time."
+    }
+   },
+   {
+    "kind": "new",
+    "audience": "all",
+    "de": {
+     "title": "Ohne Passwort anmelden",
+     "text": "Wenn die Bibliothek es freigeschaltet hat: unter Sicherheit einen Passkey einrichten und danach mit „Mit Passkey anmelden“ ohne Benutzername und Passwort hinein."
+    },
+    "en": {
+     "title": "Sign in without a password",
+     "text": "If the library has switched it on: set up a passkey under Security, then use “Sign in with a passkey” – no username, no password."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.2.1",
   "date": "2026-11-13",
   "items": [

@@ -27,7 +27,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "3.2.1"
+__version__ = "3.3.0"
 APP_NAME = "Catalytix"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Where the source code can be found (AGPL § 13). Anyone running a modified Catalytix enters the
@@ -520,6 +520,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             "ldap_on": get_bool("ldap_enabled"),
             "brand": brand_context(),
             "registration_open": get_setting("registration_mode") in ("approval", "open"),
+            "passkey_login": get_setting("passkey_login") == "1",
             "pending_registrations": 0,
             "overdue_count": 0,
             "news_unseen": False,

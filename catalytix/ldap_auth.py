@@ -530,6 +530,52 @@ class Directory:
             except Exception:  # noqa: BLE001
                 pass
 
+    def check_for_passkey(self, username: str) -> "LDAPUser | None":
+        """Sign-in with a passkey (no password reaches the AD): is the account still allowed in right now?
+
+        Like check_account – missing, disabled, expired or no longer entitled → None – and additionally locked out
+        in AD after too many wrong passwords (msDS-User-Account-Control-Computed, bit UF_LOCKOUT; computed by
+        the domain controller with the lockout duration). An expired password does NOT stop it: the passkey
+        replaces the password (as with Windows Hello). Connection problems raise LDAPError – then the sign-in is
+        refused (unlike for a running session, nobody is let in on an unchecked account)."""
+        if not self.bind_dn:
+            raise LDAPError(_("Ohne Dienstkonto kann eine Passkey-Anmeldung nicht geprüft werden."))
+        svc = self.service_connection()
+        try:
+            try:
+                entry = self.find_user(svc, username)
+            except LDAPUserNotFound:
+                return None
+            info = self._user_from_entry(svc, entry, username)
+            if info is None or info.role is None:
+                return info
+            if self.user_attr.lower() == "samaccountname" and self._locked_out(svc, entry.get("dn") or ""):
+                log.info("Passkey sign-in %s refused: account locked out in AD", username)
+                return None
+            return info
+        finally:
+            try:
+                svc.unbind()
+            except Exception:  # noqa: BLE001
+                pass
+
+    @staticmethod
+    def _locked_out(conn, dn: str) -> bool:
+        """Locked out in AD? Constructed attribute – read with a base search on the account itself."""
+        from ldap3 import BASE
+        if not dn:
+            return False
+        if not conn.search(dn, "(objectClass=*)", BASE, attributes=["msDS-User-Account-Control-Computed"]):
+            raise LDAPError(_("Sperrstatus im AD nicht lesbar."))
+        entries = [e for e in conn.response if e.get("type") == "searchResEntry"]
+        if not entries:
+            raise LDAPError(_("Sperrstatus im AD nicht lesbar."))
+        raw = _first((entries[0].get("attributes") or {}).get("msDS-User-Account-Control-Computed"))
+        try:
+            return bool(int(raw or 0) & 0x10)       # UF_LOCKOUT
+        except ValueError:
+            return False
+
     def search_users(self, query: str, limit: int = 10) -> list["LDAPUser"]:
         """Search for people in the directory (name, username, email) – only with a service account.
 

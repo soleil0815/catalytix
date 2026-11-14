@@ -13,5 +13,6 @@
   <li>Write down or print the <b>10 recovery codes</b> – they are shown only now, and each works once.</li>
 </ol>
 <p><b>Security key</b> (YubiKey, passkey): enter a name, click <span class="ui">Add</span> and touch the key. This only works over HTTPS and only at the address where the key was registered. Registering a spare key straight away is a good idea.{% if not f.https %} <i>You are not connected over HTTPS right now – only the app works here.</i>{% endif %}</p>
-<p>Running out of codes? <span class="ui">Generate new codes</span> creates fresh ones – the old ones stop working.</p>
+{% if f.passkey_login %}<p><b>Passkey for signing in without a password:</b> enter a name (e.g. “Laptop”), click <span class="ui">Add passkey</span> and confirm with your fingerprint, face or PIN. It is stored in Windows Hello, on your phone, in a password manager or on a security key with a PIN. After that, <span class="ui">Sign in with a passkey</span> on the sign-in page is all it takes. A passkey also counts as a second factor. Like security keys, it only works over HTTPS and at the address where it was set up.</p>
+{% endif %}<p>Running out of codes? <span class="ui">Generate new codes</span> creates fresh ones – the old ones stop working.</p>
 <p><b>Lost your phone?</b> Under <span class="ui">Signed-in devices</span>, <span class="ui">Sign out on all other devices</span> signs you out everywhere else, including “Stay signed in”. You can then sign in with a recovery code – or ask an administrator to reset your two-factor authentication.</p>

@@ -508,7 +508,7 @@ SETTINGS_TABS = {"allgemein": "settings", "ausleihe": "loan", "katalog": "book",
 # Anchors of the old single page (links in notices, help, bookmarks) → tab
 SETTINGS_ANCHORS = {"aufbewahrung": "datenschutz", "rechtliches": "datenschutz", "abmeldung": "sicherheit",
                     "zwei-faktor": "sicherheit", "leseproben": "katalog", "isbn": "katalog", "vormerken": "ausleihe",
-                    "registrierung": "konten"}
+                    "registrierung": "konten", "passkeys": "sicherheit"}
 
 
 def _settings_tab(value: str | None) -> str:
@@ -577,6 +577,7 @@ def _save_security() -> None:
     else:
         set_setting("own_public_hosts", "\n".join(entries))
     _save_session_settings()
+    set_setting("passkey_login", form_bool("passkey_login"))
 
 
 def _save_privacy() -> None:

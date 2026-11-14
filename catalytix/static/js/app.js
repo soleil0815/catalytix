@@ -356,10 +356,40 @@
     }
   }
 
+  /* Overview: suggest a passkey (3.3.1) – only shown when this device can hold one itself (Face ID, Touch ID,
+     Windows Hello, Android) and not put off with "Später" in the last 30 days on this device */
+  const passkeyHint = $("[data-passkey-hint]");
+  if (passkeyHint) {
+    const LATER = "catalytix.passkeyHintLater";
+    let later = 0;
+    try { later = Number(localStorage.getItem(LATER) || 0); } catch (e) { /* storage blocked */ }
+    const PKC = window.PublicKeyCredential;
+    if (webauthnOk() && Date.now() - later > 30 * 24 * 3600 * 1000 && PKC && PKC.isUserVerifyingPlatformAuthenticatorAvailable) {
+      PKC.isUserVerifyingPlatformAuthenticatorAvailable().then((ok) => { if (ok) passkeyHint.hidden = false; }).catch(() => {});
+    }
+    const laterBtn = $("[data-passkey-hint-later]", passkeyHint);
+    if (laterBtn) laterBtn.addEventListener("click", () => {
+      try { localStorage.setItem(LATER, String(Date.now())); } catch (e) { /* storage blocked */ }
+      passkeyHint.hidden = true;
+    });
+  }
+
+  /* A name for a new passkey when none is typed: the kind of device ("iPhone", "Mac", "Windows" …) */
+  const deviceName = () => {
+    const ua = navigator.userAgent || "";
+    if (/iPhone/.test(ua)) return "iPhone";
+    if (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "iPad";
+    if (/Android/.test(ua)) return "Android";
+    if (/Macintosh|Mac OS X/.test(ua)) return "Mac";
+    if (/Windows/.test(ua)) return "Windows";
+    return "";
+  };
+
   /* Profile → security: add a passkey (same flow as a security key, registered as discoverable with UV) */
   $$("[data-passkey-register]").forEach((btn) => {
     const box = btn.closest("[data-passkey-register-box]");
     const status = $("[data-passkey-reg-status]", box);
+    const nameInput = $("[data-passkey-name]", box);
     if (!webauthnOk()) {
       btn.disabled = true;
       status.textContent = T("Passkeys gehen nur über HTTPS.");
@@ -373,7 +403,7 @@
         if (!begin.ok) throw new Error(begin.error);
         const cred = await navigator.credentials.create(creationOptions(begin.options));
         const done = await api("/profil/sicherheit/schluessel/speichern", { method: "POST",
-          body: JSON.stringify({ credential: credentialJSON(cred), name: $("[data-passkey-name]", box).value }) });
+          body: JSON.stringify({ credential: credentialJSON(cred), name: (nameInput && nameInput.value.trim()) || deviceName() }) });
         if (!done.ok) throw new Error(done.error);
         window.location.href = done.redirect;
       } catch (err) {

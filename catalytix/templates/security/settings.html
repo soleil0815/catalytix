@@ -124,7 +124,7 @@
     </div>
 
     {% if passkeys_on %}
-    <div data-passkey-register-box style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line)">
+    <div id="passkey" data-passkey-register-box style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line)">
       <h3 style="margin-bottom: 4px">{{ icon("key") }} {{ _("Passkey für die Anmeldung ohne Passwort") }}</h3>
       <p class="muted" style="font-size: 13.5px">{{ _("Mit einem Passkey melden Sie sich mit Fingerabdruck, Gesicht oder PIN an – ohne Benutzername und Passwort, und ohne weitere Zwei-Faktor-Abfrage. Gespeichert wird er in Windows Hello, auf dem Handy, im Passwortmanager oder auf einem Sicherheitsschlüssel mit PIN.") }}</p>
       <label for="f-passkey-name">{{ _("Name des Passkeys") }}</label>

@@ -2,6 +2,16 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.3.1 – 2026-11-14
+**Improved**
+- **Passkey suggestion:** anyone without a passkey sees "Sign in faster – without a password" at the top of the
+  overview – but only if their device can hold passkeys itself (iPhone/iPad with Face ID, Mac with Touch ID, Windows
+  Hello, Android) and passkey sign-in is allowed. **Set up a passkey** does it there in one step (the device name is
+  suggested), **Later** hides the suggestion on this device for 30 days, **Don't show again** for the account for
+  good. AD accounts only see it if a service account is set.
+- The **Passkeys** setting is now at the top right of the *Security* tab (next to two-factor authentication) instead
+  of at the very bottom, where it was easy to miss.
+
 ## 3.3.0 – 2026-11-14
 **New**
 - **Sign-in with a passkey:** no username, no password, just your fingerprint, face or PIN (Windows Hello, Face

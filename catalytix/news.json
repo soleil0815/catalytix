@@ -1,5 +1,35 @@
 [
  {
+  "version": "3.3.1",
+  "date": "2026-11-14",
+  "items": [
+   {
+    "kind": "improved",
+    "audience": "all",
+    "de": {
+     "title": "Passkey mit einem Klick",
+     "text": "Kann Ihr Gerät Passkeys (Face ID, Touch ID, Windows Hello, Android), schlägt die Übersicht das Einrichten vor – ein Klick, dann melden Sie sich ohne Passwort an."
+    },
+    "en": {
+     "title": "Passkey in one click",
+     "text": "If your device can hold passkeys (Face ID, Touch ID, Windows Hello, Android), the overview suggests setting one up – one click, then you sign in without a password."
+    }
+   },
+   {
+    "kind": "improved",
+    "audience": "admin",
+    "de": {
+     "title": "Passkey-Einstellung weiter oben",
+     "text": "Die Einstellung „Passkeys“ steht jetzt oben rechts im Reiter Sicherheit."
+    },
+    "en": {
+     "title": "Passkey setting moved up",
+     "text": "The “Passkeys” setting is now at the top right of the Security tab."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.3.0",
   "date": "2026-11-14",
   "items": [

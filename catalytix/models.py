@@ -121,6 +121,8 @@ class User(UserMixin, Model):
     # removed in AD) doesn't turn a group librarian into a librarian of the entire collection. Only an admin can do
     # that explicitly, by saving the account without a group.
     group_bound = db.Column(db.Boolean, default=False, nullable=False)
+    # 3.3.1: "Don't show again" on the overview's passkey suggestion
+    passkey_hint_off = db.Column(db.Boolean, default=False, nullable=False)
 
     groups: Mapped[list[Group]] = relationship("Group", secondary=user_groups, back_populates="users")
     loans: Mapped[list[Loan]] = relationship("Loan", back_populates="user", foreign_keys="Loan.user_id")

@@ -27,6 +27,29 @@
   </form>
 </div>
 {% endif %}
+{% if passkey_hint %}
+{# hidden until the browser says this device can hold a passkey (Face ID, Touch ID, Windows Hello, Android) #}
+<section class="passkey-hint" data-passkey-hint {% if passkey_inline %}data-passkey-register-box{% endif %} hidden>
+  <div class="passkey-hint-icon">{{ icon("key") }}</div>
+  <div class="passkey-hint-text">
+    <b>{{ _("Schneller anmelden – ohne Passwort") }}</b>
+    <p>{{ _("Mit einem Passkey melden Sie sich auf diesem Gerät mit Face ID, Fingerabdruck oder PIN an – ohne Benutzername und Passwort.") }}</p>
+    <small class="muted" data-passkey-reg-status></small>
+  </div>
+  <div class="passkey-hint-actions">
+    {% if passkey_inline %}
+    <button type="button" class="btn primary" data-passkey-register>{{ icon("key") }} {{ _("Passkey einrichten") }}</button>
+    {% else %}
+    <a class="btn primary" href="{{ url_for('security.settings') }}#passkey">{{ icon("key") }} {{ _("Passkey einrichten") }}</a>
+    {% endif %}
+    <button type="button" class="btn ghost" data-passkey-hint-later>{{ _("Später") }}</button>
+    <form method="post" action="{{ url_for('main.passkey_hint_off') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn ghost">{{ _("Nicht mehr anzeigen") }}</button>
+    </form>
+  </div>
+</section>
+{% endif %}
 {% for r in ready %}
 <a class="notice ok" href="{{ url_for('books.detail', book_id=r.book.id) }}" style="margin-bottom: 12px; color: inherit; text-decoration: none">
   {{ icon("check") }}<div>{{ _("<b>{title}</b> liegt für Sie bereit – bitte bis {date} abholen.", title=r.book.title, date=r.hold_until|de_day) }}</div></a>

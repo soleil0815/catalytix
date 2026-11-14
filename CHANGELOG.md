@@ -3,6 +3,16 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.3.1 – 14.11.2026
+**Verbessert**
+- **Hinweis auf Passkeys:** Wer noch keinen Passkey hat, sieht oben auf der Übersicht „Schneller anmelden – ohne
+  Passwort“ – aber nur, wenn sein Gerät Passkeys selbst kann (iPhone/iPad mit Face ID, Mac mit Touch ID, Windows
+  Hello, Android) und die Anmeldung mit Passkey erlaubt ist. **Passkey einrichten** erledigt es dort in einem Schritt
+  (Name des Geräts wird vorgeschlagen), **Später** blendet den Hinweis auf diesem Gerät für 30 Tage aus, **Nicht mehr
+  anzeigen** dauerhaft für das Konto. AD-Konten sehen ihn nur, wenn ein Dienstkonto eingetragen ist.
+- Die Einstellung **Passkeys** steht jetzt oben rechts im Reiter *Sicherheit* (neben der Zwei-Faktor-Anmeldung) statt
+  ganz unten, wo sie leicht zu übersehen war.
+
 ## 3.3.0 – 14.11.2026
 **Neu**
 - **Anmeldung mit Passkey:** ohne Benutzername und Passwort, nur mit Fingerabdruck, Gesicht oder PIN (Windows Hello,

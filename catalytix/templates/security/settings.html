@@ -40,6 +40,45 @@
 </section>
 {% endif %}
 
+{% set passkeys = keys|selectattr("passkey")|list %}
+{% set plain_keys = keys|rejectattr("passkey")|list %}
+{% if passkeys_offered or passkeys %}
+<section class="card card-pad" id="passkey" style="margin-bottom: 18px" data-passkey-register-box>
+  <div class="actions" style="justify-content: space-between; margin-bottom: 8px">
+    <h2>{{ icon("key") }} {{ _("Passkey – Anmeldung ohne Passwort") }}</h2>
+    {% if passkeys %}<span class="badge ok">{{ _("{n} registriert", n=passkeys|length) }}</span>{% endif %}
+  </div>
+  <p class="muted" style="font-size: 13.5px">{{ _("Melden Sie sich auf diesem Handy oder Rechner mit Face ID, Fingerabdruck oder Geräte-PIN an – ohne Benutzername, ohne Passwort, ohne zusätzlichen Code. Der Passkey bleibt auf dem Gerät (beim iPhone im iCloud-Schlüsselbund, damit auch auf Ihren anderen Apple-Geräten).") }}
+    {{ _("Funktioniert nur über HTTPS und ist an die Adresse <code>{rp_id}</code> gebunden.", rp_id=rp_id) }}</p>
+  {% if current_user.auth_source == "ldap" %}<p class="muted" style="font-size: 13px">{{ _("Bei jeder Anmeldung mit dem Passkey wird im Active Directory geprüft, ob Ihr Konto noch aktiv und berechtigt ist.") }}</p>{% endif %}
+  {% if not passkeys_on %}<div class="notice warn" style="margin-top: 10px">{{ _("Die Anmeldung mit Passkey ist von der Administration derzeit ausgeschaltet.") }}</div>{% endif %}
+
+  {% for k in passkeys %}
+  {% set key_name = k.name if k.name and k.name != "Passkey" else _("Passkey") %}
+  <div class="list-row" style="padding: 10px 0">
+    <span class="badge {{ 'accent' if k.rp_id == rp_id else '' }}">{{ icon("key") }}</span>
+    <div class="grow"><b>{{ key_name }}</b>
+      <small>{{ k.rp_id }} · {{ _("hinzugefügt {date}", date=k.created_at|de_day) }}{% if k.last_used_at %} · {{ _("zuletzt {date}", date=k.last_used_at|de_date) }}{% endif %}</small></div>
+    <form method="post" action="{{ url_for('security.key_delete', cred_id=k.id) }}" data-confirm="{{ _('„{name}“ entfernen?', name=key_name) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn sm danger" title="{{ _('Entfernen') }}">{{ icon("trash") }}</button>
+    </form>
+  </div>
+  {% endfor %}
+
+  {% if passkeys_offered %}
+  <div style="margin-top: 14px">
+    <label for="f-passkey-name">{{ _("Gerätename") }}</label>
+    <div class="input-group">
+      <input id="f-passkey-name" type="text" maxlength="100" data-passkey-name placeholder="{{ _('z. B. iPhone') }}">
+      <button type="button" class="btn primary" data-passkey-register>{{ icon("plus") }} {{ _("Passkey anlegen") }}</button>
+    </div>
+    <p class="muted" style="font-size: 13px; margin-top: 8px" data-passkey-reg-status>{{ _("Am besten auf dem Gerät anlegen, mit dem Sie sich anmelden möchten – es fragt dann nach Face ID, Fingerabdruck oder Geräte-PIN.") }}</p>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
 <div class="grid grid-2">
   <section class="card card-pad">
     <div class="actions" style="justify-content: space-between; margin-bottom: 8px">
@@ -96,16 +135,16 @@
   <section class="card card-pad">
     <div class="actions" style="justify-content: space-between; margin-bottom: 8px">
       <h2>{{ icon("shield") }} {{ _("Sicherheitsschlüssel") }}</h2>
-      {% if keys %}<span class="badge ok">{{ _("{n} registriert", n=keys|length) }}</span>{% endif %}
+      {% if plain_keys %}<span class="badge ok">{{ _("{n} registriert", n=plain_keys|length) }}</span>{% endif %}
     </div>
-    <p class="muted" style="font-size: 13.5px">{{ _("YubiKey oder anderer FIDO2-Schlüssel – auch Fingerabdruck/Face-ID des Geräts (Passkey).") }}
+    <p class="muted" style="font-size: 13.5px">{{ _("YubiKey oder ein anderer FIDO2-Schlüssel als zweiter Faktor nach dem Passwort.") }}
       {{ _("Funktioniert nur über HTTPS und ist an die Adresse <code>{rp_id}</code> gebunden.", rp_id=rp_id) }}</p>
 
-    {% for k in keys %}
-    {% set key_name = (_("Passkey") if k.passkey else _("Sicherheitsschlüssel")) if not k.name or k.name in ("Sicherheitsschlüssel", "Passkey") else k.name %}
+    {% for k in plain_keys %}
+    {% set key_name = _("Sicherheitsschlüssel") if not k.name or k.name == "Sicherheitsschlüssel" else k.name %}
     <div class="list-row" style="padding: 10px 0">
-      <span class="badge {{ 'accent' if k.rp_id == rp_id else '' }}">{{ icon("key" if k.passkey else "shield") }}</span>
-      <div class="grow"><b>{{ key_name }}</b>{% if k.passkey %} <span class="badge ok">{{ _("Passkey") }}</span>{% endif %}
+      <span class="badge {{ 'accent' if k.rp_id == rp_id else '' }}">{{ icon("shield") }}</span>
+      <div class="grow"><b>{{ key_name }}</b>
         <small>{{ k.rp_id }} · {{ _("hinzugefügt {date}", date=k.created_at|de_day) }}{% if k.last_used_at %} · {{ _("zuletzt {date}", date=k.last_used_at|de_date) }}{% endif %}</small></div>
       <form method="post" action="{{ url_for('security.key_delete', cred_id=k.id) }}" data-confirm="{{ _('„{name}“ entfernen?', name=key_name) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -117,24 +156,12 @@
     <div data-webauthn-register-box style="margin-top: 14px">
       <label for="f-key-name">{{ _("Name des Schlüssels") }}</label>
       <div class="input-group">
-        <input id="f-key-name" type="text" maxlength="100" data-webauthn-name placeholder="{{ _('z. B. YubiKey blau') }}" value="{{ 'YubiKey' if not keys else '' }}">
+        <input id="f-key-name" type="text" maxlength="100" data-webauthn-name placeholder="{{ _('z. B. YubiKey blau') }}" value="{{ 'YubiKey' if not plain_keys else '' }}">
         <button type="button" class="btn primary" data-webauthn-register>{{ icon("plus") }} {{ _("Hinzufügen") }}</button>
       </div>
       <p class="muted" style="font-size: 13px; margin-top: 8px" data-webauthn-status>{{ _("Nach dem Klick den Schlüssel einstecken und berühren.") }}</p>
     </div>
 
-    {% if passkeys_on %}
-    <div id="passkey" data-passkey-register-box style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line)">
-      <h3 style="margin-bottom: 4px">{{ icon("key") }} {{ _("Passkey für die Anmeldung ohne Passwort") }}</h3>
-      <p class="muted" style="font-size: 13.5px">{{ _("Mit einem Passkey melden Sie sich mit Fingerabdruck, Gesicht oder PIN an – ohne Benutzername und Passwort, und ohne weitere Zwei-Faktor-Abfrage. Gespeichert wird er in Windows Hello, auf dem Handy, im Passwortmanager oder auf einem Sicherheitsschlüssel mit PIN.") }}</p>
-      <label for="f-passkey-name">{{ _("Name des Passkeys") }}</label>
-      <div class="input-group">
-        <input id="f-passkey-name" type="text" maxlength="100" data-passkey-name placeholder="{{ _('z. B. Laptop, Handy') }}">
-        <button type="button" class="btn primary" data-passkey-register>{{ icon("plus") }} {{ _("Passkey hinzufügen") }}</button>
-      </div>
-      <p class="muted" style="font-size: 13px; margin-top: 8px" data-passkey-reg-status></p>
-    </div>
-    {% endif %}
   </section>
 </div>
 

@@ -3,6 +3,16 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.3.2 – 14.11.2026
+**Verbessert**
+- **Passkeys sind jetzt standardmäßig an** – wie in Asset-Lotse. Bisher waren sie aus, und dann war nirgends etwas zu
+  sehen: kein Passkey-Bereich im Profil, kein Hinweis auf der Übersicht, kein Knopf auf der Anmeldeseite. Beim
+  Update wird die Anmeldung mit Passkey einmalig eingeschaltet; abschalten lässt sie sich weiterhin unter
+  *Einstellungen → Sicherheit → Passkeys*.
+- **Profil → Sicherheit:** eigener Kasten „Passkey – Anmeldung ohne Passwort“ ganz oben, mit Gerätename, „Passkey
+  anlegen“ und der Liste der eigenen Passkeys. Der Kasten „Sicherheitsschlüssel“ zeigt nur noch YubiKey & Co. als
+  zweiten Faktor.
+
 ## 3.3.1 – 14.11.2026
 **Verbessert**
 - **Hinweis auf Passkeys:** Wer noch keinen Passkey hat, sieht oben auf der Übersicht „Schneller anmelden – ohne

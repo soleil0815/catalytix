@@ -2,6 +2,15 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.3.2 – 2026-11-14
+**Improved**
+- **Passkeys are now on by default** – like in AssetLotse. Until now they were off, and then nothing showed
+  anywhere: no passkey section in the profile, no suggestion on the overview, no button on the sign-in page. The
+  update switches passkey sign-in on once; it can still be switched off under *Settings → Security → Passkeys*.
+- **Profile → Security:** its own box "Passkey – sign in without a password" at the very top, with device name,
+  "Create passkey" and the list of your passkeys. The "Security keys" box now only shows YubiKey & co. as a second
+  factor.
+
 ## 3.3.1 – 2026-11-14
 **Improved**
 - **Passkey suggestion:** anyone without a passkey sees "Sign in faster – without a password" at the top of the

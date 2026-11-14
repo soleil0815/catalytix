@@ -33,6 +33,7 @@ class PasskeyHintTests(BaseCase):
         db.session.commit()
 
     def test_only_when_passkeys_allowed(self):
+        self.enable(False)
         self.assertNotIn("data-passkey-hint", self.overview())
         self.enable()
         page = self.overview()

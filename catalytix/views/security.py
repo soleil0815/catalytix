@@ -290,6 +290,7 @@ def _render_settings(**extra):
     rp = twofa.rp_id_for(request.host)
     return render_template("security/settings.html", rp_id=rp, required=twofa.required_for(current_user),
                            passkeys_on=twofa.passkey_enabled(),
+                           passkeys_offered=twofa.passkey_possible(current_user),
                            totp_broken=twofa.totp_unreadable(current_user),
                            codes_left=twofa.recovery_codes_left(current_user),
                            keys=sorted(current_user.webauthn_credentials, key=lambda c: c.created_at or 0),

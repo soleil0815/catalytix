@@ -336,9 +336,15 @@ def dashboard():
     ready = reservations.ready_for(current_user) if reservations.enabled() else []
     from .. import composefile
     compose_old = composefile.outdated() if current_user.is_admin else None
+    from .. import twofa
+    passkey_hint = twofa.passkey_hint(current_user)
+    # adding a factor needs a confirmed second factor in this session (see security._may_manage) – otherwise the
+    # suggestion leads to the security page, which asks for it
+    passkey_inline = passkey_hint and (bool(session.get("mfa_ok")) or not current_user.has_2fa)
     return render_template("dashboard.html", my_loans=my_loans, newest=newest, stats=stats,
                            overdue=overdue, recent_loans=recent_loans, news_hint=news_hint, ready=ready,
-                           compose_old=compose_old, compose_min=composefile.COMPOSE_MIN)
+                           compose_old=compose_old, compose_min=composefile.COMPOSE_MIN,
+                           passkey_hint=passkey_hint, passkey_inline=passkey_inline)
 
 
 @bp.route("/profil", methods=["GET", "POST"])
@@ -533,6 +539,15 @@ def whats_new():
 def news_dismiss():
     if news.mark_seen(current_user):
         db.session.commit()
+    return redirect(url_for("main.dashboard"))
+
+
+@bp.route("/passkey-hinweis/aus", methods=["POST"])
+@login_required
+def passkey_hint_off():
+    """ "Don't show again" on the overview's passkey suggestion (for this account, on every device)."""
+    current_user.passkey_hint_off = True
+    db.session.commit()
     return redirect(url_for("main.dashboard"))
 
 

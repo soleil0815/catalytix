@@ -238,6 +238,25 @@ def passkey_enabled() -> bool:
     return get_setting("passkey_login") in ("1", "true", "on", "yes")
 
 
+def has_passkey(user: User) -> bool:
+    return any(c.passkey for c in user.webauthn_credentials)
+
+
+def passkey_possible(user: User) -> bool:
+    """Could this account sign in with a passkey? Passkeys allowed, and for AD accounts a service account to check
+    them in AD on every passkey sign-in (without one they are refused)."""
+    if not passkey_enabled():
+        return False
+    if user.auth_source == "ldap":
+        return get_setting("ldap_enabled") in ("1", "true", "on", "yes") and bool(get_setting("ldap_bind_dn"))
+    return True
+
+
+def passkey_hint(user: User) -> bool:
+    """Suggest a passkey on the overview? (Whether the device can do it is decided by the browser.)"""
+    return passkey_possible(user) and not user.passkey_hint_off and not has_passkey(user)
+
+
 def webauthn_register_begin(user: User, rp_id: str, passkey: bool = False):
     """passkey=True: stored on the device (discoverable) and only usable with fingerprint/face/PIN (user
     verification) – such a key signs in on its own, without a password. Otherwise a second factor."""

@@ -159,6 +159,7 @@ code, .mono { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-si
 .card-body { padding: 18px 22px; }
 .grid { display: grid; gap: 18px; }
 .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.settings-col { display: grid; gap: 18px; align-content: start; min-width: 0; }   /* cards stacked in one column */
 .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .split { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 .stack > * + * { margin-top: 18px; }
@@ -537,6 +538,22 @@ td { overflow-wrap: break-word; }
 .coffee-btn:hover { background: #ffe74d; color: #0d0c22; text-decoration: none; }
 .coffee-btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
 .coffee-btn .i { width: 18px; height: 18px; stroke: currentColor; }
+
+/* Overview: suggestion to add a passkey (3.3.1) */
+.passkey-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin-bottom: 18px;
+  padding: 16px 18px; background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: inset 3px 0 0 var(--accent); }
+.passkey-hint[hidden] { display: none; }
+.passkey-hint-icon { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px;
+  background: var(--paper-2); color: var(--accent); }
+.passkey-hint-icon .i { width: 20px; height: 20px; }
+.passkey-hint-text { flex: 1 1 280px; min-width: 0; }
+.passkey-hint-text p { margin: 2px 0 0; color: var(--ink-2); font-size: 14px; line-height: 1.45; }
+.passkey-hint-text small:empty { display: none; }
+.passkey-hint-text small { display: block; margin-top: 6px; }
+.passkey-hint-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.passkey-hint-actions form { margin: 0; }
+@media (max-width: 560px) { .passkey-hint-actions { width: 100%; } .passkey-hint-actions > .btn.primary { flex: 1 0 100%; justify-content: center; } }
 
 /* Sign-in page: "or" between password form and "Sign in with a passkey" */
 .or-line { display: flex; align-items: center; gap: 12px; margin: 18px 0 14px; color: var(--muted); font-size: 13px; }

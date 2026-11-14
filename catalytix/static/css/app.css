@@ -537,3 +537,7 @@ td { overflow-wrap: break-word; }
 .coffee-btn:hover { background: #ffe74d; color: #0d0c22; text-decoration: none; }
 .coffee-btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
 .coffee-btn .i { width: 18px; height: 18px; stroke: currentColor; }
+
+/* Sign-in page: "or" between password form and "Sign in with a passkey" */
+.or-line { display: flex; align-items: center; gap: 12px; margin: 18px 0 14px; color: var(--muted); font-size: 13px; }
+.or-line::before, .or-line::after { content: ""; flex: 1; height: 1px; background: var(--line); }

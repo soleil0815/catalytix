@@ -19,7 +19,7 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="field">
     <label for="username">{{ _("Benutzername") }}</label>
-    <input type="text" id="username" name="username" value="{{ username or '' }}" autocomplete="username" autofocus required>
+    <input type="text" id="username" name="username" value="{{ username or '' }}" autocomplete="username{{ ' webauthn' if passkey_login }}" autofocus required>
   </div>
   <div class="field">
     <label for="password">{{ _("Passwort") }}</label>
@@ -28,6 +28,13 @@
   {% if remember_offered %}<label class="check"><input type="checkbox" name="remember" value="1"> {{ _("Angemeldet bleiben") }}</label>{% endif %}
   <button class="btn primary lg block" style="margin-top: 8px">{{ icon("lock") }} {{ _("Anmelden") }}</button>
 </form>
+{% if passkey_login and not preview %}
+<div class="passkey-login" data-passkey-login data-next="{{ request.args.get('next', '') }}">
+  <div class="or-line"><span>{{ _("oder") }}</span></div>
+  <button type="button" class="btn lg block" data-passkey-button>{{ icon("key") }} {{ _("Mit Passkey anmelden") }}</button>
+  <p class="muted" style="font-size: 13px; margin-top: 8px; text-align: center" data-passkey-status></p>
+</div>
+{% endif %}
 {% if registration_open %}
 <p style="margin-top: 22px; font-size: 14px; text-align: center">{{ _('Noch kein Konto? <a href="{url}">Jetzt registrieren</a>', url=url_for('register.register')) }}</p>
 {% endif %}

@@ -345,6 +345,8 @@ class WebAuthnCredential(Model):
     sign_count = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
     last_used_at = db.Column(db.DateTime)
+    # 3.3.0: registered as a passkey (discoverable, user verification required) – also signs in without a password
+    passkey = db.Column(db.Boolean, default=False, nullable=False)
 
     user: Mapped[User] = relationship("User", backref=backref("webauthn_credentials",
                                                                      cascade="all, delete-orphan"))
@@ -451,7 +453,8 @@ DEFAULT_SETTINGS = {
     "reservation_max": "5",           # open reservations per person (0 = unlimited)
     "catalog_visibility": "groups",  # groups | all
     "isbn_sources": "dnb,openlibrary,google",
-    "reading_sample_google": "0",    # reading samples from Google Books (reading_sample.py) – off by default
+    "reading_sample_google": "0",
+    "passkey_login": "0",            # sign-in with a passkey instead of a password (twofa.py) – off by default    # reading samples from Google Books (reading_sample.py) – off by default
     "cache_covers": "1",
     # Active Directory / LDAP
     "ldap_enabled": "0",

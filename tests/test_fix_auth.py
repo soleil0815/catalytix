@@ -417,7 +417,7 @@ class CodesInCookieTests(Base):
     def test_codes_encrypted_in_session_and_removed(self):
         self.c.post("/login", data={"username": "leser", "password": PW})
 
-        def fake_complete(user, rp_id, state, response, name):
+        def fake_complete(user, rp_id, state, response, name, passkey=False):
             cred = WebAuthnCredential(user_id=user.id, rp_id=rp_id, name="K", credential_id="abc", credential_data="x")
             db.session.add(cred)
             db.session.commit()

@@ -167,6 +167,13 @@
         <span>{{ _("Beim Schließen des Browsers abmelden") }}<small class="muted">{{ _("Die Anmeldung bleibt nicht über einen Browser-Neustart hinweg bestehen; „Angemeldet bleiben“ entfällt.") }}</small></span></label>
       <p class="muted" style="font-size: 12.5px">{{ _("„Angemeldet bleiben“ gibt es nur, wo keine kürzere Frist gilt – also nicht für Admins (mit eigener Frist) und nicht von außen (mit eigener Frist). Sonst würde die Anmeldung nach einem Browser-Neustart die Frist umgehen.") }}</p>
     </section>
+
+    <section class="card card-pad" id="passkeys">
+      <h2 style="margin-bottom: 6px">{{ icon("key") }} {{ _("Passkeys") }}</h2>
+      <label class="check"><input type="checkbox" name="passkey_login" value="1" {{ 'checked' if s('passkey_login') == '1' }}>
+        <span>{{ _("Anmeldung mit Passkey erlauben") }}<small class="muted">{{ _("Auf der Anmeldeseite erscheint „Mit Passkey anmelden“ – ohne Benutzername und Passwort. Jeder richtet seinen Passkey unter Profil → Sicherheit ein (Windows Hello, Face ID/Touch ID, Android, Passwortmanager oder Sicherheitsschlüssel mit PIN).") }}</small></span></label>
+      <p class="muted" style="font-size: 12.5px">{{ _("Ein Passkey zählt als zwei Faktoren (Gerät plus Fingerabdruck, Gesicht oder PIN); danach folgt keine weitere Abfrage. AD-Konten werden bei jeder Passkey-Anmeldung über das Dienstkonto im AD geprüft: deaktiviert, abgelaufen, gesperrt oder nicht mehr berechtigt – keine Anmeldung. Ist das AD nicht erreichbar, geht für AD-Konten nur das Passwort. Passkeys funktionieren nur über HTTPS und sind an die Adresse gebunden, unter der sie angelegt wurden.") }}</p>
+    </section>
     {% elif tab == 'datenschutz' %}
     <section class="card card-pad" id="rechtliches">
       <h2 style="margin-bottom: 6px">{{ icon("shield") }} {{ _("Rechtliches") }}</h2>

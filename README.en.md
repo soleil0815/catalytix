@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.2.1** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.3.0** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -297,6 +297,7 @@ Every user sets it up under **Mein Profil → Sicherheit** (My profile → Secur
 
 - **Authenticator app (TOTP):** scan the QR code, confirm with a code. Works with Microsoft/Google Authenticator, Aegis, 2FAS, Bitwarden, Yubico Authenticator … – and everywhere, including `http://IP:9300` on the LAN.
 - **Security key (WebAuthn/FIDO2):** insert the YubiKey, touch it – done. Device fingerprint/Face ID (passkey) works too. Requires **HTTPS** and is bound to the address under which the key was registered (e.g. `library.school.org`). Several keys per account are possible – registering a spare key is a good idea.
+- **Passkey (sign-in without a password, from 3.3.0):** once the admin switches on "Allow sign-in with a passkey" under *Settings → Security → Passkeys*, everyone sets up a passkey under *Profile → Security* (Windows Hello, Face ID/Touch ID, Android, a password manager or a security key with a PIN). On the sign-in page, "Sign in with a passkey" is then all it takes – no username, no password; the passkey counts as two factors. **AD accounts** are checked in AD through the service account on every passkey sign-in: disabled, expired, locked out or no longer in an authorized group – no sign-in. Without a service account, or while AD cannot be reached, AD accounts can only use their password. An expired AD password does not stop a passkey sign-in. Like security keys, HTTPS only and bound to the address.
 - **Recovery codes:** 10 one-time codes are shown once during setup. They let you in without phone or key.
 
 Under **Administration → Einstellungen** you decide for whom 2FA is **mandatory for access from outside** (nobody – the default, administrators, librarians + admins, everyone). Affected users are guided through the setup at their next sign-in and can only continue afterwards.

@@ -2,6 +2,20 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.3.0 – 2026-11-14
+**New**
+- **Sign-in with a passkey:** no username, no password, just your fingerprint, face or PIN (Windows Hello, Face
+  ID/Touch ID, Android, a password manager or a security key with a PIN). Switch it on under *Settings → Security →
+  Passkeys* (off by default); then everyone sets up a passkey under *Profile → Security* and signs in with "Sign in
+  with a passkey" – the browser also offers the passkey right in the username field.
+- A passkey counts as two factors (device plus fingerprint, face or PIN); no further two-factor prompt follows. It
+  can also serve as the second factor after the password.
+- **AD accounts** are checked in AD through the service account on every passkey sign-in: disabled, expired, locked
+  out after too many failed attempts or no longer in an authorized group – no sign-in. Without a service account, or
+  while AD cannot be reached, AD accounts can only use their password. An expired AD password does not stop a
+  passkey sign-in.
+- Failed passkey sign-ins count like wrong passwords towards the lock after failed attempts.
+
 ## 3.2.1 – 2026-11-13
 **Improved**
 - The note on supporting further development is now a calm card at the bottom of the overview ("Enjoying this

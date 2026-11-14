@@ -102,10 +102,10 @@
       {{ _("Funktioniert nur über HTTPS und ist an die Adresse <code>{rp_id}</code> gebunden.", rp_id=rp_id) }}</p>
 
     {% for k in keys %}
-    {% set key_name = _("Sicherheitsschlüssel") if not k.name or k.name == "Sicherheitsschlüssel" else k.name %}
+    {% set key_name = (_("Passkey") if k.passkey else _("Sicherheitsschlüssel")) if not k.name or k.name in ("Sicherheitsschlüssel", "Passkey") else k.name %}
     <div class="list-row" style="padding: 10px 0">
-      <span class="badge {{ 'accent' if k.rp_id == rp_id else '' }}">{{ icon("shield") }}</span>
-      <div class="grow"><b>{{ key_name }}</b>
+      <span class="badge {{ 'accent' if k.rp_id == rp_id else '' }}">{{ icon("key" if k.passkey else "shield") }}</span>
+      <div class="grow"><b>{{ key_name }}</b>{% if k.passkey %} <span class="badge ok">{{ _("Passkey") }}</span>{% endif %}
         <small>{{ k.rp_id }} · {{ _("hinzugefügt {date}", date=k.created_at|de_day) }}{% if k.last_used_at %} · {{ _("zuletzt {date}", date=k.last_used_at|de_date) }}{% endif %}</small></div>
       <form method="post" action="{{ url_for('security.key_delete', cred_id=k.id) }}" data-confirm="{{ _('„{name}“ entfernen?', name=key_name) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -122,6 +122,19 @@
       </div>
       <p class="muted" style="font-size: 13px; margin-top: 8px" data-webauthn-status>{{ _("Nach dem Klick den Schlüssel einstecken und berühren.") }}</p>
     </div>
+
+    {% if passkeys_on %}
+    <div data-passkey-register-box style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line)">
+      <h3 style="margin-bottom: 4px">{{ icon("key") }} {{ _("Passkey für die Anmeldung ohne Passwort") }}</h3>
+      <p class="muted" style="font-size: 13.5px">{{ _("Mit einem Passkey melden Sie sich mit Fingerabdruck, Gesicht oder PIN an – ohne Benutzername und Passwort, und ohne weitere Zwei-Faktor-Abfrage. Gespeichert wird er in Windows Hello, auf dem Handy, im Passwortmanager oder auf einem Sicherheitsschlüssel mit PIN.") }}</p>
+      <label for="f-passkey-name">{{ _("Name des Passkeys") }}</label>
+      <div class="input-group">
+        <input id="f-passkey-name" type="text" maxlength="100" data-passkey-name placeholder="{{ _('z. B. Laptop, Handy') }}">
+        <button type="button" class="btn primary" data-passkey-register>{{ icon("plus") }} {{ _("Passkey hinzufügen") }}</button>
+      </div>
+      <p class="muted" style="font-size: 13px; margin-top: 8px" data-passkey-reg-status></p>
+    </div>
+    {% endif %}
   </section>
 </div>
 

@@ -310,6 +310,79 @@
     btn.addEventListener("click", run);
   });
 
+  /* Sign-in with a passkey (3.3.0): button, and the browser's passkey suggestions in the user name field
+     (conditional mediation) – both end in the same check on the server. */
+  const passkeyBox = $("[data-passkey-login]");
+  if (passkeyBox) {
+    const btn = $("[data-passkey-button]", passkeyBox);
+    const status = $("[data-passkey-status]", passkeyBox);
+    let conditional = null;          // running AbortController of the field suggestions
+    const remember = () => { const r = $("input[name=remember]"); return !!(r && r.checked); };
+    const signIn = async (mediation) => {
+      const begin = await api("/login/passkey/start", { method: "POST", body: "{}" });
+      if (!begin.ok) throw new Error(begin.error);
+      if (begin.redirect) { window.location.href = begin.redirect; return; }
+      const opts = requestOptions(begin.options);
+      if (mediation) { conditional = new AbortController(); opts.mediation = "conditional"; opts.signal = conditional.signal; }
+      const cred = await navigator.credentials.get(opts);
+      if (!cred) return;
+      const done = await api("/login/passkey/pruefen", { method: "POST",
+        body: JSON.stringify({ credential: credentialJSON(cred), remember: remember(), next: passkeyBox.dataset.next }) });
+      if (!done.ok) throw new Error(done.error);
+      window.location.href = done.redirect;
+    };
+    if (!webauthnOk()) {
+      btn.disabled = true;
+      status.textContent = T("Passkeys gehen nur über HTTPS.");
+    } else {
+      btn.addEventListener("click", async () => {
+        if (conditional) { conditional.abort(); conditional = null; }
+        btn.disabled = true;
+        status.textContent = T("Bitte mit Fingerabdruck, Gesicht oder PIN bestätigen …");
+        try { await signIn(false); } catch (err) {
+          status.textContent = (err && err.name) ? webauthnError(err) : (err && err.message) || String(err);
+          btn.disabled = false;
+        }
+      });
+      if (window.PublicKeyCredential.isConditionalMediationAvailable) {
+        window.PublicKeyCredential.isConditionalMediationAvailable().then((ok) => {
+          if (ok) signIn(true).catch((err) => {
+            // the browser's own errors (no passkey, wrong address, aborted) stay silent here – the button still
+            // works and explains; only our server's answer (e.g. too many attempts) is shown
+            if (err && !(err instanceof DOMException)) status.textContent = err.message || String(err);
+          });
+        }).catch(() => {});
+      }
+    }
+  }
+
+  /* Profile → security: add a passkey (same flow as a security key, registered as discoverable with UV) */
+  $$("[data-passkey-register]").forEach((btn) => {
+    const box = btn.closest("[data-passkey-register-box]");
+    const status = $("[data-passkey-reg-status]", box);
+    if (!webauthnOk()) {
+      btn.disabled = true;
+      status.textContent = T("Passkeys gehen nur über HTTPS.");
+      return;
+    }
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      status.textContent = T("Bitte mit Fingerabdruck, Gesicht oder PIN bestätigen …");
+      try {
+        const begin = await api("/profil/sicherheit/schluessel/start", { method: "POST", body: JSON.stringify({ passkey: true }) });
+        if (!begin.ok) throw new Error(begin.error);
+        const cred = await navigator.credentials.create(creationOptions(begin.options));
+        const done = await api("/profil/sicherheit/schluessel/speichern", { method: "POST",
+          body: JSON.stringify({ credential: credentialJSON(cred), name: $("[data-passkey-name]", box).value }) });
+        if (!done.ok) throw new Error(done.error);
+        window.location.href = done.redirect;
+      } catch (err) {
+        status.textContent = webauthnError(err);
+        btn.disabled = false;
+      }
+    });
+  });
+
   $$("[data-copy-codes]").forEach((btn) => btn.addEventListener("click", async () => {
     const text = $$("[data-codes] > div").map((d) => d.textContent.trim()).join("\n");
     try { await navigator.clipboard.writeText(text); btn.textContent = T("✓ Kopiert"); } catch (e) { window.prompt(T("Codes:"), text); }

@@ -27,7 +27,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "3.3.1"
+__version__ = "3.3.2"
 APP_NAME = "Catalytix"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Where the source code can be found (AGPL § 13). Anyone running a modified Catalytix enters the
@@ -236,6 +236,16 @@ def _sqlite_file(instance: Path) -> Path:
     return db_file
 
 
+def passkeys_on_once() -> None:
+    """3.3.0/3.3.1 had passkeys off by default – then nothing showed anywhere. Switch them on once (3.3.2);
+    an admin may switch them off again afterwards."""
+    from .models import get_setting, set_setting
+    if get_setting("passkey_default_on") != "1":
+        set_setting("passkey_login", "1")
+        set_setting("passkey_default_on", "1")
+        db.session.commit()
+
+
 def _migrate_and_init(app: Flask) -> None:
     """Add missing tables/columns and run one-time conversions – under the startup lock, in the app context."""
     db.create_all()
@@ -261,6 +271,7 @@ def _migrate_and_init(app: Flask) -> None:
     from .models import encrypt_stored_secrets
     if encrypt_stored_secrets():
         logging.getLogger(__name__).info("Stored credentials (AD, SMTP) are now kept encrypted")
+    passkeys_on_once()
     if get_setting("registration_privacy_url") and not get_setting("privacy_url"):  # up to 2.0
         set_setting("privacy_url", get_setting("registration_privacy_url"))
         set_setting("registration_privacy_url", "")

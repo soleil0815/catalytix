@@ -38,12 +38,27 @@ class PasskeyBase(BaseCase):
 
 
 class SettingTests(PasskeyBase):
-    def test_off_by_default_404(self):
+    def test_on_by_default_since_332(self):
+        self.assertEqual(get_setting("passkey_login"), "1")
+
+    def test_switched_on_once_on_update(self):
+        from catalytix import passkeys_on_once
+        set_setting("passkey_login", "0")              # saved by the security tab in 3.3.0/3.3.1
+        db.session.commit()
+        passkeys_on_once()
+        self.assertEqual(get_setting("passkey_login"), "1")
+        set_setting("passkey_login", "0")              # the admin switches it off again afterwards: stays off
+        db.session.commit()
+        passkeys_on_once()
         self.assertEqual(get_setting("passkey_login"), "0")
+
+    def test_switched_off_404(self):
+        self.enable(False)
         self.assertEqual(self.c.post("/login/passkey/start", json={}).status_code, 404)
         self.assertEqual(self.c.post("/login/passkey/pruefen", json={}).status_code, 404)
 
     def test_login_page_only_when_enabled(self):
+        self.enable(False)
         page = self.c.get("/login").get_data(as_text=True)
         self.assertNotIn("data-passkey-login", page)
         self.assertNotIn("webauthn", page)
@@ -225,6 +240,7 @@ class RegistrationTests(PasskeyBase):
         return begin.call_args.kwargs.get("passkey")
 
     def test_passkey_flag_only_when_enabled(self):
+        self.enable(False)
         self.assertFalse(self.start())
         self.assertNotIn("data-passkey-register", self.c.get("/profil/sicherheit").get_data(as_text=True))
         self.enable()

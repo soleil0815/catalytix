@@ -5,7 +5,7 @@ import logging
 import os
 import re
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, Response, abort, current_app, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user
 from sqlalchemy import func, or_
 
@@ -504,11 +504,11 @@ def group_delete(group_id):
 # own form and saves only its own fields – saving one tab can never change another (a missing checkbox would
 # otherwise read as "off").
 SETTINGS_TABS = {"allgemein": "settings", "ausleihe": "loan", "katalog": "book", "konten": "user",
-                 "sicherheit": "shield", "datenschutz": "lock"}
+                 "sicherheit": "shield", "datenschutz": "lock", "wartung": "tool"}
 # Anchors of the old single page (links in notices, help, bookmarks) → tab
 SETTINGS_ANCHORS = {"aufbewahrung": "datenschutz", "rechtliches": "datenschutz", "abmeldung": "sicherheit",
                     "zwei-faktor": "sicherheit", "leseproben": "katalog", "isbn": "katalog", "vormerken": "ausleihe",
-                    "registrierung": "konten", "passkeys": "sicherheit"}
+                    "registrierung": "konten", "passkeys": "sicherheit", "diagnose": "wartung"}
 
 
 def _settings_tab(value: str | None) -> str:
@@ -591,8 +591,13 @@ def _save_privacy() -> None:
     set_setting("retention_months", months if months in ("0", "3", "6", "12", "24", "36") else "12")
 
 
+def _save_nothing() -> None:
+    """The maintenance tab has no settings (only the diagnostic package)."""
+
+
 _SETTINGS_SAVE = {"allgemein": _save_general, "ausleihe": _save_lending, "katalog": _save_catalog,
-                  "konten": _save_accounts, "sicherheit": _save_security, "datenschutz": _save_privacy}
+                  "konten": _save_accounts, "sicherheit": _save_security, "datenschutz": _save_privacy,
+                  "wartung": _save_nothing}
 
 
 @bp.route("/einstellungen", methods=["GET", "POST"])
@@ -624,7 +629,44 @@ def settings():
                            active_sources=active_sources, all_sources=all_sources,
                            google_key_set=bool(get_setting("google_api_key")),
                            google_quota=reading_sample_quota(),
-                           groups=Group.query.order_by(Group.name).all(), mail_on=mail_active())
+                           groups=Group.query.order_by(Group.name).all(), mail_on=mail_active(),
+                           **_maintenance_context(tab))
+
+
+def _maintenance_context(tab: str) -> dict:
+    if tab != "wartung":
+        return {}
+    from .. import diagnostics
+    from ..models import DiagAlias
+    query = (request.args.get("platzhalter") or "").strip()[:200]
+    return {"diag_query": query, "diag_hits": diagnostics.lookup(query) if query else [],
+            "diag_alias_count": DiagAlias.query.count(), "diag_days": diagnostics.DAYS_DEFAULT,
+            "diag_days_max": diagnostics.DAYS_MAX}
+
+
+@bp.route("/diagnosepaket", methods=["POST"])
+@admin_required
+def diagnostic_package():
+    """Anonymous diagnostic package (ZIP) – only downloaded, never sent anywhere."""
+    from io import BytesIO
+
+    from .. import diagnostics
+    name, data = diagnostics.build(form_int("tage", diagnostics.DAYS_DEFAULT, 1) or diagnostics.DAYS_DEFAULT,
+                                   live=not request.form.get("ohne_tests"))
+    resp = send_file(BytesIO(data), mimetype="application/zip", as_attachment=True, download_name=name)
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
+@bp.route("/diagnosepaket/platzhalter.csv", methods=["POST"])
+@admin_required
+def diagnostic_mapping():
+    """All placeholders with their real values – stays with the admin, never part of a package."""
+    from .. import diagnostics
+    resp = Response("\ufeff" + diagnostics.mapping_csv(), mimetype="text/csv; charset=utf-8")
+    resp.headers["Content-Disposition"] = "attachment; filename=catalytix-platzhalter.csv"
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 def _save_google_key() -> None:

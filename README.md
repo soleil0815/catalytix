@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.3.2** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 3.4.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name Ihrer Bibliothek.
 
@@ -398,7 +398,7 @@ Catalytix ist darauf ausgelegt, dass die Browser der Nutzer **nur mit Ihrem eige
 
 **Impressum und Datenschutzerklärung** tragen Sie unter *Administration → Einstellungen → Datenschutz → Rechtliches* ein (Adressen der Seiten, z. B. auf der Website des Instituts). Die Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in jeder E-Mail; bei der Selbstregistrierung muss die Datenschutzerklärung bestätigt werden.
 
-In die Datenschutzerklärung gehört, was Catalytix speichert: Name, Benutzername, E-Mail-Adresse, Gruppenzugehörigkeit, Ausleihen mit Datum, Protokoll der versendeten E-Mails, bei Zwei-Faktor-Anmeldung die registrierten Schlüssel. Mit dem **AD-Personen-Cache** (siehe Active Directory) zusätzlich Name, Benutzername, E-Mail und Gruppen aller AD-Personen, die die Bibliothek nutzen dürfen – auch ohne Ausleihe; sie werden beim Abgleich gelöscht, sobald jemand im AD deaktiviert, gelöscht oder nicht mehr berechtigt ist, und sofort beim Abschalten. Wird der Server von jemand anderem als der Einrichtung selbst betrieben, brauchen Sie einen Vertrag zur Auftragsverarbeitung (Art. 28 DSGVO).
+In die Datenschutzerklärung gehört, was Catalytix speichert: Name, Benutzername, E-Mail-Adresse, Gruppenzugehörigkeit, Ausleihen mit Datum, Protokoll der versendeten E-Mails, bei Zwei-Faktor-Anmeldung die registrierten Schlüssel. Mit dem **AD-Personen-Cache** (siehe Active Directory) zusätzlich Name, Benutzername, E-Mail und Gruppen aller AD-Personen, die die Bibliothek nutzen dürfen – auch ohne Ausleihe; sie werden beim Abgleich gelöscht, sobald jemand im AD deaktiviert, gelöscht oder nicht mehr berechtigt ist, und sofort beim Abschalten. Das **Programmprotokoll** im Datenordner (`data/logs/`, ab 3.4.0) enthält Benutzernamen und IP-Adressen von Anmeldungen und Fehlern und wird nach 31 Tagen gelöscht. Wird der Server von jemand anderem als der Einrichtung selbst betrieben, brauchen Sie einen Vertrag zur Auftragsverarbeitung (Art. 28 DSGVO).
 
 **Aufbewahrungsfristen** (*Einstellungen → Datenschutz → Aufbewahrung*, Standard **12 Monate**): Abgeschlossene Ausleihen werden die eingestellte Zeit nach der Rückgabe automatisch gelöscht, ebenso Einträge im E-Mail-Protokoll. Pro Buch bleibt nur die Anzahl der Ausleihen erhalten, damit die Statistik stimmt. Laufende und überfällige Ausleihen sowie die Mahn-Einträge dazu werden nie gelöscht. Der Lauf erfolgt einmal täglich automatisch; „Jetzt bereinigen“ oder `flask --app wsgi apply-retention` startet ihn sofort. Wird ein Benutzer gelöscht, verschwinden seine Ausleihen sofort (die Anzahl pro Buch bleibt). Nicht bestätigte Selbstregistrierungen werden nach 7 Tagen gelöscht. Die Frist gehört ebenfalls in die Datenschutzerklärung.
 
@@ -480,6 +480,8 @@ flask --app wsgi apply-retention
 flask --app wsgi send-reminders
 # Zusätzliches lokales Admin-Konto
 flask --app wsgi create-admin notfall
+# Anonymes Diagnosepaket in den Datenordner schreiben (data/diagnose/)
+flask --app wsgi diagnose
 # Datenbank jetzt sichern / Sicherungen anzeigen / zurückspielen (Server vorher anhalten)
 flask --app wsgi backup
 flask --app wsgi list-backups
@@ -495,6 +497,23 @@ docker compose exec catalytix docker-entrypoint.sh flask --app wsgi reset-passwo
 ```
 
 Katalog-Export als CSV (Excel-kompatibel) gibt es im Katalog für Verwalter.
+
+### Diagnosepaket (ab 3.4.0)
+
+*Einstellungen → Wartung → Diagnosepaket herunterladen* (oder `flask --app wsgi diagnose`, schreibt nach `data/diagnose/`) erzeugt eine ZIP-Datei für die Fehlersuche. Sie wird nur heruntergeladen, nie von selbst verschickt:
+
+| Datei | Inhalt |
+|---|---|
+| `system.json` | Version, Versionsverlauf, Python, Plattform, Container/compose, Datenbank (Größe, Prüfung), freier Speicher, Umgebungsvariablen (Geheimes nur „gesetzt“) |
+| `https.json` | wie das Programm die Verbindung sieht: HTTPS, Proxy-Header, Passkey-Adresse, intern/extern |
+| `settings.json` | alle Einstellungen; `*` = gegenüber der Vorgabe geändert |
+| `checks.json` | Verbindungstests: Active Directory (Dienstkonto), E-Mail-Server (ohne Versand), Google Books, Datensicherung |
+| `counts.json` | Zahlen: Konten nach Rolle/Herkunft/2FA/Passkey, Ausleihen, Bücher, Fehlanmeldungen pro Tag |
+| `log.txt`, `errors.txt` | Programmprotokoll des Zeitraums (1–30 Tage), Warnungen und Fehler mit technischen Details |
+
+**Immer anonym:** Benutzer- und Anzeigenamen, E-Mail-, IP-Adressen, Rechner- und Domänennamen, AD-Pfade, Gruppen-, Standort- und Bibliotheksname werden durch dauerhafte Platzhalter ersetzt (`BENUTZER-007`, `host-02.domaene-1.example`, `IP-004(privat)` …). Kennwörter, Schlüssel und Tokens sind nie enthalten. Die Zuordnung bleibt auf dem Server (*Platzhalter nachschlagen*, CSV). Dafür schreibt das Programm sein Protokoll zusätzlich nach `data/logs/` (eine Datei pro Tag, 31 Tage, höchstens 20 MB pro Tag).
+
+**Wächst mit:** Jede Einstellung und jede Tabelle muss in `catalytix/diagnostics.py` eingeordnet sein (geheim / enthält Namen / unbedenklich) – sonst schlägt `tests/test_diagnostics_340.py` fehl. Ein zweiter Test füllt die Datenbank mit erkennbaren Namen, Adressen und Kennwörtern und prüft, dass nichts davon im Paket steht.
 
 ## GitHub: Image bauen und Versionen veröffentlichen
 

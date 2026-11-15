@@ -32,7 +32,7 @@ class SettingsTabsTests(BaseCase):
         return r.get_data(as_text=True)
 
     def test_every_tab_shows_only_its_fields(self):
-        self.assertEqual(list(SETTINGS_TABS), list(FIELDS))
+        self.assertEqual(list(SETTINGS_TABS), list(FIELDS) + ["wartung"])   # 3.4.0: maintenance, no fields
         for tab in FIELDS:
             html = self.page(tab)
             self.assertIn(f'<input type="hidden" name="bereich" value="{tab}">', html)
@@ -40,7 +40,7 @@ class SettingsTabsTests(BaseCase):
                 self.assertEqual(f'name="{field}"' in html, other == tab, (tab, field))
             start = html.index('<nav class="tabs"')
             nav = html[start:html.index("</nav>", start)]
-            self.assertEqual(nav.count("<a "), 6)
+            self.assertEqual(nav.count("<a "), 7)
             self.assertEqual(len(re.findall(r'class="on" aria-current="page"', nav)), 1)
             self.assertIn(f'href="/admin/einstellungen?bereich={tab}" class="on"', nav)
 

@@ -27,7 +27,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "3.3.2"
+__version__ = "3.4.0"
 APP_NAME = "Catalytix"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Where the source code can be found (AGPL § 13). Anyone running a modified Catalytix enters the
@@ -272,6 +272,8 @@ def _migrate_and_init(app: Flask) -> None:
     if encrypt_stored_secrets():
         logging.getLogger(__name__).info("Stored credentials (AD, SMTP) are now kept encrypted")
     passkeys_on_once()
+    from .diagnostics import record_version
+    record_version()
     if get_setting("registration_privacy_url") and not get_setting("privacy_url"):  # up to 2.0
         set_setting("privacy_url", get_setting("registration_privacy_url"))
         set_setting("registration_privacy_url", "")
@@ -319,6 +321,9 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     logging.basicConfig(level=os.environ.get("CATALYTIX_LOGLEVEL", "INFO"),
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    if not app.config.get("TESTING") or app.config.get("DIAG_LOG_FILE"):
+        from .diagnostics import install_log_file
+        install_log_file(instance)        # program log also in the data folder, for the diagnostic package
     _ensure_timezone()
 
     # Reverse proxy and HTTPS are detected automatically (see proxy.py)
@@ -760,6 +765,19 @@ def create_app(test_config: dict | None = None) -> Flask:
         if safety:
             click.echo(f"Previous state backed up as {safety.name}")
         click.echo(f"{src.name} has been restored.")
+
+    @app.cli.command("diagnose")
+    @click.option("--tage", "days", default=7, show_default=True, help="Zeitraum des Protokolls (1–30 Tage)")
+    @click.option("--ohne-tests", "no_checks", is_flag=True, help="Keine Verbindungstests (AD, E-Mail, Google)")
+    def diagnose_cmd(days, no_checks):
+        """Write an anonymous diagnostic package into the data folder (subfolder "diagnose")."""
+        from . import diagnostics
+        name, data = diagnostics.build(days, live=not no_checks)
+        folder = Path(app.instance_path) / "diagnose"
+        folder.mkdir(exist_ok=True)
+        (folder / name).write_bytes(data)
+        click.echo(f"Diagnostic package written: {folder / name}")
+        click.echo(f"On the server (data folder of the container): data/diagnose/{name}")
 
     @app.cli.command("setup-code")
     def setup_code_cmd():

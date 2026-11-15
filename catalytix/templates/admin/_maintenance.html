@@ -1,0 +1,48 @@
+{# Settings → Wartung: anonymous diagnostic package (diagnostics.py) #}
+<div class="grid grid-2">
+  <section class="card card-pad" id="diagnose">
+    <h2 style="margin-bottom: 6px">{{ icon("download") }} {{ _("Diagnosepaket") }}</h2>
+    <p class="muted" style="font-size: 13.5px">{{ _("Eine ZIP-Datei für die Fehlersuche: Version und Versionsverlauf, System, HTTPS und Proxy, Einstellungen, Verbindungstests (Active Directory, E-Mail, Google Books, Datensicherung), Zahlen statt Daten und das Programmprotokoll des Zeitraums.") }}</p>
+    <p class="muted" style="font-size: 13.5px">{{ _("Das Paket ist immer anonym: Namen, E-Mail- und IP-Adressen, Rechner, Domäne und AD-Pfade sind durch Platzhalter ersetzt; Kennwörter und Schlüssel sind nie enthalten. Es wird nur heruntergeladen, nie von selbst verschickt.") }}</p>
+    <form method="post" action="{{ url_for('admin.diagnostic_package') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label for="f-diag-days">{{ _("Protokoll der letzten") }}</label>
+        <select id="f-diag-days" name="tage">
+          {% for d, label in [(1, _("24 Stunden")), (3, _("3 Tage")), (7, _("7 Tage")), (14, _("14 Tage")), (30, _("30 Tage"))] %}
+          <option value="{{ d }}" {{ 'selected' if d == diag_days }}>{{ label }}</option>{% endfor %}
+        </select></div>
+      <label class="check" style="margin-bottom: 14px"><input type="checkbox" name="ohne_tests" value="1">
+        <span>{{ _("Ohne Verbindungstests") }}<small class="muted" style="display: block">{{ _("schneller, wenn AD oder E-Mail-Server gerade nicht antworten") }}</small></span></label>
+      <button class="btn primary">{{ icon("download") }} {{ _("Diagnosepaket herunterladen") }}</button>
+    </form>
+    <p class="muted" style="font-size: 13px; margin-top: 14px">{{ _("Über die Konsole, auch wenn die Anmeldung nicht geht:") }}<br>
+      <code>docker compose exec catalytix docker-entrypoint.sh flask --app wsgi diagnose</code><br>
+      {{ _("Die Datei liegt danach im Datenordner unter diagnose/.") }}</p>
+  </section>
+
+  <section class="card card-pad" id="platzhalter">
+    <h2 style="margin-bottom: 6px">{{ icon("search") }} {{ _("Platzhalter nachschlagen") }}</h2>
+    <p class="muted" style="font-size: 13.5px">{{ _("Steht im Paket z. B. BENUTZER-007 oder host-02, finden Sie hier, wer oder was das ist. Die Platzhalter bleiben dauerhaft gleich; diese Zuordnung bleibt auf dem Server und ist nie Teil eines Pakets.") }}</p>
+    <form method="get" action="{{ url_for('admin.settings') }}">
+      <input type="hidden" name="bereich" value="wartung">
+      <label for="f-diag-q">{{ _("Platzhalter oder echter Wert") }}</label>
+      <div class="input-group">
+        <input id="f-diag-q" type="search" name="platzhalter" value="{{ diag_query }}" placeholder="{{ _('z. B. BENUTZER-007') }}" autocomplete="off">
+        <button class="btn">{{ icon("search") }} {{ _("Suchen") }}</button>
+      </div>
+    </form>
+    {% if diag_query %}
+      {% if diag_hits %}
+      <div style="margin-top: 12px">
+        {% for kind, alias, real in diag_hits %}
+        <div class="list-row" style="padding: 8px 0"><code>{{ alias }}</code><span class="grow" style="overflow-wrap: anywhere">{{ real }}</span></div>
+        {% endfor %}
+      </div>
+      {% else %}<p class="muted" style="margin-top: 12px">{{ _("Kein Platzhalter gefunden.") }}</p>{% endif %}
+    {% endif %}
+    <form method="post" action="{{ url_for('admin.diagnostic_mapping') }}" style="margin-top: 14px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn sm" {{ 'disabled' if not diag_alias_count }}>{{ icon("download") }} {{ _("Alle Platzhalter als CSV ({n})", n=diag_alias_count) }}</button>
+    </form>
+  </section>
+</div>

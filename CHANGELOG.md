@@ -3,6 +3,22 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.4.0 – 15.11.2026
+**Neu**
+- **Diagnosepaket** unter *Einstellungen → Wartung* (neuer Reiter) oder per `flask --app wsgi diagnose`: eine
+  ZIP-Datei für die Fehlersuche mit Version und Versionsverlauf, System, HTTPS/Proxy (wie das Programm die
+  Verbindung sieht, inklusive Passkey-Adresse), allen Einstellungen, Verbindungstests (AD über das Dienstkonto,
+  E-Mail-Server ohne Versand, Google Books, Datensicherung), Zahlen statt Daten und dem Programmprotokoll des
+  Zeitraums (1–30 Tage). Es wird nur heruntergeladen, nie verschickt.
+- **Immer anonym:** Namen, E-Mail- und IP-Adressen, Rechner, Domäne, AD-Pfade, Gruppen-, Standort- und
+  Bibliotheksname werden durch dauerhafte Platzhalter ersetzt (BENUTZER-007, host-02 …); Kennwörter, Schlüssel und
+  Tokens sind nie enthalten. *Platzhalter nachschlagen* zeigt, wer oder was dahintersteckt – die Zuordnung bleibt
+  auf dem Server.
+- Das Programmprotokoll wird zusätzlich im Datenordner abgelegt (`data/logs/`, eine Datei pro Tag, 31 Tage,
+  höchstens 20 MB pro Tag). Seit welcher Version was läuft, merkt sich das Programm ab jetzt beim Start.
+- Das Paket wächst mit: Jede neue Einstellung und Tabelle muss für das Paket eingeordnet sein, sonst schlägt die
+  Prüfung fehl; ein Test stellt sicher, dass keine echten Namen, Adressen oder Kennwörter im Paket landen.
+
 ## 3.3.2 – 14.11.2026
 **Verbessert**
 - **Passkeys sind jetzt standardmäßig an** – wie in Asset-Lotse. Bisher waren sie aus, und dann war nirgends etwas zu

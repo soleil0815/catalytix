@@ -520,7 +520,12 @@ docker compose start catalytix</pre>
   <tr><td><code>flask --app wsgi list-backups</code></td><td>Sicherungen anzeigen (auch „vor Update auf …“)</td></tr>
   <tr><td><code>flask --app wsgi send-reminders</code></td><td>Erinnerungen und Mahnungen sofort versenden</td></tr>
   <tr><td><code>flask --app wsgi apply-retention</code></td><td>Aufbewahrungsfrist sofort anwenden</td></tr>
+  <tr><td><code>flask --app wsgi diagnose</code></td><td>anonymes Diagnosepaket in den Datenordner schreiben (<code>data/diagnose/</code>)</td></tr>
 </table>
+<h3 data-mark="s-diagnose">Diagnosepaket</h3>
+<p>Wenn etwas nicht funktioniert, hilft ein Diagnosepaket bei der Fehlersuche. Sie finden es unter <span class="path">Einstellungen → Wartung</span>: Zeitraum wählen, <span class="ui">Diagnosepaket herunterladen</span>. Die ZIP-Datei enthält Version und Versionsverlauf, System, HTTPS und Proxy, alle Einstellungen, Verbindungstests (Active Directory, E-Mail, Google Books, Datensicherung), Zahlen statt Daten und das Programmprotokoll des Zeitraums.</p>
+<p>Das Paket ist <b>immer anonym</b>: Namen, E-Mail- und IP-Adressen, Rechner, Domäne und AD-Pfade sind durch Platzhalter wie <code>BENUTZER-007</code> oder <code>host-02</code> ersetzt, Kennwörter und Schlüssel sind nie enthalten. Die Platzhalter bleiben dauerhaft gleich. Nennt Ihnen jemand einen Platzhalter, zeigt <span class="ui">Platzhalter nachschlagen</span>, wer oder was dahintersteckt – diese Zuordnung verlässt den Server nie.</p>
+<div class="box tip"><span class="label">Ausgesperrt?</span>Geht die Anmeldung nicht, erstellt <code>flask --app wsgi diagnose</code> das Paket über die Konsole; es liegt danach im Datenordner unter <code>diagnose/</code>.</div>
 <div class="box tip"><span class="label">Version und Lizenz</span>Die Seite <span class="path">Über dieses Programm</span> (Klick auf die Versionsnummer in der Seitenleiste) zeigt Version, Lizenz, den Entwickler (<a href="https://helfi.space">helfi.space</a>) und den Link zum Quellcode. Das Programm ist freie Software unter der GNU AGPL v3.</div>
 
 <!-- ============================================================ 7 -->

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from functools import wraps
+from urllib.parse import urlsplit
 
 from flask import abort, request
 from flask_login import current_user, login_required
@@ -91,6 +92,9 @@ def safe_next(target: str | None) -> str | None:
     """Allow only relative redirects (no open redirect)."""
     if not target or any(ord(ch) < 0x21 or ch == "\x7f" for ch in target):
         return None   # browsers strip tab/newline – "/\t/evil" would otherwise become "//evil"
-    if target.startswith("/") and not target.startswith("//") and "\\" not in target:
-        return target
-    return None
+    if not target.startswith("/") or target.startswith("//") or "\\" in target:
+        return None
+    parts = urlsplit(target)
+    if parts.scheme or parts.netloc:      # explicit check (also what code scanners recognise as safe)
+        return None
+    return target

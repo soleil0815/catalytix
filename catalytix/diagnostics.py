@@ -41,6 +41,7 @@ log = logging.getLogger(__name__)
 DAYS_DEFAULT = 7
 DAYS_MAX = 30
 MAX_LOG_LINES = 50000
+MAX_LINE = 4000             # longer log lines are cut (keeps the replacement patterns fast)
 LOG_DIR = "logs"
 LOG_KEEP_DAYS = 31
 LOG_MAX_BYTES_PER_DAY = 20 * 1024 * 1024   # beyond that only warnings and errors are written for the rest of the day
@@ -92,20 +93,24 @@ KINDS = {"user": "BENUTZER-{:03d}", "mail": "mail-{:03d}@example.invalid", "host
          "domain": "domaene-{}.example", "ip": "IP-{:03d}", "group": "GRUPPE-{:02d}", "ou": "OU-{:02d}",
          "location": "STANDORT-{:02d}", "name": "NAME-{:03d}", "library": "BIBLIOTHEK-{}", "text": "TEXT-{:02d}"}
 
-EMAIL_RX = re.compile(r"[A-Za-z0-9._%+'-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+# all patterns bounded (no nested or adjacent unbounded repetition): log lines come partly from outside
+EMAIL_RX = re.compile(r"(?<![A-Za-z0-9._%+'-])[A-Za-z0-9._%+'-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63}){0,8}"
+                      r"\.[A-Za-z]{2,24}(?![A-Za-z])")
 IPV4_RX = re.compile(r"(?<![\d.])(\d{1,3}(?:\.\d{1,3}){3})(?![\d.])")
 IPV6_RX = re.compile(r"(?<![\w:])([0-9A-Fa-f]{0,4}(?::[0-9A-Fa-f]{0,4}){2,7})(?![\w:])")   # checked by ipaddress
 PRIVATE_NETS = [ipaddress.ip_network(n) for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "100.64.0.0/10",
                                                   "169.254.0.0/16", "fc00::/7", "fe80::/10")]
-FQDN_RX = re.compile(r"(?<![\w.@-])((?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+(?:[A-Za-z]{2,24}))"
-                     r"(?![\w-])")
+FQDN_RX = re.compile(r"(?<![\w.@-])((?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.){1,10}(?:[A-Za-z]{2,24}))"
+                     r"(?![\w.-])")
 DN_PART_RX = re.compile(r"\b(CN|OU|DC|O|L)=((?:\\.|[^,;+\"\\=\n])+)", re.I)
 # value after a secret-looking word (password=…, "token": "…", Authorization: Bearer …)
 SECRET_RX = re.compile(r"(?i)(pass(?:word|wort)?|pwd|secret|token|api[_-]?key|key|authorization|bearer|cookie|"
-                       r"session|totp|recovery)(\s*[=:]\s*|\"\s*:\s*\"|'\s*:\s*')(\"[^\"]*\"|'[^']*'|[^\s,;&}\]]+)")
+                       r"session|totp|recovery)([ \t]{0,4}[=:][ \t]{0,4}|\"[ \t]{0,4}:[ \t]{0,4}\"|"
+                       r"'[ \t]{0,4}:[ \t]{0,4}')(\"[^\"]{0,500}\"|'[^']{0,500}'|[^\s,;&}\]]{1,500})")
 FERNET_RX = re.compile(r"\b(?:enc:)?gAAAAA[A-Za-z0-9_=-]{20,}")
 GOOGLE_KEY_RX = re.compile(r"\bAIza[0-9A-Za-z_-]{20,}")
-SETUP_CODE_RX = re.compile(r"(?i)((?:setup[ -]?code|einrichtungscode)\s*[:=]?\s*)[A-Z0-9]{4}(?:-[A-Z0-9]{4}){1,3}")
+SETUP_CODE_RX = re.compile(r"(?i)((?:setup[ -]?code|einrichtungscode)[ \t]{0,4}[:=]?[ \t]{0,4})[A-Z0-9]{4}"
+                           r"(?:-[A-Z0-9]{4}){1,3}")
 TLDS_KEEP = {"example", "invalid", "localhost"}   # already placeholders or generic
 # Host names found only in free text (logs) are replaced when they end in one of these – names from the settings
 # and the directory are learned beforehand whatever their ending. (Without this list every "db.session.commit" in
@@ -400,7 +405,10 @@ class Anonymizer:
 
     # -- free text
     def text(self, value: Any) -> str:
-        t = mask_secrets(str(value if value is not None else ""))
+        t = str(value if value is not None else "")
+        if len(t) > MAX_LINE:
+            t = t[:MAX_LINE] + " …(gekürzt)"
+        t = mask_secrets(t)
         if not t:
             return t
         t = DN_PART_RX.sub(lambda m: self._dn_in_text(m), t) if "=" in t else t
@@ -459,7 +467,7 @@ class Anonymizer:
         """pc-buchhaltung.firma.intra → host-07.domaene-1.example, even with an ending not in TLDS"""
         if not self._domains:
             return t
-        rx = re.compile(r"(?<![\w.-])((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+)(" +
+        rx = re.compile(r"(?<![\w.-])((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.){1,10})(" +
                         "|".join(re.escape(d) for d in sorted(self._domains, key=len, reverse=True)) + r")(?![\w-])",
                         re.I)
         return rx.sub(lambda m: self._domain(m.group(1) + m.group(2)), t)

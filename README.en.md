@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.3.2** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.4.0** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -402,7 +402,7 @@ Catalytix is built so that users' browsers **only talk to your own server**:
 
 Enter the addresses of your **imprint (Impressum) and privacy policy** under *Administration → Einstellungen → Datenschutz → Rechtliches* (Settings → Privacy → Legal), e.g. pages on the institution's website. The links appear on the login page, in the sidebar and in every e-mail; self-registration requires accepting the privacy policy.
 
-The privacy policy should list what Catalytix stores: name, username, e-mail address, group memberships, loans with dates, a log of sent e-mails and, with two-factor authentication, the registered keys. With the **AD people cache** (see Active Directory), also name, username, e-mail and groups of all AD people who may use the library – even without a loan; they are deleted at the sync as soon as someone is disabled, deleted or no longer entitled in AD, and immediately when the cache is switched off. If the server is operated by someone other than the institution itself, you need a data processing agreement (Art. 28 GDPR).
+The privacy policy should list what Catalytix stores: name, username, e-mail address, group memberships, loans with dates, a log of sent e-mails and, with two-factor authentication, the registered keys. With the **AD people cache** (see Active Directory), also name, username, e-mail and groups of all AD people who may use the library – even without a loan; they are deleted at the sync as soon as someone is disabled, deleted or no longer entitled in AD, and immediately when the cache is switched off. The **program log** in the data folder (`data/logs/`, from 3.4.0) contains usernames and IP addresses of sign-ins and errors and is deleted after 31 days. If the server is operated by someone other than the institution itself, you need a data processing agreement (Art. 28 GDPR).
 
 **Retention periods** (*Einstellungen → Datenschutz → Aufbewahrung*, Settings → Privacy → Retention, default **12 months**): completed loans are deleted automatically the configured time after their return, and so are e-mail log entries. Only the number of loans per book is kept, so statistics stay correct. Active and overdue loans and their reminder entries are never deleted. The job runs once a day; „Jetzt bereinigen“ (Clean up now) or `flask --app wsgi apply-retention` runs it immediately. When a user is deleted, their loans are removed at once (the per-book count is kept). Unconfirmed self-registrations are deleted after 7 days. State the retention period in your privacy policy as well.
 
@@ -486,6 +486,8 @@ flask --app wsgi apply-retention
 flask --app wsgi send-reminders
 # Additional local admin account
 flask --app wsgi create-admin emergency
+# Write an anonymous diagnostic package into the data folder (data/diagnose/)
+flask --app wsgi diagnose
 # Back up the database now / list backups / restore (stop the server first)
 flask --app wsgi backup
 flask --app wsgi list-backups
@@ -493,6 +495,23 @@ flask --app wsgi restore-backup catalytix-2026-10-19_020012.db
 ```
 
 The initial setup in the browser (`/setup`) works only once. If there is no administrator account later on (e.g. deleted by mistake), create one with `create-admin` on the server – for security reasons this is no longer possible via the web.
+
+### Diagnostic package (from 3.4.0)
+
+*Einstellungen → Wartung → Diagnosepaket herunterladen* (Settings → Maintenance → Download diagnostic package), or `flask --app wsgi diagnose` (writes to `data/diagnose/`), creates a ZIP file for troubleshooting. It is only downloaded, never sent anywhere on its own:
+
+| File | Contents |
+|---|---|
+| `system.json` | version, version history, Python, platform, container/compose, database (size, check), free space, environment variables (secrets only "set") |
+| `https.json` | how the program sees the connection: HTTPS, proxy headers, passkey address, internal/external |
+| `settings.json` | all settings; `*` = changed from the default |
+| `checks.json` | connection tests: Active Directory (service account), mail server (no mail sent), Google Books, backup |
+| `counts.json` | counts: accounts per role/source/2FA/passkey, loans, books, failed sign-ins per day |
+| `log.txt`, `errors.txt` | program log of the period (1–30 days), warnings and errors with technical details |
+
+**Always anonymous:** user and display names, e-mail and IP addresses, host and domain names, AD paths, group, location and library names are replaced by permanent placeholders (`BENUTZER-007`, `host-02.domaene-1.example`, `IP-004(privat)` …). Passwords, keys and tokens are never included. The mapping stays on the server (*Look up placeholders*, CSV). For this the program also writes its log to `data/logs/` (one file per day, 31 days, at most 20 MB per day).
+
+**Keeps up:** every setting and every table must be classified in `catalytix/diagnostics.py` (secret / contains names / harmless) – otherwise `tests/test_diagnostics_340.py` fails. A second test fills the database with recognisable names, addresses and passwords and checks that none of them ends up in the package.
 
 Inside the Docker container, go through the entrypoint so the command runs as `PUID:PGID` like the app (otherwise e.g. backups end up owned by root and the app cannot offer them):
 

@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.4.0",
+  "date": "2026-11-15",
+  "items": [
+   {
+    "kind": "new",
+    "audience": "admin",
+    "de": {
+     "title": "Diagnosepaket",
+     "text": "Unter Einstellungen → Wartung gibt es ein anonymes Diagnosepaket für die Fehlersuche – Namen und Adressen sind durch Platzhalter ersetzt, Kennwörter nie enthalten."
+    },
+    "en": {
+     "title": "Diagnostic package",
+     "text": "Settings → Maintenance now offers an anonymous diagnostic package for troubleshooting – names and addresses are replaced by placeholders, passwords are never included."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.3.2",
   "date": "2026-11-14",
   "items": [

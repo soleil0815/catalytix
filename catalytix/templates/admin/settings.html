@@ -5,9 +5,13 @@
 <div class="page-head"><div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("Einstellungen") }}</h1></div></div>
 <nav class="tabs" aria-label="{{ _('Bereiche der Einstellungen') }}" data-settings-anchors="{{ anchors|tojson|forceescape }}">
   {% set labels = {"allgemein": _("Allgemein"), "ausleihe": _p("settings", "Ausleihe"), "katalog": _("Katalog"),
-                   "konten": _p("settings", "Konten"), "sicherheit": _("Sicherheit"), "datenschutz": _p("settings", "Datenschutz")} %}
+                   "konten": _p("settings", "Konten"), "sicherheit": _("Sicherheit"), "datenschutz": _p("settings", "Datenschutz"),
+                   "wartung": _("Wartung")} %}
   {% for key, ico in tabs.items() %}<a href="{{ url_for('admin.settings', bereich=key) }}" class="{{ 'on' if key == tab }}"{{ ' aria-current="page"'|safe if key == tab }}>{{ icon(ico) }} {{ labels[key] }}</a>{% endfor %}
 </nav>
+{% if tab == 'wartung' %}
+{% include "admin/_maintenance.html" %}
+{% else %}
 <form method="post" action="{{ url_for('admin.settings', bereich=tab) }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="bereich" value="{{ tab }}">
@@ -209,4 +213,5 @@
 <form id="retention-now" method="post" action="{{ url_for('admin.retention_run') }}"
       data-confirm="{{ _('Alte Ausleihen und Protokolleinträge jetzt endgültig löschen?') }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
+{% endif %}
 {% endblock %}

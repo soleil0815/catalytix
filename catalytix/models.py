@@ -434,6 +434,16 @@ class Reservation(Model):
         return self.status in (RES_WAITING, RES_READY)
 
 
+class DiagAlias(Model):
+    """Placeholders of the diagnostic package (diagnostics.py): the same real value always gets the same placeholder,
+    so BENUTZER-007 is the same person in every package. Stays on the server – never part of a package."""
+    __tablename__ = "diag_aliases"
+    kind = db.Column(db.String(20), primary_key=True)
+    real = db.Column(db.String(500), primary_key=True)       # lower case
+    alias = db.Column(db.String(100), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+
+
 class Setting(Model):
     __tablename__ = "settings"
     key = db.Column(db.String(100), primary_key=True)

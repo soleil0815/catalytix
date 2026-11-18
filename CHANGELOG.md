@@ -3,6 +3,19 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.4.1 – 18.11.2026
+**Behoben**
+- **Diagnosepaket – Anonymisierung nachgeschärft** (gefunden im ersten echten Paket):
+  - Absendername, E-Mail-Fußzeile und die Texte der Anmeldeseite erscheinen nicht mehr im Wortlaut, nur noch als
+    „(Vorgabe)“ oder „(eigener Text, N Zeichen)“. Der Absendername konnte den Namen der Einrichtung enthalten.
+    Namen daraus werden auch im Protokoll ersetzt, Abkürzungen eingeschlossen.
+  - Der Anmeldename des E-Mail-Kontos wird zu `KONTO-01`.
+  - Gruppennamen in den AD-Regeln (Anmelden, Verwalten, Administration) werden zu `GRUPPE-nn`.
+  - Ein AD-Pfad sieht in Einstellungen, Prüfungen und Protokoll jetzt gleich aus (vorher bekam dieselbe Domäne in der
+    AD-Prüfung einen anderen Platzhalter).
+  - Drei interne Einstellungen fehlten in der Einordnung; der Test findet solche Schlüssel jetzt auch dort, wo sie
+    nicht über `get_setting` gelesen werden.
+
 ## 3.4.0 – 15.11.2026
 **Neu**
 - **Diagnosepaket** unter *Einstellungen → Wartung* (neuer Reiter) oder per `flask --app wsgi diagnose`: eine

@@ -42,11 +42,17 @@ class ClassificationTests(unittest.TestCase):
         self.assertFalse(diagnostics.SECRET & diagnostics.NAMES)
         self.assertFalse(diagnostics.SECRET & diagnostics.PLAIN)
         self.assertFalse(diagnostics.NAMES & diagnostics.PLAIN)
+        groups = [diagnostics.SECRET, diagnostics.NAMES, diagnostics.PLAIN, diagnostics.FREE_TEXT]
+        for i, a in enumerate(groups):
+            for b in groups[i + 1:]:
+                self.assertFalse(a & b, a & b)
 
     def known_keys(self):
         keys = set(DEFAULT_SETTINGS)
+        extra = re.compile(r"(?:\bkey\s*=\s*|Setting\.key\s*==\s*|\bkey\s*:\s*str\s*=\s*)[\"']([a-z][a-z0-9_]+)[\"']")
         for f in glob.glob(str(ROOT / "catalytix" / "**" / "*.py"), recursive=True):
-            keys |= set(SETTING_CALL.findall(Path(f).read_text(encoding="utf-8")))
+            src = Path(f).read_text(encoding="utf-8")
+            keys |= set(SETTING_CALL.findall(src)) | {k for k in extra.findall(src) if "_" in k}
         for f in glob.glob(str(ROOT / "catalytix" / "templates" / "**" / "*.html"), recursive=True):
             keys |= set(re.findall(r"\bs\(['\"]([a-z][a-z0-9_]+)['\"]\)", Path(f).read_text(encoding="utf-8")))
         from catalytix import KEY_CHECK_SETTING
@@ -55,7 +61,7 @@ class ClassificationTests(unittest.TestCase):
         return keys
 
     def test_every_setting_is_classified(self):
-        classified = diagnostics.SECRET | diagnostics.NAMES | diagnostics.PLAIN
+        classified = diagnostics.SECRET | diagnostics.NAMES | diagnostics.PLAIN | diagnostics.FREE_TEXT
         missing = sorted(self.known_keys() - classified)
         self.assertEqual(missing, [], "Diese Einstellungen sind im Diagnosepaket nicht eingeordnet – in "
                                       "catalytix/diagnostics.py zu SECRET, NAMES oder PLAIN hinzufügen: "
@@ -77,7 +83,9 @@ class LeakTests(BaseCase):
     FORBIDDEN = ["zorgmeister", "quengelmann", "zacharias", "geheimfirma", "quarkhausen", "zebra", "kellerarchiv",
                  "dc07", "10.20.30.40", "203.0.113.77", "2001:db8:abcd::77", "sup3rgeheim", "smtpgeheim",
                  "aizasyd-geheim", "ylva", "müllerbrot", "pc-buchhaltung", "quark.dyndns", "versand@",
-                 "lehrkraefte", "totpgeheim", "fernetgeheim"]
+                 "lehrkraefte", "totpgeheim", "fernetgeheim",
+                 # 3.4.1: free texts, SMTP account and group names of the rules
+                 "qxz", "fantasiegesellschaft", "zugspitzforschung", "mx7f3k9q", "bib-oberaufsicht", "leseratten-team"]
 
     def setUp(self):
         super().setUp()
@@ -96,9 +104,11 @@ class LeakTests(BaseCase):
                      "ldap_server": "dc07.geheimfirma.intra, 10.20.30.40",
                      "ldap_bind_dn": "CN=svc-bib,OU=Lehrkraefte,DC=geheimfirma,DC=intra",
                      "ldap_base_dn": "DC=geheimfirma,DC=intra", "ldap_upn_suffix": "@geheimfirma.intra",
-                     "ldap_login_rules": "CN=Geheimgruppe Zebra,OU=Lehrkraefte,DC=geheimfirma,DC=intra",
+                     "ldap_login_rules": "CN=Geheimgruppe Zebra,OU=Lehrkraefte,DC=geheimfirma,DC=intra\nLESERATTEN-TEAM",
+                     "ldap_admin_rules": "BIB-OBERAUFSICHT",
+                     "smtp_from_name": "QXZ Bibliothek - Fantasiegesellschaft für Zugspitzforschung",
                      "ldap_bind_password": "Sup3rGeheim!Pw", "smtp_host": "mail.geheimfirma.de",
-                     "smtp_user": "versand@geheimfirma.de", "smtp_password": "SmtpGeheim#42",
+                     "smtp_user": "mx7f3k9q", "smtp_password": "SmtpGeheim#42",
                      "smtp_from": "versand@geheimfirma.de", "google_api_key": "AIzaSyD-geheimgeheimgeheimgeheim12",
                      "app_base_url": "https://bib.geheimfirma.de", "own_public_hosts": "quark.dyndns.org",
                      "mail_footer": "Stadtbibliothek Quarkhausen · Kellerarchiv Nord", "registration_domains":
@@ -123,6 +133,10 @@ class LeakTests(BaseCase):
             f"{stamp} INFO catalytix.x: totp_secret=TOTPGEHEIMABCDEF token: fernetgeheimtoken123",
             f"{stamp} INFO catalytix.x: stored enc:gAAAAABfernetgeheimfernetgeheimfernetgeheim",
             f"{stamp} INFO catalytix.x: user ylva.m (Ylva Müllerbrot) synced",
+            f"{stamp} INFO catalytix.mailer: Sent as \"QXZ Bibliothek - Fantasiegesellschaft für Zugspitzforschung\" "
+            "via mx7f3k9q, member of BIB-OBERAUFSICHT and Leseratten-Team",
+            f"{stamp} INFO catalytix.ldap_auth: Verbindung erfolgreich. Angemeldet als CN=svc-bib,OU=Lehrkraefte,"
+            "DC=geheimfirma,DC=intra",
         ]) + "\n", encoding="utf-8")
         self.login("admin")
 
@@ -155,6 +169,13 @@ class LeakTests(BaseCase):
         self.assertNotIn("Sign-in of", files["errors.txt"])   # only warnings and errors
         self.assertIn('"ldap_bind_password *": "(gesetzt)"', files["settings.json"])
         self.assertIn('"passkey_login": "1"', files["settings.json"])
+        self.assertIn('"smtp_from_name *": "(eigener Text, ', files["settings.json"])
+        self.assertIn('"login_eyebrow": "(Vorgabe)"', files["settings.json"])
+        self.assertNotIn("nicht eingeordnet", files["settings.json"])
+        # the same AD path looks the same in the settings and in the log
+        import json
+        bind = json.loads(files["settings.json"])["ldap_bind_dn *"]
+        self.assertIn(f"Angemeldet als {bind}", files["log.txt"])
         self.assertIn('"mit_passkey": 0', files["counts.json"])
         self.assertIn('"version": "', files["system.json"])
 

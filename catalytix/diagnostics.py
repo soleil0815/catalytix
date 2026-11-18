@@ -54,9 +54,14 @@ SECRET = {"ldap_bind_password", "smtp_password", "google_api_key", "secret_key_c
 # Contain names, addresses or other text about the organisation: anonymized
 NAMES = {"library_name", "ldap_server", "ldap_bind_dn", "ldap_upn_suffix", "ldap_base_dn", "ldap_user_filter",
          "ldap_login_rules", "ldap_librarian_rules", "ldap_admin_rules", "smtp_host", "smtp_user", "smtp_from",
-         "smtp_from_name", "smtp_reply_to", "app_base_url", "internal_networks", "own_public_hosts", "mail_footer",
-         "registration_domains", "registration_privacy_url", "imprint_url", "privacy_url", "login_eyebrow",
-         "login_text", "mail_last_result", "backup_last_result", "retention_last_result", "dircache_result"}
+         "smtp_reply_to", "app_base_url", "internal_networks", "own_public_hosts", "registration_domains",
+         "registration_privacy_url", "imprint_url", "privacy_url", "mail_last_result", "backup_last_result",
+         "retention_last_result", "dircache_result"}
+# Free texts (sender name, footer, sign-in page): can name the organisation in any words – never their content,
+# only "Vorgabe" or "eigener Text (N Zeichen)" (3.4.1: the sender name had slipped through as text)
+FREE_TEXT = {"smtp_from_name", "mail_footer", "login_eyebrow", "login_text"}
+# Group rules: every line is a group name or AD path – each becomes GRUPPE-nn
+RULES = {"ldap_login_rules", "ldap_librarian_rules", "ldap_admin_rules"}
 # Switches, numbers, modes, timestamps: shown as they are
 PLAIN = {
     "loan_days", "max_extensions", "extension_days", "max_loans", "reader_can_borrow", "self_checkout",
@@ -73,7 +78,7 @@ PLAIN = {
     "registration_notify_admins", "brand_bg_dim", "brand_logo_text", "brand_logo_plate", "brand_accent",
     "brand_brass", "brand_side", "login_show_shelf", "default_language", "setup_completed", "dircache_ok_at",
     "dircache_retry_after", "dircache_running", "dircache_slot", "db_version", "db_upgrade_backup",
-    "version_history",
+    "version_history", "backup_last_run", "retention_last_run", "mail_running",
 }
 
 # Every table with what the package takes from it – only counts, never rows
@@ -91,7 +96,8 @@ COMMON_WORDS = {"admin", "administrator", "administrators", "administratoren", "
 
 KINDS = {"user": "BENUTZER-{:03d}", "mail": "mail-{:03d}@example.invalid", "host": "host-{:02d}",
          "domain": "domaene-{}.example", "ip": "IP-{:03d}", "group": "GRUPPE-{:02d}", "ou": "OU-{:02d}",
-         "location": "STANDORT-{:02d}", "name": "NAME-{:03d}", "library": "BIBLIOTHEK-{}", "text": "TEXT-{:02d}"}
+         "location": "STANDORT-{:02d}", "name": "NAME-{:03d}", "library": "BIBLIOTHEK-{}", "text": "TEXT-{:02d}",
+         "account": "KONTO-{:02d}"}
 
 # all patterns bounded (no nested or adjacent unbounded repetition): log lines come partly from outside
 EMAIL_RX = re.compile(r"(?<![A-Za-z0-9._%+'-])[A-Za-z0-9._%+'-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63}){0,8}"
@@ -103,6 +109,9 @@ PRIVATE_NETS = [ipaddress.ip_network(n) for n in ("10.0.0.0/8", "172.16.0.0/12",
 FQDN_RX = re.compile(r"(?<![\w.@-])((?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.){1,10}(?:[A-Za-z]{2,24}))"
                      r"(?![\w.-])")
 DN_PART_RX = re.compile(r"\b(CN|OU|DC|O|L)=((?:\\.|[^,;+\"\\=\n])+)", re.I)
+# a whole AD path (bounded): replaced as one, so the same domain looks the same everywhere
+DN_FULL_RX = re.compile(r"\b(?:(?:CN|OU|O|L)=(?:\\.|[^,;+\"\\=\n]){1,200},[ ]?){0,15}DC=[\w-]{1,63}"
+                        r"(?:,[ ]?DC=[\w-]{1,63}){0,6}", re.I)
 # value after a secret-looking word (password=…, "token": "…", Authorization: Bearer …)
 SECRET_RX = re.compile(r"(?i)(pass(?:word|wort)?|pwd|secret|token|api[_-]?key|key|authorization|bearer|cookie|"
                        r"session|totp|recovery)([ \t]{0,4}[=:][ \t]{0,4}|\"[ \t]{0,4}:[ \t]{0,4}\"|"
@@ -333,6 +342,23 @@ class Anonymizer:
                     self._domain(host)
                 elif _norm(host) not in COMMON_WORDS:
                     self._add(host, self.alias("host", host))
+        smtp_user = (get_setting("smtp_user") or "").strip()
+        if smtp_user and "@" not in smtp_user:
+            self._add(smtp_user, self.alias("account", smtp_user))
+        for key in RULES:
+            for rule in re.split(r"[\n;]+", get_setting(key) or ""):
+                rule = rule.strip()
+                if not rule or rule.startswith("#"):
+                    continue
+                if "=" in rule:
+                    self.dn(rule)
+                else:
+                    self._add(rule, self.alias("group", rule))
+        # names of the organisation in free texts (sender name, footer): replaced wherever they appear
+        for key in ("smtp_from_name", "mail_footer"):
+            value = (get_setting(key) or "").strip()
+            if value:
+                self._add_name(value, self.alias("text", value))
         for key in NAMES:
             self.text(get_setting(key) or "")     # finds mails and IPs in the settings themselves
 
@@ -346,9 +372,11 @@ class Anonymizer:
         if not display:
             return
         self._add(display, alias)
-        for part in re.split(r"[\s,]+", display):
-            p = part.strip(".()")
-            if len(p) >= 4 and _norm(p) not in COMMON_WORDS:
+        for part in re.split(r"[\s,;:|/·–—()\"„“'-]+", display):
+            p = part.strip(".")
+            if _norm(p) in COMMON_WORDS:
+                continue
+            if len(p) >= 4 or (2 <= len(p) <= 3 and p.isupper() and p.isalpha()):   # also acronyms (ABC)
                 self._add(p, alias)
 
     def _domain(self, name: str) -> str:
@@ -411,7 +439,9 @@ class Anonymizer:
         t = mask_secrets(t)
         if not t:
             return t
-        t = DN_PART_RX.sub(lambda m: self._dn_in_text(m), t) if "=" in t else t
+        if "=" in t:
+            t = DN_FULL_RX.sub(lambda m: self.dn(m.group(0)), t)
+            t = DN_PART_RX.sub(lambda m: self._dn_in_text(m), t)
         t = EMAIL_RX.sub(lambda m: self.alias("mail", m.group(0)), t)
         t = self._replace_hosts_below_known_domains(t)
         t = self._replace_words(t)
@@ -543,8 +573,13 @@ def _settings(an: Anonymizer) -> dict[str, Any]:
 
 
 def _setting_value(key: str, value: str, an: Anonymizer) -> Any:
+    from .models import DEFAULT_SETTINGS
     if key in SECRET:
         return "(gesetzt)" if value else "(leer)"
+    if key in FREE_TEXT:
+        if not value:
+            return "(leer)"
+        return "(Vorgabe)" if value == DEFAULT_SETTINGS.get(key) else f"(eigener Text, {len(value)} Zeichen)"
     if key in NAMES:
         return an.text(value)
     if key in PLAIN:

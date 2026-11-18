@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.4.1",
+  "date": "2026-11-18",
+  "items": [
+   {
+    "kind": "fixed",
+    "audience": "admin",
+    "de": {
+     "title": "Diagnosepaket noch anonymer",
+     "text": "Absendername, Fußzeile, Texte der Anmeldeseite, E-Mail-Konto und Gruppennamen der AD-Regeln stehen nicht mehr im Klartext im Diagnosepaket."
+    },
+    "en": {
+     "title": "Diagnostic package even more anonymous",
+     "text": "Sender name, footer, sign-in page texts, mail account and group names of the AD rules no longer appear in plain text in the diagnostic package."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.4.0",
   "date": "2026-11-15",
   "items": [

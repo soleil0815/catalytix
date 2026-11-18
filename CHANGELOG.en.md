@@ -2,6 +2,19 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.4.1 – 2026-11-18
+**Fixed**
+- **Diagnostic package – anonymization tightened** (found in the first real package):
+  - The sender name, e-mail footer and sign-in page texts no longer appear verbatim, only as "(Vorgabe)" or
+    "(eigener Text, N Zeichen)". The sender name could contain the name of the organisation. Names from it are
+    also replaced in the log, acronyms included.
+  - The login name of the mail account becomes `KONTO-01`.
+  - Group names in the AD rules (sign-in, librarians, administration) become `GRUPPE-nn`.
+  - An AD path now looks the same in settings, checks and log (before, the same domain got a different placeholder
+    in the AD check).
+  - Three internal settings were missing from the classification; the test now also finds such keys where they are
+    not read through `get_setting`.
+
 ## 3.4.0 – 2026-11-15
 **New**
 - **Diagnostic package** under *Settings → Maintenance* (new tab) or with `flask --app wsgi diagnose`: a ZIP file for

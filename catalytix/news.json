@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.4.2",
+  "date": "2026-11-19",
+  "items": [
+   {
+    "kind": "improved",
+    "audience": "all",
+    "de": {
+     "title": "Zweiten Schritt mit Passkey bestätigen",
+     "text": "Hat das Handy beim Anmelden das gespeicherte Passwort statt des Passkeys eingesetzt, bestätigen Sie den zweiten Schritt jetzt sichtbar mit „Mit Passkey bestätigen“ – per Face ID, Fingerabdruck oder Geräte-PIN."
+    },
+    "en": {
+     "title": "Confirm the second step with a passkey",
+     "text": "If the phone filled in the saved password instead of the passkey, you can now confirm the second step visibly with “Confirm with passkey” – using Face ID, fingerprint or device PIN."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.4.1",
   "date": "2026-11-18",
   "items": [

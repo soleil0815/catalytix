@@ -2,6 +2,14 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.4.2 – 2026-11-19
+**Improved**
+- **The second sign-in step names the passkey:** anyone who has a passkey but signed in with the password (on the
+  iPhone the saved password and the passkey look almost alike above the keyboard) now sees *Confirm with passkey*
+  with a hint to Face ID, fingerprint or device PIN instead of only *Confirm with security key* and "insert the key".
+  With both a passkey and a security key the button reads *Confirm with passkey or security key*. The check itself
+  was already correct – only the label was misleading.
+
 ## 3.4.1 – 2026-11-18
 **Fixed**
 - **Diagnostic package – anonymization tightened** (found in the first real package):

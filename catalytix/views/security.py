@@ -147,9 +147,13 @@ def challenge():
         lockout.fail(key, user.username)
         log.info("2FA failed for %s", user.username)
         flash(_("Der Code ist ungültig."), "error")
+    keys = [c for c in user.webauthn_credentials if c.rp_id == twofa.rp_id_for(request.host)]
+    # 3.4.2: name the passkey – on the phone the saved password is easily picked instead of the passkey, and
+    # "Sicherheitsschlüssel" alone sounds like a USB stick only
+    kinds = {"passkey" if c.passkey else "key" for c in keys}
+    key_kind = "both" if len(kinds) > 1 else (kinds.pop() if kinds else "")
     return render_template("security/challenge.html", user=user, mode=mode,
-                           totp_broken=twofa.totp_unreadable(user),
-                           has_keys=any(c.rp_id == twofa.rp_id_for(request.host) for c in user.webauthn_credentials))
+                           totp_broken=twofa.totp_unreadable(user), has_keys=bool(keys), key_kind=key_kind)
 
 
 @bp.route("/login/2fa/schluessel/start", methods=["POST"])

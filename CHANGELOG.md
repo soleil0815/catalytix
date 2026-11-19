@@ -3,6 +3,15 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.4.2 – 19.11.2026
+**Verbessert**
+- **Zweiter Anmeldeschritt nennt den Passkey:** Wer einen Passkey hat, aber mit dem Passwort angemeldet ist (auf dem
+  iPhone stehen gespeichertes Passwort und Passkey über der Tastatur fast gleich da), sieht jetzt
+  *Mit Passkey bestätigen* mit dem Hinweis auf Face ID, Fingerabdruck oder Geräte-PIN statt nur
+  *Mit Sicherheitsschlüssel bestätigen* und „Schlüssel einstecken“. Mit Passkey und Sicherheitsschlüssel heißt der
+  Knopf *Mit Passkey oder Sicherheitsschlüssel bestätigen*. Geprüft wurde schon vorher richtig – nur die
+  Beschriftung führte in die Irre.
+
 ## 3.4.1 – 18.11.2026
 **Behoben**
 - **Diagnosepaket – Anonymisierung nachgeschärft** (gefunden im ersten echten Paket):

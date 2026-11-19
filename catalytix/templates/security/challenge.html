@@ -17,13 +17,21 @@
 {% else %}
   {% if has_keys %}
   <div style="margin-top: 22px">
+    {% if key_kind == "passkey" %}
+    <button type="button" class="btn primary lg block" data-webauthn-login>{{ icon("shield") }} {{ _("Mit Passkey bestätigen") }}</button>
+    <p class="muted" style="font-size: 13px; margin-top: 8px" data-webauthn-status data-busy="{{ _('Warte auf Face ID, Fingerabdruck oder Geräte-PIN …') }}" data-https-only="{{ _('Passkeys gehen nur über HTTPS.') }}">{{ _("Mit Face ID, Fingerabdruck oder Geräte-PIN bestätigen.") }}</p>
+    {% elif key_kind == "both" %}
+    <button type="button" class="btn primary lg block" data-webauthn-login>{{ icon("shield") }} {{ _("Mit Passkey oder Sicherheitsschlüssel bestätigen") }}</button>
+    <p class="muted" style="font-size: 13px; margin-top: 8px" data-webauthn-status data-busy="{{ _('Face ID, Fingerabdruck, Geräte-PIN – oder Schlüssel einstecken und berühren …') }}" data-https-only="{{ _('Passkeys und Sicherheitsschlüssel gehen nur über HTTPS.') }}">{{ _("Mit Face ID, Fingerabdruck oder Geräte-PIN bestätigen – oder den Schlüssel einstecken und berühren.") }}</p>
+    {% else %}
     <button type="button" class="btn primary lg block" data-webauthn-login>{{ icon("shield") }} {{ _("Mit Sicherheitsschlüssel bestätigen") }}</button>
     <p class="muted" style="font-size: 13px; margin-top: 8px" data-webauthn-status>{{ _("Schlüssel einstecken und berühren, wenn er blinkt.") }}</p>
+    {% endif %}
   </div>
   {% endif %}
   {% if user.totp_enabled and totp_broken %}
   <div class="notice warn" style="margin-top: 20px">{{ _("Die Authenticator-App für dieses Konto muss neu eingerichtet werden.") }}
-    {% if has_keys %}{{ _("Melden Sie sich mit einem Wiederherstellungscode oder Ihrem Sicherheitsschlüssel an und richten Sie sie unter <i>Sicherheit</i> neu ein – oder bitten Sie die Administration, die Zwei-Faktor-Anmeldung zurückzusetzen.") }}{% else %}{{ _("Melden Sie sich mit einem Wiederherstellungscode an und richten Sie sie unter <i>Sicherheit</i> neu ein – oder bitten Sie die Administration, die Zwei-Faktor-Anmeldung zurückzusetzen.") }}{% endif %}</div>
+    {% if has_keys %}{{ _("Melden Sie sich mit einem Wiederherstellungscode, Ihrem Passkey oder Ihrem Sicherheitsschlüssel an und richten Sie sie unter <i>Sicherheit</i> neu ein – oder bitten Sie die Administration, die Zwei-Faktor-Anmeldung zurückzusetzen.") }}{% else %}{{ _("Melden Sie sich mit einem Wiederherstellungscode an und richten Sie sie unter <i>Sicherheit</i> neu ein – oder bitten Sie die Administration, die Zwei-Faktor-Anmeldung zurückzusetzen.") }}{% endif %}</div>
   {% elif user.totp_enabled %}
   {% if has_keys %}<div class="muted" style="text-align: center; margin: 18px 0; font-size: 13px">{{ _("oder") }}</div>{% endif %}
   <form method="post" style="margin-top: {{ '0' if has_keys else '22px' }}" autocomplete="off">

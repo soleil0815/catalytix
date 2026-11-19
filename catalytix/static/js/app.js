@@ -289,12 +289,13 @@
     const status = $("[data-webauthn-status]");
     if (!webauthnOk()) {
       btn.disabled = true;
-      if (status) status.textContent = T("Sicherheitsschlüssel gehen nur über HTTPS.");
+      if (status) status.textContent = status.dataset.httpsOnly || T("Sicherheitsschlüssel gehen nur über HTTPS.");
       return;
     }
     const run = async () => {
       btn.disabled = true;
-      if (status) status.textContent = T("Schlüssel einstecken und berühren …");
+      // the page says what to do (passkey: Face ID/PIN, key: insert and touch)
+      if (status) status.textContent = status.dataset.busy || T("Schlüssel einstecken und berühren …");
       try {
         const begin = await api("/login/2fa/schluessel/start", { method: "POST", body: "{}" });
         if (!begin.ok) throw new Error(begin.error);

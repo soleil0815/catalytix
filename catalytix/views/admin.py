@@ -508,7 +508,8 @@ SETTINGS_TABS = {"allgemein": "settings", "ausleihe": "loan", "katalog": "book",
 # Anchors of the old single page (links in notices, help, bookmarks) → tab
 SETTINGS_ANCHORS = {"aufbewahrung": "datenschutz", "rechtliches": "datenschutz", "abmeldung": "sicherheit",
                     "zwei-faktor": "sicherheit", "leseproben": "katalog", "isbn": "katalog", "vormerken": "ausleihe",
-                    "registrierung": "konten", "passkeys": "sicherheit", "diagnose": "wartung"}
+                    "registrierung": "konten", "passkeys": "sicherheit", "diagnose": "wartung",
+                    "versionen": "wartung"}
 
 
 def _settings_tab(value: str | None) -> str:
@@ -591,13 +592,14 @@ def _save_privacy() -> None:
     set_setting("retention_months", months if months in ("0", "3", "6", "12", "24", "36") else "12")
 
 
-def _save_nothing() -> None:
-    """The maintenance tab has no settings (only the diagnostic package)."""
+def _save_maintenance() -> None:
+    """Maintenance tab: only the switch of the version check (3.5.0)."""
+    set_setting("update_check", form_bool("update_check"))
 
 
 _SETTINGS_SAVE = {"allgemein": _save_general, "ausleihe": _save_lending, "katalog": _save_catalog,
                   "konten": _save_accounts, "sicherheit": _save_security, "datenschutz": _save_privacy,
-                  "wartung": _save_nothing}
+                  "wartung": _save_maintenance}
 
 
 @bp.route("/einstellungen", methods=["GET", "POST"])
@@ -639,9 +641,25 @@ def _maintenance_context(tab: str) -> dict:
     from .. import diagnostics
     from ..models import DiagAlias
     query = (request.args.get("platzhalter") or "").strip()[:200]
-    return {"diag_query": query, "diag_hits": diagnostics.lookup(query) if query else [],
+    from .. import updatecheck
+    return {"update": updatecheck.status(), "diag_query": query, "diag_hits": diagnostics.lookup(query) if query else [],
             "diag_alias_count": DiagAlias.query.count(), "diag_days": diagnostics.DAYS_DEFAULT,
             "diag_days_max": diagnostics.DAYS_MAX}
+
+
+@bp.route("/versionspruefung", methods=["POST"])
+@admin_required
+def update_check_now():
+    """Settings → Wartung → "Jetzt prüfen"."""
+    from .. import updatecheck
+    res = updatecheck.check_now()
+    if not res.get("ok"):
+        flash(_("GitHub war nicht erreichbar – Einzelheiten unter „Neue Versionen“."), "error")
+    elif updatecheck.newer_than_running(res.get("latest")):
+        flash(_("Version {version} ist verfügbar.", version=res["latest"]), "success")
+    else:
+        flash(_("Diese Installation ist auf dem neuesten Stand."), "success")
+    return redirect(url_for("admin.settings", bereich="wartung") + "#versionen")
 
 
 @bp.route("/diagnosepaket", methods=["POST"])

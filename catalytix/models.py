@@ -123,6 +123,8 @@ class User(UserMixin, Model):
     group_bound = db.Column(db.Boolean, default=False, nullable=False)
     # 3.3.1: "Don't show again" on the overview's passkey suggestion
     passkey_hint_off = db.Column(db.Boolean, default=False, nullable=False)
+    # 3.5.0: newest version whose update notice this admin hid on the overview (updatecheck.py)
+    update_hidden = db.Column(db.String(20), nullable=True)
 
     groups: Mapped[list[Group]] = relationship("Group", secondary=user_groups, back_populates="users")
     loans: Mapped[list[Loan]] = relationship("Loan", back_populates="user", foreign_keys="Loan.user_id")
@@ -511,6 +513,7 @@ DEFAULT_SETTINGS = {
     "mail_overdue_max": "3",
     "mail_digest": "0",
     "mail_hour": "7",
+    "update_check": "1",       # daily: is a newer version published on GitHub? (updatecheck.py)
     "backup_enabled": "1",     # daily backup (SQLite only)
     "backup_keep": "10",       # number of backups kept
     "backup_hour": "2",        # from this hour on

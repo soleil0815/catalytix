@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.5.0",
+  "date": "2026-11-20",
+  "items": [
+   {
+    "kind": "new",
+    "audience": "admin",
+    "de": {
+     "title": "Hinweis auf neue Versionen",
+     "text": "Aktualisiert Ihr Server nicht automatisch, zeigt die Übersicht einen Hinweis, sobald eine neuere Version seit einem Tag verfügbar ist – mit Link zu den Neuerungen. Abschalten und „Jetzt prüfen“ unter Einstellungen → Wartung."
+    },
+    "en": {
+     "title": "Notice about new versions",
+     "text": "If your server does not update automatically, the overview shows a notice once a newer version has been available for a day – with a link to what's new. Switch it off or “Check now” under Settings → Maintenance."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.4.2",
   "date": "2026-11-19",
   "items": [

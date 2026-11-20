@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.4.2** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 3.5.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name Ihrer Bibliothek.
 
@@ -56,6 +56,8 @@ Optional für Updates von Hand mit automatischem Weg zurück: `update.sh` in den
 ### Update
 
 **Mit einer Container-Verwaltung** (Dockhand, Watchtower, Tugtainer …): einfach wie andere Container aktualisieren lassen. Empfehlung: die Update-Zeit **nachts** legen (z. B. 3 Uhr) – beim Start einer neuen Version ist die Bibliothek kurz nicht erreichbar.
+
+**Hinweis auf neue Versionen:** Wer nicht automatisch aktualisiert, sieht als Administrator auf der Übersicht einen Hinweis, sobald eine neuere Version seit einem Tag veröffentlicht ist (tägliche Abfrage bei GitHub, nur die Anfrage selbst; abschaltbar unter *Einstellungen → Wartung → Neue Versionen*, dort auch *Jetzt prüfen*). Aktualisiert wird nie von selbst.
 
 **Von Hand:**
 

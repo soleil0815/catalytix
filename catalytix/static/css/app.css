@@ -234,6 +234,9 @@ fieldset { border: 0; padding: 0; margin: 0; }
 .notice.danger { background: var(--danger-soft); }
 .notice.ok { background: var(--ok-soft); }
 .notice.accent { background: var(--accent-soft); }
+.update-notice { flex-wrap: wrap; align-items: center; }
+.update-notice .grow { flex: 1 1 260px; min-width: 0; }
+.update-notice small { display: block; margin-top: 4px; }
 
 /* ------------------------------------------------------------ Tables */
 .table-wrap { overflow-x: auto; }

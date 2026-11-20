@@ -79,6 +79,7 @@ PLAIN = {
     "brand_brass", "brand_side", "login_show_shelf", "default_language", "setup_completed", "dircache_ok_at",
     "dircache_retry_after", "dircache_running", "dircache_slot", "db_version", "db_upgrade_backup",
     "version_history", "backup_last_run", "retention_last_run", "mail_running",
+    "update_check", "update_check_result", "update_check_last_run",
 }
 
 # Every table with what the package takes from it – only counts, never rows
@@ -638,6 +639,12 @@ def _database(instance: Path) -> dict[str, Any]:
     return info
 
 
+def _update_status() -> dict[str, Any]:
+    from . import updatecheck
+    st = updatecheck.status()
+    return {k: st[k] for k in ("on", "checked", "ok", "error", "detail", "latest", "newer")}
+
+
 def _system(instance: Path, an: Anonymizer, started: float | None) -> dict[str, Any]:
     from . import composefile
     tz = time.strftime("%Z %z")
@@ -651,6 +658,7 @@ def _system(instance: Path, an: Anonymizer, started: float | None) -> dict[str, 
         if started else None,
         "container": composefile.in_container(), "compose_version": composefile.current(),
         "compose_veraltet": composefile.outdated() is not None,
+        "versionspruefung": _update_status(),
         "datenbank": _database(instance), "datenordner": _disk(instance),
         "umgebung": _env(an),
         "pakete": _packages(),

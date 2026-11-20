@@ -2,6 +2,15 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.5.0 – 2026-11-20
+**New**
+- **Notice about new versions:** once a day the server asks GitHub for the latest published version (public
+  interface, no account; only the request is sent). Once a newer one has been out for a day, administrators see a
+  notice on the overview with "What's new?" and `./update.sh --pull` – installations that update automatically
+  therefore never see it. "Hide for this version" lasts until the next version. *Settings → Maintenance → New
+  versions*: switch (on), installed/latest version, last check with the reason if GitHub was not reachable, and
+  *Check now*. The result is also in the diagnostic package. Nothing is ever updated automatically.
+
 ## 3.4.2 – 2026-11-19
 **Improved**
 - **The second sign-in step names the passkey:** anyone who has a passkey but signed in with the password (on the

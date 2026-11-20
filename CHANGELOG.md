@@ -3,6 +3,16 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.5.0 – 20.11.2026
+**Neu**
+- **Hinweis auf neue Versionen:** Einmal am Tag fragt der Server bei GitHub nach der neuesten veröffentlichten Version
+  (öffentliche Schnittstelle, ohne Konto; übertragen wird nur die Anfrage). Ist eine neuere seit einem Tag draußen,
+  sehen Administratoren auf der Übersicht einen Hinweis mit „Was ist neu?“ und `./update.sh --pull` – wer
+  automatisch aktualisiert, sieht ihn deshalb nie. „Für diese Version ausblenden“ gilt bis zur nächsten Version.
+  *Einstellungen → Wartung → Neue Versionen*: Schalter (an), installierte/neueste Version, letzte Prüfung samt
+  Grund, falls GitHub nicht erreichbar war, und *Jetzt prüfen*. Das Ergebnis steht auch im Diagnosepaket.
+  Aktualisiert wird nie von selbst.
+
 ## 3.4.2 – 19.11.2026
 **Verbessert**
 - **Zweiter Anmeldeschritt nennt den Passkey:** Wer einen Passkey hat, aber mit dem Passwort angemeldet ist (auf dem

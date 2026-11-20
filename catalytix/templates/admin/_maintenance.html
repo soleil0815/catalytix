@@ -20,6 +20,35 @@
       {{ _("Die Datei liegt danach im Datenordner unter diagnose/.") }}</p>
   </section>
 
+  <section class="card card-pad" id="versionen">
+    <h2 style="margin-bottom: 6px">{{ icon("download") }} {{ _("Neue Versionen") }}</h2>
+    <p class="muted" style="font-size: 13.5px">{{ _("Einmal am Tag fragt der Server bei GitHub nach, ob eine neuere Version veröffentlicht ist. Ist das seit einem Tag der Fall, sehen Administratoren einen Hinweis auf der Übersicht. Übertragen wird nur die Anfrage selbst – keine Daten der Bibliothek. Aktualisiert wird nie von selbst.") }}</p>
+    <form method="post" action="{{ url_for('admin.settings', bereich='wartung') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="bereich" value="wartung">
+      <label class="check" style="margin-bottom: 12px"><input type="checkbox" name="update_check" value="1" {{ 'checked' if update.on }}>
+        <span>{{ _("Täglich nach neuen Versionen suchen") }}</span></label>
+      <button class="btn sm">{{ _("Speichern") }}</button>
+    </form>
+    <div class="list-row" style="padding: 10px 0 4px"><span class="muted">{{ _("Installiert") }}</span><span class="grow"></span><b>{{ update.current }}</b></div>
+    {% if update.latest %}<div class="list-row" style="padding: 4px 0"><span class="muted">{{ _("Neueste Version") }}</span><span class="grow"></span>
+      <a href="{{ update.url }}" target="_blank" rel="noopener noreferrer"><b>{{ update.latest }}</b></a>{% if update.newer %}&nbsp;<span class="badge warn">{{ _("neuer") }}</span>{% endif %}</div>{% endif %}
+    <div class="list-row" style="padding: 4px 0 10px"><span class="muted">{{ _("Zuletzt geprüft") }}</span><span class="grow"></span>
+      <span>{% if update.checked %}{{ update.checked|replace("T", " ") }}{% else %}{{ _("noch nie") }}{% endif %}</span></div>
+    {% if update.ok == false %}
+    {% set reasons = {"timeout": _("GitHub hat nicht rechtzeitig geantwortet."),
+                      "connection": _("GitHub nicht erreichbar – hat der Server Zugang ins Internet (ggf. über einen Proxy, HTTPS_PROXY)?"),
+                      "ratelimit": _("GitHub: zu viele Anfragen von dieser Internet-Adresse. Morgen klappt es wieder."),
+                      "http": _("GitHub hat mit einem Fehler geantwortet (HTTP {code}).", code=update.detail),
+                      "answer": _("Die Antwort von GitHub war nicht verständlich.")} %}
+    <p class="notice warn" style="font-size: 13.5px">{{ icon("alert") }}<span>{{ reasons.get(update.error, _("Die Prüfung ist fehlgeschlagen.")) }}</span></p>
+    {% endif %}
+    <form method="post" action="{{ url_for('admin.update_check_now') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn sm">{{ icon("search") }} {{ _("Jetzt prüfen") }}</button>
+    </form>
+  </section>
+
   <section class="card card-pad" id="platzhalter">
     <h2 style="margin-bottom: 6px">{{ icon("search") }} {{ _("Platzhalter nachschlagen") }}</h2>
     <p class="muted" style="font-size: 13.5px">{{ _("Steht im Paket z. B. BENUTZER-007 oder host-02, finden Sie hier, wer oder was das ist. Die Platzhalter bleiben dauerhaft gleich; diese Zuordnung bleibt auf dem Server und ist nie Teil eines Pakets.") }}</p>

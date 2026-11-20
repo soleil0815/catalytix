@@ -624,6 +624,8 @@ def start_scheduler(app, interval: int = 300):
                     cleanup_lockouts()
                     run_backup_daily()      # back up first, then clean up
                     run_retention_daily()
+                    from .updatecheck import run_daily as run_update_check
+                    run_update_check()
                     from .reservations import enabled as reservations_on, expire_due
                     if reservations_on():
                         expire_due()        # uncollected reservations: it's the next person's turn

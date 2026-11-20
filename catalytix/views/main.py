@@ -341,7 +341,9 @@ def dashboard():
     # adding a factor needs a confirmed second factor in this session (see security._may_manage) – otherwise the
     # suggestion leads to the security page, which asks for it
     passkey_inline = passkey_hint and (bool(session.get("mfa_ok")) or not current_user.has_2fa)
-    return render_template("dashboard.html", my_loans=my_loans, newest=newest, stats=stats,
+    from .. import updatecheck
+    update_notice = updatecheck.notice(current_user)
+    return render_template("dashboard.html", update_notice=update_notice, my_loans=my_loans, newest=newest, stats=stats,
                            overdue=overdue, recent_loans=recent_loans, news_hint=news_hint, ready=ready,
                            compose_old=compose_old, compose_min=composefile.COMPOSE_MIN,
                            passkey_hint=passkey_hint, passkey_inline=passkey_inline)
@@ -548,6 +550,19 @@ def passkey_hint_off():
     """ "Don't show again" on the overview's passkey suggestion (for this account, on every device)."""
     current_user.passkey_hint_off = True
     db.session.commit()
+    return redirect(url_for("main.dashboard"))
+
+
+@bp.route("/versionshinweis/aus", methods=["POST"])
+@login_required
+def update_notice_off():
+    """Hide the notice about a newer version – only up to this version; the next one shows it again."""
+    from .. import updatecheck
+    if current_user.is_admin:
+        latest = updatecheck.result().get("latest")
+        if updatecheck.parse(latest):
+            current_user.update_hidden = latest
+            db.session.commit()
     return redirect(url_for("main.dashboard"))
 
 

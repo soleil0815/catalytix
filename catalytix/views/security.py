@@ -12,6 +12,7 @@ from .. import lockout, twofa
 from ..i18n import _
 from ..models import User, WebAuthnCredential, db, get_setting
 from . import form_str, safe_next
+from ..logmark import personal
 
 bp = Blueprint("security", __name__)
 log = logging.getLogger(__name__)
@@ -108,7 +109,7 @@ def _too_many_mfa_fails(user: User) -> bool:
             from flask_login import logout_user
             session.clear()
             logout_user()
-        log.warning("Too many failed second-factor attempts for %s – sign-in discarded", user.username)
+        log.warning("Too many failed second-factor attempts for %s – sign-in discarded", personal(user.username))
         return True
     return False
 
@@ -145,7 +146,7 @@ def challenge():
             lockout.clear(key)
             return redirect(_finish(user))
         lockout.fail(key, user.username)
-        log.info("2FA failed for %s", user.username)
+        log.info("2FA failed for %s", personal(user.username))
         flash(_("Der Code ist ungültig."), "error")
     keys = [c for c in user.webauthn_credentials if c.rp_id == twofa.rp_id_for(request.host)]
     # 3.4.2: name the passkey – on the phone the saved password is easily picked instead of the passkey, and
@@ -185,7 +186,7 @@ def challenge_key_complete():
     try:
         ok = twofa.webauthn_auth_complete(user, twofa.rp_id_for(request.host), state, request.get_json(force=True))
     except Exception as exc:  # noqa: BLE001
-        log.info("WebAuthn sign-in %s failed: %s", user.username, exc)
+        log.info("WebAuthn sign-in %s failed: %s", personal(user.username), exc)
         ok = False
     if not ok:
         lockout.fail(key, user.username)
@@ -241,7 +242,7 @@ def passkey_complete():
         lockout.fail(key, "")
         return _passkey_refused()
     if not user.active or user.pending_approval or (user.self_registered and not user.email_verified):
-        log.info("Passkey sign-in of %s refused: account not active", user.username)
+        log.info("Passkey sign-in of %s refused: account not active", personal(user.username))
         lockout.fail(key, user.username)
         return _passkey_refused()
     if user.auth_source == "ldap":
@@ -257,7 +258,7 @@ def passkey_complete():
     db.session.commit()
     _sign_in(user, bool(payload.get("remember")), netzone.is_internal())
     session["mfa_ok"] = True       # a passkey is a confirmed second factor (managing factors allowed)
-    log.info("Passkey sign-in of %s", user.username)
+    log.info("Passkey sign-in of %s", personal(user.username))
     return jsonify({"ok": True, "redirect": safe_next(str(payload.get("next") or "")) or url_for("main.dashboard")})
 
 
@@ -266,20 +267,31 @@ def _check_ad_for_passkey(user: User):
     from ..ldap_auth import Directory, LDAPError, ldap_enabled
     from .main import same_person, sync_ldap_user
     if not ldap_enabled() or not get_setting("ldap_bind_dn"):
-        log.warning("Passkey sign-in of AD account %s refused: no service account to check it in AD", user.username)
+        log.warning("Passkey sign-in of AD account %s refused: no service account to check it in AD", personal(user.username))
         return _passkey_refused(_("Für dieses Konto ist die Anmeldung mit Passkey nicht möglich. Bitte melden Sie "
                                   "sich mit Ihrem Passwort an."))
     try:
         info = Directory().check_for_passkey(user.username)
     except LDAPError as exc:
-        log.warning("Passkey sign-in of %s refused: AD not reachable (%s)", user.username, exc)
+        log.warning("Passkey sign-in of %s refused: AD not reachable (%s)", personal(user.username), exc)
         return _passkey_refused(_("Die Anmeldung mit Passkey ist gerade nicht möglich. Bitte melden Sie sich mit "
                                   "Ihrem Passwort an."), 503)
     if info is not None and not same_person(user, info):
-        log.warning("Passkey sign-in of %s refused: the name belongs to a different person in AD", user.username)
+        log.warning("Passkey sign-in of %s refused: the name belongs to a different person in AD", personal(user.username))
+        info = None
+    # 3.5.1: a passkey proves the device, not the AD password – only the immutable AD identifier shows that the
+    # account behind the name is still the same person (a reassigned name would otherwise hand over the account and
+    # the new owner's role). Without an identifier on both sides: password sign-in only.
+    if info is not None and not user.ldap_guid:
+        # not stored yet (older account): no failed attempt – one password sign-in stores it
+        log.info("Passkey sign-in of %s refused: no AD identifier stored yet", personal(user.username))
+        return _passkey_refused(_("Bitte melden Sie sich einmal mit Ihrem Passwort an – danach funktioniert die "
+                                  "Anmeldung mit Passkey wieder."))
+    if info is not None and not (info.guid and user.ldap_guid == info.guid):
+        log.info("Passkey sign-in of %s refused: AD identifier missing or changed", personal(user.username))
         info = None
     if info is None or info.role is None:
-        log.info("Passkey sign-in of %s refused: not (or no longer) allowed in AD", user.username)
+        log.info("Passkey sign-in of %s refused: not (or no longer) allowed in AD", personal(user.username))
         lockout.fail(_passkey_key(), user.username)
         return _passkey_refused()
     sync_ldap_user(info, user)
@@ -488,7 +500,7 @@ def enforce_setup():
     internal = netzone.is_internal()
     if session.get("mfa_skipped") and not internal and twofa.needed_outside(current_user):
         log.info("Session of %s without second factor (started internally) used from outside – sign in again",
-                 current_user.username)
+                 personal(current_user.username))
         session.clear()     # first – logout_user() records in it that the remember cookie is to be deleted
         logout_user()
         if request.path.startswith("/api/"):

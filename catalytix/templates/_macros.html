@@ -99,13 +99,21 @@
 {%- endif -%}
 {%- endmacro %}
 
-{% macro lang_switch(cls="") -%}
-<form class="lang-switch {{ cls }}" method="post" aria-label="{{ _('Sprache') }}">
+{# choice (profile only): the account's stored language ("" = automatic) – adds a third button "Automatisch" and
+   marks the stored choice instead of the language currently shown #}
+{% macro lang_switch(cls="", choice=None) -%}
+{%- set with_auto = choice is not none -%}
+{%- set chosen = (choice or "auto") if with_auto else get_locale() -%}
+<form class="lang-switch {{ cls }}" method="post" aria-label="{{ _('Sprache') }}" {{ 'data-lang-choice' if with_auto }}>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="next" value="{{ request.full_path if request.method == 'GET' else '' }}">
+  {%- if with_auto %}
+  <button type="submit" formaction="{{ url_for('main.set_language', code='auto') }}" title="{{ _('Sprache des Browsers, sonst die Standardsprache') }}"
+          class="{{ 'on' if chosen == 'auto' }}" {{ 'aria-current=true' if chosen == 'auto' }}>{{ _("Automatisch") }}</button>
+  {%- endif %}
   {%- for code, label in LANGUAGES.items() %}
   <button type="submit" formaction="{{ url_for('main.set_language', code=code) }}" lang="{{ code }}" title="{{ label }}"
-          class="{{ 'on' if get_locale() == code }}" {{ 'aria-current=true' if get_locale() == code }}>{{ code|upper }}</button>
+          class="{{ 'on' if chosen == code }}" {{ 'aria-current=true' if chosen == code }}>{{ code|upper }}</button>
   {%- endfor %}
 </form>
 {%- endmacro %}

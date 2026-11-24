@@ -71,6 +71,7 @@ class PasskeyHintTests(BaseCase):
     def test_ad_account_only_with_service_account(self):
         self.enable()
         self.user.auth_source = "ldap"
+        self.user.ldap_guid = "g-1"          # 3.5.1: passkeys for AD accounts need the AD identifier
         db.session.commit()
         set_setting("ldap_enabled", "1")
         db.session.commit()

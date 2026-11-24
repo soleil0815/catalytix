@@ -3,6 +3,34 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.5.1 – 24.11.2026
+**Sicherheit** (Funde aus dem AssetLotse-Audit 2026-11, gleicher Code)
+- **HTTPS-Umstellung nur noch je Proxy:** Mit `CATALYTIX_TRUSTED_PROXIES=private` (Standard) zählt jeder LAN-Rechner
+  als Proxy. Eine einzige Anfrage mit `X-Forwarded-Proto: https` schaltete einen Hostnamen dauerhaft für alle auf
+  HTTPS – Nutzer eines Proxys ohne HTTPS landeten per 301 im Leeren; mit erfundenen Namen ließ sich das Lernen
+  blockieren. `https-hosts.txt` gilt jetzt je Host **und** Proxy-Adresse (je Adresse höchstens 50; ist alles voll,
+  weicht der Absender mit den meisten Einträgen). Alte Zeilen ohne Adresse werden neu gelernt.
+- **Passkey-Anmeldung von AD-Konten nur mit AD-Kennung:** Fehlte die objectGUID im AD oder im Konto, reichte der
+  Benutzername – nach Neuvergabe eines AD-Namens hätte der alte Passkey das Konto mit der Rolle der neuen Person
+  geöffnet. Jetzt müssen beide Kennungen vorhanden und gleich sein; ohne Kennung wird kein Passkey angeboten. Schon eingerichtete Passkeys älterer AD-Konten ohne gespeicherte Kennung gehen erst wieder nach einer Anmeldung mit Passwort – die Anmeldeseite sagt das dann.
+- **Diagnosepaket ohne Klartext-Namen im Protokoll:** Ersetzt wurden nur Werte, die in der Datenbank stehen –
+  gelöschte Konten, falsch getippte Namen und ein versehentlich ins Benutzerfeld getipptes **Passwort** blieben in
+  `log.txt`. Benutzernamen werden jetzt beim Schreiben unsichtbar markiert und im Paket vollständig ersetzt;
+  unbekannte Werte bekommen nur einen Platzhalter für dieses Paket (UNBEKANNT-01) und werden nirgends gespeichert.
+
+**Behoben**
+- Notfall-Befehle (`reset-password`, `reset-2fa`, `create-admin`) beachteten Groß-/Kleinschreibung, die Anmeldung nicht.
+- Die Benutzerseite der Administration zählte Passkeys als „Sicherheitsschlüssel“; die Rückfrage beim Zurücksetzen
+  des zweiten Faktors verschwieg die Passkeys.
+- Ein kaputter Anker in der Adresse (z. B. `#%E0`) brach das Seitenskript der Einstellungen ab.
+
+**Verbessert**
+- **Sprache „Automatisch“:** Im Profil gibt es neben DE/EN die Wahl *Automatisch*. Sie hebt eine feste Sprache wieder
+  auf (dann gilt die Sprache des Browsers, sonst die Standardsprache). Unter dem Umschalter steht, was gerade gilt.
+- **Hinweis bei der Standardsprache:** Steht das eigene Konto fest auf einer anderen Sprache, sagt die Seite
+  *Einstellungen → Allgemein* das jetzt dazu – eine feste Wahl hat immer Vorrang vor der Standardsprache.
+- **Diagnosepaket:** zählt die Spracheinstellung zusätzlich je Rolle (ohne Namen).
+
 ## 3.5.0 – 20.11.2026
 **Neu**
 - **Hinweis auf neue Versionen:** Einmal am Tag fragt der Server bei GitHub nach der neuesten veröffentlichten Version

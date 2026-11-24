@@ -14,6 +14,7 @@ from ..i18n import _, get_locale
 from ..models import (MIN_PASSWORD_LENGTH, ROLE_ADMIN, Book, Group, Loan, User, db, get_bool, get_setting,
                       manageable_books_query, set_setting, visible_books_query)
 from . import form_str, safe_next
+from ..logmark import personal
 
 bp = Blueprint("main", __name__)
 log = logging.getLogger(__name__)
@@ -52,7 +53,7 @@ def account_for(info, directory=None) -> User | None:
     try:
         other = directory.find_by_guid(user.ldap_guid)
     except LDAPError as exc:
-        log.warning("Account %s: previous owner cannot be checked in AD (%s) – nothing changed", user.username, exc)
+        log.warning("Account %s: previous owner cannot be checked in AD (%s) – nothing changed", personal(user.username), exc)
         raise AccountMismatch(user.username) from exc
     if other is not None and other.username:
         # The previous person still exists, just under another name: their account moves
@@ -98,7 +99,7 @@ def retire_account(user: User) -> None:
     user.auth_epoch = (user.auth_epoch or 0) + 1
     db.session.flush()
     log.warning("AD account %s belongs to a different person than before (new AD identifier) – old account "
-                "retired as %s", old, user.username)
+                "retired as %s", personal(old), personal(user.username))
 
 
 def sync_ldap_user(info, existing: User | None, ldap_groups: list | None = None, rename: bool = True,
@@ -116,11 +117,11 @@ def sync_ldap_user(info, existing: User | None, ldap_groups: list | None = None,
         # renamed in AD: account (with all loans) follows, provided the new name is free
         taken = User.query.filter(func.lower(User.username) == info.username.lower(), User.id != user.id).first()
         if taken is None:
-            log.info("AD account renamed: %s → %s", user.username, info.username)
+            log.info("AD account renamed: %s → %s", personal(user.username), personal(info.username))
             user.username = info.username
         else:
             log.warning("AD account %s is now called %s in AD – that name is already taken in Catalytix, "
-                        "rename skipped", user.username, info.username)
+                        "rename skipped", personal(user.username), personal(info.username))
     user.auth_source = "ldap"
     user.password_hash = None
     user.display_name = info.display_name
@@ -193,7 +194,7 @@ def login():
                 if info.role is None:
                     # Deliberately the same message as for a wrong password: from outside it must not
                     # be discernible whether an account exists or the password was correct.
-                    log.info("LDAP sign-in %s refused: no rule matches (%s)", username, info.dn)
+                    log.info("LDAP sign-in %s refused: no rule matches (%s)", personal(username), info.dn)
                 else:
                     if user is None or user.auth_source == "ldap":
                         # via the immutable AD ID: same account even after a rename in AD
@@ -203,7 +204,7 @@ def login():
                         # A local account is never taken over via AD login (e.g. "DOMAIN\\kasse"
                         # for the local account "kasse") – same message as for a wrong password.
                         log.warning("AD sign-in as %s refused: local account %s with the same name "
-                                    "is never taken over", username, user.username)
+                                    "is never taken over", personal(username), personal(user.username))
                     else:
                         ok_user = sync_ldap_user(info, user)
                         db.session.commit()
@@ -211,10 +212,10 @@ def login():
                 db.session.rollback()
                 mismatch = True
                 log.warning("LDAP sign-in %s: account %s belongs to a different person by AD identifier and "
-                            "cannot be moved – sign-in refused", username, exc)
+                            "cannot be moved – sign-in refused", personal(username), exc)
                 error = _("Anmeldung derzeit nicht möglich. Bitte versuchen Sie es später erneut.")
             except LDAPError as exc:
-                log.warning("LDAP sign-in %s failed: %s", username, exc)
+                log.warning("LDAP sign-in %s failed: %s", personal(username), exc)
             except Exception:  # noqa: BLE001 – never give details to the client
                 log.exception("Unexpected error during LDAP sign-in")
                 error = _("Anmeldung derzeit nicht möglich. Bitte versuchen Sie es später erneut.")
@@ -229,7 +230,7 @@ def login():
             return render_template("login.html", username=username), 403
 
         if ok_user is not None and not ok_user.active:
-            log.info("Sign-in of locked account %s refused", ok_user.username)
+            log.info("Sign-in of locked account %s refused", personal(ok_user.username))
             ok_user = None
 
         if ok_user is None:
@@ -393,7 +394,12 @@ def profile():
             return redirect(url_for("main.profile"))
     history = (Loan.query.filter_by(user_id=current_user.id)
                .order_by(Loan.loaned_at.desc()).limit(50).all())
+    from ..i18n import LANGUAGES, browser_language, default_language, normalize
     return render_template("profile.html", history=history,
+                           # what "automatic" shows right now: as i18n.get_locale (choice of this session first)
+                           auto_language=LANGUAGES[normalize(session.get("lang")) or browser_language()
+                                                   or default_language()],
+                           fixed_language=LANGUAGES.get(current_user.language or ""),
                            self_extend=get_bool("self_extend"), mail_on=get_bool("mail_enabled"),
                            max_ext=int(get_setting("max_extensions") or 0))
 
@@ -507,13 +513,19 @@ def _license_file():
 
 @bp.route("/sprache/<code>", methods=["POST"])
 def set_language(code):
-    """Switch language – stored in the profile when signed in, otherwise for this session."""
+    """Switch language – stored in the profile when signed in, otherwise for this session.
+
+    "auto" (3.5.1) removes the fixed choice again: the browser language, otherwise the default language."""
     from ..i18n import normalize
-    lang = normalize(code)
-    if lang is None:
-        abort(404)
-    session["lang"] = lang
     from flask import g
+    if code == "auto":
+        session.pop("lang", None)
+        lang = ""
+    else:
+        lang = normalize(code) or ""
+        if not lang:
+            abort(404)
+        session["lang"] = lang
     g.pop("_catalytix_locale", None)   # messages of this request already in the new language
     if current_user.is_authenticated:
         current_user.language = lang

@@ -26,6 +26,7 @@ from sqlalchemy import func
 from ..i18n import _
 from ..models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLE_READER, Group, User, db, get_bool, get_setting
 from . import form_str
+from ..logmark import personal
 
 bp = Blueprint("register", __name__)
 log = logging.getLogger(__name__)
@@ -97,7 +98,7 @@ def _exists_in_directory(username: str) -> bool | None:
         finally:
             conn.unbind()
     except Exception as exc:  # noqa: BLE001
-        log.warning("Registration: AD check for %s not possible: %s", username, exc)
+        log.warning("Registration: AD check for %s not possible: %s", personal(username), exc)
         return None
 
 
@@ -210,7 +211,7 @@ def confirm_email_change(token):
     user.email = new
     user.email_verified = True
     db.session.commit()
-    log.info("Email address of %s changed (confirmed)", user.username)
+    log.info("Email address of %s changed (confirmed)", personal(user.username))
     flash(_("Ihre neue E-Mail-Adresse ist bestätigt."), "success")
     return redirect(url_for("main.profile"))
 
@@ -303,7 +304,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         log.info("New registration: %s (%s) – approval needed: %s, confirmation needed: %s",
-                 username, email, user.pending_approval, verify)
+                 personal(username), email, user.pending_approval, verify)
         if verify:
             if not send_verification(user):
                 flash(_("Die Bestätigungs-E-Mail konnte gerade nicht gesendet werden. Melden Sie sich später an – "
@@ -336,7 +337,7 @@ def verify(token):
         maybe_activate(user)
         db.session.commit()
         notify_admins(user)
-        log.info("Email confirmed: %s", user.username)
+        log.info("Email confirmed: %s", personal(user.username))
     return render_template("register_done.html", state="verified", approval=user.pending_approval)
 
 

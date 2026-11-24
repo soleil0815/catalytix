@@ -79,12 +79,12 @@
 
   <div class="list-row" style="padding: 14px 0">
     <div class="grow"><b>{{ _("Zwei-Faktor-Anmeldung") }}</b>
-      <small>{% if user.has_2fa %}{{ _("Aktiv:") }} {% if user.totp_enabled %}{{ _("Authenticator-App") }}{% endif %}{% if user.totp_enabled and user.webauthn_credentials %} + {% endif %}{% if user.webauthn_credentials %}{{ _n("{n} Sicherheitsschlüssel", "{n} Sicherheitsschlüssel", user.webauthn_credentials|length) }}{% endif %}
+      <small>{% if user.has_2fa %}{{ _("Aktiv:") }} {% if user.totp_enabled %}{{ _("Authenticator-App") }}{% endif %}{% set nk = user.webauthn_credentials|rejectattr("passkey")|list|length %}{% set npk = user.webauthn_credentials|selectattr("passkey")|list|length %}{% if user.totp_enabled and nk %} + {% endif %}{% if nk %}{{ _n("{n} Sicherheitsschlüssel", "{n} Sicherheitsschlüssel", nk) }}{% endif %}{% if npk %}{% if user.totp_enabled or nk %} + {% endif %}{{ _n("{n} Passkey", "{n} Passkeys", npk) }}{% endif %}
         {%- if totp_broken %} · <span style="color: var(--danger)">{{ _("App muss neu eingerichtet werden") }}</span>{% endif %}
         {% else %}{% if required %}{{ _("Nicht eingerichtet – laut Richtlinie Pflicht, wird bei der nächsten Anmeldung von außen verlangt.") }}{% else %}{{ _("Nicht eingerichtet.") }}{% endif %}{% endif %}</small></div>
     {% if user.has_2fa %}
     <form method="post" action="{{ url_for('admin.user_reset_2fa', user_id=user.id) }}"
-          data-confirm="{{ _('Zweiten Faktor von {name} zurücksetzen? App und Sicherheitsschlüssel werden entfernt, die Anmeldung geht dann wieder nur mit Passwort.', name=user.username) }}{% if required %} {{ _('Die Neueinrichtung wird danach verlangt.') }}{% endif %}">
+          data-confirm="{{ _('Zweiten Faktor von {name} zurücksetzen? App, Sicherheitsschlüssel und Passkeys werden entfernt, die Anmeldung geht dann wieder nur mit Passwort.', name=user.username) }}{% if required %} {{ _('Die Neueinrichtung wird danach verlangt.') }}{% endif %}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn danger">{{ icon("extend") }} {{ _("Zurücksetzen") }}</button>
     </form>

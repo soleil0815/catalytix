@@ -18,8 +18,9 @@ Environment variables (optional):
   CATALYTIX_FORCE_HTTPS      HTTPS through the reverse proxy, for proxies that cannot redirect or send HSTS
                                themselves (e.g. the Synology reverse proxy):
                                "auto" (default) – a host is switched to HTTPS by itself as soon as it has been
-                               reached once over HTTPS through the proxy (remembered in the data folder, so it
-                               holds after a restart); a proxy without HTTPS is never redirected into nothing.
+                               reached once over HTTPS through the proxy (remembered in the data folder per host
+                               and proxy address, so it holds after a restart and another LAN computer cannot
+                               switch it on for everyone); a proxy without HTTPS is never redirected into nothing.
                                "1" – always, "0" – never.
                                Switched to HTTPS: HTTP requests through the proxy are redirected. HTTPS responses
                                carry HSTS (one year, this host only – no includeSubDomains, other programs on
@@ -101,28 +102,47 @@ class TrustedProxyFix:
                     environ["HTTP_X_FORWARDED_PROTO"] = "http" if port == "80" else "https"
             if environ.get("HTTP_X_FORWARDED_PROTO"):
                 environ[VIA_PROXY] = True      # for ForceHttps: this request came through the reverse proxy
+                environ[PROXY_ADDR] = _addr(environ.get("REMOTE_ADDR"))   # ProxyFix replaces REMOTE_ADDR
             return self.fixed(environ, start_response)
         return self.app(environ, start_response)
 
 
 VIA_PROXY = "catalytix.via_proxy"
+PROXY_ADDR = "catalytix.proxy_addr"
 HSTS = "max-age=31536000"
 # a DNS name (not an IP address, not "localhost"): only then is https://<host>/ a sensible target
 _HOST = re.compile(r"^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$")
 
 
-MAX_HOSTS = 50               # remembered HTTPS hosts (the proxy only forwards its configured names anyway)
+MAX_HOSTS = 50               # remembered HTTPS hosts per proxy address (the proxy only forwards its configured names)
+MAX_ENTRIES = 500            # all entries together
+
+
+def _addr(value: str | None) -> str:
+    """Normalised sender address of the proxy ("" if it is not an IP address)."""
+    try:
+        ip: ipaddress.IPv4Address | ipaddress.IPv6Address = ipaddress.ip_address((value or "").split("%")[0])
+    except ValueError:
+        return ""
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+        ip = ip.ipv4_mapped
+    return str(ip)
 
 
 class HttpsHosts:
-    """What the program has seen through the reverse proxy, per host – file in the data folder:
-    a line "<host>" = reached over HTTPS, "<host> redirected" = in addition, an HTTP request arrived and had to be
-    redirected (the proxy does not redirect itself, so it presumably sends no HSTS either)."""
+    """What the program has seen through the reverse proxy, per host AND per proxy address – file in the data
+    folder: a line "<host> <proxy address>" = reached over HTTPS through this proxy, "... redirected" = in addition,
+    an HTTP request arrived through it and had to be redirected (the proxy does not redirect itself, so it presumably
+    sends no HSTS either).
+    Bound to the proxy address (3.5.1): with the default TRUSTED_PROXIES=private every LAN client counts as a proxy;
+    before, one request from any LAN computer ("X-Forwarded-Proto: https", any Host) switched a host to HTTPS for
+    everyone – users coming through a proxy without HTTPS were then redirected into nothing. Now a sender only
+    switches HTTPS on for itself. Lines of older versions (without address) are ignored and simply learned again."""
 
     def __init__(self, path: Path | None) -> None:
         self.path = path
-        self.hosts: set[str] = set()
-        self.redirected: set[str] = set()
+        self.hosts: set[tuple[str, str]] = set()
+        self.redirected: set[tuple[str, str]] = set()
         self.mtime = 0.0
         self._lock = threading.Lock()
         self._reload()
@@ -139,55 +159,72 @@ class HttpsHosts:
                 lines = self.path.read_text(encoding="utf-8").splitlines()
             except OSError:
                 return
-            hosts: set[str] = set()
-            redirected: set[str] = set()
+            hosts: set[tuple[str, str]] = set()
+            redirected: set[tuple[str, str]] = set()
             for line in lines:
                 parts = line.split()
-                if parts and _HOST.match(parts[0]):
-                    hosts.add(parts[0])
-                    if "redirected" in parts[1:]:
-                        redirected.add(parts[0])
+                if len(parts) >= 2 and _HOST.match(parts[0]) and _addr(parts[1]) == parts[1]:
+                    key = (parts[0], parts[1])
+                    hosts.add(key)
+                    if "redirected" in parts[2:]:
+                        redirected.add(key)
             self.hosts, self.redirected, self.mtime = hosts, redirected, st.st_mtime
 
-    def known(self, host: str) -> bool:
-        if host not in self.hosts:
+    def known(self, host: str, addr: str) -> bool:
+        if (host, addr) not in self.hosts:
             self._reload()             # another worker may have learned it meanwhile
-        return host in self.hosts
+        return (host, addr) in self.hosts
 
-    def was_redirected(self, host: str) -> bool:
-        if host not in self.redirected:
+    def was_redirected(self, host: str, addr: str) -> bool:
+        if (host, addr) not in self.redirected:
             self._reload()
-        return host in self.redirected
+        return (host, addr) in self.redirected
 
-    def _save(self, message: str, host: str) -> None:
+    def _save(self, message: str, host: str, addr: str) -> None:
         if self.path is None:
             return
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             tmp = self.path.with_suffix(".tmp")
-            lines = [h + (" redirected" if h in self.redirected else "") for h in sorted(self.hosts)]
+            lines = [f"{h} {a}" + (" redirected" if (h, a) in self.redirected else "") for h, a in sorted(self.hosts)]
             tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
             os.replace(tmp, self.path)
             self.mtime = self.path.stat().st_mtime
-            log.info(message, host)
+            log.info(message, host, addr)
         except OSError as e:
             log.warning("Could not remember the HTTPS host: %s", e)
 
-    def learn(self, host: str) -> None:
-        if host in self.hosts or not _HOST.match(host) or len(self.hosts) >= MAX_HOSTS:
+    def learn(self, host: str, addr: str) -> None:
+        key = (host, addr)
+        if key in self.hosts or not _HOST.match(host) or not addr:
             return
         with self._lock:
             self._reload()
-            self.hosts.add(host)
-            self._save("HTTPS through the reverse proxy detected for %s – HTTP is now redirected to HTTPS", host)
+            if key in self.hosts or sum(1 for _, a in self.hosts if a == addr) >= MAX_HOSTS:
+                return
+            if len(self.hosts) >= MAX_ENTRIES:
+                # full: make room at the sender with the most entries – a real proxy forwards only a few names,
+                # so senders inventing names can never keep it from learning its own
+                counts: dict[str, int] = {}
+                for _, a in self.hosts:
+                    counts[a] = counts.get(a, 0) + 1
+                busiest = max(counts, key=lambda a: counts[a])
+                drop = sorted(k for k in self.hosts if k[1] == busiest)[0]
+                self.hosts.discard(drop)
+                self.redirected.discard(drop)
+            self.hosts.add(key)
+            self._save("HTTPS through the reverse proxy detected for %s (proxy %s) – HTTP is now redirected to HTTPS",
+                       host, addr)
 
-    def mark_redirected(self, host: str) -> None:
-        if host in self.redirected or host not in self.hosts:
+    def mark_redirected(self, host: str, addr: str) -> None:
+        key = (host, addr)
+        if key in self.redirected or key not in self.hosts:
             return
         with self._lock:
             self._reload()
-            self.redirected.add(host)
-            self._save("The reverse proxy does not redirect %s to HTTPS itself – HSTS is now sent", host)
+            self.redirected.add(key)
+            self._save("The reverse proxy does not redirect %s to HTTPS itself (proxy %s) – HSTS is now sent",
+                       host, addr)
 
 
 def _host(environ: WSGIEnvironment) -> str:
@@ -208,20 +245,21 @@ class ForceHttps:
         self.mode = mode if mode in ("auto", "1", "0") else "auto"
         self.hosts = hosts or HttpsHosts(None)
 
-    def _active(self, host: str) -> bool:
-        return self.mode == "1" or (self.mode == "auto" and self.hosts.known(host))
+    def _active(self, host: str, addr: str) -> bool:
+        return self.mode == "1" or (self.mode == "auto" and self.hosts.known(host, addr))
 
     def __call__(self, environ: WSGIEnvironment, start_response: StartResponse) -> Iterable[bytes]:
         if self.mode == "0" or not environ.get(VIA_PROXY):
             return self.app(environ, start_response)      # direct request: never redirected, no HSTS
         scheme = environ.get("wsgi.url_scheme")
         host = _host(environ)
+        addr = environ.get(PROXY_ADDR) or ""
         if scheme == "https" and self.mode == "auto":
-            self.hosts.learn(host)
-        if scheme == "http" and self._active(host):
+            self.hosts.learn(host, addr)
+        if scheme == "http" and self._active(host, addr):
             if _HOST.match(host):
                 if self.mode == "auto":
-                    self.hosts.mark_redirected(host)
+                    self.hosts.mark_redirected(host, addr)
                 path = quote(environ.get("PATH_INFO") or "/", safe="/%:@!$&'()*+,;=-._~")
                 query = quote(environ.get("QUERY_STRING") or "", safe="=&%+;/:@!$'()*,?-._~")
                 target = f"https://{host}{environ.get('SCRIPT_NAME', '')}{path}" + (f"?{query}" if query else "")
@@ -234,7 +272,7 @@ class ForceHttps:
         # HSTS only where the program had to redirect itself: a proxy that redirects on its own (Nginx Proxy Manager
         # with "Force SSL") usually also sends HSTS – a second header would override its setting (browsers use the
         # first one) and is reported as an error by checkers such as hstspreload.org.
-        hsts = self.mode == "1" or (self.mode == "auto" and self.hosts.was_redirected(host))
+        hsts = self.mode == "1" or (self.mode == "auto" and self.hosts.was_redirected(host, addr))
         if scheme != "https" or not hsts:
             return self.app(environ, start_response)
 

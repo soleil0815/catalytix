@@ -47,12 +47,14 @@
     {% else %}
     <div class="notice">{{ icon("server") }}<div>{{ _("Name und E-Mail-Adresse kommen aus dem Active Directory und werden dort gepflegt.") }}</div></div>
     {% endif %}
-    <section class="card card-pad">
+    <section class="card card-pad" id="sprache">
       <div class="actions" style="justify-content: space-between">
         <h3>{{ icon("globe") }} {{ _("Sprache") }}</h3>
-        {{ lang_switch() }}
+        {{ lang_switch(choice=current_user.language or "") }}
       </div>
-      <p class="muted" style="font-size: 13px; margin: 8px 0 0">{{ _("Gilt für die Oberfläche und für E-Mails an Sie.") }}</p>
+      <p class="muted" style="font-size: 13px; margin: 8px 0 0" data-lang-state>
+        {%- if fixed_language %}{{ _("Fest eingestellt: {lang} – für die Oberfläche und für E-Mails an Sie, unabhängig von Browser und Standardsprache.", lang=fixed_language) }}
+        {%- else %}{{ _("Automatisch: Sie sehen die Sprache Ihres Browsers, sonst die Standardsprache der Bibliothek – derzeit {lang}. E-Mails an Sie kommen in der Standardsprache.", lang=auto_language) }}{% endif %}</p>
     </section>
     <section class="card card-pad">
       <div class="actions" style="justify-content: space-between">

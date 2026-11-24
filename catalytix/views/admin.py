@@ -15,6 +15,7 @@ from ..ldap_auth import Directory, LDAPError, group_cn, parse_rules
 from ..models import (MIN_PASSWORD_LENGTH, DEFAULT_SETTINGS, ROLE_ADMIN, ROLES, Book, Group, Loan, User, db, get_bool, get_setting,
                       set_setting)
 from . import admin_required, form_bool, form_int, form_str, safe_next
+from ..logmark import personal
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -267,7 +268,7 @@ def user_reset_2fa(user_id):
     user = db.session.get(User, user_id) or abort(404)
     reset_2fa(user)
     lockout.unlock_user(user.username)
-    log.info("2FA of %s reset by %s", user.username, current_user.username)
+    log.info("2FA of %s reset by %s", personal(user.username), personal(current_user.username))
     hint = " " + _("Bei der nächsten Anmeldung wird die Einrichtung verlangt.") if required_for(user) else ""
     flash(_("Zwei-Faktor-Anmeldung von {name} zurückgesetzt – Anmeldung jetzt nur mit Passwort.", name=user.username) + hint,
           "success")
@@ -280,7 +281,7 @@ def user_unlock(user_id):
     from .. import lockout
     user = db.session.get(User, user_id) or abort(404)
     lockout.unlock_user(user.username)
-    log.info("Sign-in lock of %s lifted by %s", user.username, current_user.username)
+    log.info("Sign-in lock of %s lifted by %s", personal(user.username), personal(current_user.username))
     flash(_("Anmeldesperre von {name} aufgehoben.", name=user.username), "success")
     return redirect(safe_next(request.form.get("next")) or url_for("admin.user_edit", user_id=user.id))
 
@@ -396,7 +397,7 @@ def backup_download(name):
     path = find_backup(name)
     if path is None:
         abort(404)
-    log.info("Backup %s downloaded by %s", name, current_user.username)
+    log.info("Backup %s downloaded by %s", name, personal(current_user.username))
     return send_file(path, as_attachment=True, download_name=name, mimetype="application/vnd.sqlite3", max_age=0)
 
 

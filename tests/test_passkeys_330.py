@@ -150,11 +150,11 @@ class ADSignInTests(PasskeyBase):
         for k, v in {"ldap_enabled": "1", "ldap_server": "dc1.firma.local", "ldap_base_dn": "DC=firma,DC=local",
                      "ldap_bind_dn": "CN=svc,DC=firma,DC=local"}.items():
             set_setting(k, v)
-        self.ad = User(username="mmuster", display_name="Max", role="reader", auth_source="ldap")
+        self.ad = User(username="mmuster", display_name="Max", role="reader", auth_source="ldap", ldap_guid="g-1")
         db.session.add(self.ad)
         db.session.commit()
 
-    def info(self, role="reader", guid=""):
+    def info(self, role="reader", guid="g-1"):
         return LDAPUser(username="mmuster", dn="CN=Max,DC=firma,DC=local", display_name="Max Muster", role=role,
                         guid=guid)
 
@@ -184,6 +184,36 @@ class ADSignInTests(PasskeyBase):
         with mock.patch.object(Directory, "check_for_passkey", return_value=self.info(guid="bbbb")):
             r = self.passkey_sign_in(self.ad)
         self.assertEqual(r.status_code, 400)
+
+    def test_without_identifier_refused(self):
+        # 3.5.1: a reassigned AD name must not hand over the passkey account – the identifier must match on both sides
+        for stored, in_ad in (("g-1", ""), ("", "g-1"), ("", "")):
+            self.ad.ldap_guid = stored or None
+            db.session.commit()
+            with mock.patch.object(Directory, "check_for_passkey", return_value=self.info(role="admin", guid=in_ad)):
+                r = self.passkey_sign_in(self.ad)
+            self.assertEqual(r.status_code, 400, (stored, in_ad))
+            self.assertFalse(self.signed_in())
+            self.assertEqual(db.session.get(User, self.ad.id).role, "reader")     # no role from the other person
+
+    def test_without_stored_identifier_clear_message_no_failure(self):
+        from catalytix.models import LoginAttempt
+        self.ad.ldap_guid = None
+        db.session.commit()
+        before = LoginAttempt.query.count()
+        with mock.patch.object(Directory, "check_for_passkey", return_value=self.info()):
+            r = self.passkey_sign_in(self.ad)
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("einmal mit Ihrem Passwort", r.get_json()["error"])
+        self.assertEqual(LoginAttempt.query.count(), before)      # not counted as a failed attempt
+
+    def test_not_offered_without_identifier(self):
+        self.ad.ldap_guid = None
+        db.session.commit()
+        self.assertFalse(twofa.passkey_possible(self.ad))
+        self.ad.ldap_guid = "g-1"
+        db.session.commit()
+        self.assertTrue(twofa.passkey_possible(self.ad))
 
     def test_ad_unreachable_refused_with_hint(self):
         with mock.patch.object(Directory, "check_for_passkey", side_effect=LDAPError("timeout")):

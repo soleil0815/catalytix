@@ -3,6 +3,7 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("CATALYTIX_DATA_DIR", tempfile.mkdtemp(prefix="catalytix-proxy-"))
@@ -131,16 +132,52 @@ class ForceHttpsTests(unittest.TestCase):
         c.get("/", headers=self.HTTPS, environ_base=self.PROXY)
         c.get("/", headers=self.HTTP, environ_base=self.PROXY)
         import pathlib
-        self.assertEqual((pathlib.Path(self.instance) / "https-hosts.txt").read_text(), "bib.firma.local redirected\n")
+        self.assertEqual((pathlib.Path(self.instance) / "https-hosts.txt").read_text(),
+                         "bib.firma.local 172.17.0.1 redirected\n")
         r = self.client().get("/", headers=self.HTTPS, environ_base=self.PROXY)              # after a restart
         self.assertIn("Strict-Transport-Security", r.headers)
 
-    def test_file_from_311_still_works(self):
+    def test_file_with_known_host_works(self):
         import pathlib
-        (pathlib.Path(self.instance) / "https-hosts.txt").write_text("bib.firma.local\n")
+        (pathlib.Path(self.instance) / "https-hosts.txt").write_text("bib.firma.local 172.17.0.1\n")
         c = self.client()
         self.assertEqual(c.get("/", headers=self.HTTP, environ_base=self.PROXY).status_code, 301)
         self.assertIn("Strict-Transport-Security", c.get("/", headers=self.HTTPS, environ_base=self.PROXY).headers)
+
+    def test_old_file_without_address_is_learned_again(self):
+        # 3.5.1: lines of older versions carry no proxy address – ignored (they may stem from any LAN computer)
+        import pathlib
+        (pathlib.Path(self.instance) / "https-hosts.txt").write_text("bib.firma.local redirected\n")
+        c = self.client()
+        self.assertEqual(c.get("/", headers=self.HTTP, environ_base=self.PROXY).status_code, 200)
+        c.get("/", headers=self.HTTPS, environ_base=self.PROXY)
+        self.assertEqual(c.get("/", headers=self.HTTP, environ_base=self.PROXY).status_code, 301)
+
+    def test_lan_client_cannot_switch_https_on_for_everyone(self):
+        # 3.5.1 (same finding as AssetLotse audit 2026-11): with TRUSTED_PROXIES=private every LAN computer counts
+        # as a proxy. One request with "X-Forwarded-Proto: https" (or only "X-Forwarded-Port: 443") used to redirect
+        # all users of a proxy without HTTPS to https://<host>/ – into nothing (301, remembered by browsers).
+        c = self.client()
+        for header in ({"X-Forwarded-Proto": "https"}, {"X-Forwarded-Port": "443"}):
+            c.get("/", headers={**header, "Host": "bib.firma.local"}, environ_base={"REMOTE_ADDR": "192.168.1.66"})
+        r = c.get("/", headers=self.HTTP, environ_base=self.PROXY)
+        self.assertEqual(r.status_code, 200)
+        self.assertNotIn("Strict-Transport-Security", c.get("/", headers=self.HTTPS, environ_base=self.PROXY).headers)
+        # the sender itself is switched (it did reach the host over HTTPS)
+        r = c.get("/", headers=self.HTTP, environ_base={"REMOTE_ADDR": "192.168.1.66"})
+        self.assertEqual(r.status_code, 301)
+
+    def test_flooding_names_does_not_block_the_real_proxy(self):
+        from unittest import mock
+        from catalytix import proxy
+        c = self.client()
+        with mock.patch.object(proxy, "MAX_ENTRIES", 3 * proxy.MAX_HOSTS):
+            for n in range(4):                 # several LAN addresses inventing names until everything is full
+                for i in range(proxy.MAX_HOSTS + 5):
+                    c.get("/", headers={"X-Forwarded-Proto": "https", "Host": f"h{i}.example.org"},
+                          environ_base={"REMOTE_ADDR": f"192.168.1.{66 + n}"})
+            c.get("/", headers=self.HTTPS, environ_base=self.PROXY)
+        self.assertEqual(c.get("/", headers=self.HTTP, environ_base=self.PROXY).status_code, 301)
 
     def test_auto_is_remembered_after_restart(self):
         self.client().get("/", headers=self.HTTPS, environ_base=self.PROXY)

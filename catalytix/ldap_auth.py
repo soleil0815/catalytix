@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 
 from .i18n import _
 from .models import ROLE_ADMIN, ROLE_LIBRARIAN, ROLE_READER, get_bool, get_int, get_setting
+from .logmark import personal
 
 # Briefly cache the groups of people from the suggestion search: when typing on ("ann" → "anna") the same
 # people come up again, but nested resolution costs several queries per person. Only for the search –
@@ -550,7 +551,7 @@ class Directory:
             if info is None or info.role is None:
                 return info
             if self.user_attr.lower() == "samaccountname" and self._locked_out(svc, entry.get("dn") or ""):
-                log.info("Passkey sign-in %s refused: account locked out in AD", username)
+                log.info("Passkey sign-in %s refused: account locked out in AD", personal(username))
                 return None
             return info
         finally:

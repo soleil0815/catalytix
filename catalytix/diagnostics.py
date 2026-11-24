@@ -846,6 +846,9 @@ def _counts(days: int) -> dict[str, Any]:
         "ad_konto_verschwunden": sum(1 for u in users if u.ldap_gone_at),
         "angemeldet_im_zeitraum": sum(1 for u in users if u.last_login and u.last_login >= since),
         "nach_sprache": _tally(u.language or "-" for u in users),
+        # 3.5.1: who is fixed to which language ("-" = automatic) – roles only, never names
+        "sprache_nach_rolle": {r: _tally(u.language or "-" for u in users if u.role == r)
+                               for r in sorted({u.role for u in users})},
         "derzeit_gesperrt": len(lockout.locked_usernames()),
     }
     creds = WebAuthnCredential.query.all()

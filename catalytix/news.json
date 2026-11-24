@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.5.1",
+  "date": "2026-11-24",
+  "items": [
+   {
+    "kind": "improved",
+    "audience": "all",
+    "de": {
+     "title": "Sprache „Automatisch“",
+     "text": "Im Profil können Sie die Sprache jetzt auch auf „Automatisch“ stellen: Dann gilt die Sprache Ihres Browsers, sonst die Standardsprache. Darunter steht, was gerade gilt."
+    },
+    "en": {
+     "title": "Language “Automatic”",
+     "text": "In your profile you can now set the language to “Automatic”: your browser's language applies, otherwise the default language. The line below shows what currently applies."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.5.0",
   "date": "2026-11-20",
   "items": [

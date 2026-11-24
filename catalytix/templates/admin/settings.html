@@ -24,7 +24,11 @@
         <select id="f-default-language" name="default_language">
           {% for code, label in LANGUAGES.items() %}<option value="{{ code }}" {{ 'selected' if s('default_language') == code }}>{{ label }}</option>{% endfor %}
         </select>
-        <small class="muted">{{ _("Für Besucher, deren Browser keine der beiden Sprachen bevorzugt, und für E-Mails an Benutzer ohne eigene Wahl. Jeder kann die Sprache oben rechts selbst umstellen.") }}</small></div>
+        <small class="muted">{{ _("Für Besucher, deren Browser keine der beiden Sprachen bevorzugt, und für E-Mails an Benutzer ohne eigene Wahl. Jeder kann die Sprache oben rechts selbst umstellen.") }}</small>
+        {% if current_user.language and current_user.language != s('default_language') %}
+        <p class="notice warn" style="margin-top: 8px; font-size: 13.5px" data-own-language>{{ icon("globe") }}<span>{{ _("Ihr eigenes Konto ist fest auf {lang} eingestellt – die Standardsprache ändert daran nichts.", lang=LANGUAGES[current_user.language]) }}
+          <a href="{{ url_for('main.profile') }}#sprache">{{ _("Im Profil auf „Automatisch“ oder eine andere Sprache umstellen") }}</a></span></p>
+        {% endif %}</div>
       <div class="field"><label for="f-catalog-visibility">{{ _("Katalog-Sichtbarkeit") }}</label>
         <select id="f-catalog-visibility" name="catalog_visibility">
           <option value="groups" {{ 'selected' if s('catalog_visibility') == 'groups' }}>{{ _("Leser sehen nur Bücher ihrer Gruppen und allgemeine Bücher") }}</option>

@@ -3,6 +3,14 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.5.1 – 24.11.2026
+**Verbessert**
+- **Sprache „Automatisch“:** Im Profil gibt es neben DE/EN die Wahl *Automatisch*. Sie hebt eine feste Sprache wieder
+  auf (dann gilt die Sprache des Browsers, sonst die Standardsprache). Unter dem Umschalter steht, was gerade gilt.
+- **Hinweis bei der Standardsprache:** Steht das eigene Konto fest auf einer anderen Sprache, sagt die Seite
+  *Einstellungen → Allgemein* das jetzt dazu – eine feste Wahl hat immer Vorrang vor der Standardsprache.
+- **Diagnosepaket:** zählt die Spracheinstellung zusätzlich je Rolle (ohne Namen).
+
 ## 3.5.0 – 20.11.2026
 **Neu**
 - **Hinweis auf neue Versionen:** Einmal am Tag fragt der Server bei GitHub nach der neuesten veröffentlichten Version

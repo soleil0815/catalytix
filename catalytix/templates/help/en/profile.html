@@ -2,7 +2,7 @@
 {% if f.is_ldap %}<p><b>Your details</b> (name and email address) come from your institution's directory (Active Directory) and are maintained there – they cannot be changed here.</p>
 {% else %}<p><b>My details:</b> change your display name and email address yourself in the <span class="ui">My details</span> section, then <span class="ui">Save</span>.{% if f.registration_verify %} If you registered yourself, a new email address only takes effect once you open the link in the confirmation email.{% endif %}</p>{% endif %}
 {% if f.retention_months %}<p>Completed loans are deleted automatically {{ f.retention_months }} month{{ "s" if f.retention_months != 1 }} after the return.</p>{% endif %}
-<p><b>Language:</b> switch with <span class="ui">DE</span> / <span class="ui">EN</span>. It applies to the interface and to emails sent to you.</p>
+<p><b>Language:</b> switch with <span class="ui">DE</span> / <span class="ui">EN</span> to fix the language – it then applies to the interface and to emails sent to you, regardless of browser and default language. <span class="ui">Automatic</span> (only here in the profile) removes the fixed choice again: you see your browser's language, otherwise the default language set by the administrator. The line below the switch shows what currently applies.</p>
 {% if f.mail_on %}
 <p><b>Email notifications:</b> tick or untick <span class="ui">Receive confirmations, reminders and overdue notices by email</span>, then <span class="ui">Save</span>.
 {% if f.is_ldap %}Your email address comes from your institution's directory and cannot be changed here.{% else %}Enter your email address under <span class="ui">My details</span>.{% endif %}</p>

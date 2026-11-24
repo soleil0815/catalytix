@@ -2,6 +2,14 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.5.1 – 2026-11-24
+**Improved**
+- **Language "Automatic":** besides DE/EN the profile now offers *Automatic*. It removes a fixed language again (then
+  the browser language applies, otherwise the default language). The line below the switch shows what applies.
+- **Hint at the default language:** if your own account is fixed to another language, *Settings → General* now says
+  so – a fixed choice always takes precedence over the default language.
+- **Diagnostic package:** additionally counts the language setting per role (no names).
+
 ## 3.5.0 – 2026-11-20
 **New**
 - **Notice about new versions:** once a day the server asks GitHub for the latest published version (public

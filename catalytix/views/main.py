@@ -393,7 +393,10 @@ def profile():
             return redirect(url_for("main.profile"))
     history = (Loan.query.filter_by(user_id=current_user.id)
                .order_by(Loan.loaned_at.desc()).limit(50).all())
+    from ..i18n import LANGUAGES, browser_language, default_language
     return render_template("profile.html", history=history,
+                           auto_language=LANGUAGES[browser_language() or default_language()],
+                           fixed_language=LANGUAGES.get(current_user.language or ""),
                            self_extend=get_bool("self_extend"), mail_on=get_bool("mail_enabled"),
                            max_ext=int(get_setting("max_extensions") or 0))
 
@@ -507,13 +510,19 @@ def _license_file():
 
 @bp.route("/sprache/<code>", methods=["POST"])
 def set_language(code):
-    """Switch language – stored in the profile when signed in, otherwise for this session."""
+    """Switch language – stored in the profile when signed in, otherwise for this session.
+
+    "auto" (3.5.1) removes the fixed choice again: the browser language, otherwise the default language."""
     from ..i18n import normalize
-    lang = normalize(code)
-    if lang is None:
-        abort(404)
-    session["lang"] = lang
     from flask import g
+    if code == "auto":
+        session.pop("lang", None)
+        lang = ""
+    else:
+        lang = normalize(code) or ""
+        if not lang:
+            abort(404)
+        session["lang"] = lang
     g.pop("_catalytix_locale", None)   # messages of this request already in the new language
     if current_user.is_authenticated:
         current_user.language = lang

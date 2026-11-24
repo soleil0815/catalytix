@@ -12,7 +12,7 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. E
   weicht der Absender mit den meisten Einträgen). Alte Zeilen ohne Adresse werden neu gelernt.
 - **Passkey-Anmeldung von AD-Konten nur mit AD-Kennung:** Fehlte die objectGUID im AD oder im Konto, reichte der
   Benutzername – nach Neuvergabe eines AD-Namens hätte der alte Passkey das Konto mit der Rolle der neuen Person
-  geöffnet. Jetzt müssen beide Kennungen vorhanden und gleich sein; ohne Kennung wird kein Passkey angeboten.
+  geöffnet. Jetzt müssen beide Kennungen vorhanden und gleich sein; ohne Kennung wird kein Passkey angeboten. Schon eingerichtete Passkeys älterer AD-Konten ohne gespeicherte Kennung gehen erst wieder nach einer Anmeldung mit Passwort – die Anmeldeseite sagt das dann.
 - **Diagnosepaket ohne Klartext-Namen im Protokoll:** Ersetzt wurden nur Werte, die in der Datenbank stehen –
   gelöschte Konten, falsch getippte Namen und ein versehentlich ins Benutzerfeld getipptes **Passwort** blieben in
   `log.txt`. Benutzernamen werden jetzt beim Schreiben unsichtbar markiert und im Paket vollständig ersetzt;

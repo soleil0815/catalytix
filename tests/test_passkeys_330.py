@@ -196,6 +196,17 @@ class ADSignInTests(PasskeyBase):
             self.assertFalse(self.signed_in())
             self.assertEqual(db.session.get(User, self.ad.id).role, "reader")     # no role from the other person
 
+    def test_without_stored_identifier_clear_message_no_failure(self):
+        from catalytix.models import LoginAttempt
+        self.ad.ldap_guid = None
+        db.session.commit()
+        before = LoginAttempt.query.count()
+        with mock.patch.object(Directory, "check_for_passkey", return_value=self.info()):
+            r = self.passkey_sign_in(self.ad)
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("einmal mit Ihrem Passwort", r.get_json()["error"])
+        self.assertEqual(LoginAttempt.query.count(), before)      # not counted as a failed attempt
+
     def test_not_offered_without_identifier(self):
         self.ad.ldap_guid = None
         db.session.commit()

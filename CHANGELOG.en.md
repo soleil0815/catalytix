@@ -11,7 +11,7 @@ The current version is shown at the bottom left of the sidebar after signing in.
   the most entries makes room). Old lines without an address are learned again.
 - **Passkey sign-in of AD accounts only with the AD identifier:** if the objectGUID was missing in AD or in the
   account, the username was enough – after an AD name was reassigned, the old passkey would have opened the account
-  with the new person's role. Now both identifiers must be present and equal; without one, no passkey is offered.
+  with the new person's role. Now both identifiers must be present and equal; without one, no passkey is offered. Passkeys already set up for older AD accounts without a stored identifier work again after one password sign-in – the sign-in page says so.
 - **Diagnostic package without names in clear in the log:** only values stored in the database were replaced –
   deleted accounts, mistyped names and a **password** typed into the username field stayed in `log.txt`. Usernames
   are now marked invisibly when written and replaced as a whole in the package; unknown values only get a

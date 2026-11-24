@@ -62,6 +62,23 @@ class MarkedLogTests(BaseCase):
         self.assertNotIn(MARK_START, everything)
         self.assertNotIn(MARK_END, everything)
 
+    def test_name_repeated_in_the_error_text_is_replaced_too(self):
+        # review: LDAPUserNotFound repeats the typed name in its message
+        from catalytix.ldap_auth import LDAPUserNotFound
+        exc = LDAPUserNotFound("Benutzer 'Sommer!Kennwort77' nicht unterhalb von DC=firma,DC=local gefunden.")
+        log.warning("LDAP sign-in %s failed: %s", personal("Sommer!Kennwort77"), exc)
+        log.info("Sign-in of %s", personal("an"))
+        log.info("Desk opened by an admin")              # a short name is not replaced inside other words
+        text = self.package()["log.txt"]
+        self.assertNotIn("Kennwort77", text)
+        self.assertIn("Benutzer 'UNBEKANNT-01' nicht", text)
+        self.assertIn("Desk opened by an admin", text)
+
+    def test_retired_account_name_is_marked(self):
+        import inspect
+        from catalytix.views import main
+        self.assertIn("personal(old)", inspect.getsource(main.retire_account))
+
     def test_deleted_account_is_not_in_the_package(self):
         u = self.make_user("kurzzeitgast")
         r = self.c.post(f"/admin/benutzer/{u.id}/loeschen", follow_redirects=True)

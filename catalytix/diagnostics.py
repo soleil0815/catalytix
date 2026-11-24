@@ -953,10 +953,20 @@ def _log_line(an: Anonymizer, line: str) -> str:
     anonymized as usual (3.5.1)."""
     from .logmark import MARK_END, MARK_START, MARKED_RX
 
+    found: list[tuple[str, str]] = []
+
     def repl(m: re.Match[str]) -> str:
         value = m.group(2).strip()
-        return an.marked("text" if m.group(1) else "user", value) if value else ""
-    return an.text(MARKED_RX.sub(repl, line).replace(MARK_START, "").replace(MARK_END, ""))
+        if not value:
+            return ""
+        alias = an.marked("text" if m.group(1) else "user", value)
+        found.append((value, alias))
+        return alias
+    out = MARKED_RX.sub(repl, line).replace(MARK_START, "").replace(MARK_END, "")
+    # the same value repeated unmarked in the line (e.g. an error text "user 'x' not found") goes too
+    for value, alias in sorted(found, key=lambda f: -len(f[0])):
+        out = re.sub(r"(?<!\w)" + re.escape(value) + r"(?!\w)", lambda _m, a=alias: a, out, flags=re.IGNORECASE)
+    return an.text(out)
 
 
 def build(days: int = DAYS_DEFAULT, *, live: bool = True, started: float | None = STARTED) -> tuple[str, bytes]:

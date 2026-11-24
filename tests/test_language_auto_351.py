@@ -58,6 +58,15 @@ class LanguageAutoTests(BaseCase):
         self.assertIn("Fest eingestellt: Deutsch", page)
         self.assertNotIn('class="on"', page.split("/sprache/auto", 1)[1].split("</button>", 1)[0])
 
+    def test_profile_names_the_language_actually_shown(self):
+        # review: EN chosen on the sign-in page (session) wins over the browser for "automatic" accounts
+        self.c.post("/sprache/auto")
+        with self.c.session_transaction() as s:
+            s["lang"] = "en"
+        page = self.page("/profil", **{"Accept-Language": "de"})
+        self.assertIn('lang="en"', page[:200])
+        self.assertIn("currently English", page)
+
     def test_topbar_keeps_two_buttons(self):
         page = self.page("/")
         top = page.split('class="topbar"', 1)[1].split("user-menu", 1)[0]

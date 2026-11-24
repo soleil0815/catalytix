@@ -282,7 +282,12 @@ def _check_ad_for_passkey(user: User):
     # 3.5.1: a passkey proves the device, not the AD password – only the immutable AD identifier shows that the
     # account behind the name is still the same person (a reassigned name would otherwise hand over the account and
     # the new owner's role). Without an identifier on both sides: password sign-in only.
-    if info is not None and not (user.ldap_guid and info.guid and user.ldap_guid == info.guid):
+    if info is not None and not user.ldap_guid:
+        # not stored yet (older account): no failed attempt – one password sign-in stores it
+        log.info("Passkey sign-in of %s refused: no AD identifier stored yet", personal(user.username))
+        return _passkey_refused(_("Bitte melden Sie sich einmal mit Ihrem Passwort an – danach funktioniert die "
+                                  "Anmeldung mit Passkey wieder."))
+    if info is not None and not (info.guid and user.ldap_guid == info.guid):
         log.info("Passkey sign-in of %s refused: AD identifier missing or changed", personal(user.username))
         info = None
     if info is None or info.role is None:

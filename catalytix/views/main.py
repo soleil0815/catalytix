@@ -99,7 +99,7 @@ def retire_account(user: User) -> None:
     user.auth_epoch = (user.auth_epoch or 0) + 1
     db.session.flush()
     log.warning("AD account %s belongs to a different person than before (new AD identifier) – old account "
-                "retired as %s", old, personal(user.username))
+                "retired as %s", personal(old), personal(user.username))
 
 
 def sync_ldap_user(info, existing: User | None, ldap_groups: list | None = None, rename: bool = True,
@@ -394,9 +394,11 @@ def profile():
             return redirect(url_for("main.profile"))
     history = (Loan.query.filter_by(user_id=current_user.id)
                .order_by(Loan.loaned_at.desc()).limit(50).all())
-    from ..i18n import LANGUAGES, browser_language, default_language
+    from ..i18n import LANGUAGES, browser_language, default_language, normalize
     return render_template("profile.html", history=history,
-                           auto_language=LANGUAGES[browser_language() or default_language()],
+                           # what "automatic" shows right now: as i18n.get_locale (choice of this session first)
+                           auto_language=LANGUAGES[normalize(session.get("lang")) or browser_language()
+                                                   or default_language()],
                            fixed_language=LANGUAGES.get(current_user.language or ""),
                            self_extend=get_bool("self_extend"), mail_on=get_bool("mail_enabled"),
                            max_ext=int(get_setting("max_extensions") or 0))

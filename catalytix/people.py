@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 
 from .i18n import _
 from .models import Group, Loan, User, db, get_bool, get_setting
+from .logmark import personal
 
 log = logging.getLogger(__name__)
 LIMIT = 10
@@ -214,7 +215,7 @@ def find(username: str, cached: bool = False) -> User | Candidate | None:
     try:
         info = Directory().check_account(username)
     except LDAPError as exc:
-        log.warning("Directory lookup for %s failed: %s", username, exc)
+        log.warning("Directory lookup for %s failed: %s", personal(username), exc)
         return None
     result = Candidate(info) if info is not None and info.role is not None else None
     with _lock:
@@ -244,7 +245,7 @@ def _recheck_gone(user: User) -> str:
     try:
         info = Directory().check_account(user.username)
     except LDAPError as exc:
-        log.warning("Directory lookup for %s failed: %s", user.username, exc)
+        log.warning("Directory lookup for %s failed: %s", personal(user.username), exc)
         with _lock:
             _outage_until = time.monotonic() + OUTAGE_PAUSE
         return ""
@@ -261,7 +262,7 @@ def _recheck_gone(user: User) -> str:
         return "retired" if freed else ""
     sync_ldap_user(info, user)
     db.session.commit()
-    log.info("AD account %s unlocked again (active and entitled in AD)", user.username)
+    log.info("AD account %s unlocked again (active and entitled in AD)", personal(user.username))
     return "reactivated"
 
 
@@ -281,7 +282,7 @@ def provision(candidate: Candidate) -> User:
     except IntegrityError:            # created by someone else at the same time (desk or first login)
         db.session.rollback()
         return User.query.filter(func.lower(User.username) == candidate.username.lower()).one()
-    log.info("AD account %s created when lending (role %s)", user.username, user.role)
+    log.info("AD account %s created when lending (role %s)", personal(user.username), user.role)
     user._created_now = True
     return user
 
@@ -641,7 +642,7 @@ def _sync_accounts(people, uncertain, started) -> dict:
         u.active = False
         u.ldap_gone_at = started
         u.auth_epoch = (u.auth_epoch or 0) + 1     # end running sessions
-        log.info("AD account %s locked: disabled, deleted or no longer entitled in AD", u.username)
+        log.info("AD account %s locked: disabled, deleted or no longer entitled in AD", personal(u.username))
     if to_retire and allow_rename:
         # renames that previously failed on the name of a now-retired account: catch up right away
         db.session.flush()

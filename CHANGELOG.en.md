@@ -3,6 +3,26 @@
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
 ## 3.5.1 – 2026-11-24
+**Security** (findings of the AssetLotse audit 2026-11, same code)
+- **HTTPS switch only per proxy:** with `CATALYTIX_TRUSTED_PROXIES=private` (default) every LAN computer counts as a
+  proxy. A single request with `X-Forwarded-Proto: https` switched a host name to HTTPS permanently for everyone –
+  users of a proxy without HTTPS were redirected into nothing (301); invented names could block the learning.
+  `https-hosts.txt` now applies per host **and** proxy address (at most 50 per address; when full, the sender with
+  the most entries makes room). Old lines without an address are learned again.
+- **Passkey sign-in of AD accounts only with the AD identifier:** if the objectGUID was missing in AD or in the
+  account, the username was enough – after an AD name was reassigned, the old passkey would have opened the account
+  with the new person's role. Now both identifiers must be present and equal; without one, no passkey is offered.
+- **Diagnostic package without names in clear in the log:** only values stored in the database were replaced –
+  deleted accounts, mistyped names and a **password** typed into the username field stayed in `log.txt`. Usernames
+  are now marked invisibly when written and replaced as a whole in the package; unknown values only get a
+  placeholder for this package (UNBEKANNT-01) and are never stored.
+
+**Fixed**
+- Emergency commands (`reset-password`, `reset-2fa`, `create-admin`) were case-sensitive, the sign-in is not.
+- The admin user page counted passkeys as "security keys"; the confirmation when resetting the second factor did
+  not mention passkeys.
+- A broken anchor in the address (e.g. `#%E0`) stopped the script of the settings page.
+
 **Improved**
 - **Language "Automatic":** besides DE/EN the profile now offers *Automatic*. It removes a fixed language again (then
   the browser language applies, otherwise the default language). The line below the switch shows what applies.

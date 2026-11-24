@@ -26,6 +26,7 @@ from flask_wtf.csrf import CSRFError, CSRFProtect
 from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_bool, get_setting
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
+from .logmark import personal
 
 __version__ = "3.5.1"
 APP_NAME = "Catalytix"
@@ -486,7 +487,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         try:
             info = Directory().check_account(current_user.username)
         except LDAPError as exc:
-            log.warning("LDAP re-check for %s not possible: %s", current_user.username, exc)
+            log.warning("LDAP re-check for %s not possible: %s", personal(current_user.username), exc)
             session["ldap_ok_at"] = now - LDAP_RECHECK_SECONDS + 600   # retry in 10 minutes
             return None
         except Exception:  # noqa: BLE001 – an AD problem must not lock anyone out
@@ -498,10 +499,10 @@ def create_app(test_config: dict | None = None) -> Flask:
             # In AD the name now belongs to a different person (e.g. renamed and reassigned):
             # do not continue this session and do not overwrite the account with someone else's data
             log.warning("LDAP account %s: the name now belongs to a different person in AD – session ended",
-                        current_user.username)
+                        personal(current_user.username))
             info = None
         if info is None or info.role is None:
-            log.info("LDAP account %s no longer entitled – session ended", current_user.username)
+            log.info("LDAP account %s no longer entitled – session ended", personal(current_user.username))
             session.clear()     # first – logout_user() records in it that the remember cookie is to be deleted
             logout_user()
             flash(_("Ihre Anmeldung ist abgelaufen. Bitte melden Sie sich erneut an."), "info")
@@ -625,12 +626,17 @@ def create_app(test_config: dict | None = None) -> Flask:
     # ------------------------------------------------------------ CLI
     from . import lockout
 
+    def _user_named(username: str) -> User | None:
+        """Accounts by name as the sign-in finds them: without regard to upper/lower case (3.5.1)."""
+        from sqlalchemy import func
+        return User.query.filter(func.lower(User.username) == username.strip().lower()).first()
+
     @app.cli.command("reset-password")
     @click.argument("username")
     @click.password_option()
     def reset_password(username, password):
         """Reset the password of a local account (e.g. admin)."""
-        user = User.query.filter_by(username=username).first()
+        user = _user_named(username)
         if not user:
             raise click.ClickException(f"User {username} not found.")
         if len(password) < MIN_PASSWORD_LENGTH:
@@ -648,7 +654,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     def reset_2fa_cmd(username):
         """Reset the second factor of an account (e.g. phone/key lost)."""
         from .twofa import reset_2fa
-        user = User.query.filter_by(username=username).first()
+        user = _user_named(username)
         if not user:
             raise click.ClickException(f"User {username} not found.")
         reset_2fa(user)
@@ -791,7 +797,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     @click.password_option()
     def create_admin(username, password):
         """Create a local administrator account."""
-        if User.query.filter_by(username=username).first():
+        if _user_named(username):
             raise click.ClickException("User already exists.")
         user = User(username=username, display_name=username, role=ROLE_ADMIN, auth_source="local")
         if len(password) < MIN_PASSWORD_LENGTH:

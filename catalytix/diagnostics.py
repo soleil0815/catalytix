@@ -150,7 +150,8 @@ class _DailyFileHandler(logging.Handler):
     def __init__(self, folder: Path):
         super().__init__(logging.INFO)
         self.folder = folder
-        self.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        from .logmark import MarkingFormatter
+        self.setFormatter(MarkingFormatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))   # personal() marks
 
     def emit(self, record: logging.LogRecord) -> None:
         if record.name == "werkzeug" and record.levelno < logging.WARNING:
@@ -267,6 +268,7 @@ class Anonymizer:
         self._words: list[tuple[str, str]] = []      # (real lower, alias), longest first
         self._domains: dict[str, str] = {}             # known domains: unknown hosts below them are replaced too
         self._regex: re.Pattern[str] | None = None
+        self._transient: dict[tuple[str, str], str] = {}   # marked log values without a stored placeholder
 
     # -- placeholders
     def alias(self, kind: str, real: str) -> str:
@@ -286,6 +288,21 @@ class Anonymizer:
         self._new.append((kind, key[:500], alias))
         self._regex = None
         return alias
+
+    def marked(self, kind: str, real: str) -> str:
+        """A value marked in the log (logmark.personal()): a known account keeps its permanent placeholder; anything
+        else (deleted account, typed text, a password typed into the username field) only gets a placeholder for
+        this package – it is never stored, so it never ends up in the placeholder table either (3.5.1)."""
+        key = _norm(real)
+        if not key:
+            return ""
+        if kind == "user" and ("user", key) in self._map:
+            return self._map[("user", key)]
+        tmp = self._transient
+        if (kind, key) not in tmp:
+            tmp[(kind, key)] = ("UNBEKANNT-{:02d}" if kind == "user" else "EINGABE-{:02d}").format(
+                sum(1 for k in tmp if k[0] == kind) + 1)
+        return tmp[(kind, key)]
 
     def save(self) -> None:
         """Remember new placeholders (so they stay the same in the next package)."""
@@ -914,7 +931,8 @@ Dieses Paket ist anonym. Benutzer- und Anzeigenamen, E-Mail-Adressen, Rechner- u
 AD-Pfade, Gruppen-, Standort- und Bibliotheksnamen sind durch Platzhalter ersetzt (BENUTZER-007, host-02,
 domaene-1.example, IP-004(privat) …). Die Platzhalter bleiben dauerhaft gleich; die Zuordnung liegt nur auf dem
 Server (Einstellungen → Wartung → Platzhalter nachschlagen) und ist nicht Teil dieses Pakets.
-Kennwörter, Schlüssel und Tokens sind nie enthalten – nur, ob sie gesetzt sind.
+Kennwörter, Schlüssel und Tokens sind nie enthalten – nur, ob sie gesetzt sind. Im Protokoll stehen unbekannte
+Benutzernamen und Eingaben als UNBEKANNT-01/EINGABE-01 (nur in diesem Paket gültig, nirgends gespeichert).
 Statt persönlicher Daten enthält das Paket nur Zahlen. Buchtitel und Ausleihen einzelner Personen fehlen ganz.
 
 Inhalt
@@ -929,6 +947,18 @@ Inhalt
 """
 
 
+def _log_line(an: Anonymizer, line: str) -> str:
+    """Values marked by logmark.personal() are replaced as a whole – whatever they contain, even if they are not in
+    the database (deleted accounts, typed text, a password typed into the username field); the rest of the line is
+    anonymized as usual (3.5.1)."""
+    from .logmark import MARK_END, MARK_START, MARKED_RX
+
+    def repl(m: re.Match[str]) -> str:
+        value = m.group(2).strip()
+        return an.marked("text" if m.group(1) else "user", value) if value else ""
+    return an.text(MARKED_RX.sub(repl, line).replace(MARK_START, "").replace(MARK_END, ""))
+
+
 def build(days: int = DAYS_DEFAULT, *, live: bool = True, started: float | None = STARTED) -> tuple[str, bytes]:
     """The ZIP file: (file name, content). Saves new placeholders."""
     from flask import current_app
@@ -937,7 +967,7 @@ def build(days: int = DAYS_DEFAULT, *, live: bool = True, started: float | None 
     an = Anonymizer()
     an.learn()
     raw = log_lines(instance, days)
-    lines = [an.text(line) for line in raw]
+    lines = [_log_line(an, line) for line in raw]
     files: dict[str, str] = {
         "system.json": _json(_system(instance, an, started)),
         "https.json": _json(_https(an)),

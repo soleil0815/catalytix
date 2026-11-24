@@ -4,6 +4,18 @@
   "date": "2026-11-24",
   "items": [
    {
+    "kind": "security",
+    "audience": "admin",
+    "de": {
+     "title": "Sicherheitskorrekturen",
+     "text": "HTTPS-Umstellung hinter dem Reverse-Proxy gilt nur noch je Proxy (ein beliebiger LAN-Rechner kann sie nicht mehr für alle einschalten), Passkeys für AD-Konten nur mit gespeicherter AD-Kennung, und das Diagnosepaket ersetzt jetzt auch unbekannte oder gelöschte Benutzernamen im Protokoll."
+    },
+    "en": {
+     "title": "Security fixes",
+     "text": "The HTTPS switch behind the reverse proxy now applies per proxy (an arbitrary LAN computer can no longer switch it on for everyone), passkeys for AD accounts only with a stored AD identifier, and the diagnostic package now also replaces unknown or deleted usernames in the log."
+    }
+   },
+   {
     "kind": "improved",
     "audience": "all",
     "de": {

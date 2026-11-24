@@ -918,8 +918,9 @@
     settingsTabs.scrollLeft = Math.max(0, activeTab.offsetLeft - settingsTabs.offsetLeft - 16);
   }
   if (settingsTabs && location.hash.length > 1) {
-    const id = decodeURIComponent(location.hash.slice(1));
-    if (!document.getElementById(id)) {
+    let id = "";
+    try { id = decodeURIComponent(location.hash.slice(1)); } catch (e) { id = ""; }   // "#%E0" must not stop the script
+    if (id && !document.getElementById(id)) {
       let map = {};
       try { map = JSON.parse(settingsTabs.dataset.settingsAnchors); } catch (e) { /* no mapping */ }
       const tab = Object.prototype.hasOwnProperty.call(map, id) ? map[id] : null;

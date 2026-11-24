@@ -248,7 +248,9 @@ def passkey_possible(user: User) -> bool:
     if not passkey_enabled():
         return False
     if user.auth_source == "ldap":
-        return get_setting("ldap_enabled") in ("1", "true", "on", "yes") and bool(get_setting("ldap_bind_dn"))
+        # 3.5.1: the sign-in also checks the immutable AD identifier – without one stored, no passkey
+        return (get_setting("ldap_enabled") in ("1", "true", "on", "yes") and bool(get_setting("ldap_bind_dn"))
+                and bool(user.ldap_guid))
     return True
 
 

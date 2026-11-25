@@ -1,7 +1,7 @@
 {% if not f.backup_supported %}
 <p><b>This installation does not use an SQLite database</b>, so the built-in backup is not available. Back up the database with the database server's tools (e.g. <code>mysqldump</code> or <code>pg_dump</code>) and also the <code>./data</code> folder.</p>
 {% else %}
-<p>Under <span class="ui">Administration → Backup</span> the database is {% if f.backup_enabled %}backed up <b>automatically every day</b> from {{ "%02d"|format(f.backup_hour) }}:00{% else %}currently <b>not backed up automatically</b> – switch on <span class="ui">Back up automatically every day</span>{% endif %}. This runs while the library is in use, and every backup is checked for corruption. {% if f.backup_keep == 1 %}Only the newest backup is kept{% else %}The newest <b>{{ f.backup_keep }}</b> are kept{% endif %} (adjustable 1–100); older ones are deleted.</p>
+<p>Under <span class="ui">Administration → Backup</span> the database is {% if f.backup_enabled %}backed up <b>automatically every day</b> from {{ "%02d"|format(f.backup_hour) }}:00{% else %}currently <b>not backed up automatically</b> – switch on <span class="ui">Back up automatically every day</span>{% endif %}. This runs while the library is in use, and every backup is checked for corruption. {% if f.backup_keep == 1 %}Only the newest backup is kept{% else %}The newest <b>{{ f.backup_keep }}</b> are kept{% endif %} (adjustable 1–100); older ones are deleted. The three newest backups <b>before an update</b> are kept for 30 days in addition – you need them to go back to an older version; after that they count like all others.</p>
 {% endif %}
 <ul>
   <li><span class="ui">Back up now</span> creates a backup immediately – useful before major changes or an update.</li>

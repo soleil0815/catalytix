@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.5.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 3.5.2** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name Ihrer Bibliothek.
 
@@ -79,7 +79,7 @@ docker compose pull && docker compose up -d
 
 Läuft mit `/bin/sh` (auch dash/BusyBox) und auf einem NAS; braucht Docker Compose als `docker compose` oder `docker-compose` ab 1.27. Ohne Terminal (cron, `ssh` ohne `-t`) und ohne `-y` entscheidet es nichts von selbst.
 
-**Was das Programm bei jedem Versionswechsel selbst tut:** Bevor eine neue Version die Datenbank anpasst, sichert sie sie (Sicherung `catalytix-…-vor-<Version>.db` in *Administration → Datensicherung*; die letzten drei bleiben unabhängig von den täglichen erhalten). Startet eine **ältere** Version auf einer Datenbank, die schon eine neuere benutzt hat, bricht sie mit einer klaren Meldung ab (welche Version bzw. welche Sicherung) – statt mit Folgefehlern weiterzulaufen. Bei MySQL/PostgreSQL sichern Sie vor Updates selbst (`mysqldump`/`pg_dump`).
+**Was das Programm bei jedem Versionswechsel selbst tut:** Bevor eine neue Version die Datenbank anpasst, sichert sie sie (Sicherung `catalytix-…-vor-<Version>.db` in *Administration → Datensicherung*; die drei neuesten bleiben 30 Tage lang zusätzlich zu den täglichen erhalten). Startet eine **ältere** Version auf einer Datenbank, die schon eine neuere benutzt hat, bricht sie mit einer klaren Meldung ab (welche Version bzw. welche Sicherung) – statt mit Folgefehlern weiterzulaufen. Bei MySQL/PostgreSQL sichern Sie vor Updates selbst (`mysqldump`/`pg_dump`).
 
 Ist die `docker-compose.yml` auf dem Server für eine neue Version zu alt, steht das im Protokoll und für Administratoren auf der Übersicht – dann einmal `./update.sh` ausführen oder die Datei aus dem Release ersetzen.
 
@@ -426,7 +426,7 @@ In die Datenschutzerklärung gehört, was Catalytix speichert: Name, Benutzernam
 - **Schlägt eine Sicherung fehl**, erscheint ein Warnzeichen am Menüpunkt *Datensicherung*, und Administratoren bekommen eine E-Mail (wenn der E-Mail-Versand eingerichtet ist).
 - Gesichert wird die **Datenbank** (Bücher, Benutzer, Ausleihen, Einstellungen). Coverbilder, Logo und `secret_key` liegen als Dateien in `./data` – für einen kompletten Umzug den ganzen Ordner mitnehmen. Eine Datenbank immer **mit ihrer `secret_key`** zurückspielen, sonst funktionieren 2FA und gespeicherte SMTP-/AD-Passwörter nicht (siehe [Sicherheit](#sicherheit)).
 - Wichtig: Sicherungen auf demselben Server schützen vor Bedienfehlern und defekten Updates, **nicht** vor einem Festplattenausfall. Kopieren Sie den Ordner regelmäßig an einen anderen Ort.
-- **Vor jedem Versionswechsel** sichert das Programm beim Start selbst (`catalytix-…-vor-X.Y.Z.db`, „vor Update auf X.Y.Z“). Die letzten drei dieser Sicherungen bleiben zusätzlich zu den täglichen erhalten – sie sind der Weg zurück (siehe [Eine Version festlegen und zurückgehen](#eine-version-festlegen-und-zurückgehen)).
+- **Vor jedem Versionswechsel** sichert das Programm beim Start selbst (`catalytix-…-vor-X.Y.Z.db`, „vor Update auf X.Y.Z“). Die drei neuesten dieser Sicherungen bleiben 30 Tage lang zusätzlich zu den täglichen erhalten – sie sind der Weg zurück (siehe [Eine Version festlegen und zurückgehen](#eine-version-festlegen-und-zurückgehen)). Danach zählen sie wie alle anderen, damit gelöschte Daten nicht unbegrenzt in alten Sicherungen bleiben.
 - Nur für SQLite. Bei MySQL/MariaDB oder PostgreSQL mit `mysqldump` bzw. `pg_dump` sichern.
 
 **Wiederherstellen** (der aktuelle Stand wird vorher automatisch gesichert):
@@ -438,7 +438,7 @@ docker compose run --rm catalytix flask --app wsgi restore-backup catalytix-2026
 docker compose start catalytix
 ```
 
-Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewahrungsfrist schon gelöscht wurden – bei 10 täglichen Sicherungen also bis zu 10 Tage länger. Das gehört mit in die Datenschutzerklärung.
+Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewahrungsfrist schon gelöscht wurden – bei 10 täglichen Sicherungen also bis zu 10 Tage länger, Sicherungen vor einem Update höchstens 30 Tage. Das gehört mit in die Datenschutzerklärung.
 
 ---
 

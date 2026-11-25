@@ -5,3 +5,6 @@
 # Example:
 #   # libfoo in the base image: only used by apt at build time, not reachable at runtime – checked 2026-10-25
 #   CVE-2099-12345 exp:2027-04-25
+
+# libzstd1 1.5.7+dfsg-1 (Debian base image): Debian has not shipped the fix yet (security tracker: trixie still "vulnerable", 2026-11-25). The published 3.5.1 image contains the same version, so 3.5.2 is not worse. Remove with the next security update – checked 2026-11-25.
+CVE-2026-124851 exp:2026-12-09

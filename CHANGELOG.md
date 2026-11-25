@@ -3,6 +3,15 @@
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. English version:
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
+## 3.5.2 – 25.11.2026
+**Behoben**
+- **Sicherungen vor einem Update blieben unbegrenzt:** Die drei neuesten Sicherungen „vor Update auf X.Y.Z“ zählten
+  nie zur eingestellten Anzahl – wer selten aktualisiert, hatte darin noch nach Monaten längst gelöschte Daten. Wie in
+  AssetLotse bleiben sie jetzt nur noch **30 Tage** zusätzlich erhalten, danach zählen sie wie alle anderen.
+  Hilfe, Handbuch und README nennen das auch für die Datenschutzerklärung.
+- Die Seite *Datensicherung* zeigte z. B. „13 von höchstens 10“; die zusätzlich aufbewahrten Update-Sicherungen
+  stehen jetzt getrennt dabei.
+
 ## 3.5.1 – 24.11.2026
 **Sicherheit** (Funde aus dem AssetLotse-Audit 2026-11, gleicher Code)
 - **HTTPS-Umstellung nur noch je Proxy:** Mit `CATALYTIX_TRUSTED_PROXIES=private` (Standard) zählt jeder LAN-Rechner

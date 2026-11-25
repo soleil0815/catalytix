@@ -346,7 +346,9 @@ def backups():
         return redirect(url_for("admin.backups"))
     supported = backup.supported()
     items = backup.list_backups() if supported else []
-    return render_template("admin/backups.html", supported=supported, items=items,
+    extra = backup.protected(items)
+    return render_template("admin/backups.html", supported=supported, items=items, extra=extra,
+                           counted=sum(1 for i in items if i["name"] not in extra), extra_days=backup.UPDATE_MAX_DAYS,
                            folder=str(backup.backup_dir()) if supported else "",
                            custom_dir=bool(os.environ.get("CATALYTIX_BACKUP_DIR")),
                            keep=backup.keep_count(), s=get_setting, warning=backup.warning(),

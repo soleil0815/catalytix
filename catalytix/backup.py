@@ -3,7 +3,8 @@
 - daily at the configured time (default 2 a.m.), only once even with several server processes
 - while running, via SQLite's online backup API (consistent, no downtime)
 - every backup is checked with PRAGMA integrity_check; only then is it considered complete
-- the newest N backups are kept (default 10), older ones are deleted
+- the newest N backups are kept (default 10), older ones are deleted; the newest three "before update" backups
+  are kept in addition, for at most 30 days
 - location: <data directory>/backups or CATALYTIX_BACKUP_DIR (e.g. a NAS drive)
 
 With MySQL/MariaDB or PostgreSQL, better back up with the database server's own tools.
@@ -15,7 +16,7 @@ import os
 import re
 import sqlite3
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +30,9 @@ log = logging.getLogger(__name__)
 PREFIX = "catalytix-"
 NAME_RE = re.compile(r"^catalytix-(\d{4}-\d{2}-\d{2})_(\d{6})(-vor-\d+\.\d+\.\d+|-[a-z-]*[a-z])?(-\d+)?\.db$")
 UPDATE_KIND_RE = re.compile(r"^-vor-(\d+\.\d+\.\d+)$")   # automatically when a new version starts
-KEEP_UPDATE_BACKUPS = 3                                    # keep the newest of these (counted separately)
+KEEP_UPDATE_BACKUPS = 3    # "before <version>" backups: the newest three don't count – needed by anyone going back …
+UPDATE_MAX_DAYS = 30       # … but only for 30 days (3.5.2, as in AssetLotse): afterwards they rotate like the others –
+                           # deleted data must not stay in old update backups for ever
 PART_MAX_AGE = 3600   # delete incomplete *.part files as leftovers of aborted runs only after 1 hour
 KIND_LABELS = {"": "automatisch", "-manuell": "manuell", "-vor-wiederherstellung": "vor Wiederherstellung"}
 KEEP_MIN, KEEP_MAX = 1, 100
@@ -152,14 +155,20 @@ def list_backups() -> list[dict[str, Any]]:
     return items
 
 
-def rotate(keep: int | None = None) -> int:
+def protected(items: list[dict[str, Any]], now: datetime | None = None) -> set[str]:
+    """Names of the "before update" backups kept in addition to the set number: the newest three, at most 30 days."""
+    young = (now or datetime.now()) - timedelta(days=UPDATE_MAX_DAYS)
+    updates = [i for i in items if i["before_version"]][:KEEP_UPDATE_BACKUPS]
+    return {i["name"] for i in updates if i["created"] >= young}
+
+
+def rotate(keep: int | None = None, now: datetime | None = None) -> int:
     keep = keep_count() if keep is None else keep
     removed = 0
     items = list_backups()
-    # "before update to X" backups are counted separately: daily ones do not push them out (for going back)
-    regular = [i for i in items if not i["before_version"]]
-    updates = [i for i in items if i["before_version"]]
-    for item in regular[keep:] + updates[KEEP_UPDATE_BACKUPS:]:
+    # protected "before update" backups do not count (for going back); older ones rotate like all others
+    extra = protected(items, now)
+    for item in [i for i in items if i["name"] not in extra][keep:]:
         try:
             item["path"].unlink()
             removed += 1

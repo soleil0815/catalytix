@@ -446,7 +446,7 @@
 </ul>
 <p>Laufende und überfällige Ausleihen werden nie gelöscht. Der Lauf erfolgt einmal täglich; <span class="ui">Jetzt bereinigen</span> startet ihn sofort.</p>
 <figure class="third"><img src="img/36-aufbewahrung.jpg" style="width:62%"><figcaption><b>Abb. 40</b> – Aufbewahrungsfrist.</figcaption></figure>
-<div class="box note"><span class="label">Für die Datenschutzerklärung</span>Gespeichert werden: Name, Benutzername, E-Mail-Adresse, Gruppenzugehörigkeit, Ausleihen mit Datum, das E-Mail-Protokoll und – bei Zwei-Faktor-Anmeldung – die registrierten Schlüssel. Die Aufbewahrungsfrist und die Dauer der Datensicherungen (bei 10 täglichen Sicherungen bis zu 10 Tage länger) gehören mit hinein. Das Programm lädt keine Inhalte von fremden Servern: Schriften, Cover und Barcode-Erkennung kommen vom eigenen Server, es gibt kein Tracking und nur technisch notwendige Cookies.</div>
+<div class="box note"><span class="label">Für die Datenschutzerklärung</span>Gespeichert werden: Name, Benutzername, E-Mail-Adresse, Gruppenzugehörigkeit, Ausleihen mit Datum, das E-Mail-Protokoll und – bei Zwei-Faktor-Anmeldung – die registrierten Schlüssel. Die Aufbewahrungsfrist und die Dauer der Datensicherungen (bei 10 täglichen Sicherungen bis zu 10 Tage länger, Sicherungen vor einem Update höchstens 30 Tage) gehören mit hinein. Das Programm lädt keine Inhalte von fremden Servern: Schriften, Cover und Barcode-Erkennung kommen vom eigenen Server, es gibt kein Tracking und nur technisch notwendige Cookies.</div>
 
 <h3 data-mark="s-backup">Datensicherung</h3>
 <p>Die Datenbank wird <b>jeden Tag automatisch gesichert</b> (Standard ab 2 Uhr nachts), im laufenden Betrieb und mit einer Prüfung jeder Sicherung auf Beschädigung. Aufbewahrt werden die <b>neuesten 10 Sicherungen</b>; die Anzahl ist von 1 bis 100 einstellbar, ältere werden automatisch gelöscht.</p>
@@ -454,7 +454,7 @@
   <li><span class="ui">Jetzt sichern</span> legt sofort eine Sicherung an – sinnvoll vor größeren Änderungen oder einem Update.</li>
   <li>Jede Sicherung lässt sich herunterladen oder löschen.</li>
   <li>Schlägt eine Sicherung fehl, erscheint ein <b>!</b> am Menüpunkt und alle Administratoren bekommen eine E-Mail.</li>
-  <li><b>Vor jedem Versionswechsel</b> sichert das Programm beim Start selbst („vor Update auf X.Y.Z“). Die letzten drei dieser Sicherungen bleiben zusätzlich zu den täglichen erhalten – sie sind der Weg zurück zu einer früheren Version (Kapitel 6.3).</li>
+  <li><b>Vor jedem Versionswechsel</b> sichert das Programm beim Start selbst („vor Update auf X.Y.Z“). Die drei neuesten dieser Sicherungen bleiben 30 Tage lang zusätzlich zu den täglichen erhalten – sie sind der Weg zurück zu einer früheren Version (Kapitel 6.3). Danach zählen sie wie alle anderen.</li>
 </ul>
 <figure><img src="img/37-datensicherung.jpg"><figcaption><b>Abb. 41</b> – Datensicherung mit Einstellungen, Status und vorhandenen Sicherungen.</figcaption></figure>
 <div class="box warn"><span class="label">Wichtig</span>Die Sicherungen liegen auf demselben Server. Sie schützen vor Bedienfehlern und missglückten Updates, nicht vor einem Festplattenausfall. Lassen Sie den Sicherungsordner regelmäßig an einen anderen Ort kopieren, z. B. auf ein NAS.</div>

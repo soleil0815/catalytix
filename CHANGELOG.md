@@ -4,6 +4,9 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste. E
 [CHANGELOG.en.md](CHANGELOG.en.md).
 
 ## 3.5.2 – 25.11.2026
+**Sicherheit**
+- Debian-Pakete auf dem Stand vom 24.11.2026 (u. a. libzstd mit Korrektur einer als hoch eingestuften Lücke).
+
 **Behoben**
 - **Sicherungen vor einem Update blieben unbegrenzt:** Die drei neuesten Sicherungen „vor Update auf X.Y.Z“ zählten
   nie zur eingestellten Anzahl – wer selten aktualisiert, hatte darin noch nach Monaten längst gelöschte Daten. Wie in

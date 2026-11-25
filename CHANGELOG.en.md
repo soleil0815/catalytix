@@ -3,6 +3,9 @@
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
 ## 3.5.2 – 2026-11-25
+**Security**
+- Debian packages at the state of 2026-11-24 (including libzstd with the fix for a vulnerability rated high).
+
 **Fixed**
 - **Backups before an update were kept indefinitely:** the three newest "before update to X.Y.Z" backups never
   counted towards the set number – anyone updating rarely still had long-deleted data in them months later. As in

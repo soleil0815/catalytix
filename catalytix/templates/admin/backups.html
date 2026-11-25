@@ -30,7 +30,7 @@
       <div class="form-grid">
         <div class="field span-3"><label for="f-backup-keep">{{ _("Anzahl aufbewahrter Sicherungen") }}</label>
           <input id="f-backup-keep" type="number" name="backup_keep" value="{{ keep }}" min="1" max="100">
-          <div class="hint">{{ _("Standard 10 · bei täglicher Sicherung also 10 Tage") }}</div></div>
+          <div class="hint">{{ _("Standard 10 · bei täglicher Sicherung also 10 Tage. Die drei neuesten Sicherungen vor einem Update bleiben zusätzlich bis zu {days} Tage.", days=extra_days) }}</div></div>
         <div class="field span-3"><label for="f-backup-hour">{{ _("Uhrzeit") }}</label>
           <select id="f-backup-hour" name="backup_hour">
             {% for h in range(24) %}<option value="{{ h }}" {{ 'selected' if s('backup_hour') == h|string }}>{{ _("ab {time} Uhr", time='%02d:00' % h) }}</option>{% endfor %}
@@ -53,7 +53,7 @@
 </div>
 
 <section class="card" style="margin-top: 22px">
-  <div class="card-head"><h2>{{ _("Vorhandene Sicherungen") }}</h2><span class="muted">{{ _("neueste zuerst · {n} von höchstens {keep}", n=items|length, keep=keep) }}</span></div>
+  <div class="card-head"><h2>{{ _("Vorhandene Sicherungen") }}</h2><span class="muted" data-backup-count>{{ _("neueste zuerst · {n} von höchstens {keep}", n=counted, keep=keep) }}{% if extra %} · {{ _n("dazu {n} Sicherung vor einem Update (bleibt bis zu {days} Tage)", "dazu {n} Sicherungen vor einem Update (bleiben bis zu {days} Tage)", extra|length, days=extra_days) }}{% endif %}</span></div>
   <div class="table-wrap">
   <table>
     <thead><tr><th>{{ _("Zeitpunkt") }}</th><th>{{ _("Art") }}</th><th>{{ _("Größe") }}</th><th>{{ _("Datei") }}</th><th></th></tr></thead>

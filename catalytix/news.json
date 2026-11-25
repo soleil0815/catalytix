@@ -1,5 +1,23 @@
 [
  {
+  "version": "3.5.2",
+  "date": "2026-11-25",
+  "items": [
+   {
+    "kind": "fixed",
+    "audience": "admin",
+    "de": {
+     "title": "Sicherungen vor einem Update",
+     "text": "Die Sicherungen „vor Update auf …“ bleiben nur noch 30 Tage zusätzlich zur eingestellten Anzahl erhalten, danach werden sie wie alle anderen gelöscht. Bisher blieben sie unbegrenzt – mit längst gelöschten Daten."
+    },
+    "en": {
+     "title": "Backups before an update",
+     "text": "The \"before update to …\" backups are now kept for only 30 days in addition to the set number; after that they are deleted like all others. Until now they were kept indefinitely – with long-deleted data."
+    }
+   }
+  ]
+ },
+ {
   "version": "3.5.1",
   "date": "2026-11-24",
   "items": [

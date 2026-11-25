@@ -2,6 +2,14 @@
 
 The current version is shown at the bottom left of the sidebar after signing in. German version: [CHANGELOG.md](CHANGELOG.md).
 
+## 3.5.2 – 2026-11-25
+**Fixed**
+- **Backups before an update were kept indefinitely:** the three newest "before update to X.Y.Z" backups never
+  counted towards the set number – anyone updating rarely still had long-deleted data in them months later. As in
+  AssetLotse, they are now kept for **30 days** in addition only; after that they count like all others. Help,
+  manual and README say so for the privacy policy as well.
+- The *Backup* page showed e.g. "13 of at most 10"; the update backups kept in addition are now listed separately.
+
 ## 3.5.1 – 2026-11-24
 **Security** (findings of the AssetLotse audit 2026-11, same code)
 - **HTTPS switch only per proxy:** with `CATALYTIX_TRUSTED_PROXIES=private` (default) every LAN computer counts as a

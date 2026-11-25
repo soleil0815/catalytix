@@ -1,6 +1,6 @@
 # Catalytix
 
-**Version 3.5.1** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 3.5.2** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
@@ -81,7 +81,7 @@ docker compose pull && docker compose up -d
 
 Runs with `/bin/sh` (also dash/BusyBox) and on a NAS; needs Docker Compose as `docker compose` or `docker-compose` 1.27 or newer. Without a terminal (cron, `ssh` without `-t`) and without `-y` it decides nothing by itself.
 
-**What the program does itself at every version change:** before a new version changes the database, it backs it up (backup `catalytix-…-vor-<version>.db` under *Administration → Backup*; the last three are kept independently of the daily ones). If an **older** version starts on a database a newer one has already used, it stops with a clear message (which version or which backup) instead of running into follow-up errors. With MySQL/PostgreSQL, back up yourself before updates (`mysqldump`/`pg_dump`).
+**What the program does itself at every version change:** before a new version changes the database, it backs it up (backup `catalytix-…-vor-<version>.db` under *Administration → Backup*; the three newest are kept for 30 days in addition to the daily ones). If an **older** version starts on a database a newer one has already used, it stops with a clear message (which version or which backup) instead of running into follow-up errors. With MySQL/PostgreSQL, back up yourself before updates (`mysqldump`/`pg_dump`).
 
 If the `docker-compose.yml` on the server is too old for a new version, the log says so and administrators see a note on the overview – then run `./update.sh` once or replace the file with the one from the release.
 
@@ -430,7 +430,7 @@ The privacy policy should list what Catalytix stores: name, username, e-mail add
 - **If a backup fails**, a warning sign appears on the *Datensicherung* menu entry and administrators get an e-mail (if e-mail sending is set up).
 - The **database** is backed up (books, users, loans, settings). Cover images, logo and `secret_key` are files in `./data` – take the whole folder with you when moving servers. Always restore a database **together with its `secret_key`**, otherwise 2FA and stored SMTP/AD passwords stop working (see [Security](#security)).
 - Important: backups on the same server protect against mistakes and broken updates, **not** against a disk failure. Copy the folder to another place regularly.
-- **Before every version change** the program backs up at start-up itself (`catalytix-…-vor-X.Y.Z.db`, "before update to X.Y.Z"). The last three of these are kept in addition to the daily ones – they are the way back (see [Fixing a version and going back](#fixing-a-version-and-going-back)).
+- **Before every version change** the program backs up at start-up itself (`catalytix-…-vor-X.Y.Z.db`, "before update to X.Y.Z"). The three newest of these are kept for 30 days in addition to the daily ones – they are the way back (see [Fixing a version and going back](#fixing-a-version-and-going-back)). After that they count like all others, so deleted data does not stay in old backups indefinitely.
 - SQLite only. With MySQL/MariaDB or PostgreSQL use `mysqldump` or `pg_dump`.
 
 **Restoring** (the current state is backed up automatically first):
@@ -442,7 +442,7 @@ docker compose run --rm catalytix flask --app wsgi restore-backup catalytix-2026
 docker compose start catalytix
 ```
 
-Privacy: backups contain all data, including data already deleted by the retention period – with 10 daily backups up to 10 days longer. Mention this in your privacy policy.
+Privacy: backups contain all data, including data already deleted by the retention period – with 10 daily backups up to 10 days longer, backups before an update at most 30 days. Mention this in your privacy policy.
 
 ---
 

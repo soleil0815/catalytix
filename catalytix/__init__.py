@@ -28,7 +28,7 @@ from .models import get_int as get_int_setting
 from .i18n import gettext as _
 from .logmark import personal
 
-__version__ = "3.5.1"
+__version__ = "3.5.2"
 APP_NAME = "Catalytix"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Where the source code can be found (AGPL § 13). Anyone running a modified Catalytix enters the

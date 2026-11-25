@@ -233,7 +233,7 @@ class RestoreCommandTests(Base):
                 create_backup(f"-vor-3.{i}.0", now=t + timedelta(minutes=i), rotate_after=False)
             for i in range(5):
                 create_backup("", now=t + timedelta(hours=1, minutes=i), rotate_after=False)
-            rotate(keep=2)
+            rotate(keep=2, now=t + timedelta(days=1))                 # young: within the 30 days
             kinds = [(b["kind"], b["before_version"]) for b in list_backups()]
         self.assertEqual(sum(1 for k, v in kinds if v), 3)            # the newest 3 "before update"
         self.assertEqual(sum(1 for k, v in kinds if not v), 2)

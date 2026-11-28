@@ -1,41 +1,43 @@
 # Catalytix
 
-**Version 3.5.2** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) ([englisch](CHANGELOG.en.md)). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 3.5.2** – see [CHANGELOG.en.md](CHANGELOG.en.md) for changes ([German](CHANGELOG.md)). · [Deutsche Version](README.de.md) · Developed by [helfi.space](https://helfi.space)
 
-Webbasierte Bibliotheksverwaltung mit ISBN-Scan, Ausleihe, Gruppen und Anmeldung über Active Directory (Windows Server oder Samba). Freie Software unter der [GNU AGPL v3](#lizenz). „Catalytix“ ist der Projektname – in der Oberfläche erscheint nur der Name Ihrer Bibliothek.
+Web-based library management with ISBN scanning, lending, groups and sign-in via Active Directory (Windows Server or Samba). Free software under the [GNU AGPL v3](#license). “Catalytix” is the project name – the interface only shows the name of your library.
 
-> **Für den eigenen Einsatz gebaut – Nutzung in eigener Verantwortung.** Ich habe Catalytix in erster Linie für mich selbst entwickelt, weil ich genau so ein Programm in meiner eigenen Umgebung einsetzen wollte. Ich nutze es selbst im Betrieb; Fehler fallen mir dadurch meist schnell auf und werden zügig behoben. Wenn Sie Catalytix ebenfalls einsetzen möchten: gern – aber in eigener Verantwortung. Es gibt keine Gewährleistung und keine Haftung (Abschnitte 15 und 16 der [Lizenz](LICENSE)). Probieren Sie es zuerst in einer Testumgebung aus und legen Sie Sicherungen an. Fehlerberichte und Verbesserungsvorschläge sind willkommen – am besten als [Issue](https://github.com/soleil0815/catalytix/issues); Sicherheitslücken bitte nicht öffentlich, sondern wie in [SECURITY.md](SECURITY.md) beschrieben melden. Support oder feste Antwortzeiten kann ich nicht zusagen.
+> **Built for my own use – use at your own responsibility.** I built Catalytix primarily for myself, because I wanted exactly this kind of program for my own environment. I run it in production myself, so I usually notice bugs quickly and fix them promptly. If you would like to use Catalytix too: you are welcome to – at your own responsibility. There is no warranty and no liability (sections 15 and 16 of the [license](LICENSE)). Try it in a test environment first and keep backups. Bug reports and suggestions for improvement are welcome – preferably as an [issue](https://github.com/soleil0815/catalytix/issues); please report security vulnerabilities privately, as described in [SECURITY.md](SECURITY.md). I cannot promise support or response times.
 
-- **Bestand pflegen** – manuell oder per ISBN: USB-/Bluetooth-Barcodescanner, Handy-/Laptop-Kamera oder Eintippen. Daten und Cover kommen automatisch von der Deutschen Nationalbibliothek, Open Library und Google Books.
-- **Standorte** – feste Liste der Regale und Räume; beim Erfassen wird ausgewählt statt getippt.
-- **Schnellerfassung** – ISBN für ISBN scannen; neue Titel mit einem Klick übernehmen, vorhandene um ein Exemplar erhöhen. Wird ein vorhandenes Buch (gleiche ISBN, gleiche Gruppe) noch einmal erfasst, werden die Exemplare dort hinzugezählt statt einen zweiten Eintrag anzulegen.
-- **Suche mit Vorschlägen** – schon beim Tippen erscheinen passende Bücher (Suchfeld oben) und Personen (Ausleihtheke).
-- **Ausleihe** – Selbstausleihe per Klick, Verleihen direkt aus dem Katalog, Ausleihtheke für den Scanner, Rückgabe, Verlängerung, Überfälligkeiten, Höchstzahl an Ausleihen, optional **Vormerken** verliehener Bücher mit Warteschlange und Abholfrist.
-- **Gruppen** – jede Gruppe hat ihren Bestand; Mitglieder leihen nur Bücher ihrer Gruppen (plus „allgemeine“ Bücher). Eine Gruppe kann **Präsenzbestand** sein: Die Bücher der Gruppe stehen im Katalog, werden aber nicht verliehen und nicht vorgemerkt.
-- **Rollen** – Leser, Verwalter (Bibliothekspersonal), Administrator. Lokales Admin-Konto funktioniert immer.
-- **Selbstregistrierung** (optional, standardmäßig aus) – mit Freigabe durch Admins, E-Mail-Bestätigung und Domain-Beschränkung.
-- **Eigenes Erscheinungsbild** – Logo, Hintergrundbild der Anmeldeseite, Farben und Begrüßungstexte.
-- **Zwei-Faktor-Anmeldung** mit Authenticator-App (TOTP) oder Sicherheitsschlüssel (YubiKey/FIDO2, Passkeys), Wiederherstellungscodes und einstellbarer Pflicht je Rolle.
-- **E-Mail-Benachrichtigungen** per SMTP – Ausleih- und Rückgabebestätigung, Erinnerung vor Fälligkeit, Mahnungen, tägliche Übersicht für Verwalter.
-- **Active Directory / LDAP** – frei definierbar, welche OUs oder AD-Gruppen sich anmelden, verwalten oder administrieren dürfen. AD-Gruppen lassen sich Bibliotheksgruppen zuordnen.
-- **Automatische Datensicherung** – täglich, die letzten 10 Sicherungen werden aufbewahrt (einstellbar).
-- Modernes, responsives Design mit Hell-/Dunkelmodus. Daten in **SQLite** (Standard), optional MySQL/MariaDB oder PostgreSQL.
+> **Note:** The user interface is bilingual – German and English (switch DE/EN at the top; the language of the browser is used first). Some menu names in this document are still given in German with the English label, e.g. *Administration → Einstellungen* (Settings).
+
+- **Catalogue** – add books by hand or by ISBN: USB/Bluetooth barcode scanner, phone/laptop camera or typing. Metadata and covers are fetched automatically from the German National Library (DNB), Open Library and Google Books.
+- **Locations** – fixed list of shelves and rooms; picked from a list instead of typed when adding books.
+- **Quick capture** – scan one ISBN after another; accept new titles with one click, or add a copy to an existing title. Adding an existing book again (same ISBN, same group) adds the copies to it instead of creating a second entry.
+- **Search as you type** – matching books (search box at the top) and people (circulation desk) appear while typing.
+- **Lending** – self-checkout, lending straight from the catalogue, a circulation desk optimised for scanners, returns, renewals, overdue tracking, loan limits, optional **reservations** of books on loan with a queue and collection period.
+- **Groups** – each group has its own collection; members can only borrow books of their groups (plus "general" books). A group can be **reference only**: its books are in the catalogue but are neither lent out nor reserved.
+- **Roles** – reader, librarian, administrator. The local admin account always works.
+- **Self-registration** (optional, off by default) – with admin approval, e-mail verification and domain restrictions.
+- **Custom branding** – logo, login background image, colours and welcome texts.
+- **Two-factor authentication** with an authenticator app (TOTP) or security keys (YubiKey/FIDO2, passkeys), recovery codes and a per-role policy.
+- **E-mail notifications** via SMTP – loan and return confirmations, due-date reminders, overdue notices, daily digest for librarians.
+- **Active Directory / LDAP** – freely define which AD groups (or OUs) may sign in, manage or administer. AD groups can be mapped to library groups.
+- **Automatic backups** – daily, the last 10 backups are kept (configurable).
+- Modern, responsive design with light and dark mode. Data stored in **SQLite** (default), optionally MySQL/MariaDB or PostgreSQL.
 
 
 <p align="center">
-  <img src="docs/images/katalog-de.webp" alt="Katalog mit Buchcovern, Filtern und dem Knopf „Verleihen“ unter jedem freien Buch" width="100%">
+  <img src="docs/images/katalog-en.webp" alt="Catalogue with book covers, filters and a Lend button under every available book" width="100%">
 </p>
 <p align="center">
-  <img src="docs/images/buch-de.webp" alt="Buchseite: alle Exemplare verliehen, das Buch ist vorgemerkt – Platz 1 in der Warteschlange" width="49%">
-  <img src="docs/images/theke-de.webp" alt="Ausleihtheke: Person gewählt, Buch scannen und verleihen" width="49%">
+  <img src="docs/images/buch-en.webp" alt="Book page: all copies on loan, the book is reserved – position 1 in the queue" width="49%">
+  <img src="docs/images/theke-en.webp" alt="Circulation desk: person selected, scan the book and lend it" width="49%">
 </p>
-<p align="center"><sub>Katalog · Buchseite mit Vormerkung · Ausleihtheke (Demodaten)</sub></p>
+<p align="center"><sub>Catalogue · book page with a reservation · circulation desk (demo data)</sub></p>
 
 ---
 
-## Schnellstart
+## Quick start
 
-Catalytix steckt komplett im fertigen Image `ghcr.io/soleil0815/catalytix` (Intel/AMD und ARM, z. B. Synology oder Raspberry Pi). Auf dem Server liegen nur **`docker-compose.yml`, `.env` und der Datenordner `./data`** – kein Programmordner, nichts zu entpacken oder zu bauen.
+Catalytix is completely inside the ready-made image `ghcr.io/soleil0815/catalytix` (Intel/AMD and ARM, e.g. Synology or Raspberry Pi). The server only holds **`docker-compose.yml`, `.env` and the data folder `./data`** – no program folder, nothing to unpack or build.
 
 ### Installation
 
@@ -43,82 +45,82 @@ Catalytix steckt komplett im fertigen Image `ghcr.io/soleil0815/catalytix` (Inte
 mkdir -p /opt/catalytix && cd /opt/catalytix
 curl -fsSLO https://github.com/soleil0815/catalytix/releases/latest/download/docker-compose.yml
 curl -fsSL  https://github.com/soleil0815/catalytix/releases/latest/download/env.example -o .env
-chmod 600 .env                # kann später Passwörter enthalten (z. B. DATABASE_URL)
-docker compose up -d          # ältere Installationen (z. B. Synology): docker-compose up -d
+chmod 600 .env                # may hold passwords later (e.g. DATABASE_URL)
+docker compose up -d          # older installations (e.g. Synology): docker-compose up -d
 ```
 
-In der `.env` ist alles optional (Port, Zeitzone, Datenbank …) – ohne Eintrag gilt die Vorgabe. Dann `http://SERVER:9300` öffnen (z. B. `http://bibliothek.firma.local:9300`). Beim ersten Aufruf legen Sie das lokale Administratorkonto an; dafür fragt die Seite den **Einrichtungscode** ab. Er steht im Protokoll des Containers (`docker compose logs catalytix`) und lässt sich jederzeit so anzeigen: `docker compose exec catalytix docker-entrypoint.sh flask --app wsgi setup-code`. So kann niemand, der den Port zufällig erreicht, die Einrichtung übernehmen.
+Everything in `.env` is optional (port, time zone, database …) – without an entry the default applies. Then open `http://SERVER:9300` (e.g. `http://library.company.local:9300`). On the first visit you create the local administrator account; the page asks for the **setup code**. It is in the container log (`docker compose logs catalytix`) and can be shown any time with `docker compose exec catalytix docker-entrypoint.sh flask --app wsgi setup-code`. This way nobody who happens to reach the port can take over the setup.
 
-Der Container setzt beim Start selbst die Rechte an `./data` und läuft danach als Benutzer `PUID:PGID` (Standard `1000:1000`) – nicht als root. Zusätzliches (z. B. ein NAS-Laufwerk für Sicherungen oder eine MariaDB) kommt in eine eigene `docker-compose.override.yml`; die wird nie angefasst.
+At start-up the container sets the permissions of `./data` itself and then runs as user `PUID:PGID` (default `1000:1000`) – not as root. Additions (e.g. a NAS share for backups or a MariaDB) go into your own `docker-compose.override.yml`, which is never touched.
 
-Optional für Updates von Hand mit automatischem Weg zurück: `update.sh` in denselben Ordner legen (`curl -fsSLO https://github.com/soleil0815/catalytix/releases/latest/download/update.sh && chmod +x update.sh`).
+Optional, for updates by hand with an automatic way back: put `update.sh` into the same folder (`curl -fsSLO https://github.com/soleil0815/catalytix/releases/latest/download/update.sh && chmod +x update.sh`).
 
-### Update
+### Updating
 
-**Mit einer Container-Verwaltung** (Dockhand, Watchtower, Tugtainer …): einfach wie andere Container aktualisieren lassen. Empfehlung: die Update-Zeit **nachts** legen (z. B. 3 Uhr) – beim Start einer neuen Version ist die Bibliothek kurz nicht erreichbar.
+**With a container manager** (Dockhand, Watchtower, Tugtainer …): let it update the container like any other. Recommendation: schedule updates **at night** (e.g. 3 am) – the library is unavailable for a moment while a new version starts.
 
-**Hinweis auf neue Versionen:** Wer nicht automatisch aktualisiert, sieht als Administrator auf der Übersicht einen Hinweis, sobald eine neuere Version seit einem Tag veröffentlicht ist (tägliche Abfrage bei GitHub, nur die Anfrage selbst; abschaltbar unter *Einstellungen → Wartung → Neue Versionen*, dort auch *Jetzt prüfen*). Aktualisiert wird nie von selbst.
+**Notice about new versions:** if you don't update automatically, administrators see a notice on the overview once a newer version has been published for a day (daily request to GitHub, only the request itself; can be switched off under *Settings → Maintenance → New versions*, which also has *Check now*). Nothing is ever updated automatically.
 
-**Von Hand:**
+**By hand:**
 
 ```bash
 docker compose pull && docker compose up -d
 ```
 
-**Oder mit `./update.sh`** – macht dasselbe, und zusätzlich:
-- merkt sich das laufende Image als `previous`,
-- wartet, bis die neue Version gesund gemeldet wird; **startet sie nicht**, spielt es die Sicherung von vor dem Update zurück und startet wieder die vorige Version (mit Nachfrage, mit `-y` automatisch) – und bleibt vorerst bei ihr, damit eine Container-Verwaltung die fehlerhafte Version nicht gleich wieder installiert,
-- legt eine neuere `docker-compose.yml` aus dem Image ab (die alte bleibt als `docker-compose.yml.alt`) und hält `update.sh` und `.env.example` aktuell.
+**Or with `./update.sh`** – does the same, and in addition:
+- keeps the running image as `previous`,
+- waits until the new version reports healthy; **if it does not start**, it restores the backup from before the update and starts the previous version again (asks first, automatic with `-y`) – and stays on it for now, so a container manager does not install the failing version again right away,
+- puts a newer `docker-compose.yml` from the image in place (the old one is kept as `docker-compose.yml.alt`) and keeps `update.sh` and `.env.example` current.
 
 ```bash
-./update.sh                     # neueste Version (oder die in der .env festgelegte)
-./update.sh --version=3.0.0     # genau diese Version – auch ein Sicherheitsupdate wie 3.0.0-s1
-./update.sh --version=latest    # wieder jeder neuen Version folgen
-./update.sh -y                  # ohne Rückfragen (z. B. per cron)
+./update.sh                     # newest version (or the one fixed in .env)
+./update.sh --version=3.0.0     # exactly this version – also a security update like 3.0.0-s1
+./update.sh --version=latest    # follow every new version again
+./update.sh -y                  # no questions (e.g. from cron)
 ```
 
-Läuft mit `/bin/sh` (auch dash/BusyBox) und auf einem NAS; braucht Docker Compose als `docker compose` oder `docker-compose` ab 1.27. Ohne Terminal (cron, `ssh` ohne `-t`) und ohne `-y` entscheidet es nichts von selbst.
+Runs with `/bin/sh` (also dash/BusyBox) and on a NAS; needs Docker Compose as `docker compose` or `docker-compose` 1.27 or newer. Without a terminal (cron, `ssh` without `-t`) and without `-y` it decides nothing by itself.
 
-**Was das Programm bei jedem Versionswechsel selbst tut:** Bevor eine neue Version die Datenbank anpasst, sichert sie sie (Sicherung `catalytix-…-vor-<Version>.db` in *Administration → Datensicherung*; die drei neuesten bleiben 30 Tage lang zusätzlich zu den täglichen erhalten). Startet eine **ältere** Version auf einer Datenbank, die schon eine neuere benutzt hat, bricht sie mit einer klaren Meldung ab (welche Version bzw. welche Sicherung) – statt mit Folgefehlern weiterzulaufen. Bei MySQL/PostgreSQL sichern Sie vor Updates selbst (`mysqldump`/`pg_dump`).
+**What the program does itself at every version change:** before a new version changes the database, it backs it up (backup `catalytix-…-vor-<version>.db` under *Administration → Backup*; the three newest are kept for 30 days in addition to the daily ones). If an **older** version starts on a database a newer one has already used, it stops with a clear message (which version or which backup) instead of running into follow-up errors. With MySQL/PostgreSQL, back up yourself before updates (`mysqldump`/`pg_dump`).
 
-Ist die `docker-compose.yml` auf dem Server für eine neue Version zu alt, steht das im Protokoll und für Administratoren auf der Übersicht – dann einmal `./update.sh` ausführen oder die Datei aus dem Release ersetzen.
+If the `docker-compose.yml` on the server is too old for a new version, the log says so and administrators see a note on the overview – then run `./update.sh` once or replace the file with the one from the release.
 
-### Eine Version festlegen und zurückgehen
+### Fixing a version and going back
 
-**Festlegen:** in der `.env` `CATALYTIX_TAG=3.0.0` eintragen (oder `./update.sh --version=3.0.0`) – dann bleibt es bei dieser Version, auch mit Container-Verwaltung. `CATALYTIX_TAG=latest` (oder die Zeile weglassen) folgt wieder jeder neuen Version.
+**Fixing:** set `CATALYTIX_TAG=3.0.0` in `.env` (or `./update.sh --version=3.0.0`) – it stays on this version, also with a container manager. `CATALYTIX_TAG=latest` (or no such line) follows every new version again.
 
-**Zurückgehen:** Eine ältere Version braucht die Datenbank von damals. `./update.sh --version=X.Y.Z` erledigt beides: Es spielt die neueste Sicherung zurück, die diese Version lesen kann, und startet sie (es fragt vorher, denn alles seitdem Eingetragene geht verloren). Von Hand:
+**Going back:** an older version needs the database from back then. `./update.sh --version=X.Y.Z` does both: it restores the newest backup this version can read and starts it (it asks first, because everything entered since is lost). By hand:
 
 ```bash
 docker compose stop catalytix
 docker compose run --rm -e CATALYTIX_SKIP_DB_CHECK=1 catalytix flask --app wsgi restore-for-version 3.0.0
-# CATALYTIX_TAG=3.0.0 in die .env eintragen
+# set CATALYTIX_TAG=3.0.0 in .env
 docker compose up -d
 ```
 
-(`restore-for-version` läuft hier noch mit dem neueren Image – das kennt den Befehl. `list-backups` zeigt alle Sicherungen.)
+(`restore-for-version` still runs in the newer image here – it knows the command. `list-backups` shows all backups.)
 
-### Ohne Internet
+### Without internet
 
-Im Release liegen die Images als Dateien (`catalytix-X.Y.Z-amd64.tar.gz`, für ARM `-arm64`) mit `SHA256SUMS`. Datei, `SHA256SUMS` und `update.sh` auf den Server kopieren, dann:
+The release contains the images as files (`catalytix-X.Y.Z-amd64.tar.gz`, `-arm64` for ARM) with `SHA256SUMS`. Copy the file, `SHA256SUMS` and `update.sh` to the server, then:
 
 ```bash
-./update.sh --load catalytix-3.0.0-amd64.tar.gz     # prüft die Prüfsumme, lädt das Image, startet es
+./update.sh --load catalytix-3.0.0-amd64.tar.gz     # checks the checksum, loads the image, starts it
 ```
 
-Ohne `update.sh`: `sha256sum -c SHA256SUMS --ignore-missing`, `docker load -i catalytix-3.0.0-amd64.tar.gz`, in der `.env` `CATALYTIX_TAG=3.0.0` eintragen, `docker compose up -d`.
+Without `update.sh`: `sha256sum -c SHA256SUMS --ignore-missing`, `docker load -i catalytix-3.0.0-amd64.tar.gz`, set `CATALYTIX_TAG=3.0.0` in `.env`, `docker compose up -d`.
 
-### Umstieg für Installationen vor 3.0.0
+### Moving installations from before 3.0.0
 
-Bis 2.20 lagen Programmdateien auf dem Server (Zip-Paket, lokal gebaut). Ab 3.0.0 steckt alles im Image. Einmalig im bisherigen Programmordner:
+Up to 2.20 the program files were on the server (zip package, built locally). From 3.0.0 everything is in the image. Once, in the existing program folder:
 
-1. Sicherung anlegen: *Administration → Datensicherung → Jetzt sichern* (das Programm sichert beim ersten Start von 3.0.0 zusätzlich selbst).
-2. Mit dem **bisherigen** Skript einmal auf das Image umstellen: `./update.sh --pull`. Es holt 3.0.0, legt die neue `docker-compose.yml`, `.env.example` und das neue `update.sh` ab und startet. (Kennt Ihr Skript `--pull` noch nicht – vor 2.16 –, legen Sie stattdessen das neue `update.sh` aus dem Release in den Ordner und starten Sie `./update.sh`; die alte `docker-compose.yml` bleibt dann als `docker-compose.yml.alt`.)
-3. Alte Programmdateien wegräumen: `./update.sh --cleanup`. Es zeigt die Liste (nur bekannte Programmdateien wie `catalytix/`, `Dockerfile`, `wsgi.py`, alte Zip-Pakete, Arbeitsordner abgebrochener Updates und lokal gebaute `catalytix:X.Y.Z`-Images), fragt und löscht nur diese. **Nie** angefasst werden `data/`, Sicherungen, `.env`, `docker-compose.yml` (samt `.alt`/`.override`) und alles, was ein Container eingebunden hat – auch nicht über Verknüpfungen.
+1. Take a backup: *Administration → Backup → Back up now* (the program also backs up itself at the first start of 3.0.0).
+2. Switch to the image once with the **existing** script: `./update.sh --pull`. It gets 3.0.0, places the new `docker-compose.yml`, `.env.example` and the new `update.sh`, and starts it. (If your script does not know `--pull` yet – before 2.16 –, put the new `update.sh` from the release into the folder instead and run `./update.sh`; the old `docker-compose.yml` is then kept as `docker-compose.yml.alt`.)
+3. Remove the old program files: `./update.sh --cleanup`. It shows the list (only known program files such as `catalytix/`, `Dockerfile`, `wsgi.py`, old zip packages, work folders of aborted updates and locally built `catalytix:X.Y.Z` images), asks, and deletes only those. **Never** touched: `data/`, backups, `.env`, `docker-compose.yml` (with `.alt`/`.override`) and anything a container mounts – not even through links.
 
-Danach liegen im Ordner nur noch `docker-compose.yml`, `.env`, `.env.example`, `update.sh` und `data/`.
+Afterwards the folder only holds `docker-compose.yml`, `.env`, `.env.example`, `update.sh` and `data/`.
 
-### Für Entwickler: ohne Docker
+### For developers: without Docker
 
 ```bash
 python3.13 -m venv .venv && . .venv/bin/activate     # Windows: py -3.13 -m venv .venv; .venv\Scripts\activate
@@ -127,309 +129,311 @@ export CATALYTIX_DATA_DIR=/var/lib/catalytix
 gunicorn -w 2 --threads 4 -b 0.0.0.0:9300 wsgi:app   # Windows: waitress-serve --listen=0.0.0.0:9300 wsgi:app
 ```
 
-Zum Ausprobieren reicht `python wsgi.py` (nur `127.0.0.1:9300`). Das Image selbst bauen: `docker build -t catalytix-dev .`
+`python wsgi.py` is enough to try it out (`127.0.0.1:9300` only). Building the image yourself: `docker build -t catalytix-dev .`
 
-### Feste Versionen und automatische Sicherheitsupdates
+### Pinned versions and automatic security updates
 
-**Jeder Bau ist reproduzierbar** – alle Eingaben stehen mit exakter Version im Repository:
-- **Basis-Image** mit fester Version und Prüfsumme (`ARG PYTHON_IMAGE=python:3.13.x-slim-trixie@sha256:…` im `Dockerfile`). Der Name legt den **Unterbau** fest: Debian 13 „trixie“, Python 3.13.
-- **Debian-Pakete:** alle Pakete im Image, auch die des Basis-Images, werden auf einen festen Stand des Debian-Archivs gebracht (`ARG DEBIAN_SNAPSHOT=…`, über snapshot.debian.org). Welche Versionen genau drin sind, steht im Image unter `/app/image-packages.txt`.
-- **Python-Pakete:** `requirements.txt` enthält alle Pakete, auch indirekte, mit exakter Version und der SHA-256-Prüfsumme jeder Datei – pip installiert nichts anderes (`--require-hashes`). `pip` selbst steht in `docker/pip.lock` und wird nach der Installation aus dem Image entfernt.
-- **Neu festlegen:** `python3 tools/lock.py update` (braucht Docker und Internet) – immer nur **innerhalb des Unterbaus**: gleiche Debian-Version, gleiche Python-Reihe, jedes Paket innerhalb seiner Hauptversion (vor 1.0: Unterversion; Bereiche in `requirements.in`). Ausnahme ohne Grenze: Kalenderversionen wie die Stammzertifikate (`certifi`). Neue Paketversionen werden erst übernommen, wenn sie mindestens 7 Tage alt sind (Schutz vor frisch hochgeladenen Schadversionen). `python3 tools/lock.py check` prüft die Locks.
+**Every build is reproducible** – all inputs are in the repository with an exact version:
+- **Base image** with fixed version and digest (`ARG PYTHON_IMAGE=python:3.13.x-slim-trixie@sha256:…` in the `Dockerfile`). The name defines the **foundation**: Debian 13 "trixie", Python 3.13.
+- **Debian packages:** all packages in the image, including those of the base image, are brought to a fixed state of the Debian archive (`ARG DEBIAN_SNAPSHOT=…`, via snapshot.debian.org). The exact versions are listed in the image under `/app/image-packages.txt`.
+- **Python packages:** `requirements.txt` contains all packages, including indirect ones, with exact version and the SHA-256 of every file – pip installs nothing else (`--require-hashes`). `pip` itself is in `docker/pip.lock` and is removed from the image after installing.
+- **Fix new versions:** `python3 tools/lock.py update` (needs Docker and internet) – always **within the foundation**: same Debian release, same Python series, every package within its major version (before 1.0: minor version; ranges in `requirements.in`). No limit for calendar versions such as the root certificates (`certifi`). New package versions are only taken once they are at least 7 days old (protection against freshly uploaded malicious releases). `python3 tools/lock.py check` verifies the locks.
 
-**Automatisch auf GitHub** (Einzelheiten unter [GitHub](#github-image-bauen-und-versionen-veröffentlichen)):
-- **Einmal im Monat am Patchday – Sicherheitsupdate:** am zweiten Dienstag des Monats früh (wie Microsofts Patchday, in allen Programmen derselbe Tag; der Zeitplan startet jeden Dienstag, `tools/patchday.sh` lässt nur den zweiten durch): neueste Versionen innerhalb des Unterbaus festlegen, ohne Zwischenspeicher neu bauen, die Tests im fertigen Image laufen lassen, mit Trivy prüfen. Nur wenn **alles** besteht, wird das Image als `latest` und als **`<Programmversion>-s<Zähler>`** veröffentlicht (z. B. `3.0.0-s1`, `3.0.0-s2` – „gleiches Programm, nur neue Pakete“; eine neue Programmversion beginnt wieder bei `s1`), mit einem Eintrag in beiden CHANGELOGs (deutsch und englisch), der die geänderten Pakete auflistet. Hat sich nichts geändert, passiert nichts.
-- **Täglich:** Trivy prüft das veröffentlichte `latest` auf Schwachstellen, die erst nach dem Release bekannt wurden.
-- **Einmal im Monat, eine Woche vor dem Patchday – ZAP-Scan im Code-Audit:** am Dienstag (01:17 UTC) startet GitHub das Programm in einem Wegwerf-Container mit Testdaten und lässt [ZAP](https://www.zaproxy.org/) es ohne Anmeldung durchsuchen und angreifen (passiver und aktiver Scan, nie gegen echte Server). Der Code-Audit am Tag danach prüft jeden Fund am Code und behebt bestätigte Schwachstellen vor dem Patchday. Bei normalen Pull Requests läuft der Scan nicht.
-- **Wöchentlich:** Prüfung, wie lange Debian 13 und Python 3.13 noch Sicherheitsupdates bekommen. Ab 12 Monaten vorher ein Hinweis am Lauf, ab 6 Monaten wird der Lauf rot. Den Unterbau hebt niemand still an – das ist eine bewusste Änderung (siehe unten).
+**Automatically on GitHub** (details under [GitHub](#github-building-the-image-and-publishing-versions)):
+- **Once a month on patch day – security update:** early on the second Tuesday of the month (like Microsoft's Patch Tuesday, the same day in all programs; the schedule starts every Tuesday, `tools/patchday.sh` only lets the second one through): fix the newest versions within the foundation, rebuild without cache, run the tests in the finished image, scan with Trivy. Only if **everything** passes is the image published as `latest` and as **`<program version>-s<counter>`** (e.g. `3.0.0-s1`, `3.0.0-s2` – "same program, only new packages"; a new program version starts again at `s1`), with an entry in both change logs (German and English) listing the changed packages. If nothing changed, nothing happens.
+- **Daily:** Trivy scans the published `latest` for vulnerabilities that became known after the release.
+- **Once a month, one week before patch day – ZAP scan in the code audit:** on that Tuesday (01:17 UTC) GitHub starts the program in a throwaway container with test data and lets [ZAP](https://www.zaproxy.org/) crawl and attack it without logging in (passive and active scan, never against real servers). The code audit the day after checks every finding against the code and fixes confirmed vulnerabilities before patch day. The scan does not run on normal pull requests.
+- **Weekly:** check how long Debian 13 and Python 3.13 still get security updates. From 12 months before: a notice on the run; from 6 months: the run turns red. Nobody raises the foundation silently – it is a deliberate change (see below).
 
-**Wird ein Lauf rot,** wird nichts veröffentlicht, die laufende Installation bleibt unverändert, und GitHub schickt eine E-Mail. Die Ursache steht oben am Lauf (*Actions* → Lauf öffnen, Anmerkungen und Zusammenfassung):
+**If a run turns red,** nothing is published, the running installation stays as it is, and GitHub sends an email. The cause is shown at the top of the run (*Actions* → open the run, annotations and summary):
 
-| Lauf / Meldung | Bedeutung | Was zu tun ist |
+| Run / message | Meaning | What to do |
 |---|---|---|
-| *Security update* – „lock: no release of … / no resolution … older than the cool-down“ | Ein neues oder geändertes Paket (auch eine neu hinzugekommene Abhängigkeit) ist jünger als 7 Tage, und es gibt keine ältere passende Version (sonst nimmt der Lauf automatisch die nächstältere) | Abwarten – ein späterer Lauf übernimmt es. Für einen dringenden Fix: *Run workflow* mit `cooldown_days` = `0` |
-| *Security update* – „Trivy: … blocking finding(s)“ | Ein Paket hat eine schwere Lücke mit Korrektur, die Korrektur ist aber noch nicht im Image – meist, weil sie jünger als 7 Tage ist | Abwarten (nächster Patchday) oder *Actions → Security update → Run workflow* mit `cooldown_days` = `0` starten. Hilft das nicht: die Korrektur liegt außerhalb des Unterbaus (z. B. nur in einer neuen Hauptversion) – das Paket bewusst anheben |
-| *Daily scan* rot | Für das veröffentlichte Image wurde eine neue Lücke bekannt | Ebenso: *Security update* von Hand starten; ist sie nicht ausnutzbar, mit Begründung und Ablaufdatum in `.trivyignore` eintragen |
-| „Tests failed in the new image“ | Ein Paket-Update verträgt sich nicht mit dem Programm | Fehler im Log ansehen, Programm anpassen oder das Paket in `requirements.in` begrenzen, neue Programmversion |
-| „Locking failed“ / „Image build failed“ | Docker Hub, PyPI oder snapshot.debian.org waren nicht erreichbar oder lieferten Unerwartetes | Meist vorübergehend: Lauf später erneut starten |
-| „Unreleased build changes on main“ | Auf `main` liegen Änderungen an `Dockerfile` oder `requirements.in`, die noch in keinem Release sind | Erst eine neue Programmversion veröffentlichen |
-| *Foundation check* gelb/rot | Debian- oder Python-Reihe bekommt in ≤ 12 bzw. ≤ 6 Monaten keine Sicherheitsupdates mehr | Unterbau bewusst anheben: im `Dockerfile` und in `tools/lock.py` (`FOUNDATION`) auf die neue Debian-Version bzw. Python-Reihe umstellen, `tools/lock.py update`, alle Tests, neue Programmversion |
+| *Security update* – "lock: no release of … / no resolution … older than the cool-down" | A new or changed package (also a dependency that is new) is younger than 7 days and there is no older fitting version (otherwise the run takes the next older one automatically) | Wait – a later run takes it. For an urgent fix: *Run workflow* with `cooldown_days` = `0` |
+| *Security update* – "Trivy: … blocking finding(s)" | A package has a serious vulnerability with a fix, but the fix is not in the image yet – usually because it is younger than 7 days | Wait (next patch day) or start *Actions → Security update → Run workflow* with `cooldown_days` = `0`. If that does not help, the fix is outside the foundation (e.g. only in a new major version) – raise that package deliberately |
+| *Daily scan* red | A new vulnerability became known for the published image | Same: start *Security update* by hand; if it is not exploitable, add it to `.trivyignore` with a reason and an expiry date |
+| "Tests failed in the new image" | A package update does not work with the program | Check the log, adapt the program or limit the package in `requirements.in`, new program version |
+| "Locking failed" / "Image build failed" | Docker Hub, PyPI or snapshot.debian.org were unreachable or returned something unexpected | Usually temporary: start the run again later |
+| "Unreleased build changes on main" | `main` has changes to `Dockerfile` or `requirements.in` that are not in a release yet | Publish a new program version first |
+| *Foundation check* yellow/red | The Debian release or Python series gets no security updates in ≤ 12 or ≤ 6 months | Raise the foundation deliberately: switch the `Dockerfile` and `tools/lock.py` (`FOUNDATION`) to the new Debian release or Python series, `tools/lock.py update`, all tests, new program version |
 
-**Was Trivy stoppt:** Schwachstellen HIGH/CRITICAL, für die es eine Korrektur gibt, und gefundene Geheimnisse (z. B. Schlüssel) im Image – Letztere immer. Geprüft werden beide Plattformen (amd64 und arm64), und veröffentlicht wird genau das getestete und geprüfte Image.
+**What stops Trivy:** HIGH/CRITICAL vulnerabilities with an available fix, and secrets found in the image (e.g. keys) – the latter always. Both platforms (amd64 and arm64) are scanned, and exactly the tested and scanned image is published.
 
-**`.trivyignore`:** nur geprüfte, nicht ausnutzbare Befunde – je Eintrag `ID exp:JJJJ-MM-TT` (höchstens 6 Monate) mit einer Kommentarzeile darüber als Begründung. Nach dem Ablaufdatum blockiert der Befund wieder.
+**`.trivyignore`:** only checked, non-exploitable findings – each entry `ID exp:YYYY-MM-DD` (at most 6 months) with a comment line above it as the reason. After the expiry date the finding blocks again.
 
-**Selbst gebaut** (`docker build .` aus dem Repository) entsteht dasselbe Image wie auf GitHub; der Bau braucht dafür Zugang zu Docker Hub, PyPI und snapshot.debian.org.
+**Built yourself** (`docker build .` from the repository) gives the same image as on GitHub; the build needs access to Docker Hub, PyPI and snapshot.debian.org.
 
 ---
 
-## Sprache und Hilfe
+## Language and help
 
-**Deutsch und Englisch.** Oben rechts (und auf der Anmeldeseite) schaltet jeder mit **DE / EN** um. Angemeldet wird die Wahl im Profil gespeichert – sie gilt dann auf allen Geräten und für die E-Mails an diese Person. Ohne eigene Wahl gilt die Sprache des Browsers, sonst die **Standardsprache** aus *Einstellungen → Allgemein* (Standard: Deutsch). Datumsangaben folgen der Sprache (20.10.2026 / 20 Oct 2026). Eingaben wie Buchtitel, Gruppen- und Standortnamen bleiben, wie sie erfasst wurden.
+**German and English.** Everyone switches with **DE / EN** at the top right (also on the sign-in page). When signed in, the choice is saved in the profile – it then applies on every device and to the emails sent to that person. Without a choice, the browser language is used, otherwise the **default language** from *Settings → General* (default: German). Dates follow the language (20.10.2026 / 20 Oct 2026). Data such as book titles, group and location names stay as entered.
 
-**Hilfe im Programm** (*Hilfe* in der Seitenleiste oder **?** oben rechts):
-- Jeder sieht nur die Themen seiner Rolle – Leser 7, Verwalter zusätzlich 7, Administratoren alle 25.
-- Das **?** springt direkt zum Abschnitt der aktuellen Seite (z. B. von der Ausleihtheke zur Hilfe für die Theke).
-- Die Texte richten sich nach Ihren Einstellungen: Leihfrist, Verlängerungen, Selbstausleihe, E-Mail-Erinnerungen, Registrierung, Zwei-Faktor-Pflicht, AD-Konto oder lokales Konto …
-- Suchfeld über alle Themen; das **Handbuch als PDF** (Deutsch bzw. Englisch, je nach Sprache) ist dort verlinkt.
+**Built-in help** (*Help* in the sidebar or **?** at the top right):
+- Everyone sees only the topics for their role – readers 7, librarians 7 more, administrators all 25.
+- The **?** jumps straight to the section for the current page (e.g. from the circulation desk to the desk help).
+- The texts follow your settings: loan period, renewals, self-checkout, email reminders, registration, mandatory 2FA, AD or local account …
+- A search box covers all topics; the **PDF manual** (German or English, matching the language) is linked there.
 
-**Neuigkeiten:** Unten in der Seitenleiste (neben der Versionsnummer) und im Benutzermenü steht *Neuigkeiten* – kurze, verständliche Hinweise zu neuen Funktionen, Verbesserungen und Sicherheitsupdates, je nach Rolle (Leser sehen keine reinen Admin-Themen). Gibt es nach einem Update etwas Neues, zeigt ein kleiner Punkt das an, und auf der Übersicht erscheint eine Zeile, die sich wegklicken lässt. Neue Konten starten ohne alte Meldungen. Die Texte stehen in `catalytix/news.json` (je Version, deutsch und englisch, Art `security`/`new`/`improved`/`fixed`, Zielgruppe `all`/`librarian`/`admin`).
+**What's new:** At the bottom of the sidebar (next to the version number) and in the user menu there is *What's new* – short, plain notes on new features, improvements and security updates, depending on the role (readers don't see admin-only topics). When an update brings something new, a small dot shows it, and the overview shows one line that can be dismissed. New accounts start without old notes. The texts are in `catalytix/news.json` (per version, German and English, kind `security`/`new`/`improved`/`fixed`, audience `all`/`librarian`/`admin`).
 
-**Handbücher:** `docs/Handbuch-Catalytix.pdf` (Deutsch) und `docs/Manual-Catalytix.pdf` (Englisch) liegen im Paket und im Image.
+**Manuals:** `docs/Handbuch-Catalytix.pdf` (German) and `docs/Manual-Catalytix.pdf` (English) are part of the package and the image.
 
-**Übersetzungen pflegen:** Der deutsche Text ist zugleich der Schlüssel (`_("…")` in Templates und Python, `T("…")` in `app.js`); die englischen Texte stehen in `catalytix/translations/en.json`. Der Test `tests/test_i18n.py` meldet jeden Text ohne Übersetzung und deutsche Reste auf englischen Seiten. Die Hilfetexte liegen je Sprache in `catalytix/templates/help/de|en/`.
+**Maintaining translations:** The German text is also the key (`_("…")` in templates and Python, `T("…")` in `app.js`); the English texts live in `catalytix/translations/en.json`. The test `tests/test_i18n.py` reports every text without a translation and German leftovers on English pages. Help texts are stored per language in `catalytix/templates/help/de|en/`.
 
-## Standorte
+## Locations
 
-*Verwaltung → Standorte* (Verwalter und Administratoren). Hier legen Sie die Regale, Räume oder Schränke einmal fest – auch mehrere auf einmal, einer pro Zeile. Sobald es mindestens einen gibt, wird der Standort beim **Erfassen, in der Schnellerfassung und beim Bearbeiten aus einer Liste gewählt** statt getippt. Groß-/Kleinschreibung und doppelte Leerzeichen werden dabei angeglichen.
+*Verwaltung → Standorte* (Locations; librarians and administrators). Define your shelves, rooms or cupboards once – several at a time, one per line. As soon as at least one exists, the location is **picked from a list when adding, quick-capturing and editing books** instead of being typed. Upper/lower case and double spaces are normalised.
 
-- **Umbenennen** ändert den Standort bei allen betroffenen Büchern mit. **Löschen** geht erst, wenn dort kein Buch mehr steht.
-- **Früher frei getippte Standorte** erscheinen unter *Im Bestand, aber nicht festgelegt*. Sie können sie als Standort übernehmen oder durch einen festgelegten ersetzen – die Bücher werden mit umgestellt. Bei anderer Schreibweise („regal a2“) oder einem Tippfehler („Regl A1“) ist der passende Standort schon vorausgewählt.
-- Gruppen-Verwalter können Standorte anlegen; Umbenennen und Ersetzen, das Bücher anderer Gruppen betrifft, bleibt Administratoren und Verwaltern ohne Gruppe vorbehalten.
-- Im **Katalog** lässt sich nach Standort filtern.
-- Ohne festgelegte Standorte bleibt das Feld ein freies Textfeld wie bisher.
+- **Renaming** updates all affected books. **Deleting** is only possible once no book is located there.
+- **Locations typed freely earlier** appear under *Im Bestand, aber nicht festgelegt* (in stock, not defined). Adopt them as a location or replace them with a defined one – the books are updated too. For a different spelling (“regal a2”) or a typo (“Regl A1”) the matching location is preselected.
+- Group librarians can add locations; renaming and replacing that affects books of other groups is reserved for administrators and librarians without a group.
+- The **catalogue** can be filtered by location.
+- Without defined locations the field stays a free text field as before.
 
-## Vormerken (Reservieren)
+## Reservations
 
-Optional unter *Einstellungen → Ausleihe → Vormerken* (standardmäßig aus):
-- Sind alle Exemplare eines Buchs verliehen, kann man es auf der Buchseite **vormerken** und steht in einer Warteschlange. Unter *Meine Ausleihen* sieht man seine Vormerkungen samt Platz und kann sie löschen.
-- Wird ein Exemplar frei (Rückgabe, zusätzliches Exemplar, Vormerkung gelöscht oder abgelaufen), wird es für die erste Person **zurückgelegt**: Diese Person bekommt eine E-Mail, auf der Übersicht steht „liegt für Sie bereit“, an der Theke meldet die Rückgabe „Bitte zurücklegen – vorgemerkt für …“. Für alle anderen gilt das Exemplar als nicht verfügbar.
-- Holt die Person es nicht innerhalb der **Abholfrist** (Standard 7 Tage) ab, ist die nächste dran. Mit der Ausleihe an sie ist die Vormerkung erledigt.
-- Vorgemerkte Bücher können Leser nicht selbst verlängern (Verwalter schon). Verwalter sehen die Warteschlange auf der Buchseite und können Vormerkungen löschen.
-- Abgeschlossene Vormerkungen werden mit der Aufbewahrungsfrist der Ausleihen gelöscht. Ausschalten löscht alle offenen Vormerkungen.
+Optional under *Einstellungen → Ausleihe → Vormerken* (off by default):
+- When all copies of a book are on loan, it can be **reserved** on the book page, which puts you in a queue. *My loans* lists your reservations with your place in the queue; you can delete them there.
+- When a copy becomes free (return, additional copy, reservation deleted or expired), it is **set aside** for the first person: they get an email, the overview says it is ready for them, and the return at the desk says “Please put it aside – reserved for …”. For everyone else the copy counts as not available.
+- If the person does not collect it within the **collection period** (7 days by default), the next person gets it. Lending it to them completes the reservation.
+- Readers cannot extend reserved books themselves (librarians can). Librarians see the queue on the book page and can delete reservations.
+- Completed reservations are deleted with the retention period of loans. Switching the feature off deletes all open reservations.
 
-## Rollen und Gruppen
+## Roles and groups
 
-| Rolle | Darf |
+| Role | Can |
 |---|---|
-| **Leser** | Katalog durchsuchen, erlaubte Bücher ausleihen, ggf. selbst verlängern/zurückgeben |
-| **Verwalter** | Bücher erfassen/bearbeiten/löschen, an Benutzer verleihen, Rücknahme, Ausleihtheke – für die Bücher **seiner Gruppen** und allgemeine Bücher. Ein Verwalter **ohne** Gruppe verwaltet den gesamten Bestand. Verliert ein Gruppen-Verwalter seine letzte Gruppe (Gruppe gelöscht, im AD entfernt), verwaltet er nur noch allgemeine Bücher – den gesamten Bestand bekommt er erst, wenn ein Admin das im Benutzerkonto ausdrücklich ankreuzt. |
-| **Administrator** | Alles, dazu Benutzer, Gruppen, Einstellungen und Active Directory |
+| **Reader** (*Leser*) | Browse the catalogue, borrow permitted books, renew/return them if allowed |
+| **Librarian** (*Verwalter*) | Add/edit/delete books, lend to users, take returns, use the circulation desk – for the books of **their groups** and general books. A librarian **without** a group manages the entire collection. If a group librarian loses their last group (group deleted, removed in AD), they only manage general books – the entire collection only once an admin ticks that explicitly in the user account. |
+| **Administrator** | Everything, plus users, groups, settings and Active Directory |
 
-Jedes Buch gehört entweder zu einer **Gruppe** oder ist **allgemein**. Allgemeine Bücher kann jeder ausleihen, Gruppenbücher nur Mitglieder der Gruppe. Unter *Einstellungen* legen Sie fest, ob Leser im Katalog nur ihre Bücher sehen oder den ganzen Bestand (Ausleihe bleibt trotzdem beschränkt).
+Every book either belongs to a **group** or is **general**. General books can be borrowed by everyone, group books only by members of that group. Under *Einstellungen* (Settings) you decide whether readers see only their own books in the catalogue or the whole collection (borrowing stays restricted either way).
 
 ---
 
-## Active Directory einrichten
+## Setting up Active Directory
 
-*Administration → Active Directory.* Für Windows AD, Samba AD und OpenLDAP gibt es Vorlagen-Buttons.
+*Administration → Active Directory.* Preset buttons are available for Windows AD, Samba AD and OpenLDAP.
 
-1. **Server**: `ldaps://dc1.schule.local` (mehrere DCs mit Komma trennen).
-2. **Basis-DN**: `DC=schule,DC=local`
-3. **Dienstkonto** (nur Leserechte nötig), z. B. `CN=svc-catalytix,OU=Dienstkonten,DC=schule,DC=local` oder `svc-catalytix@schule.local`.
-   Alternativ ohne Dienstkonto: Feld leer lassen und **UPN-Suffix** (`schule.local`) eintragen – dann meldet sich jeder Benutzer direkt an.
-4. **Rollen über AD-Gruppen** – pro Rolle die Namen der AD-Gruppen eintragen, eine pro Zeile:
+1. **Server**: `ldaps://dc1.school.local` (separate multiple DCs with commas).
+2. **Base DN**: `DC=school,DC=local`
+3. **Service account** (read access is sufficient), e.g. `CN=svc-catalytix,OU=ServiceAccounts,DC=school,DC=local` or `svc-catalytix@school.local`.
+   Without a service account: leave the field empty and enter a **UPN suffix** (`school.local`) – every user then binds directly.
+4. **Roles via AD groups** – enter the names of the AD groups for each role, one per line:
 
    ```
-   Administratoren:  Bibliothek-Admins
-   Verwalter:        Bibliothek-Verwalter
-   Leser:            Bibliothek-Leser
-                     Domänen-Benutzer
+   Administrators:  Library-Admins
+   Librarians:      Library-Staff
+   Readers:         Library-Readers
+                    Domain Users
    ```
 
-   Mit **„Gruppen laden“** zeigt Catalytix die Gruppen aus dem AD an; ein Klick auf *Admin*, *Verwalter* oder *Leser* übernimmt sie. Mitglieder verschachtelter Gruppen zählen mit. Die höchste passende Rolle gewinnt, wer in keiner Gruppe ist, wird abgewiesen. Rollen von AD-Benutzern werden bei jeder Anmeldung neu bestimmt – Änderungen im AD wirken also beim nächsten Login.
+   **„Gruppen laden“** (Load groups) lists the groups from your AD; clicking *Admin*, *Verwalter* or *Leser* adds them to the matching role. Members of nested groups count as well. The highest matching role wins; anyone not in any of the groups is rejected. Roles of AD users are re-evaluated on every sign-in, so changes in AD take effect at the next login.
 
-   **Administratoren und Verwalter:** Ein bloßer Gruppenname passt auf jede gleichnamige Gruppe im AD – wer irgendwo Gruppen anlegen darf (z. B. Lehrkräfte in ihrer OU), könnte sich sonst selbst Rechte geben. Deshalb wandelt das Speichern bloße Namen bei diesen beiden Rollen in den DN genau dieser Gruppe um (mit Dienstkonto). Gibt es den Namen mehrfach oder gar nicht, wird nicht gespeichert. Ohne Dienstkonto, bei ausgeschaltetem oder nicht erreichbarem AD bleibt der Name stehen. Ältere Einstellungen mit bloßem Namen funktionieren weiter; die Seite *Active Directory* weist auf jeden bloßen Namen hin, bis er umgewandelt ist.
+   Instead of a name you can also use the full DN of a group (if a name exists more than once) or an OU (`OU=Students,DC=school,DC=local` – then every user below it matches).
 
-   Statt des Namens geht auch der vollständige DN einer Gruppe (falls ein Name mehrfach vorkommt) oder eine OU (`OU=Schueler,DC=schule,DC=local` – dann zählen alle Benutzer darunter).
-5. **Login testen** zeigt DN, alle Gruppen und die Rolle, die der Benutzer bekäme – ohne vorher speichern zu müssen.
-6. **Bibliotheksgruppen automatisch zuordnen**: Bei einer Gruppe (Administration → Gruppen) den Namen einer AD-Gruppe eintragen, z. B. `Klasse7a`. Mitglieder werden beim Login automatisch hinzugefügt bzw. entfernt. Manuell zugeordnete Gruppen ohne AD-Verknüpfung bleiben unangetastet.
+   **Administrators and librarians:** a bare group name matches every group of that name in AD – whoever may create groups somewhere (e.g. teachers in their OU) could otherwise give themselves rights. That is why saving turns bare names for these two roles into the DN of exactly that group (with a service account). If the name exists more than once or not at all, nothing is saved. Without a service account, with AD switched off or not reachable, the name stays. Older settings with a bare name keep working; the *Active Directory* page points out every bare name until it has been converted.
+5. **„Login testen“** (Test login) shows the DN, all groups (with their origin: direct, primary or nested) and the role the user would get – without saving first.
+6. **Map library groups automatically**: for a library group (*Administration → Gruppen*), enter the name of an AD group, e.g. `Class7a`. Members are added or removed automatically at sign-in. Manually assigned groups without an AD link stay untouched.
 
-**Personen an der Theke finden:** Mit Dienstkonto findet die Suche an der Ausleihtheke und unter *An Benutzer verleihen* auch AD-Personen, die sich noch nie angemeldet haben – aber nur aktive Konten, die laut den Rollenregeln die Bibliothek nutzen dürfen. Angelegt wird das Konto erst beim ersten Verleihen (Name, E-Mail, Rolle und – mit Gruppenübernahme – Gruppen aus dem AD; kein Passwort). Ein lokales Konto mit gleichem Namen wird nie verändert. Ist das AD nicht erreichbar, findet die Suche weiter alle bekannten Benutzer. Bekannte Personen erscheinen sofort, die Treffer aus dem AD kommen einen Moment später dazu.
+**Group resolution** covers direct memberships, the **primary group** (e.g. *Domain Users*, which AD does not list in `memberOf`) and **nested groups** – via `LDAP_MATCHING_RULE_IN_CHAIN` and `tokenGroups`, so it keeps working if one of the two is unavailable. Groups are searched from the domain root, also outside the user OU.
 
-**AD-Abgleich und Personen-Cache** (*Active Directory → AD-Abgleich und Personen-Cache*, mit Dienstkonto standardmäßig an): Im Hintergrund – stündlich, einstellbar bis täglich, „Jetzt abgleichen“ startet ihn sofort – holt Catalytix alle AD-Personen, die laut Rollenregeln die Bibliothek nutzen dürfen, und speichert Name, Benutzername, E-Mail und Gruppen. Die Suche an der Theke findet sie dann in Millisekunden, ohne das AD zu fragen; nur wenn der Cache niemanden kennt (Neuzugang seit dem letzten Abgleich), fragt sie zusätzlich direkt das AD. Verliehen wird weiterhin nur nach einer frischen Prüfung im AD.
-- Im AD **deaktivierte, gelöschte oder nicht mehr berechtigte** Personen fliegen beim nächsten Abgleich aus dem Cache.
-- **Bestehende AD-Konten** werden mitgezogen (mit Dienstkonto immer – ohne Personen-Cache einmal täglich) – auch bei Personen, die sich nie anmelden: Name, E-Mail, Rolle, Bibliotheksgruppen. Ein im AD **umbenannter Anmeldename** wird übernommen; erkannt wird das Konto an der festen AD-Kennung (objectGUID), die Ausleihen ziehen mit. Wird ein Name im AD an eine neue Person vergeben, bekommt das alte Konto einen Ersatznamen (`name~ID`) und wird gesperrt – niemand übernimmt fremde Ausleihen.
-- Konten von Personen, die im AD fehlen oder nicht mehr berechtigt sind, werden **gesperrt, nicht gelöscht** (die Ausleihen bleiben sichtbar; Benutzerliste: „nicht mehr im AD“) und automatisch wieder freigegeben, wenn die Person zurückkommt. Von Hand gesperrte Konten gibt der Abgleich nie frei.
-- **Sicherheitsbremse:** Würde ein Abgleich mehr als 30 % der AD-Konten auf einmal sperren, sperrt er keines und meldet das (meist Basis-DN oder Filter falsch). Ist die AD-Suche unvollständig oder das AD nicht erreichbar, bleibt alles unverändert.
-- Verschachtelte Gruppen löst der Abgleich nur neu auf, wenn sich die direkten Gruppen einer Person geändert haben, sonst einmal täglich – das schont das AD. Der Abgleich läuft immer nur einmal gleichzeitig, auch bei mehreren Server-Prozessen.
+**Finding people at the desk:** with a service account, the search at the circulation desk and under *Lend to a user* also finds AD people who have never signed in – but only active accounts that the role rules allow to use the library. The account is only created with the first loan (name, email, role and – with group sync – groups from AD; no password). A local account with the same name is never changed. If AD is unreachable, the search still finds all known users. Known people appear immediately; matches from AD are added a moment later.
 
-**Verschlüsselung:** Windows-DCs (LDAP-Signing) und Samba (`ldap server require strong auth = yes`, Standard) lehnen einfache Anmeldungen über unverschlüsseltes LDAP häufig ab. Nutzen Sie daher **LDAPS** (Port 636) oder **StartTLS**.
+**AD sync and people cache** (*Active Directory → AD sync and people cache*, on by default with a service account): in the background – hourly, adjustable up to daily, “Sync now” starts it immediately – Catalytix fetches all AD people who may use the library according to the role rules and stores name, username, e-mail and groups. The desk search then finds them in milliseconds without asking AD; only if the cache knows nobody (new since the last sync) does it also ask AD directly. Lending still only happens after a fresh check against AD.
+- People who are **disabled, deleted or no longer entitled** in AD drop out of the cache at the next sync.
+- **Existing AD accounts** are updated too (always with a service account – once a day without the people cache) – even for people who never sign in: name, e-mail, role, library groups. A **sign-in name renamed** in AD is applied; the account is recognised by the fixed AD identifier (objectGUID) and its loans move along. If AD gives a name to a new person, the old account gets a substitute name (`name~ID`) and is locked – nobody takes over someone else's loans.
+- Accounts of people missing from AD or no longer entitled are **locked, not deleted** (loans stay visible; user list: “no longer in AD”) and unlocked automatically when the person returns. Accounts locked by hand are never unlocked by the sync.
+- **Safety brake:** if a sync would lock more than 30 % of the AD accounts at once, it locks none and reports it (usually a wrong base DN or filter). If the AD search is incomplete or AD is unreachable, nothing changes.
+- Nested groups are only resolved again when a person's direct groups changed, otherwise once a day – easy on AD. Only one sync runs at a time, even with several server processes.
 
-**Zertifikat automatisch holen:** Unter *TLS-Zertifikat* auf **„Zertifikat vom DC abrufen“** klicken. Catalytix liest die Zertifikate aller eingetragenen DCs aus und ergänzt die Stamm-CA automatisch – über die AIA-Adresse im Zertifikat (AD-Zertifikatsdienste) oder aus dem AD selbst (*Public Key Services*, mit Dienstkonto). Angezeigt werden Inhaber, Aussteller, Gültigkeit und SHA-256-Fingerabdruck; mit **„Vertrauen & speichern“** wird es übernommen. Gespeichert wird bevorzugt die Stamm-CA, damit die Verbindung auch nach einer Erneuerung des DC-Zertifikats weiter funktioniert. Wird keine Stamm-CA gefunden (z. B. bei Samba mit selbst erzeugtem Zertifikat), wird das Server-Zertifikat selbst vertraut – nach einer Erneuerung dann einfach erneut abrufen.
+**Encryption:** Windows DCs (LDAP signing) and Samba (`ldap server require strong auth = yes`, the default) often reject simple binds over unencrypted LDAP. Use **LDAPS** (port 636) or **StartTLS**.
 
-Den Fingerabdruck können Sie zur Sicherheit auf dem DC vergleichen, z. B. Windows: `certutil -store My`, Samba: `openssl x509 -in /var/lib/samba/private/tls/cert.pem -noout -fingerprint -sha256`.
+**Fetch the certificate automatically:** under *TLS-Zertifikat*, click **„Zertifikat vom DC abrufen“** (Fetch certificate from DC). Catalytix reads the certificates of all configured DCs and adds the root CA automatically – via the AIA URL in the certificate (AD Certificate Services) or from AD itself (*Public Key Services*, requires the service account). Subject, issuer, validity and SHA-256 fingerprint are displayed; **„Vertrauen & speichern“** (Trust & save) stores them. The root CA is preferred so that the connection keeps working after the DC certificate is renewed. If no root CA can be found (e.g. Samba with a self-generated certificate), the server certificate itself is trusted – fetch it again after a renewal.
 
-Als Server am besten den **DNS-Namen** des DCs eintragen (so wie er im Zertifikat steht). Sprechen Sie den DC per IP-Adresse an, schalten Sie „Hostname prüfen“ ab.
+To be safe, compare the fingerprint on the DC, e.g. Windows: `certutil -store My`, Samba: `openssl x509 -in /var/lib/samba/private/tls/cert.pem -noout -fingerprint -sha256`.
 
-Dienstkonto in Samba anlegen:
+Use the DC's **DNS name** as server (as it appears in the certificate). If you address the DC by IP, disable „Hostname prüfen“ (check hostname).
+
+Create a service account in Samba:
 
 ```bash
-samba-tool user create svc-catalytix --random-password   # Passwort danach setzen:
+samba-tool user create svc-catalytix --random-password   # then set a password:
 samba-tool user setpassword svc-catalytix
 samba-tool user setexpiry svc-catalytix --noexpiry
 ```
 
-Lokale Konten haben immer Vorrang. Das lokale Admin-Konto funktioniert daher auch, wenn das AD nicht erreichbar ist.
+Local accounts always take precedence, so the local admin account works even when AD is unreachable.
 
 ---
 
-## Selbstregistrierung
+## Self-registration
 
-Standardmäßig **aus**. Unter *Administration → Einstellungen → Konten → Selbstregistrierung*:
+**Off** by default. Under *Administration → Einstellungen → Konten → Selbstregistrierung*:
 
-| Einstellung | Wirkung |
+| Setting | Effect |
 |---|---|
-| **aus** | Kein Registrierungslink, `/registrieren` existiert nicht. |
-| **Freigabe durch Administrator** | Konto wird angelegt, ist aber gesperrt, bis ein Admin es freigibt (*Benutzer → Warten auf Freigabe → Freigeben/Ablehnen*). |
-| **sofort aktiv** | Konto ist direkt nutzbar. |
+| **aus** (off) | No registration link; `/registrieren` does not exist. |
+| **Freigabe durch Administrator** (admin approval) | The account is created but locked until an admin approves it (*Benutzer → Warten auf Freigabe → Freigeben/Ablehnen*, i.e. Users → Awaiting approval → Approve/Reject). |
+| **sofort aktiv** (immediately active) | The account can be used right away. |
 
-Optionen: **E-Mail-Adresse bestätigen** (Link, 48 h gültig – nur mit eingerichtetem E-Mail-Versand), **Admins benachrichtigen**, **erlaubte E-Mail-Domains** (z. B. `schule.de`), **Gruppe für neue Leser**, Ist unter *Rechtliches* eine Datenschutzerklärung hinterlegt, muss sie bei der Registrierung bestätigt werden.
+Options: **verify e-mail address** (link valid for 48 h – only with e-mail sending configured), **notify admins**, **allowed e-mail domains** (e.g. `school.org`), **group for new readers**, If a privacy policy is set under *Rechtliches* (Legal), it must be accepted when registering.
 
-Neue Konten sind immer **Leser**. Schutz für den Betrieb im Internet: unsichtbares Bot-Feld, Mindest-Ausfüllzeit, max. 5 Registrierungen pro Stunde und IP, reservierte Namen (admin, root …), Benutzernamen aus dem Active Directory sind gesperrt, Passwort mind. 10 Zeichen. Nicht bestätigte Konten werden nach 7 Tagen automatisch gelöscht.
+New accounts are always **readers**. Protection for internet-facing installations: invisible honeypot field, minimum fill-in time, max. 5 registrations per hour and IP, reserved names (admin, root …), usernames that exist in Active Directory are blocked, passwords of at least 10 characters. Unverified accounts are deleted automatically after 7 days.
 
-## Erscheinungsbild (Corporate Design)
+## Branding (corporate design)
 
-*Administration → Erscheinungsbild.* Alle Änderungen sind sofort in einer Vorschau zu sehen; „Anmeldeseite ansehen“ zeigt das Ergebnis so, wie Besucher es sehen.
+*Administration → Erscheinungsbild* (Appearance). All changes appear immediately in a live preview; „Anmeldeseite ansehen“ (View login page) shows the result as visitors see it.
 
-- **Logo** (PNG mit transparentem Hintergrund oder SVG) – in Seitenleiste, Anmeldeseite, E-Mails und als Browser-Symbol (Favicon wird automatisch erzeugt). Optionen: Namen der Bibliothek daneben ein/aus, Logo auf hellem Feld (für dunkle Logos).
-- **Hintergrundbild der Anmeldeseite** – wird automatisch verkleinert; Metadaten wie GPS-Position werden entfernt. Abdunkelung per Schieberegler, Bücherregal-Grafik ein/aus.
-- **Farben** – Hauptfarbe (Knöpfe, Links), Akzentfarbe, Seitenleiste. Schriftfarben werden automatisch lesbar gewählt, auch im Dunkelmodus. E-Mails übernehmen Farben und Logo.
-- **Texte** – Name der Bibliothek, kleine Überschrift und Begrüßungstext der Anmeldeseite.
+- **Logo** (PNG with transparent background or SVG) – in the sidebar, on the login page, in e-mails and as browser icon (the favicon is generated automatically). Options: show the library name next to it or not, place the logo on a light plate (for dark logos).
+- **Login background image** – resized automatically; metadata such as GPS location is removed. Darkening via slider, bookshelf graphic on/off.
+- **Colours** – primary colour (buttons, links), accent colour, sidebar. Text colours are chosen automatically for readability, including dark mode. E-mails use the colours and logo too.
+- **Texts** – library name, small heading and welcome text on the login page.
 
-„Alles zurücksetzen“ stellt den Auslieferungszustand wieder her. Die Dateien liegen in `./data/branding` und bleiben bei Updates erhalten. SVG-Logos mit Skripten oder externen Verweisen werden aus Sicherheitsgründen abgelehnt.
+„Alles zurücksetzen“ (Reset all) restores the defaults. Files are stored in `./data/branding` and survive updates. SVG logos containing scripts or external references are rejected for security reasons. Logo and background are publicly reachable (they are needed on the login page) – don't use anything confidential.
 
-## Zwei-Faktor-Anmeldung
+## Two-factor authentication
 
-Jeder Benutzer richtet sie unter **Profil → Sicherheit** (oder im Benutzermenü → *Sicherheit*) ein:
+Every user sets it up under **Mein Profil → Sicherheit** (My profile → Security), also reachable from the sidebar:
 
-- **Authenticator-App (TOTP):** QR-Code scannen, Code bestätigen. Geht mit Microsoft/Google Authenticator, Aegis, 2FAS, Bitwarden, Yubico Authenticator … – und überall, auch per `http://IP:9300` im LAN.
-- **Sicherheitsschlüssel (WebAuthn/FIDO2):** YubiKey einstecken, berühren – fertig. Auch Fingerabdruck/Face-ID des Geräts (Passkey) funktioniert. Erfordert **HTTPS** und ist an die Adresse gebunden, unter der der Schlüssel registriert wurde (z. B. `bibliothek.schule.de`). Mehrere Schlüssel pro Konto sind möglich – am besten einen Ersatzschlüssel registrieren.
-- **Passkey (Anmeldung ohne Passwort, ab 3.3.0):** Standardmäßig an (seit 3.3.2; abschaltbar unter *Einstellungen → Sicherheit → Passkeys*). Jeder richtet unter *Profil → Sicherheit* einen Passkey ein (Windows Hello, Face ID/Touch ID, Android, Passwortmanager oder Sicherheitsschlüssel mit PIN). Auf der Anmeldeseite genügt dann „Mit Passkey anmelden“ – ohne Benutzername und Passwort; der Passkey zählt als zwei Faktoren. **AD-Konten** werden bei jeder Passkey-Anmeldung über das Dienstkonto im AD geprüft: deaktiviert, abgelaufen, gesperrt oder nicht mehr in einer berechtigten Gruppe – keine Anmeldung. Ohne Dienstkonto oder wenn das AD nicht erreichbar ist, geht für AD-Konten nur das Passwort. Seit 3.5.1 muss außerdem die unveränderliche AD-Kennung (objectGUID) des Kontos gespeichert sein und zum AD passen – sonst würde ein neu vergebener AD-Name das Konto samt Passkey übernehmen; ohne Kennung (z. B. ältere Konten vor ihrer nächsten Passwort-Anmeldung) gibt es keinen Passkey. Ein abgelaufenes AD-Passwort hindert die Passkey-Anmeldung nicht. Wie Sicherheitsschlüssel nur über HTTPS und an die Adresse gebunden. Ab 3.3.1 schlägt die Übersicht jedem ohne Passkey das Einrichten vor, sofern sein Gerät Passkeys kann (Face ID, Touch ID, Windows Hello, Android) – mit „Später“ (30 Tage auf diesem Gerät) und „Nicht mehr anzeigen“.
-- **Wiederherstellungscodes:** Beim Einrichten werden 10 Einmal-Codes angezeigt (nur einmal!). Damit kommt man ohne Handy/Schlüssel noch herein.
+- **Authenticator app (TOTP):** scan the QR code, confirm with a code. Works with Microsoft/Google Authenticator, Aegis, 2FAS, Bitwarden, Yubico Authenticator … – and everywhere, including `http://IP:9300` on the LAN.
+- **Security key (WebAuthn/FIDO2):** insert the YubiKey, touch it – done. Device fingerprint/Face ID (passkey) works too. Requires **HTTPS** and is bound to the address under which the key was registered (e.g. `library.school.org`). Several keys per account are possible – registering a spare key is a good idea.
+- **Passkey (sign-in without a password, from 3.3.0):** on by default (since 3.3.2; can be switched off under *Settings → Security → Passkeys*). Everyone sets up a passkey under *Profile → Security* (Windows Hello, Face ID/Touch ID, Android, a password manager or a security key with a PIN). On the sign-in page, "Sign in with a passkey" is then all it takes – no username, no password; the passkey counts as two factors. **AD accounts** are checked in AD through the service account on every passkey sign-in: disabled, expired, locked out or no longer in an authorized group – no sign-in. Without a service account, or while AD cannot be reached, AD accounts can only use their password. Since 3.5.1 the account's immutable AD identifier (objectGUID) must also be stored and match AD – otherwise a reassigned AD name would take over the account with its passkey; without an identifier (e.g. older accounts until their next password sign-in) there is no passkey. An expired AD password does not stop a passkey sign-in. Like security keys, HTTPS only and bound to the address. From 3.3.1 the overview suggests setting one up to anyone without a passkey whose device can hold one (Face ID, Touch ID, Windows Hello, Android) – with "Later" (30 days on this device) and "Don't show again".
+- **Recovery codes:** 10 one-time codes are shown once during setup. They let you in without phone or key.
 
-Unter **Administration → Einstellungen** legen Sie fest, für wen 2FA bei **Zugriff von außen Pflicht** ist (niemand, Administratoren, Verwalter + Admins, alle). Betroffene werden nach der nächsten Anmeldung zur Einrichtung geführt und können erst danach weiterarbeiten.
+Under **Administration → Einstellungen** you decide for whom 2FA is **mandatory for access from outside** (nobody – the default, administrators, librarians + admins, everyone). Affected users are guided through the setup at their next sign-in and can only continue afterwards.
 
-**Internes Netz anders behandeln** (*Im internen Netz*):
+**Treat the internal network differently** (*Im internen Netz*):
 
-| Einstellung | Wirkung im LAN |
+| Setting | Effect on the LAN |
 |---|---|
-| wie von außen (Standard) | gleiche Regeln wie aus dem Internet |
-| keine Pflicht | niemand muss 2FA einrichten; wer sie eingerichtet hat, wird trotzdem gefragt |
-| keine Zwei-Faktor-Abfrage | im LAN reicht das Passwort |
+| wie von außen – same as outside (default) | same rules as from the internet |
+| keine Pflicht – not mandatory | nobody has to set up 2FA; users who have it are still asked |
+| keine Zwei-Faktor-Abfrage – no 2FA prompt | the password is enough on the LAN |
 
-- **Was „intern“ ist**, legen Sie unter *Internes Netz* fest (ein Netz pro Zeile, z. B. `192.168.10.0/24`). Leer bedeutet `10.0.0.0/8`, `192.168.0.0/16`, `fc00::/7` und Loopback – **ohne** `172.16.0.0/12`, weil Docker seine Netze dort anlegt (sonst sähe z. B. jeder über das Docker-Gateway ankommende Zugriff intern aus). Nutzt Ihr LAN 172.16–31.x, tragen Sie es ausdrücklich ein. Am besten ohnehin auf Ihr tatsächliches LAN eingrenzen. *Seit dieser Version:* Wer das Feld leer gelassen hat und Clients aus 172.16/12 hat, muss das Netz jetzt eintragen.
-- Hinter dem Reverse-Proxy zählt die **echte Adresse des Besuchers**. Der Proxy muss dafür `X-Forwarded-For` mitschicken (Nginx Proxy Manager, Caddy und Traefik tun das von sich aus). Fehlt die Angabe, gilt der Zugriff aus Sicherheitsgründen als **extern**. Gefälschte Angaben aus dem Internet werden ignoriert.
-- **Wichtig – Port 9300 nur für den Proxy:** Standardmäßig gelten alle privaten Netze als vertrauenswürdige Proxys (`CATALYTIX_TRUSTED_PROXIES=private`). Jeder Rechner im LAN, der Catalytix **direkt** auf Port 9300 erreicht, kann daher eine gefälschte `X-Forwarded-For`-Angabe mitschicken (z. B. um als „intern“ zu gelten oder die Anmeldesperre je Adresse zu umgehen). Veröffentlichen Sie den Port daher nur für den Proxy – mit `CATALYTIX_BIND=127.0.0.1` in der `.env` (Proxy direkt auf dem Server) oder über ein gemeinsames Docker-Netz mit dem Proxy (in `docker-compose.override.yml`; `docker-compose.yml` selbst wird bei Updates ersetzt) – **oder** setzen Sie `CATALYTIX_TRUSTED_PROXIES` auf die Adresse des Proxys (z. B. `172.18.0.5` bzw. das Docker-Netz des Proxys). Das gilt auch für Zugriffe aus dem Internet: Erreicht jemand Port 9300 z. B. über **IPv6** und Docker leitet das intern weiter, kommt die Anfrage scheinbar vom Docker-Gateway (172.x.0.1) – und dem wird mit der Standardeinstellung vertraut.
-- Die Einstellungsseite zeigt, wie Ihre aktuelle Verbindung eingestuft wird. Zum Prüfen einmal vom Handy über mobile Daten aufrufen – dort muss „extern“ stehen.
-- Eine im LAN **ohne** zweiten Faktor begonnene Sitzung gilt nur intern: Wer damit von außen zugreift (Laptop zu Hause), muss sich neu anmelden. „Angemeldet bleiben“ wirkt in diesem Fall nicht.
-- Interne Geräte mit eigener öffentlicher IPv6-Adresse gelten als extern, solange ihr Präfix nicht eingetragen ist.
-- **Interne Rechner über die öffentliche Domain:** Rufen sie die Internet-Adresse auf, gibt der Router (z. B. FritzBox) sie oft mit Ihrer eigenen öffentlichen IP aus – dann sähen sie extern aus. Tragen Sie dafür unter *Eigener Internetanschluss* Ihre feste IP oder Ihren **DynDNS-Namen** ein; der Name wird alle 5 Minuten neu aufgelöst, eine wechselnde IP wird also mitverfolgt. **Achtung:** Auch das Gäste-WLAN und alle anderen Geräte hinter dem Router kommen mit dieser Adresse an und gelten dann als intern. Die sauberere Alternative ist ein interner DNS-Eintrag (Split-DNS), der die Domain im LAN auf die interne Adresse des Servers zeigen lässt.
+- **What counts as internal** is set under *Internes Netz* (one network per line, e.g. `192.168.10.0/24`). Empty means `10.0.0.0/8`, `192.168.0.0/16`, `fc00::/7` and loopback – **without** `172.16.0.0/12`, because Docker creates its networks there (otherwise e.g. every request arriving via the Docker gateway would look internal). If your LAN uses 172.16–31.x, enter it explicitly. Ideally narrow it down to your actual LAN anyway. *Since this version:* if you left the field empty and have clients in 172.16/12, you now need to enter that network.
+- Behind the reverse proxy the **real visitor address** counts. The proxy must send `X-Forwarded-For` (Nginx Proxy Manager, Caddy and Traefik do so by default). If it is missing, the request is treated as **external** for safety. Forged headers from the internet are ignored.
+- **Important – port 9300 for the proxy only:** by default all private networks are trusted proxies (`CATALYTIX_TRUSTED_PROXIES=private`). Any LAN host that reaches Catalytix **directly** on port 9300 can therefore send a forged `X-Forwarded-For` header (e.g. to count as “internal” or to evade the per-address login lockout). Publish the port only to the proxy – with `CATALYTIX_BIND=127.0.0.1` in `.env` (proxy running directly on the server) or via a shared Docker network with the proxy (in `docker-compose.override.yml`; `docker-compose.yml` itself is replaced on updates) – **or** set `CATALYTIX_TRUSTED_PROXIES` to the proxy's address (e.g. `172.18.0.5` or the proxy's Docker network). This also matters for internet access: if someone reaches port 9300 e.g. via **IPv6** and Docker relays it internally, the request appears to come from the Docker gateway (172.x.0.1) – which the default setting trusts.
+- The settings page shows how your current connection is classified. To check, open it once from a phone on mobile data – it must say “extern”.
+- A session started on the LAN **without** a second factor is only valid internally: using it from outside (laptop at home) requires a new sign-in. “Stay signed in” has no effect in this case.
+- Internal devices with their own public IPv6 address count as external unless their prefix is listed.
+- **Internal computers using the public domain:** when they call the internet address, the router (e.g. a FritzBox) often presents them with your own public IP – so they would look external. Enter your fixed IP or your **DynDNS name** under *Eigener Internetanschluss* (own internet connection); the name is resolved again every 5 minutes, so a changing IP is followed. **Caution:** the guest Wi-Fi and every other device behind the router also arrive with this address and then count as internal. The cleaner alternative is an internal DNS entry (split DNS) that points the domain to the server's internal address on the LAN.
 
-**Probleme bei der Anmeldung – ohne Kommandozeile:** Unter *Benutzer* → Konto öffnen → *Anmeldung und Sicherheit*:
-- **Zwei-Faktor-Anmeldung zurücksetzen** – entfernt App und Sicherheitsschlüssel, die Anmeldung geht dann wieder mit dem Passwort (ist 2FA Pflicht, wird die Neueinrichtung verlangt).
-- **Anmeldesperre aufheben** – nach 8 Fehlversuchen ist die Anmeldung 5 Minuten gesperrt; gesperrte Konten sind in der Benutzerliste markiert (Filter „Anmeldesperre“).
+**Sign-in problems – without the command line:** under *Benutzer* (Users) → open the account → *Anmeldung und Sicherheit*:
+- **Reset two-factor authentication** – removes app and security keys; sign-in works with the password again (if 2FA is mandatory, setting it up again is required).
+- **Lift sign-in lock** – after 8 failed attempts sign-in is locked for 5 minutes; locked accounts are marked in the user list (filter “Anmeldesperre”).
 
-Haben sich alle Admins ausgesperrt: Mit „keine Zwei-Faktor-Abfrage“ im internen Netz kommt ein Admin vom LAN aus ohne zweiten Faktor hinein. Sonst im Notfall auf dem Server:
+If all admins are locked out: with “no 2FA prompt” on the internal network, an admin can sign in from the LAN without a second factor. Otherwise, in an emergency on the server:
 
 ```bash
 docker compose exec catalytix docker-entrypoint.sh flask --app wsgi reset-2fa admin
 ```
 
-**Im LAN ohne zweiten Faktor angemeldet** (bei „keine Zwei-Faktor-Abfrage“ bzw. „keine Pflicht“): Wer selbst 2FA eingerichtet hat, muss den zweiten Faktor bestätigen, bevor er Faktoren oder Wiederherstellungscodes ändert oder in der Administration sicherheitsrelevante Änderungen macht – Benutzer anlegen/ändern/löschen/freigeben, 2FA zurücksetzen, Sperren aufheben, Einstellungen, Active Directory, E-Mail-Versand sowie Datensicherungen anlegen, herunterladen und löschen. Catalytix fragt dann den Code ab und führt zurück auf die Seite. Erscheinungsbild und Gruppen bleiben ohne Rückfrage änderbar.
+**Signed in on the LAN without a second factor** (with “no two-factor prompt” or “not mandatory”): users who have set up 2FA must confirm their second factor before changing factors or recovery codes or making security-relevant changes in the administration – creating/editing/deleting/approving users, resetting 2FA, lifting locks, settings, Active Directory, email delivery, and creating, downloading and deleting backups. Catalytix then asks for the code and returns to the page. Branding and groups can still be changed without confirmation.
 
-Technisch: TOTP nach RFC 6238 (Geheimnisse verschlüsselt gespeichert, Codes nicht wiederverwendbar), WebAuthn über die Yubico-Bibliothek `fido2` inkl. Signaturzähler-Prüfung, Sperre nach mehreren Fehlversuchen. Zusätzlich gilt je Benutzername eine Grenze über alle Adressen (40 Fehlversuche in 15 Minuten von außen, 100 im internen Netz); nach 10 falschen Codes beim zweiten Faktor muss das Passwort erneut eingegeben werden. Wer sich im LAN ohne zweiten Faktor angemeldet hat, muss ihn unter *Profil → Sicherheit* erst bestätigen, bevor er Faktoren oder Wiederherstellungscodes ändern kann (Ersteinrichtung ausgenommen).
+Technical details: TOTP according to RFC 6238 (secrets stored encrypted, codes cannot be reused), WebAuthn via Yubico's `fido2` library including signature-counter checks, lockout after repeated failures, the second step expires after 5 minutes. In addition there is a per-username limit across all addresses (40 failures in 15 minutes from outside, 100 on the internal network); after 10 wrong second-factor codes the password must be entered again. Anyone who signed in on the LAN without a second factor must confirm it under *Profil → Sicherheit* before changing factors or recovery codes (first-time setup excepted).
 
-## E-Mail-Benachrichtigungen
+## E-mail notifications
 
-*Administration → E-Mail.* SMTP-Server, Verschlüsselung (STARTTLS / SSL/TLS / keine), Zugangsdaten und Absender eintragen, dann **Testmail senden**.
+*Administration → E-Mail.* Enter SMTP server, encryption (STARTTLS / SSL/TLS / none), credentials and sender, then click **„Testmail senden“** (Send test mail).
 
-| Benachrichtigung | Wann |
+| Notification | When |
 |---|---|
-| Bestätigung bei Ausleihe | sofort, mit Titel und Rückgabedatum |
-| Bestätigung bei Rückgabe | sofort (standardmäßig aus) |
-| Erinnerung | X Tage vor Fälligkeit, einmal je Ausleihe |
-| Mahnung | ab dem ersten Tag der Überfälligkeit, Wiederholung alle N Tage, höchstens M-mal |
-| Übersicht an Verwalter | täglich, nur wenn es Überfälliges in ihren Gruppen gibt |
-| Manuell | Briefumschlag-Symbol bei einer Ausleihe unter *Alle Ausleihen* |
+| Loan confirmation | immediately, with title and due date |
+| Return confirmation | immediately (off by default) |
+| Reminder | X days before the due date, once per loan |
+| Overdue notice | from the first overdue day, repeated every N days, at most M times |
+| Librarian digest | daily, only if their groups have overdue loans |
+| Manual | envelope icon next to a loan under *Alle Ausleihen* (All loans) |
 
-- Erinnerungen und Mahnungen laufen **einmal täglich** ab der eingestellten Uhrzeit. Mehrere Bücher eines Lesers kommen in **einer** Mail. Das Versandprotokoll verhindert doppelte Mails – auch mit mehreren Server-Prozessen.
-- **„Jetzt versenden“** startet den Lauf sofort. Alternativ per cron: `docker compose exec -T catalytix docker-entrypoint.sh flask --app wsgi send-reminders`
-- Die **Adresse der Bibliothek** (z. B. `https://bibliothek.schule.local`) wird für Links in den Mails gebraucht.
-- E-Mail-Adressen kommen bei AD-Benutzern aus dem Feld `mail`, bei lokalen Benutzern aus der Benutzerverwaltung. Lokale (auch selbst registrierte) Benutzer ändern Anzeigename und E-Mail-Adresse selbst unter *Profil → Meine Daten*; bei AD-Benutzern kommen diese Daten aus dem AD. Jeder kann Benachrichtigungen im **Profil** abschalten.
-- Typische Einstellungen: Exchange/Microsoft 365 `smtp.office365.com:587 STARTTLS` · eigener Postfix intern `mail.schule.local:25 keine` · Gmail `smtp.gmail.com:587 STARTTLS` mit App-Passwort.
+- Reminders and overdue notices run **once a day** from the configured hour. Several books of one reader go into **one** e-mail. The mail log prevents duplicates – even with several server processes.
+- **„Jetzt versenden“** (Send now) runs immediately. Alternatively via cron: `docker compose exec -T catalytix docker-entrypoint.sh flask --app wsgi send-reminders`
+- The **library address** (e.g. `https://library.school.org`) is needed for links in e-mails.
+- E-mail addresses come from the AD attribute `mail` for AD users and from user management for local users. Local (including self-registered) users change their display name and email address themselves under *Profile → My details*; for AD users these details come from AD. Everyone can switch notifications off in their profile.
+- Typical settings: Exchange/Microsoft 365 `smtp.office365.com:587 STARTTLS` · internal Postfix `mail.school.local:25 none` · Gmail `smtp.gmail.com:587 STARTTLS` with an app password.
 
-## Barcodescanner und Kamera
+## Barcode scanner and camera
 
-- **USB-/Bluetooth-Scanner** (Tastatur-Emulation) funktionieren ohne Einrichtung: Feld anklicken, scannen – der Scanner sendet die ISBN plus Enter.
-- An der **Ausleihtheke** wird ein Code der Reihe nach als Signatur (genau, ohne Groß/Klein), ISBN und Titel gesucht. Reine Ziffern gelten **nicht mehr** als interne Buch-Nummer (bis 2.9 schon – Signaturen aus Ziffern fanden dann das falsche Buch); die Buch-Nummer gibt man jetzt mit `#` ein, z. B. `#12`.
-- **Kamera-Scan** nutzt die eingebaute Barcode-Erkennung des Browsers (Chrome, Edge, Android), in Firefox und Safari die mitgelieferte eigene EAN-13-Erkennung – es wird nichts von fremden Servern nachgeladen. Browser erlauben die Kamera **nur über HTTPS** (oder `localhost`). Betreiben Sie Catalytix dafür hinter einem Reverse-Proxy mit Zertifikat.
+- **USB/Bluetooth scanners** (keyboard emulation) work without setup: click into the field and scan – the scanner sends the ISBN followed by Enter.
+- At the **circulation desk** a code is looked up as shelf mark (exact, ignoring case), ISBN and title, in that order. Plain digits are **no longer** treated as the internal book number (they were up to 2.9 – numeric shelf marks then found the wrong book); type the book number with `#` instead, e.g. `#12`.
+- **Camera scanning** uses the browser's built-in barcode detection (Chrome, Edge, Android) and Catalytix's own bundled EAN-13 decoder in Firefox and Safari – nothing is loaded from third-party servers. Browsers allow camera access **only over HTTPS** (or `localhost`), so run Catalytix behind a reverse proxy with a certificate.
 
-## Reverse-Proxy und HTTPS
+## Reverse proxy and HTTPS
 
-Beispiel mit Caddy (holt Zertifikate automatisch bzw. nutzt intern `tls internal`):
+Example with Caddy (obtains certificates automatically, or uses `tls internal` on the LAN):
 
 ```
-bibliothek.schule.local {
+library.school.local {
     tls internal
     reverse_proxy 127.0.0.1:9300
 }
 ```
 
-Mehr ist nicht nötig: Catalytix erkennt den Reverse-Proxy automatisch. Die Weiterleitungs-Header (echte Besucher-IP, HTTPS) werden nur akzeptiert, wenn die Verbindung aus einem privaten Netz kommt – also vom Proxy, nicht direkt aus dem Internet. Cookies bekommen bei HTTPS automatisch das Secure-Flag; über `http://IP:9300` im LAN funktioniert die Anmeldung weiterhin.
+Nothing else is required: Catalytix detects the reverse proxy automatically. Forwarding headers (real visitor IP, HTTPS) are only accepted from private networks – i.e. from the proxy, never directly from the internet. Cookies automatically get the Secure flag over HTTPS; sign-in via `http://IP:9300` on the LAN keeps working.
 
-**Empfehlungen für den Betrieb im Internet** (Ergebnis der Sicherheitsprüfung zu 2.15):
-- **Port 9300 nur für den Proxy erreichbar machen.** Docker veröffentlicht Ports an der Host-Firewall (ufw/firewalld) vorbei. Läuft Nginx Proxy Manager auf demselben Rechner, `CATALYTIX_BIND=127.0.0.1` setzen oder beide Container in ein gemeinsames Docker-Netz hängen und den Port gar nicht veröffentlichen.
-- **`CATALYTIX_TRUSTED_PROXIES` auf die Adresse des Proxys setzen** (z. B. `172.18.0.5` oder das Docker-Netz des Proxys). Standard ist „jede private Adresse“ – wer den Port direkt aus dem LAN erreicht, könnte sonst eine beliebige Absenderadresse vortäuschen. Das ist besonders wichtig, wenn im internen Netz keine Zwei-Faktor-Abfrage nötig ist; die Einstellungsseite weist dann darauf hin.
-- Nginx Proxy Manager lädt beim Start die Adressbereiche von Cloudflare und CloudFront, um bei Anfragen von dort die echte Besucheradresse zu übernehmen. Nutzen Sie kein solches CDN, setzen Sie im NPM-Container `IP_RANGES_FETCH_ENABLED=false` – dann kann niemand über diese Dienste eine fremde Absenderadresse einschleusen.
-- Hinter HTTPS `CATALYTIX_SECURE_COOKIES=1` setzen und HSTS im Proxy einschalten („HSTS Enabled“ in NPM).
-- **HTTPS erzwingen macht Catalytix selbst**, auch hinter Proxys, die das nicht können (z. B. der Reverse-Proxy der Synology): Sobald eine Adresse einmal per HTTPS über den Proxy aufgerufen wurde, leitet Catalytix für diese Adresse HTTP auf HTTPS um und sendet HSTS (ein Jahr, nur für diese Adresse – andere Programme unter Nachbar-Subdomains bleiben unberührt). HSTS sendet Catalytix nur, wenn es selbst umleiten musste – ein Proxy, der selbst umleitet (NPM mit „Force SSL“), behält seinen eigenen HSTS-Header, es entsteht kein zweiter. Die Adresse merkt es sich im Datenordner (`https-hosts.txt`), seit 3.5.1 je Adresse **und Proxy**: Weil standardmäßig jeder Rechner im LAN als Proxy gilt, schaltet ein Rechner HTTPS nur noch für sich selbst ein – nicht mehr für alle (nach dem Update lernt der erste HTTPS-Aufruf über den Proxy die Adresse neu). Ein Proxy ganz ohne HTTPS wird dadurch nie ins Leere umgeleitet. Bei der Synology beide Regeln anlegen: `http://bib.firma.local` und `https://bib.firma.local` jeweils auf `http://<NAS>:9300`. Direkte Zugriffe ohne Proxy (Docker-Gesundheitscheck, `http://IP:9300` im LAN) und Aufrufe über eine IP-Adresse werden nie umgeleitet. Meldet der Proxy nur den Port (`X-Forwarded-Port`), gilt 80 als HTTP und 443 als HTTPS. Umgeleitet wird mit 301, Formulare mit 308 (sie behalten ihre Daten). AssetLotse und Helfi.Space verhalten sich genauso. Mit `CATALYTIX_FORCE_HTTPS=1` gilt das sofort, mit `0` gar nicht.
-- **Basis-Adresse für E-Mail-Links** (*Administration → E-Mail*) eintragen – Links in Mails entstehen nur daraus, nie aus der Anfrage. Ohne sie ist die Selbstregistrierung mit E-Mail-Bestätigung gesperrt.
-- `PUID`/`PGID` auf einen eigenen Dienstbenutzer setzen (Standard 1000 ist meist der erste echte Benutzer des Hosts – dem gehören dann Datenbank und Schlüssel). Datenbank, Schlüssel und Sicherungen sind nur für diesen Benutzer lesbar.
-- **Image-Dateien prüfen** (Weg ohne Internet): `update.sh --load` vergleicht die Datei mit `SHA256SUMS` aus dem Release und lädt sie nur, wenn die Prüfsumme stimmt. Über die Registry geholte Images prüft Docker selbst.
-- Liegt `CATALYTIX_BACKUP_DIR` auf einem NAS, die Freigabe nur für den Bibliotheks-Server beschreibbar machen.
+**Recommendations for running on the internet** (result of the 2.15 security review):
+- **Make port 9300 reachable for the proxy only.** Docker publishes ports past the host firewall (ufw/firewalld). If Nginx Proxy Manager runs on the same machine, set `CATALYTIX_BIND=127.0.0.1`, or put both containers on a shared Docker network and don't publish the port at all.
+- **Set `CATALYTIX_TRUSTED_PROXIES` to the proxy's address** (e.g. `172.18.0.5` or the proxy's Docker network). The default is "any private address" – anyone reaching the port directly from the LAN could otherwise fake any client address. This matters most if no second factor is required on the internal network; the settings page points this out.
+- Nginx Proxy Manager fetches the Cloudflare and CloudFront address ranges at startup to take over the real client address for requests coming from there. If you use no such CDN, set `IP_RANGES_FETCH_ENABLED=false` in the NPM container – then nobody can inject a foreign client address through those services.
+- Behind HTTPS set `CATALYTIX_SECURE_COOKIES=1` and enable HSTS in the proxy ("HSTS Enabled" in NPM).
+- **Catalytix enforces HTTPS itself**, also behind proxies that cannot (e.g. the Synology reverse proxy): as soon as an address has been opened once over HTTPS through the proxy, Catalytix redirects HTTP to HTTPS for that address and sends HSTS (one year, this address only – other programs on sibling subdomains are not affected). Catalytix sends HSTS only where it had to redirect itself – a proxy that redirects on its own (NPM with "Force SSL") keeps its own HSTS header, no second one is added. It remembers the address in the data folder (`https-hosts.txt`), since 3.5.1 per address **and proxy**: because every computer on the LAN counts as a proxy by default, a computer only switches HTTPS on for itself – no longer for everyone (after the update the first HTTPS request through the proxy learns the address again). A proxy without any HTTPS is therefore never redirected into nothing. On a Synology, create both rules: `http://bib.firma.local` and `https://bib.firma.local`, each to `http://<NAS>:9300`. Direct requests without the proxy (Docker health check, `http://IP:9300` on the LAN) and requests to an IP address are never redirected. If the proxy only reports the port (`X-Forwarded-Port`), 80 counts as HTTP and 443 as HTTPS. Redirects use 301, forms 308 (they keep their data). AssetLotse and Helfi.Space behave the same way. `CATALYTIX_FORCE_HTTPS=1` applies it right away, `0` turns it off.
+- Enter the **base address for e-mail links** (*Administration → E-mail*) – links in e-mails are only built from it, never from the request. Without it, self-registration with e-mail confirmation is blocked.
+- Set `PUID`/`PGID` to a dedicated service user (the default 1000 is usually the host's first real user – who then owns the database and key). Database, key and backups are readable for this user only.
+- **Verify image files** (the way without internet): `update.sh --load` compares the file with `SHA256SUMS` from the release and only loads it if the checksum matches. Docker verifies images pulled from the registry itself.
+- If `CATALYTIX_BACKUP_DIR` is on a NAS, make the share writable for the library server only.
 
-Bei Freigabe ins Internet (z. B. mit Nginx Proxy Manager) *Force SSL* und *HSTS* aktivieren und Port 9300 am Router nicht freigeben – von außen soll nur der Proxy erreichbar sein. Die Anmeldeseite verrät bewusst nichts über die Umgebung (keine Versionsnummer, kein AD-Hinweis, gleiche Fehlermeldung für unbekannte Benutzer, falsche Passwörter und gesperrte Konten).
+When publishing to the internet (e.g. with Nginx Proxy Manager), enable *Force SSL* and *HSTS* and do not forward port 9300 on your router – only the proxy should be reachable from outside. The login page deliberately reveals nothing about the setup (no version number, no AD hint, identical error messages for unknown users, wrong passwords and locked accounts).
 
-## Datenschutz und Betrieb im Internet
+## Privacy and running on the internet
 
-Catalytix ist darauf ausgelegt, dass die Browser der Nutzer **nur mit Ihrem eigenen Server** sprechen:
+Catalytix is built so that users' browsers **only talk to your own server**:
 
-- **Schriften** (Inter, Fraunces) liegen im Programm – keine Verbindung zu Google Fonts.
-- **Coverbilder** lädt der Server einmal von DNB, Open Library oder Google Books, speichert sie und liefert sie selbst aus. Auch die Vorschau beim Erfassen läuft über den eigenen Server. Dabei werden nur öffentliche Adressen abgerufen – interne Server sind über diese Funktion nicht erreichbar. Die Prüfung erfolgt beim Verbindungsaufbau für genau die Adresse, zu der verbunden wird (Schutz vor DNS-Rebinding); ein Abruf dauert höchstens 10 Sekunden. Ist ein ausgehender Proxy über `HTTPS_PROXY`/`HTTP_PROXY` gesetzt, löst der Proxy die Namen auf – dann sollte er selbst keine internen Ziele zulassen.
-- **Barcode-Erkennung** ist eingebaut, es wird keine Bibliothek aus dem Internet nachgeladen.
-- **ISBN-Abfragen** stellt der Server; übertragen wird nur die ISBN, nie Daten über Personen.
-- **Leseproben** (optional, standardmäßig aus – *Einstellungen → Katalog → Leseproben*) sind die einzige Ausnahme: Mit eigenem
-  Google-API-Schlüssel (verschlüsselt gespeichert) fragt der Server vorab, ob Google Books das Buch kennt (nur die ISBN; ob es eine Vorschau gibt, zeigt erst Googles Viewer);
-  ohne Schlüssel beantwortet Google keine Abfragen, dann erscheint der Knopf bei jedem Buch mit ISBN und Googles Viewer
-  meldet selbst, wenn es keine gibt. Die Leseprobe selbst lädt der Browser erst, wenn
-  jemand auf der Buchseite einen Hinweis bestätigt (Zwei-Klick-Lösung) – dann direkt von Google, das dabei die
-  IP-Adresse erfährt. Nur diese Seite erlaubt Google Books als Rahmen (`frame-src`); Skripte bleiben auf den eigenen
-  Server beschränkt. Eingeschaltet gehört das in die Datenschutzerklärung.
-- **Cookies:** nur technisch notwendige (Anmeldung, Formularschutz) – kein Cookie-Banner nötig. Kein Tracking, keine Werbung.
+- **Fonts** (Inter, Fraunces) are bundled – no connection to Google Fonts.
+- **Cover images** are fetched once by the server from DNB, Open Library or Google Books, stored and served locally. The preview while adding a book also goes through your server. Only public addresses are fetched – internal servers cannot be reached through this feature. The check happens when connecting, for exactly the address that is connected to (protection against DNS rebinding); a download takes at most 10 seconds. If an outgoing proxy is set via `HTTPS_PROXY`/`HTTP_PROXY`, the proxy resolves the names – it should then block internal destinations itself.
+- **Barcode detection** is built in; no library is loaded from the internet.
+- **ISBN lookups** are made by the server and only transmit the ISBN, never personal data.
+- **Reading samples** (optional, off by default – *Settings → Catalogue → Reading samples*) are the only exception: with an own Google
+  API key (stored encrypted) the server asks beforehand whether Google Books knows the book (only the ISBN; whether there is a preview only Google's viewer shows); without a
+  key Google answers no queries, then the button appears for every book with an ISBN and Google's viewer says itself
+  when there is none. The browser loads the sample itself only after
+  someone confirms a notice on the book page (two-click solution) – then directly from Google, which learns the IP
+  address. Only that page allows Google Books as a frame (`frame-src`); scripts stay limited to your own server. When
+  switched on, this belongs in your privacy policy.
+- **Cookies:** only strictly necessary ones (sign-in, form protection) – no cookie banner required. No tracking, no ads.
 
-**Impressum und Datenschutzerklärung** tragen Sie unter *Administration → Einstellungen → Datenschutz → Rechtliches* ein (Adressen der Seiten, z. B. auf der Website des Instituts). Die Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in jeder E-Mail; bei der Selbstregistrierung muss die Datenschutzerklärung bestätigt werden.
+Enter the addresses of your **imprint (Impressum) and privacy policy** under *Administration → Einstellungen → Datenschutz → Rechtliches* (Settings → Privacy → Legal), e.g. pages on the institution's website. The links appear on the login page, in the sidebar and in every e-mail; self-registration requires accepting the privacy policy.
 
-In die Datenschutzerklärung gehört, was Catalytix speichert: Name, Benutzername, E-Mail-Adresse, Gruppenzugehörigkeit, Ausleihen mit Datum, Protokoll der versendeten E-Mails, bei Zwei-Faktor-Anmeldung die registrierten Schlüssel. Mit dem **AD-Personen-Cache** (siehe Active Directory) zusätzlich Name, Benutzername, E-Mail und Gruppen aller AD-Personen, die die Bibliothek nutzen dürfen – auch ohne Ausleihe; sie werden beim Abgleich gelöscht, sobald jemand im AD deaktiviert, gelöscht oder nicht mehr berechtigt ist, und sofort beim Abschalten. Das **Programmprotokoll** im Datenordner (`data/logs/`, ab 3.4.0) enthält Benutzernamen und IP-Adressen von Anmeldungen und Fehlern und wird nach 31 Tagen gelöscht. Wird der Server von jemand anderem als der Einrichtung selbst betrieben, brauchen Sie einen Vertrag zur Auftragsverarbeitung (Art. 28 DSGVO).
+The privacy policy should list what Catalytix stores: name, username, e-mail address, group memberships, loans with dates, a log of sent e-mails and, with two-factor authentication, the registered keys. With the **AD people cache** (see Active Directory), also name, username, e-mail and groups of all AD people who may use the library – even without a loan; they are deleted at the sync as soon as someone is disabled, deleted or no longer entitled in AD, and immediately when the cache is switched off. The **program log** in the data folder (`data/logs/`, from 3.4.0) contains usernames and IP addresses of sign-ins and errors and is deleted after 31 days. If the server is operated by someone other than the institution itself, you need a data processing agreement (Art. 28 GDPR).
 
-**Aufbewahrungsfristen** (*Einstellungen → Datenschutz → Aufbewahrung*, Standard **12 Monate**): Abgeschlossene Ausleihen werden die eingestellte Zeit nach der Rückgabe automatisch gelöscht, ebenso Einträge im E-Mail-Protokoll. Pro Buch bleibt nur die Anzahl der Ausleihen erhalten, damit die Statistik stimmt. Laufende und überfällige Ausleihen sowie die Mahn-Einträge dazu werden nie gelöscht. Der Lauf erfolgt einmal täglich automatisch; „Jetzt bereinigen“ oder `flask --app wsgi apply-retention` startet ihn sofort. Wird ein Benutzer gelöscht, verschwinden seine Ausleihen sofort (die Anzahl pro Buch bleibt). Nicht bestätigte Selbstregistrierungen werden nach 7 Tagen gelöscht. Die Frist gehört ebenfalls in die Datenschutzerklärung.
+**Retention periods** (*Einstellungen → Datenschutz → Aufbewahrung*, Settings → Privacy → Retention, default **12 months**): completed loans are deleted automatically the configured time after their return, and so are e-mail log entries. Only the number of loans per book is kept, so statistics stay correct. Active and overdue loans and their reminder entries are never deleted. The job runs once a day; „Jetzt bereinigen“ (Clean up now) or `flask --app wsgi apply-retention` runs it immediately. When a user is deleted, their loans are removed at once (the per-book count is kept). Unconfirmed self-registrations are deleted after 7 days. State the retention period in your privacy policy as well.
 
-## Sicherheit
+## Security
 
-**Sicherheitslücke gefunden?** Bitte vertraulich melden, nicht als öffentliches Issue – siehe [SECURITY.md](SECURITY.md#deutsch).
+**Found a vulnerability?** Please report it confidentially, not as a public issue – see [SECURITY.md](SECURITY.md#english).
 
-- **Passwörter** lokaler Konten: mindestens 10 Zeichen. Nach mehreren Fehlversuchen wird die Anmeldung kurz gesperrt; von außen zusätzlich je Benutzername, falls jemand viele Adressen durchprobiert.
-- **Abmelden auf allen Geräten:** *Profil → Sicherheit → Angemeldete Geräte*. Das passiert auch automatisch, wenn das Passwort geändert oder die Zwei-Faktor-Anmeldung von einem Admin zurückgesetzt wird – das aktuelle Gerät bleibt angemeldet.
-- **AD-Konten** laufender Sitzungen werden alle 4 Stunden nachgeprüft (mit dem Dienstkonto): Wer im AD deaktiviert, gelöscht oder aus der berechtigten Gruppe genommen wurde, wird abgemeldet; Rolle und Gruppen werden angeglichen. Ist das AD nicht erreichbar, bleibt die Sitzung bestehen. Ohne Dienstkonto (direkter Bind) ist diese Prüfung nicht möglich.
-- **Zugangsdaten** für das AD-Dienstkonto und den Mailserver sowie die **2FA-Geheimnisse** werden verschlüsselt in der Datenbank abgelegt (Schlüssel: `data/secret_key` bzw. `CATALYTIX_SECRET_KEY`). Wer die Datenbank ohne diese Datei kopiert, kann sie nicht lesen.
-- **Der Schlüssel gehört zur Datenbank:** Wird er geändert oder geht er verloren, schlagen alle 2FA-Anmeldungen fehl und die gespeicherten SMTP-/AD-Passwörter sind nicht mehr lesbar. Datenbank deshalb nur **zusammen mit ihrer `secret_key`** zurückspielen oder umziehen. Catalytix merkt sich beim ersten Start einen Prüfwert des Schlüssels (nicht den Schlüssel selbst) und **startet nicht**, wenn der Schlüssel nicht zur Datenbank passt – dann im Protokoll nachsehen und die passende `secret_key` zurückholen. Soll der neue Schlüssel bewusst gelten: einmalig mit `CATALYTIX_ACCEPT_NEW_KEY=1` starten (danach wieder entfernen), anschließend 2FA der Benutzer zurücksetzen und SMTP-/AD-Passwort neu eingeben.
-- **Browser-Schutz:** Strenge Content-Security-Policy (nur Skripte vom eigenen Server, keine eingebetteten Skripte), Schutz vor Einbettung in fremde Seiten, CSRF-Schutz für alle Formulare.
-- **Hochgeladene Cover** werden neu als JPEG gespeichert – versteckte Inhalte in Bilddateien bleiben nicht erhalten. Der **CSV-Export** markiert Zellen, die mit `=`, `+`, `-` oder `@` beginnen, damit Excel sie nicht als Formel ausführt.
-- **Schlankes Image:** Paketverwaltung, Perl, Anmeldewerkzeuge und weitere Pakete, die das laufende Programm nie braucht, werden beim Bau entfernt (`docker/slim.sh`) – weniger Angriffsfläche und weniger Sicherheitswarnungen. Die Paketdatenbank bleibt, Scanner wie Trivy sehen also weiter alles, was drin ist. Das Programm läuft im Container ohne root (Benutzer `PUID`:`PGID`, Standard 1000).
+- **Passwords** for local accounts: at least 10 characters. Repeated failures briefly lock the login; from outside also per user name, in case someone tries many addresses.
+- **Sign out everywhere:** *Profile → Security → Signed-in devices*. This also happens automatically when the password is changed or an admin resets two-factor authentication – the current device stays signed in.
+- **AD accounts** with an open session are re-checked every 4 hours (using the service account): anyone disabled, deleted or removed from the permitted group in AD is signed out; role and groups are updated. If AD is unreachable the session stays. Without a service account (direct bind) this check is not possible.
+- **Credentials** for the AD service account and the mail server as well as **2FA secrets** are stored encrypted in the database (key: `data/secret_key` or `CATALYTIX_SECRET_KEY`). A copy of the database without that file cannot read them.
+- **The key belongs to the database:** if it is changed or lost, all 2FA sign-ins fail and the stored SMTP/AD passwords can no longer be read. So restore or move a database only **together with its `secret_key`**. On first start Catalytix stores a check value of the key (not the key itself) and **refuses to start** if the key does not match the database – check the log and bring back the matching `secret_key`. To accept a new key deliberately, start once with `CATALYTIX_ACCEPT_NEW_KEY=1` (remove it afterwards), then reset users' 2FA and re-enter the SMTP/AD passwords.
+- **Browser protection:** strict Content Security Policy (scripts only from your own server, no inline scripts), protection against framing by other sites, CSRF protection on all forms.
+- **Uploaded covers** are re-saved as JPEG – hidden content in image files is not kept. The **CSV export** marks cells starting with `=`, `+`, `-` or `@` so Excel does not run them as formulas.
+- **Slim image:** the package manager, Perl, login tools and other packages the running program never uses are removed during the build (`docker/slim.sh`) – smaller attack surface and fewer security warnings. The package database is kept, so scanners like Trivy still see everything inside. The program runs without root in the container (user `PUID`:`PGID`, default 1000).
 
-## Datensicherung
+## Backups
 
-*Administration → Datensicherung.* Die Datenbank wird **jeden Tag automatisch gesichert** (Standard ab 2 Uhr nachts) – im laufenden Betrieb, ohne Anhalten. Jede Sicherung wird nach dem Schreiben auf Beschädigung geprüft. Aufbewahrt werden die **neuesten 10 Sicherungen** (einstellbar 1–100), ältere werden automatisch gelöscht.
+*Administration → Datensicherung* (Backups). The database is **backed up automatically every day** (default from 2 a.m.) – while running, without downtime. Every backup is checked for corruption after writing. The **newest 10 backups** are kept (configurable 1–100); older ones are deleted automatically.
 
-- **Ablage:** `./data/backups` auf dem Server. Mit `CATALYTIX_BACKUP_DIR` lässt sich ein anderer Ordner einstellen, z. B. ein eingebundenes NAS-Laufwerk (in `docker-compose.override.yml` als zusätzliches Volume einbinden).
-- **„Jetzt sichern“** legt sofort eine Sicherung an (auch vor größeren Änderungen sinnvoll). Einzelne Sicherungen lassen sich herunterladen oder löschen.
-- **Schlägt eine Sicherung fehl**, erscheint ein Warnzeichen am Menüpunkt *Datensicherung*, und Administratoren bekommen eine E-Mail (wenn der E-Mail-Versand eingerichtet ist).
-- Gesichert wird die **Datenbank** (Bücher, Benutzer, Ausleihen, Einstellungen). Coverbilder, Logo und `secret_key` liegen als Dateien in `./data` – für einen kompletten Umzug den ganzen Ordner mitnehmen. Eine Datenbank immer **mit ihrer `secret_key`** zurückspielen, sonst funktionieren 2FA und gespeicherte SMTP-/AD-Passwörter nicht (siehe [Sicherheit](#sicherheit)).
-- Wichtig: Sicherungen auf demselben Server schützen vor Bedienfehlern und defekten Updates, **nicht** vor einem Festplattenausfall. Kopieren Sie den Ordner regelmäßig an einen anderen Ort.
-- **Vor jedem Versionswechsel** sichert das Programm beim Start selbst (`catalytix-…-vor-X.Y.Z.db`, „vor Update auf X.Y.Z“). Die drei neuesten dieser Sicherungen bleiben 30 Tage lang zusätzlich zu den täglichen erhalten – sie sind der Weg zurück (siehe [Eine Version festlegen und zurückgehen](#eine-version-festlegen-und-zurückgehen)). Danach zählen sie wie alle anderen, damit gelöschte Daten nicht unbegrenzt in alten Sicherungen bleiben.
-- Nur für SQLite. Bei MySQL/MariaDB oder PostgreSQL mit `mysqldump` bzw. `pg_dump` sichern.
+- **Location:** `./data/backups` on the server. `CATALYTIX_BACKUP_DIR` sets a different folder, e.g. a mounted NAS share (add it as an extra volume in `docker-compose.override.yml`).
+- **„Jetzt sichern“** (Back up now) creates a backup immediately (useful before bigger changes). Single backups can be downloaded or deleted.
+- **If a backup fails**, a warning sign appears on the *Datensicherung* menu entry and administrators get an e-mail (if e-mail sending is set up).
+- The **database** is backed up (books, users, loans, settings). Cover images, logo and `secret_key` are files in `./data` – take the whole folder with you when moving servers. Always restore a database **together with its `secret_key`**, otherwise 2FA and stored SMTP/AD passwords stop working (see [Security](#security)).
+- Important: backups on the same server protect against mistakes and broken updates, **not** against a disk failure. Copy the folder to another place regularly.
+- **Before every version change** the program backs up at start-up itself (`catalytix-…-vor-X.Y.Z.db`, "before update to X.Y.Z"). The three newest of these are kept for 30 days in addition to the daily ones – they are the way back (see [Fixing a version and going back](#fixing-a-version-and-going-back)). After that they count like all others, so deleted data does not stay in old backups indefinitely.
+- SQLite only. With MySQL/MariaDB or PostgreSQL use `mysqldump` or `pg_dump`.
 
-**Wiederherstellen** (der aktuelle Stand wird vorher automatisch gesichert):
+**Restoring** (the current state is backed up automatically first):
 
 ```bash
 docker compose stop catalytix
@@ -438,117 +442,121 @@ docker compose run --rm catalytix flask --app wsgi restore-backup catalytix-2026
 docker compose start catalytix
 ```
 
-Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewahrungsfrist schon gelöscht wurden – bei 10 täglichen Sicherungen also bis zu 10 Tage länger, Sicherungen vor einem Update höchstens 30 Tage. Das gehört mit in die Datenschutzerklärung.
+Privacy: backups contain all data, including data already deleted by the retention period – with 10 daily backups up to 10 days longer, backups before an update at most 30 days. Mention this in your privacy policy.
 
 ---
 
-## Konfiguration (Datei `.env`)
+## Configuration (file `.env`)
 
-| Variable | Bedeutung |
+| Variable | Meaning |
 |---|---|
-| `CATALYTIX_DATA_DIR` | Datenverzeichnis (SQLite, Cover, Schlüssel). Standard: `./instance` |
-| `DATABASE_URL` | z. B. `mysql+pymysql://user:pw@host/catalytix?charset=utf8mb4` oder `postgresql+psycopg://…` (MySQL-Treiber ist enthalten; für PostgreSQL `psycopg[binary]` mit fester Version in `requirements.txt` ergänzen und neu bauen) |
-| `CATALYTIX_SECRET_KEY` | Sitzungs- und Verschlüsselungsschlüssel; ohne Angabe einmalig erzeugt und in `data/secret_key` gespeichert. Verschlüsselt auch 2FA-Geheimnisse und gespeicherte SMTP-/AD-Passwörter – **nicht nachträglich ändern** (siehe [Sicherheit](#sicherheit)) |
-| `CATALYTIX_ACCEPT_NEW_KEY` | `1` = einen geänderten Schlüssel bewusst übernehmen (Catalytix startet sonst nicht, wenn der Schlüssel nicht zur Datenbank passt). Nur einmalig setzen |
-| `CATALYTIX_BIND` | Adresse, auf der der Port veröffentlicht wird (Standard `0.0.0.0` = alle). `127.0.0.1`, wenn der Reverse-Proxy direkt auf diesem Rechner läuft (nicht als Container bzw. mit `network_mode: host`) – dann kann niemand den Proxy umgehen. Läuft der Proxy als eigener Container, besser beide in ein gemeinsames Docker-Netz hängen |
-| `CATALYTIX_PORT` | Port auf dem Docker-Host (Standard `9300`) |
-| `TZ` | Zeitzone (Standard `Europe/Berlin`). Fehlt die Zeitzone im Image, steht beim Start „Time zone TZ=… not found – times in UTC“ im Protokoll; prüfen mit `docker compose exec catalytix date` |
-| `PUID` / `PGID` | Benutzer/Gruppe für `./data` (Standard `1000`) |
-| `CATALYTIX_TRUSTED_PROXIES` | Von wem Proxy-Header akzeptiert werden: `private` (Standard), `none` oder Liste wie `172.18.0.0/16,192.168.0.11` |
-| `CATALYTIX_SECURE_COOKIES` | `auto` (Standard: bei HTTPS), `1` (immer), `0` (nie) |
-| `CATALYTIX_FORCE_HTTPS` | `auto` (Standard: umschalten, sobald HTTPS über den Proxy gesehen wurde), `1` (immer), `0` (nie) – HTTP über den Reverse-Proxy auf HTTPS umleiten und HSTS senden |
-| `CATALYTIX_SESSION_HOURS` | Automatische Abmeldung nach so vielen Stunden ohne Aktivität (1–168, Standard 12) – nur Startwert, danach unter *Einstellungen → Sicherheit → Automatische Abmeldung* |
-| `CATALYTIX_LOGLEVEL` | `INFO` (Standard), `DEBUG` für LDAP-Fehlersuche |
-| `CATALYTIX_BACKUP_DIR` | Ordner für die automatischen Sicherungen (Standard: `backups` im Datenverzeichnis). Muss als Volume eingebunden sein – sonst warnt der Container beim Start |
-| `CATALYTIX_COVER_VIA_PROXY` | `1` = Coverbilder über den in `HTTPS_PROXY` gesetzten Proxy laden (Standard: direkt, damit die Prüfung auf interne Adressen greift) |
-| `CATALYTIX_SOURCE_URL` | Link zum Quellcode auf der Seite *Über dieses Programm* (z. B. Ihr GitHub-Repository) – siehe [Lizenz](#lizenz) |
+| `CATALYTIX_DATA_DIR` | Data directory (SQLite, covers, keys). Default: `./instance` (`/data` in Docker) |
+| `DATABASE_URL` | e.g. `mysql+pymysql://user:pw@host/catalytix?charset=utf8mb4` or `postgresql+psycopg://…` (the MySQL driver is included; for PostgreSQL add `psycopg[binary]` with a fixed version to `requirements.txt` and rebuild) |
+| `CATALYTIX_SECRET_KEY` | Session and encryption key; if unset, generated once and stored in `data/secret_key`. Also encrypts 2FA secrets and stored SMTP/AD passwords – **do not change it later** (see [Security](#security)) |
+| `CATALYTIX_ACCEPT_NEW_KEY` | `1` = deliberately accept a changed key (otherwise Catalytix refuses to start when the key does not match the database). Set only once |
+| `CATALYTIX_BIND` | Address the port is published on (default `0.0.0.0` = all). `127.0.0.1` if the reverse proxy runs directly on this machine (not as a container, or with `network_mode: host`) – then nobody can bypass the proxy. If the proxy runs as its own container, put both into a shared Docker network instead |
+| `CATALYTIX_PORT` | Port on the Docker host (default `9300`) |
+| `TZ` | Time zone (default `Europe/Berlin`). If the zone is missing from the image, the log shows "Time zone TZ=… not found – times in UTC" at start-up; check with `docker compose exec catalytix date` |
+| `PUID` / `PGID` | User/group owning `./data` (default `1000`) |
+| `CATALYTIX_TRUSTED_PROXIES` | Who may send proxy headers: `private` (default), `none` or a list such as `172.18.0.0/16,192.168.0.11` |
+| `CATALYTIX_SECURE_COOKIES` | `auto` (default: over HTTPS), `1` (always), `0` (never) |
+| `CATALYTIX_FORCE_HTTPS` | `auto` (default: switch once HTTPS through the proxy was seen), `1` (always), `0` (never) – redirect HTTP through the reverse proxy to HTTPS and send HSTS |
+| `CATALYTIX_SESSION_HOURS` | Automatic sign-out after this many hours without activity (1–168, default 12) – start value only, afterwards under *Settings → Security → Automatic sign-out* |
+| `CATALYTIX_LOGLEVEL` | `INFO` (default), `DEBUG` for LDAP troubleshooting |
+| `CATALYTIX_BACKUP_DIR` | Folder for automatic backups (default: `backups` in the data directory). Must be mounted as a volume – otherwise the container warns at start-up |
+| `CATALYTIX_COVER_VIA_PROXY` | `1` = download covers via the proxy set in `HTTPS_PROXY` (default: direct, so the check for internal addresses applies) |
+| `CATALYTIX_SOURCE_URL` | Link to the source code on the *Über dieses Programm* (About) page, e.g. your GitHub repository – see [License](#license) |
 
-Alles Weitere (Leihfrist, Verlängerungen, Selbstausleihe, ISBN-Quellen, AD) stellen Sie in der Oberfläche ein.
+Everything else (loan period, renewals, self-checkout, ISBN sources, AD, e-mail, branding, registration, 2FA policy) is configured in the web interface.
 
-**Zur Datenbankwahl:** SQLite reicht für Schul- und Vereinsbibliotheken mit zehntausenden Titeln und vielen gleichzeitigen Lesern problemlos – und ein Backup ist einfach eine Dateikopie. MariaDB/MySQL oder PostgreSQL lohnen sich, wenn Sie ohnehin einen Datenbankserver mit Backup-Routine betreiben oder mehrere App-Server parallel laufen sollen.
+**Choosing a database:** SQLite easily handles school and club libraries with tens of thousands of titles and many concurrent readers – and a backup is just a file copy. MariaDB/MySQL or PostgreSQL are worthwhile if you already run a database server with a backup routine, or want several app servers in parallel.
+
+The database schema is upgraded automatically on start-up (missing columns are added), so updates keep your data.
 
 ---
 
-## Wartung
+## Maintenance
 
 ```bash
-# Admin-Passwort zurücksetzen (hebt auch eine Anmeldesperre auf)
+# Reset admin password (also lifts a sign-in lock)
 flask --app wsgi reset-password admin
-# Zweiten Faktor zurücksetzen (Handy/Schlüssel verloren)
+# Reset second factor (phone/key lost)
 flask --app wsgi reset-2fa admin
-# Aufbewahrungsfrist sofort anwenden (alte Ausleihen löschen)
+# Apply retention period now (delete old loans)
 flask --app wsgi apply-retention
-# Erinnerungen sofort versenden
+# Send reminders now
 flask --app wsgi send-reminders
-# Zusätzliches lokales Admin-Konto
-flask --app wsgi create-admin notfall
-# Anonymes Diagnosepaket in den Datenordner schreiben (data/diagnose/)
+# Additional local admin account
+flask --app wsgi create-admin emergency
+# Write an anonymous diagnostic package into the data folder (data/diagnose/)
 flask --app wsgi diagnose
-# Datenbank jetzt sichern / Sicherungen anzeigen / zurückspielen (Server vorher anhalten)
+# Back up the database now / list backups / restore (stop the server first)
 flask --app wsgi backup
 flask --app wsgi list-backups
 flask --app wsgi restore-backup catalytix-2026-10-19_020012.db
 ```
 
-Die Ersteinrichtung im Browser (`/setup`) ist nur einmal möglich. Gibt es später kein Administratorkonto mehr (z. B. versehentlich gelöscht), legen Sie eines mit `create-admin` auf dem Server an – im Web geht das aus Sicherheitsgründen nicht mehr.
+The initial setup in the browser (`/setup`) works only once. If there is no administrator account later on (e.g. deleted by mistake), create one with `create-admin` on the server – for security reasons this is no longer possible via the web.
 
-Im Docker-Container über den Entrypoint, damit der Befehl wie die App als `PUID:PGID` läuft (sonst entstehen z. B. Sicherungen, die root gehören und die die App nicht anbieten kann):
+### Diagnostic package (from 3.4.0)
+
+*Einstellungen → Wartung → Diagnosepaket herunterladen* (Settings → Maintenance → Download diagnostic package), or `flask --app wsgi diagnose` (writes to `data/diagnose/`), creates a ZIP file for troubleshooting. It is only downloaded, never sent anywhere on its own:
+
+| File | Contents |
+|---|---|
+| `system.json` | version, version history, Python, platform, container/compose, database (size, check), free space, environment variables (secrets only "set") |
+| `https.json` | how the program sees the connection: HTTPS, proxy headers, passkey address, internal/external |
+| `settings.json` | all settings; `*` = changed from the default |
+| `checks.json` | connection tests: Active Directory (service account), mail server (no mail sent), Google Books, backup |
+| `counts.json` | counts: accounts per role/source/2FA/passkey, loans, books, failed sign-ins per day |
+| `log.txt`, `errors.txt` | program log of the period (1–30 days), warnings and errors with technical details |
+
+**Always anonymous:** user and display names, e-mail and IP addresses, host and domain names, AD paths, group, location and library names are replaced by permanent placeholders (`BENUTZER-007`, `host-02.domaene-1.example`, `IP-004(privat)` …). Passwords, keys and tokens are never included. The mapping stays on the server (*Look up placeholders*, CSV). For this the program also writes its log to `data/logs/` (one file per day, 31 days, at most 20 MB per day).
+
+**Keeps up:** every setting and every table must be classified in `catalytix/diagnostics.py` (secret / contains names / harmless) – otherwise `tests/test_diagnostics_340.py` fails. A second test fills the database with recognisable names, addresses and passwords and checks that none of them ends up in the package.
+
+Inside the Docker container, go through the entrypoint so the command runs as `PUID:PGID` like the app (otherwise e.g. backups end up owned by root and the app cannot offer them):
 
 ```bash
 docker compose exec catalytix docker-entrypoint.sh flask --app wsgi reset-password admin
 ```
 
-Katalog-Export als CSV (Excel-kompatibel) gibt es im Katalog für Verwalter.
+Back up the whole `./data` folder regularly – it contains the database, covers, branding files and the stored DC certificates. To move to another server, take this folder with you.
 
-### Diagnosepaket (ab 3.4.0)
+Librarians can export the catalogue as CSV (Excel-compatible) from the catalogue page.
 
-*Einstellungen → Wartung → Diagnosepaket herunterladen* (oder `flask --app wsgi diagnose`, schreibt nach `data/diagnose/`) erzeugt eine ZIP-Datei für die Fehlersuche. Sie wird nur heruntergeladen, nie von selbst verschickt:
+## GitHub: building the image and publishing versions
 
-| Datei | Inhalt |
+The repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) contains the workflows in `.github/workflows/`:
+
+| Event | What GitHub does |
 |---|---|
-| `system.json` | Version, Versionsverlauf, Python, Plattform, Container/compose, Datenbank (Größe, Prüfung), freier Speicher, Umgebungsvariablen (Geheimes nur „gesetzt“) |
-| `https.json` | wie das Programm die Verbindung sieht: HTTPS, Proxy-Header, Passkey-Adresse, intern/extern |
-| `settings.json` | alle Einstellungen; `*` = gegenüber der Vorgabe geändert |
-| `checks.json` | Verbindungstests: Active Directory (Dienstkonto), E-Mail-Server (ohne Versand), Google Books, Datensicherung |
-| `counts.json` | Zahlen: Konten nach Rolle/Herkunft/2FA/Passkey, Ausleihen, Bücher, Fehlanmeldungen pro Tag |
-| `log.txt`, `errors.txt` | Programmprotokoll des Zeitraums (1–30 Tage), Warnungen und Fehler mit technischen Details |
+| Pull request | check the locks, build the image **without cache**, run **all tests in the finished image**, **Trivy scan** (`build.yml`) – **nothing** is published. No extra run after merging into `main` (saves Actions minutes in the private repository) – `main` is checked again in full when publishing, nothing untested is ever published |
+| *Actions → Build → Run workflow* on `main` with **publish** | only for a **new version number** and only if everything passed: image `ghcr.io/soleil0815/catalytix:<version>` (and `latest` if it is the highest version) for `linux/amd64` and `linux/arm64`, then the release `v<version>` with the image files for the way without internet, `SHA256SUMS`, `update.sh`, `docker-compose.yml` and `env.example` |
+| Patch day, second Tuesday of the month, early (or by hand) | **Security update** (`security-update.yml`) – see [Pinned versions and automatic security updates](#pinned-versions-and-automatic-security-updates); publishes `<version>-s<counter>` and `latest` |
+| Daily | **Scan** of the published `latest` (`scan.yml`) |
+| Tuesday one week before patch day (or by hand) | **ZAP scan** (`zap-scan.yml`) – without login against a throwaway container; the code audit the day after checks the findings |
+| Mondays | **Foundation check** (`foundation.yml`) |
 
-**Immer anonym:** Benutzer- und Anzeigenamen, E-Mail-, IP-Adressen, Rechner- und Domänennamen, AD-Pfade, Gruppen-, Standort- und Bibliotheksname werden durch dauerhafte Platzhalter ersetzt (`BENUTZER-007`, `host-02.domaene-1.example`, `IP-004(privat)` …). Kennwörter, Schlüssel und Tokens sind nie enthalten. Die Zuordnung bleibt auf dem Server (*Platzhalter nachschlagen*, CSV). Dafür schreibt das Programm sein Protokoll zusätzlich nach `data/logs/` (eine Datei pro Tag, 31 Tage, höchstens 20 MB pro Tag).
+For all workflows: actions pinned to commit SHAs, minimal permissions per job, no stored Git credentials, publishing only from the `main` branch, one run per workflow at a time, a published version is never overwritten, `latest` always points to the highest version (checked against the releases and against the image `latest` currently points to). Every image carries its exact tag (`catalytix.tag`, e.g. `3.0.3-s1`) and the commit it was built from (`org.opencontainers.image.revision`; for a security update the commit of the release whose program it contains): the release points to exactly that commit and contains `update.sh`/`docker-compose.yml` from the image, and `update.sh` goes back to exactly that tag after a failed start – a security update does not turn into the version without the fixes. Trivy is not used as a GitHub action (the actions `trivy-action`/`setup-trivy` were compromised in March 2026, CVE-2026-33634) but loaded as a fixed version and checked by SHA-256 (`tools/trivy.lock`, `tools/trivy_scan.py`). Only HIGH/CRITICAL vulnerabilities with an available fix stop a release.
 
-**Wächst mit:** Jede Einstellung und jede Tabelle muss in `catalytix/diagnostics.py` eingeordnet sein (geheim / enthält Namen / unbedenklich) – sonst schlägt `tests/test_diagnostics_340.py` fehl. Ein zweiter Test füllt die Datenbank mit erkennbaren Namen, Adressen und Kennwörtern und prüft, dass nichts davon im Paket steht.
-
-## GitHub: Image bauen und Versionen veröffentlichen
-
-Das Repository [soleil0815/catalytix](https://github.com/soleil0815/catalytix) enthält die Workflows unter `.github/workflows/`:
-
-| Ereignis | Was GitHub macht |
-|---|---|
-| Pull Request | Locks prüfen, Image **ohne Zwischenspeicher** bauen, **alle Tests im fertigen Image**, **Trivy-Scan** (`build.yml`) – veröffentlicht wird dabei **nichts**. Kein eigener Lauf nach dem Mergen auf `main` (spart Actions-Minuten im privaten Repository) – `main` wird beim Veröffentlichen noch einmal vollständig geprüft, Ungeprüftes wird nie veröffentlicht |
-| *Actions → Build → Run workflow* auf `main` mit **publish** | nur für eine **neue Versionsnummer** und nur wenn alles bestanden ist: Image `ghcr.io/soleil0815/catalytix:<version>` (und `latest`, wenn es die höchste Version ist) für `linux/amd64` und `linux/arm64`, danach das Release `v<version>` mit den Image-Dateien für den Weg ohne Internet, `SHA256SUMS`, `update.sh`, `docker-compose.yml` und `env.example` |
-| Patchday, zweiter Dienstag im Monat früh (oder von Hand) | **Sicherheitsupdate** (`security-update.yml`) – siehe [Feste Versionen und automatische Sicherheitsupdates](#feste-versionen-und-automatische-sicherheitsupdates); veröffentlicht `<version>-s<Zähler>` und `latest` |
-| Täglich | **Scan** des veröffentlichten `latest` (`scan.yml`) |
-| Dienstag eine Woche vor dem Patchday (oder von Hand) | **ZAP-Scan** (`zap-scan.yml`) – ohne Anmeldung gegen einen Wegwerf-Container; die Funde prüft der Code-Audit am Tag danach |
-| Montags | **Unterbau-Prüfung** (`foundation.yml`) |
-
-Für alle Workflows gilt: Actions auf Commit-Prüfsummen festgelegt, minimale Rechte je Job, keine gespeicherten Git-Anmeldedaten, veröffentlicht wird nur vom Zweig `main`, je Workflow nur ein Lauf gleichzeitig, eine veröffentlichte Version wird nie überschrieben, `latest` zeigt immer auf die höchste Version (geprüft gegen die Releases und gegen das Image, auf das `latest` gerade zeigt). Jedes Image trägt seinen genauen Tag (`catalytix.tag`, z. B. `3.0.3-s1`) und den Commit, aus dem es gebaut wurde (`org.opencontainers.image.revision`; bei einem Sicherheitsupdate der Commit des Releases, dessen Programm es enthält): Das Release zeigt auf genau diesen Commit und enthält `update.sh`/`docker-compose.yml` aus dem Image, und `update.sh` geht bei einem Fehlstart auf genau diesen Tag zurück – ein Sicherheitsupdate wird dabei nicht zur Version ohne die Fixes. Trivy wird nicht als GitHub Action eingebunden (die Actions `trivy-action`/`setup-trivy` wurden im März 2026 kompromittiert, CVE-2026-33634), sondern als feste Version geladen und per SHA-256 geprüft (`tools/trivy.lock`, `tools/trivy_scan.py`). Gestoppt wird nur bei Schwachstellen HIGH/CRITICAL, für die es eine Korrektur gibt.
-
-**Erster Push:**
+**First push:**
 
 ```bash
 git init -b main
 git add -A
-git update-index --chmod=+x update.sh docker-entrypoint.sh   # ausführbar, auch wenn unter Windows committet
+git update-index --chmod=+x update.sh docker-entrypoint.sh   # executable, even if committed on Windows
 git commit -m "Catalytix 3.0.0"
 git remote add origin git@github.com:soleil0815/catalytix.git
 git push -u origin main
 ```
 
-Danach unter *Actions* den Lauf abwarten. **Einmalig das Paket öffentlich machen:** GitHub → Profil → *Packages* → `catalytix` → *Package settings* → *Change visibility* → *Public*. Sonst müssen sich die Server erst mit einem Token (Recht `read:packages`) anmelden: `docker login ghcr.io`.
+Then wait for the run under *Actions*. **Make the package public once:** GitHub → profile → *Packages* → `catalytix` → *Package settings* → *Change visibility* → *Public*. Otherwise the servers first have to sign in with a token (scope `read:packages`): `docker login ghcr.io`.
 
-**Sprache:** Code, Kommentare, Skripte und Commit-Nachrichten sind englisch. Die Oberfläche ist zweisprachig – die
-Übersetzungsschlüssel sind die deutschen Texte, `catalytix/translations/en.json` enthält die englischen.
+**Language:** code, comments, scripts and commit messages are in English. The interface is bilingual – the
+translation keys are the German texts, `catalytix/translations/en.json` holds the English ones.
 
-**Neue Version veröffentlichen:** Versionsnummer in `catalytix/__init__.py` und im Label im `Dockerfile` erhöhen (der Workflow prüft, dass sie übereinstimmen), `CHANGELOG.md` und `CHANGELOG.en.md` ergänzen, Neuigkeiten für die Oberfläche in `catalytix/news.json` eintragen (der Test prüft, dass die aktuelle Version dort steht) – als **Pull Request**. Nach dem Merge: *Actions → Build → Run workflow* (Zweig `main`, **publish** anhaken). Erst dann entstehen Image, `latest` und Release; ein Tag ist nicht nötig. Die `docker-compose.yml` bleibt dabei unverändert – nur wenn sich an ihr wirklich etwas ändern muss, steigt `CATALYTIX_COMPOSE` (in der Datei, im Label `catalytix.compose` im `Dockerfile` und in `catalytix/composefile.py`).
+**Publishing a new version:** raise the version number in `catalytix/__init__.py` and in the label in `Dockerfile` (the workflow checks that they match), add to `CHANGELOG.md` and `CHANGELOG.en.md`, add the notes for the interface to `catalytix/news.json` (a test checks that the current version is listed there) – as a **pull request**. After merging: *Actions → Build → Run workflow* (branch `main`, tick **publish**). Only then are the image, `latest` and the release created; no tag needed. `docker-compose.yml` stays unchanged – only when something in it really has to change does `CATALYTIX_COMPOSE` go up (in the file, in the label `catalytix.compose` in `Dockerfile` and in `catalytix/composefile.py`).
 
 ## Tests
 
@@ -556,55 +564,55 @@ Danach unter *Actions* den Lauf abwarten. **Einmalig das Paket öffentlich mache
 python -m unittest discover -s tests -v
 ```
 
-**Typprüfung (mypy):** wird Schritt für Schritt eingeführt. `mypy.ini` prüft die Module, bei denen Fehler am meisten
-schaden, streng – zurzeit `backup.py`, `netzone.py`, `proxy.py`, `models.py` (Rechteprüfung), `dbversion.py` (Datenbank-Version
-beim Update), `composefile.py`, `lockout.py` (Anmeldesperre), `autologout.py` (automatische Abmeldung) und die Build-Kette in `tools/`. Diese Prüfung muss bei jedem Pull Request bestehen. `mypy-report.ini` prüft alle Module und listet die
-Funde nur in der Zusammenfassung des Prüflaufs auf, ohne ihn abzubrechen. Mit jedem Audit und jeder Version kommen
-weitere Module in die strenge Liste.
+**Type checking (mypy):** introduced step by step. `mypy.ini` strictly checks the modules where errors do the most
+damage – currently `backup.py`, `netzone.py`, `proxy.py`, `models.py` (permission checks), `dbversion.py` (database version on
+updates), `composefile.py`, `lockout.py` (sign-in lock), `autologout.py` (automatic sign-out) and the build chain in `tools/`. This check must pass on every pull request. `mypy-report.ini` checks all modules and only lists the
+findings in the summary of the CI run, without failing it. Every audit and every version moves more modules into
+the strict list.
 
 ```bash
-pip install --require-hashes --no-deps -r tools/mypy.lock    # feste Version mit Prüfsummen (Python 3.13)
-python -m mypy                                  # strenge Module – muss „Success“ melden
-python -m mypy --config-file mypy-report.ini    # alle Module, nur zur Information
+pip install --require-hashes --no-deps -r tools/mypy.lock    # pinned version with checksums (Python 3.13)
+python -m mypy                                  # strict modules – must report "Success"
+python -m mypy --config-file mypy-report.ini    # all modules, for information only
 ```
 
-## Aufbau
+## Project layout
 
 ```
 catalytix/
-  __init__.py      App-Factory, Konfiguration, CLI-Befehle
-  models.py        Datenmodell (Benutzer, Gruppen, Bücher, Ausleihen, Einstellungen, Mail-Protokoll, Sicherheitsschlüssel)
-  ldap_auth.py     Active-Directory-/LDAP-Anmeldung, Gruppenauflösung und Rollenregeln
-  ldap_tls.py      Abruf und Prüfung der DC-Zertifikate
-  twofa.py         Zwei-Faktor-Anmeldung (TOTP, WebAuthn, Wiederherstellungscodes)
-  mailer.py        SMTP-Versand, Benachrichtigungen, täglicher Zeitplan
-  retention.py     Aufbewahrungsfristen (alte Ausleihen und Mail-Protokoll löschen)
-  backup.py        Automatische Datensicherung (SQLite), Aufbewahrung der letzten N Sicherungen
-  dbversion.py     Datenbank-Version: Sicherung vor einem Versionswechsel, Abbruch bei neuerer Datenbank
-  composefile.py   Versionsprüfung der docker-compose.yml
-  branding.py      Logo, Hintergrundbild, Farben
-  proxy.py         Automatische Reverse-Proxy- und HTTPS-Erkennung
-  netzone.py       Internes Netz oder Zugriff von außen (für die Zwei-Faktor-Regeln)
-  lockout.py       Anmeldesperre nach Fehlversuchen
-  isbn.py          ISBN-Prüfung und Katalogabfragen (DNB, Open Library, Google Books)
-  i18n.py          Mehrsprachigkeit (Deutsch/Englisch), Sprachwahl, Datumsformate
-  translations/    Englische Texte (en.json)
-  views/           Seiten: main (inkl. Über/Lizenz, Sprachwahl), books, loans, locations, admin, security, register, help
-  templates/       Jinja-Templates (inkl. E-Mail-Vorlagen und Hilfetexte help/de, help/en)
-  static/          CSS, JavaScript (ohne Build-Schritt)
-docs/              Handbücher (PDF, Deutsch und Englisch)
-tests/             Automatische Tests
-docker-compose.yml, .env.example, update.sh   Dateien für den Server (liegen auch im Image und im Release)
+  __init__.py      App factory, configuration, CLI commands
+  models.py        Data model (users, groups, books, loans, settings, mail log, security keys)
+  ldap_auth.py     Active Directory / LDAP sign-in, group resolution and role rules
+  ldap_tls.py      Fetching and verifying DC certificates
+  twofa.py         Two-factor authentication (TOTP, WebAuthn, recovery codes)
+  mailer.py        SMTP sending, notifications, daily scheduler
+  retention.py     Retention periods (delete old loans and mail log)
+  backup.py        Automatic database backups (SQLite), keeping the last N
+  dbversion.py     Database version: backup before a version change, stop on a newer database
+  composefile.py   Version check of docker-compose.yml
+  branding.py      Logo, background image, colours
+  proxy.py         Automatic reverse-proxy and HTTPS detection
+  netzone.py       Internal network or access from outside (for the 2FA rules)
+  lockout.py       Sign-in lock after failed attempts
+  isbn.py          ISBN validation and catalogue lookups (DNB, Open Library, Google Books)
+  i18n.py          German/English, language selection, date formats
+  translations/    English texts (en.json)
+  views/           Pages: main (incl. About/License, language switch), books, loans, locations, admin, security, register, help
+  templates/       Jinja templates (incl. email templates and help texts help/de, help/en)
+  static/          CSS, JavaScript (no build step)
+docs/              Manuals (PDF, German and English)
+tests/             Automated tests
+docker-compose.yml, .env.example, update.sh   Files for the server (also in the image and in the release)
 ```
 
-## Lizenz
+## License
 
-Catalytix ist freie Software unter der **GNU Affero General Public License, Version 3 oder später** (AGPL-3.0-or-later) – vollständiger Text in [LICENSE](LICENSE).
+Catalytix is free software under the **GNU Affero General Public License, version 3 or later** (AGPL-3.0-or-later) – full text in [LICENSE](LICENSE).
 
-Kurz gesagt: Jeder darf Catalytix nutzen, weitergeben und verändern, auch kommerziell. Wer eine **veränderte Fassung** weitergibt **oder im Netz für andere betreibt**, muss den Quellcode dieser Fassung unter derselben Lizenz zugänglich machen. Catalytix wird ohne jede Gewährleistung bereitgestellt.
+In short: anyone may use, share and modify Catalytix, commercially too. Anyone who distributes a **modified version** **or runs it on a network for others** must make the source code of that version available under the same license. Catalytix comes with no warranty.
 
-Version, Lizenz, Entwickler ([helfi.space](https://helfi.space)) und Quellcode-Link stehen nach der Anmeldung auf der Seite *Über dieses Programm* (Klick auf die Versionsnummer unten in der Seitenleiste) – die einzige Stelle, an der der Projektname „Catalytix“ erscheint. Den Link legen Sie mit `CATALYTIX_SOURCE_URL` in der `.env` fest.
+After signing in, version, license, developer ([helfi.space](https://helfi.space)) and source link are shown on the *Über dieses Programm* (About) page – click the version number at the bottom of the sidebar. This is the only place where the project name “Catalytix” appears. Set the link with `CATALYTIX_SOURCE_URL` in `.env`.
 
-Verwendete Bibliotheken (eigene Lizenzen, werden bei der Installation geladen): Flask, Flask-SQLAlchemy, Flask-Login, Flask-WTF, SQLAlchemy, ldap3, cryptography, fido2, segno, Pillow, requests, gunicorn/waitress.
+Libraries used (under their own licenses, installed at setup time): Flask, Flask-SQLAlchemy, Flask-Login, Flask-WTF, SQLAlchemy, ldap3, cryptography, fido2, segno, Pillow, requests, gunicorn/waitress.
 
-Mitgelieferte Schriften: **Inter** (The Inter Project Authors) und **Fraunces** (The Fraunces Project Authors), beide unter der SIL Open Font License 1.1 – Lizenztexte in `catalytix/static/fonts/`.
+Bundled fonts: **Inter** (The Inter Project Authors) and **Fraunces** (The Fraunces Project Authors), both under the SIL Open Font License 1.1 – license texts in `catalytix/static/fonts/`.

@@ -738,8 +738,8 @@ class SecurityPolicyTests(unittest.TestCase):
         self.assertIn("## English", text)
         self.assertIn("## Deutsch", text)
         self.assertNotRegex(text, r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}")   # no personal e-mail address
-        self.assertIn("SECURITY.md#deutsch", (ROOT / "README.md").read_text(encoding="utf-8"))
-        self.assertIn("SECURITY.md#english", (ROOT / "README.en.md").read_text(encoding="utf-8"))
+        self.assertIn("SECURITY.md#deutsch", (ROOT / "README.de.md").read_text(encoding="utf-8"))
+        self.assertIn("SECURITY.md#english", (ROOT / "README.md").read_text(encoding="utf-8"))
 
 
 class SlimImageTests(unittest.TestCase):

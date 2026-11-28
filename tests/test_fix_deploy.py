@@ -307,7 +307,7 @@ class ScriptsAndDocsTest(unittest.TestCase):
         subprocess.run(["sh", "-n", str(ROOT / "docker-entrypoint.sh")], check=True)
 
     def test_docs_use_entrypoint_for_exec(self):
-        for p in ["README.md", "README.en.md", "catalytix/templates/help/de/maintenance.html",
+        for p in ["README.md", "README.de.md", "catalytix/templates/help/de/maintenance.html",
                   "catalytix/templates/help/en/maintenance.html"]:
             text = (ROOT / p).read_text()
             self.assertNotIn("compose exec catalytix flask", text, p)
@@ -316,7 +316,7 @@ class ScriptsAndDocsTest(unittest.TestCase):
             self.assertIn("docker compose exec catalytix docker-entrypoint.sh", (ROOT / p).read_text())
 
     def test_docs_explain_secret_key(self):
-        for p, word in (("README.md", "2FA"), ("README.en.md", "2FA"), (".env.example", "2FA")):
+        for p, word in (("README.md", "2FA"), ("README.de.md", "2FA"), (".env.example", "2FA")):
             text = (ROOT / p).read_text()
             self.assertIn("CATALYTIX_ACCEPT_NEW_KEY", text, p)
             self.assertIn(word, text)
